@@ -8,6 +8,7 @@ import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalService.CreateOrUpdateResult
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -426,6 +427,69 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
+    fun `it should raise a 400 if temporalValues and aggregatedValues exist in options query param`() {
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&aggrPeriodDuration=P1D&" +
+                    "options=aggregatedValues,temporalValues"
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Found different temporal representations in options query parameter, only one can be provided",
+                    "detail": "$DEFAULT_DETAIL"
+                } 
+                """
+            )
+    }
+
+    @Test
+    fun `it should raise a 400 if format query param has an invalid value`() {
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&" +
+                    "format=invalid"
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
+                    "title": "'invalid' is not a valid temporal representation",
+                    "detail": "$DEFAULT_DETAIL"
+                } 
+                """
+            )
+    }
+
+    @Test
+    fun `it should raise a 400 if options query param has an invalid value`() {
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&" +
+                    "options=invalidOptions"
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
+                    "title": "'invalidOptions' is not a valid value for the options query parameter",
+                    "detail": "$DEFAULT_DETAIL"
+                } 
+                """
+            )
+    }
+
+    @Test
     fun `it should return a 404 if temporal entity attribute does not exist`() {
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any(), any())
@@ -473,7 +537,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                         temporalEntitiesQuery.temporalQuery.timeAt!!.isEqual(
                             ZonedDateTime.parse("2019-10-17T07:31:39Z")
                         ) &&
-                        !temporalEntitiesQuery.withTemporalValues &&
+                        temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NORMALIZED &&
                         !temporalEntitiesQuery.withAudit
                 },
                 eq(sub.value)
@@ -604,7 +668,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                         entitiesQueryFromGet.ids.isEmpty() &&
                         entitiesQueryFromGet.typeSelection == BEEHIVE_TYPE &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
-                        !temporalEntitiesQuery.withTemporalValues
+                        temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NORMALIZED
                 },
                 any()
             )
@@ -972,7 +1036,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
     @Test
     fun `delete temporal entity should return a 204 if an entity has been successfully deleted`() {
-        coEvery { entityService.deleteEntity(any(), any()) } returns Unit.right()
+        coEvery { temporalService.deleteEntity(any(), any()) } returns Unit.right()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
@@ -981,14 +1045,14 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectBody().isEmpty
 
         coVerify {
-            entityService.deleteEntity(eq(entityUri), eq(sub.value))
+            temporalService.deleteEntity(eq(entityUri), eq(sub.value))
         }
     }
 
     @Test
     fun `delete temporal entity should return a 404 if entity to be deleted has not been found`() {
         coEvery {
-            entityService.deleteEntity(entityUri, sub.getOrNull())
+            temporalService.deleteEntity(entityUri, sub.getOrNull())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         webClient.delete()
@@ -1034,7 +1098,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete temporal entity should return a 500 if entity could not be deleted`() {
         coEvery {
-            entityService.deleteEntity(any(), any())
+            temporalService.deleteEntity(any(), any())
         } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
@@ -1055,7 +1119,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete temporal entity should return a 403 is user is not authorized to delete an entity`() {
         coEvery {
-            entityService.deleteEntity(any(), any())
+            temporalService.deleteEntity(any(), any())
         } returns AccessDeniedException("User forbidden admin access to entity $entityUri").left()
 
         webClient.delete()
@@ -1077,7 +1141,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 204 if the attribute has been successfully deleted`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -1089,7 +1153,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectBody().isEmpty
 
         coVerify {
-            entityService.deleteAttribute(
+            temporalService.deleteAttribute(
                 eq(entityUri),
                 eq(TEMPERATURE_PROPERTY),
                 null,
@@ -1102,7 +1166,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should delete all instances if deleteAll flag is true`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -1114,7 +1178,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectBody().isEmpty
 
         coVerify {
-            entityService.deleteAttribute(
+            temporalService.deleteAttribute(
                 eq(entityUri),
                 eq(TEMPERATURE_PROPERTY),
                 null,
@@ -1128,7 +1192,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `delete attribute temporal should delete instance with the provided datasetId`() {
         val datasetId = "urn:ngsi-ld:Dataset:temperature:1"
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
@@ -1140,7 +1204,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .expectBody().isEmpty
 
         coVerify {
-            entityService.deleteAttribute(
+            temporalService.deleteAttribute(
                 eq(entityUri),
                 eq(TEMPERATURE_PROPERTY),
                 eq(datasetId.toUri()),
@@ -1153,7 +1217,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 404 if the entity is not found`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         webClient.method(HttpMethod.DELETE)
@@ -1176,7 +1240,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 404 if the attribute is not found`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns ResourceNotFoundException("Attribute Not Found").left()
 
         webClient.method(HttpMethod.DELETE)
@@ -1199,7 +1263,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 400 if the request is not correct`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns BadRequestDataException("Something is wrong with the request").left()
 
         webClient.method(HttpMethod.DELETE)
@@ -1273,7 +1337,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 403 if user is not allowed to update entity`() {
         coEvery {
-            entityService.deleteAttribute(any(), any(), any(), any(), any())
+            temporalService.deleteAttribute(any(), any(), any(), any(), any())
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
 
         webClient.method(HttpMethod.DELETE)

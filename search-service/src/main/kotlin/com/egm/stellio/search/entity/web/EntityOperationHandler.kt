@@ -109,7 +109,9 @@ class EntityOperationHandler(
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val options = queryParams.getFirst(QP.OPTIONS.key)
+        val options = queryParams.getFirst(QP.OPTIONS.key)?.split(",")
+        val disallowOverwrite = options?.any { it == OptionsValue.NO_OVERWRITE.value } == true
+        val updateMode = options?.any { it == OptionsValue.UPDATE_MODE.value } == true
         val sub = getSubFromSecurityContext()
 
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
@@ -121,7 +123,8 @@ class EntityOperationHandler(
         val newUniqueEntities = if (parsedEntities.isNotEmpty()) {
             val (updateOperationResult, newUniqueEntities) = entityOperationService.upsert(
                 parsedEntities,
-                options,
+                disallowOverwrite,
+                updateMode,
                 sub.getOrNull()
             )
 
@@ -155,11 +158,11 @@ class EntityOperationHandler(
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val options = queryParams.getFirst(QP.OPTIONS.key)
+        val disallowOverwrite = options?.let { it == OptionsValue.NO_OVERWRITE.value } == true
+
         val sub = getSubFromSecurityContext()
 
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
-
-        val disallowOverwrite = options?.let { it == OptionsValue.NO_OVERWRITE.value } ?: false
 
         val batchOperationResult = BatchOperationResult().apply {
             addEntitiesToErrors(unparsableEntities)
@@ -201,8 +204,7 @@ class EntityOperationHandler(
         }
 
         if (parsedEntities.isNotEmpty()) {
-            val mergeOperationResult =
-                entityOperationService.merge(parsedEntities, sub.getOrNull())
+            val mergeOperationResult = entityOperationService.merge(parsedEntities, sub.getOrNull())
             batchOperationResult.errors.addAll(mergeOperationResult.errors)
             batchOperationResult.success.addAll(mergeOperationResult.success)
         }
@@ -279,7 +281,7 @@ class EntityOperationHandler(
 
         val compactedEntities = compactEntities(filteredEntities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
             .copy(languageFilter = query.lang)
 
         buildQueryResponse(

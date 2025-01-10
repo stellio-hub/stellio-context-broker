@@ -213,25 +213,67 @@ class EntityHandler(
         ).bind()
             .validateMinimalQueryEntitiesParameters().bind()
 
-        val (entities, count) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
+        val csrFilters =
+            CSRFilters(
+                ids = entitiesQuery.ids,
+                idPattern = entitiesQuery.idPattern,
+                typeSelection = entitiesQuery.typeSelection,
+                operations = listOf(
+                    Operation.QUERY_ENTITY,
+                    Operation.FEDERATION_OPS,
+                    Operation.RETRIEVE_OPS,
+                    Operation.REDIRECTION_OPS
+                )
+            )
+
+        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
+
+        val (entities, localCount) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
 
         val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 
-        val compactedEntities =
+        val localEntities =
             compactEntities(filteredEntities, contexts).let {
                 linkedEntityService.processLinkedEntities(it, entitiesQuery, sub.getOrNull()).bind()
             }
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
+        val (warnings, remoteEntitiesWithCSR, remoteCounts) = matchingCSR.parMap { csr ->
+            val response = ContextSourceCaller.queryContextSourceEntities(
+                httpHeaders,
+                csr,
+                queryParams
+            )
+            contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
+            response.map { (entities, count) -> Triple(entities, csr, count) }
+        }.separateEither()
+            .let { (warnings, response) ->
+                Triple(
+                    warnings.toMutableList(),
+                    response.map { (entities, csr, _) -> entities to csr },
+                    response.map { (_, _, counts) -> counts }
+                )
+            }
+
+        val maxCount = (remoteCounts + localCount).maxBy { it ?: 0 } ?: 0
+
+        val mergedEntities = ContextSourceUtils.mergeEntitiesLists(
+            localEntities,
+            remoteEntitiesWithCSR
+        ).toPair().let { (mergeWarnings, mergedEntities) ->
+            mergeWarnings?.let { warnings.addAll(it) }
+            mergedEntities ?: emptyList()
+        }
+
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         buildQueryResponse(
-            compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
-            count,
+            mergedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
+            maxCount,
             "/ngsi-ld/v1/entities",
             entitiesQuery.paginationQuery,
             queryParams,
             mediaType,
             contexts
-        )
+        ).addWarnings(warnings)
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -246,10 +288,10 @@ class EntityHandler(
         @PathVariable entityId: URI,
         @AllowedParameters(
             implemented = [
-                QP.OPTIONS, QP.TYPE, QP.ATTRS, QP.GEOMETRY_PROPERTY,
+                QP.OPTIONS, QP.FORMAT, QP.TYPE, QP.ATTRS, QP.GEOMETRY_PROPERTY,
                 QP.LANG, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID,
             ],
-            notImplemented = [QP.FORMAT, QP.PICK, QP.OMIT, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
+            notImplemented = [QP.PICK, QP.OMIT, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -264,7 +306,15 @@ class EntityHandler(
         ).bind()
 
         val csrFilters =
-            CSRFilters(ids = setOf(entityId), operations = listOf(Operation.FEDERATION_OPS, Operation.RETRIEVE_ENTITY))
+            CSRFilters(
+                ids = setOf(entityId),
+                operations = listOf(
+                    Operation.RETRIEVE_ENTITY,
+                    Operation.FEDERATION_OPS,
+                    Operation.RETRIEVE_OPS,
+                    Operation.REDIRECTION_OPS
+                )
+            )
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
 
@@ -280,10 +330,10 @@ class EntityHandler(
 
         // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
         val (warnings, remoteEntitiesWithCSR) = matchingCSR.parMap { csr ->
-            val response = ContextSourceCaller.getDistributedInformation(
+            val response = ContextSourceCaller.retrieveContextSourceEntity(
                 httpHeaders,
                 csr,
-                "/ngsi-ld/v1/entities/$entityId",
+                entityId,
                 queryParams
             )
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
@@ -293,7 +343,6 @@ class EntityHandler(
                 warnings.toMutableList() to maybeResponses.filterNotNull()
             }
 
-        // we could simplify the code if we check the JsonPayload beforehand
         val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeEntities(
             localEntity.getOrNull(),
             remoteEntitiesWithCSR
@@ -309,7 +358,7 @@ class EntityHandler(
         val mergedEntityWithLinkedEntities =
             linkedEntityService.processLinkedEntities(mergedEntity, entitiesQuery, sub.getOrNull()).bind()
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .let {
                 val body = if (mergedEntityWithLinkedEntities.size == 1)

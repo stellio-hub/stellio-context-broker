@@ -5,8 +5,8 @@
     {
       "entities": [
         {
-          "id": "urn:ngsi-ld:Vehicle:A456",
-          "type": "Vehicle"
+          "id": "urn:ngsi-ld:BeeHive:A456",
+          "type": "BeeHive"
         }
       ]
     }

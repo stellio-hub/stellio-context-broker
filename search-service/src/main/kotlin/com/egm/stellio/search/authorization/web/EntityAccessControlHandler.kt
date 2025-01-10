@@ -4,10 +4,11 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.authorization.service.EntityAccessRightsService
+import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
-import com.egm.stellio.search.entity.model.UpdateAttributeResult
-import com.egm.stellio.search.entity.model.UpdateOperationResult
-import com.egm.stellio.search.entity.model.updateResultFromDetailedResult
+import com.egm.stellio.search.entity.model.OperationStatus
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
+import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -19,6 +20,7 @@ import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AuthContextModel.ALL_ASSIGNABLE_IAM_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
@@ -70,10 +72,11 @@ class EntityAccessControlHandler(
     @GetMapping("/entities", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getAuthorizedEntities(
         @RequestHeader httpHeaders: HttpHeaders,
-        @AllowedParameters(implemented = [QP.ID, QP.TYPE, QP.ATTRS, QP.COUNT, QP.OFFSET, QP.LIMIT])
+        @AllowedParameters(implemented = [QP.ID, QP.TYPE, QP.ATTRS, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.INCLUDE_DELETED])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
+        val includeDeleted = queryParams.getFirst(QueryParameter.INCLUDE_DELETED.key)?.toBoolean() == true
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
@@ -91,6 +94,7 @@ class EntityAccessControlHandler(
 
         val (count, entities) = authorizationService.getAuthorizedEntities(
             entitiesQuery,
+            includeDeleted,
             contexts,
             sub
         ).bind()
@@ -101,7 +105,7 @@ class EntityAccessControlHandler(
 
         val compactedEntities = compactEntities(entities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
@@ -146,7 +150,7 @@ class EntityAccessControlHandler(
 
         val compactedEntities = compactEntities(entities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
@@ -192,7 +196,7 @@ class EntityAccessControlHandler(
 
         val compactedEntities = compactEntities(entities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
@@ -254,24 +258,24 @@ class EntityAccessControlHandler(
                 AccessRight.forAttributeName(ngsiLdRel.name).getOrNull()!!
             ).fold(
                 ifLeft = { apiException ->
-                    UpdateAttributeResult(
+                    FailedAttributeOperationResult(
                         ngsiLdRel.name,
                         ngsiLdRelInstance.datasetId,
-                        UpdateOperationResult.FAILED,
+                        OperationStatus.FAILED,
                         apiException.message
                     )
                 },
                 ifRight = {
-                    UpdateAttributeResult(
+                    SucceededAttributeOperationResult(
                         ngsiLdRel.name,
                         ngsiLdRelInstance.datasetId,
-                        UpdateOperationResult.APPENDED,
-                        null
+                        OperationStatus.APPENDED,
+                        emptyMap()
                     )
                 }
             )
         }
-        val appendResult = updateResultFromDetailedResult(results)
+        val appendResult = UpdateResult(results)
 
         if (invalidAttributes.isEmpty() && unauthorizedInstances.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

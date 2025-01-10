@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
@@ -91,13 +92,19 @@ fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
 fun ExpandedAttributeInstance.addSysAttrs(
     withSysAttrs: Boolean,
     createdAt: ZonedDateTime,
-    modifiedAt: ZonedDateTime?
-): Map<String, Any> =
+    modifiedAt: ZonedDateTime? = null,
+    deletedAt: ZonedDateTime? = null
+): ExpandedAttributeInstance =
     if (withSysAttrs)
         this.plus(NGSILD_CREATED_AT_PROPERTY to buildNonReifiedTemporalValue(createdAt))
             .let {
                 if (modifiedAt != null)
                     it.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
+                else it
+            }
+            .let {
+                if (deletedAt != null)
+                    it.plus(NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt))
                 else it
             }
     else this
@@ -196,6 +203,9 @@ fun ExpandedAttributeInstance.getRelationshipObject(name: String): Either<BadReq
 
 fun ExpandedAttributeInstance.getDatasetId(): URI? =
     (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
+
+fun ExpandedAttributeInstance.getRelationshipId(): URI? =
+    (this[NGSILD_RELATIONSHIP_OBJECT]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
 
 fun ExpandedAttributeInstance.getScopes(): List<String>? =
     when (val rawScopes = this.getMemberValue(NGSILD_SCOPE_PROPERTY)) {

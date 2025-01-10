@@ -17,6 +17,7 @@ import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.service.TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange
 import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.search.temporal.web.Range
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -43,12 +44,12 @@ class TemporalQueryService(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         sub: Sub? = null
     ): Either<APIException, Pair<ExpandedEntity, Range?>> = either {
-        entityQueryService.checkEntityExistence(entityId).bind()
+        val entity = entityQueryService.retrieve(entityId).bind()
         authorizationService.userCanReadEntity(entityId, sub.toOption()).bind()
 
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val datasetIds = temporalEntitiesQuery.entitiesQuery.datasetId
-        val attributes = entityAttributeService.getForEntity(entityId, attrs, datasetIds).let {
+        val attributes = entityAttributeService.getForEntity(entityId, attrs, datasetIds, false).let {
             if (it.isEmpty())
                 ResourceNotFoundException(
                     entityOrAttrsNotFoundMessage(entityId.toString(), temporalEntitiesQuery.entitiesQuery.attrs)
@@ -56,7 +57,6 @@ class TemporalQueryService(
             else it.right()
         }.bind()
 
-        val entityPayload = entityQueryService.retrieve(entityId).bind()
         val origin = calculateOldestTimestamp(entityId, temporalEntitiesQuery, attributes)
 
         val scopeHistory =
@@ -76,7 +76,7 @@ class TemporalQueryService(
             fillWithAttributesWithEmptyInstances(attributes, paginatedAttributesWithInstances)
 
         TemporalEntityBuilder.buildTemporalEntity(
-            EntityTemporalResult(entityPayload, scopeHistory, attributesWithInstances),
+            EntityTemporalResult(entity, scopeHistory, attributesWithInstances),
             temporalEntitiesQuery
         ) to range
     }
@@ -94,10 +94,10 @@ class TemporalQueryService(
         // - timeAt if it is provided
         // - the oldest value if not (timeAt is optional if querying a temporal entity by id)
 
-        if (!temporalEntitiesQuery.withAggregatedValues)
-            return null
+        return if (temporalEntitiesQuery.temporalRepresentation != TemporalRepresentation.AGGREGATED_VALUES)
+            null
         else if (temporalQuery.timeAt != null)
-            return temporalQuery.timeAt
+            temporalQuery.timeAt
         else {
             val originForAttributes =
                 attributeInstanceService.selectOldestDate(temporalQuery, attributes)
@@ -108,7 +108,7 @@ class TemporalQueryService(
                     scopeService.selectOldestDate(entityId, temporalEntitiesQuery.temporalQuery.timeproperty)
                 else null
 
-            return when {
+            when {
                 originForAttributes == null -> originForScope
                 originForScope == null -> originForAttributes
                 else -> minOf(originForAttributes, originForScope)
@@ -122,9 +122,11 @@ class TemporalQueryService(
     ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
         val accessRightFilter = authorizationService.computeAccessRightFilter(sub.toOption())
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
-        val entitiesIds = entityQueryService.queryEntities(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
-        val count = entityQueryService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, accessRightFilter)
-            .getOrElse { 0 }
+        val entitiesIds =
+            entityQueryService.queryEntities(temporalEntitiesQuery.entitiesQuery, false, accessRightFilter)
+        val count =
+            entityQueryService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, false, accessRightFilter)
+                .getOrElse { 0 }
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
@@ -197,7 +199,7 @@ class TemporalQueryService(
                 // when retrieved from DB, values of geo-properties are encoded in WKT and won't be automatically
                 // transformed during compaction as it is not done for temporal values, so it is done now
                 if (it.key == Attribute.AttributeValueType.GEOMETRY &&
-                    temporalEntitiesQuery.withTemporalValues
+                    temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES
                 ) {
                     it.value.map { attributeInstanceResult ->
                         attributeInstanceResult as SimplifiedAttributeInstanceResult

@@ -69,7 +69,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                false,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData("expectations/beehive_incoming_multi_instances_without_datasetId.jsonld")
             )
@@ -115,7 +115,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                false,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData("expectations/beehive_relationship_multi_instances_without_datasetId.jsonld")
             )
@@ -193,7 +193,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                false,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData("expectations/beehive_incoming_multi_instances.jsonld")
             )
@@ -237,7 +237,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                false,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData("expectations/beehive_incoming_multi_instances_string_values.jsonld")
             )
@@ -281,7 +281,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                false,
+                TemporalRepresentation.NORMALIZED,
                 true,
                 loadSampleData("expectations/beehive_incoming_multi_instances_string_values_with_audit.jsonld")
             )
@@ -324,7 +324,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                false,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData(
                     "expectations/beehive_incoming_multi_instances_without_datasetId_string_values.jsonld"
@@ -355,7 +355,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                true,
+                TemporalRepresentation.TEMPORAL_VALUES,
                 false,
                 loadSampleData(
                     "expectations/beehive_incoming_multi_instances_without_datasetId_temporal_values.jsonld"
@@ -407,7 +407,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                true,
+                TemporalRepresentation.TEMPORAL_VALUES,
                 false,
                 loadSampleData("expectations/beehive_incoming_multi_instances_temporal_values.jsonld")
             )
@@ -437,7 +437,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                true,
+                TemporalRepresentation.TEMPORAL_VALUES,
                 false,
                 loadSampleData("expectations/beehive_incoming_multi_instances_string_temporal_values.jsonld")
             )
@@ -466,7 +466,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                true,
+                TemporalRepresentation.TEMPORAL_VALUES,
                 false,
                 loadSampleData(
                     "expectations/beehive_incoming_multi_instances_without_datasetId_string_temporal_values.jsonld"
@@ -499,7 +499,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                true,
+                TemporalRepresentation.TEMPORAL_VALUES,
                 false,
                 loadSampleData("expectations/beehive_relationship_multi_instances_temporal_values.jsonld")
             )
@@ -519,7 +519,7 @@ class TemporalEntityParameterizedSource {
                     )
                 ),
                 emptyMap<Attribute, List<AttributeInstanceResult>>(),
-                true,
+                TemporalRepresentation.TEMPORAL_VALUES,
                 false,
                 loadSampleData("expectations/beehive_scope_multi_instances_temporal_values.jsonld")
             )
@@ -541,7 +541,7 @@ class TemporalEntityParameterizedSource {
                     )
                 ),
                 emptyMap<Attribute, List<AttributeInstanceResult>>(),
-                false,
+                TemporalRepresentation.NORMALIZED,
                 false,
                 loadSampleData("expectations/beehive_scope_multi_instances.jsonld")
             )
@@ -576,7 +576,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                true,
+                TemporalRepresentation.TEMPORAL_VALUES,
                 false,
                 loadSampleData("expectations/beehive_json_property_temporal_values.jsonld")
             )
@@ -625,7 +625,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                true,
+                TemporalRepresentation.TEMPORAL_VALUES,
                 false,
                 loadSampleData("expectations/beehive_language_property_temporal_values.jsonld")
             )
@@ -667,7 +667,7 @@ class TemporalEntityParameterizedSource {
                             )
                         )
                 ),
-                true,
+                TemporalRepresentation.TEMPORAL_VALUES,
                 false,
                 loadSampleData("expectations/beehive_vocab_property_temporal_values.jsonld")
             )

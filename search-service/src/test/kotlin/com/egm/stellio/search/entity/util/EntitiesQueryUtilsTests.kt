@@ -183,7 +183,7 @@ class EntitiesQueryUtilsTests {
         requestParams.add("count", "true")
         requestParams.add("offset", "1")
         requestParams.add("limit", "10")
-        requestParams.add("options", "keyValues")
+        requestParams.add("format", "keyValues")
         requestParams.add("containedBy", "urn:ngsi-ld:Beekeper:A,urn:ngsi-ld:Beekeeper:B")
         requestParams.add("join", "inline")
         requestParams.add("joinLevel", "1")

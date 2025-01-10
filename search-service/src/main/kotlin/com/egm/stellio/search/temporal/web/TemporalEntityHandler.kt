@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.service.TemporalService
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromGet
@@ -64,7 +63,6 @@ import java.net.URI
 class TemporalEntityHandler(
     private val temporalService: TemporalService,
     private val temporalQueryService: TemporalQueryService,
-    private val entityService: EntityService,
     private val applicationProperties: ApplicationProperties
 ) : BaseHandler() {
 
@@ -143,11 +141,11 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @AllowedParameters(
             implemented = [
-                QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
+                QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT,
                 QP.ENDTIMEAT, QP.LASTN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.SCOPEQ, QP.DATASET_ID
             ],
-            notImplemented = [QP.FORMAT, QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF]
+            notImplemented = [QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -189,10 +187,10 @@ class TemporalEntityHandler(
         @PathVariable entityId: URI,
         @AllowedParameters(
             implemented = [
-                QP.OPTIONS, QP.ATTRS, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT, QP.LASTN,
+                QP.OPTIONS, QP.FORMAT, QP.ATTRS, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT, QP.LASTN,
                 QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.DATASET_ID
             ],
-            notImplemented = [QP.FORMAT, QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT]
+            notImplemented = [QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -211,7 +209,7 @@ class TemporalEntityHandler(
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType)
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         buildEntityTemporalResponse(mediaType, contexts, temporalEntitiesQuery, range)
             .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
     }.fold(
@@ -277,7 +275,7 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
 
-        entityService.deleteEntity(entityId, sub.getOrNull()).bind()
+        temporalService.deleteEntity(entityId, sub.getOrNull()).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -307,7 +305,7 @@ class TemporalEntityHandler(
         attrId.checkNameIsNgsiLdSupported().bind()
         val expandedAttrId = expandJsonLdTerm(attrId, contexts)
 
-        entityService.deleteAttribute(
+        temporalService.deleteAttribute(
             entityId,
             expandedAttrId,
             datasetId,

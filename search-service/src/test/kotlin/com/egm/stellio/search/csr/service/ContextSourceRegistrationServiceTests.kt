@@ -5,10 +5,13 @@ import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.notFoundMessage
 import com.egm.stellio.search.csr.model.Operation
+import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.DEVICE_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.shouldFailWith
@@ -31,7 +34,7 @@ import java.util.UUID
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=false"])
-class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
+class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
@@ -106,7 +109,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
         contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
-            CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
+            CSRFilters(ids = setOf("urn:ngsi-ld:BeeHive:A456".toUri()))
         )
 
         assertEquals(1, matchingCsrs.size)
@@ -279,6 +282,44 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer {
 
         val notMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(operations = listOf(Operation.CREATE_ENTITY))
+        )
+        assertTrue(notMatchingCsr.isEmpty())
+    }
+
+    @Test
+    fun `query on CSR entity types should filter the result`() = runTest {
+        val csr =
+            loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
+        contextSourceRegistrationService.create(csr, mockUserSub).shouldSucceed()
+        val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(typeSelection = BEEHIVE_TYPE)
+        )
+        assertEquals(listOf(csr), oneCsrMatching)
+
+        val multipleTypesOneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(typeSelection = "$BEEHIVE_TYPE|$DEVICE_TYPE")
+        )
+        assertEquals(listOf(csr), multipleTypesOneCsrMatching)
+
+        val notMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(typeSelection = "INVALID")
+        )
+        assertTrue(notMatchingCsr.isEmpty())
+    }
+
+    @Test
+    fun `query on CSR entity idPattern should filter the result`() = runTest {
+        val contextSourceRegistration =
+            loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
+        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+
+        val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(idPattern = ".*")
+        )
+        assertEquals(listOf(contextSourceRegistration), oneCsrMatching)
+
+        val notMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(idPattern = "INVALID")
         )
         assertTrue(notMatchingCsr.isEmpty())
     }

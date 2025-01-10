@@ -12,6 +12,7 @@ import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -23,7 +24,6 @@ import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -45,7 +45,7 @@ import java.util.stream.Stream
 
 @SpringBootTest
 @ActiveProfiles("test")
-class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var scopeService: ScopeService
@@ -64,10 +64,6 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @AfterEach
     fun clearEntityPayloadTable() {
         r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
-
-        runBlocking {
-            scopeService.delete(beehiveTestCId)
-        }
     }
 
     @Suppress("unused")
@@ -159,9 +155,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 buildDefaultTestTemporalQuery(timeproperty = TemporalProperty.MODIFIED_AT),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
             )
         ).shouldSucceedAndResult()
 
@@ -189,9 +184,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ngsiLdDateTime()
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
             )
         ).shouldSucceedAndResult()
 
@@ -221,9 +215,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
                     aggrPeriodDuration = "PT1S"
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
             ),
             ngsiLdDateTime().minusHours(1)
         ).shouldSucceedAndResult()
@@ -255,9 +248,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
                     aggrPeriodDuration = "PT0S"
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
             ),
             ngsiLdDateTime().minusHours(1)
         ).shouldSucceedAndResult()
@@ -288,9 +280,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                         aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
                         aggrPeriodDuration = "PT0S"
                     ),
-                    withTemporalValues = false,
-                    withAudit = false,
-                    withAggregatedValues = true
+                    temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                    withAudit = false
                 ),
                 ngsiLdDateTime().minusHours(1)
             ).shouldSucceedAndResult()
@@ -324,9 +315,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     instanceLimit = 1,
                     lastN = 1
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
             ),
             ngsiLdDateTime().minusHours(1)
         ).shouldSucceedAndResult()
@@ -370,9 +360,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     timeAt = ZonedDateTime.parse("2024-08-13T00:00:00Z"),
                     instanceLimit = 5
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
             ),
             ngsiLdDateTime().minusHours(1)
         ).shouldSucceedWith {
@@ -418,9 +407,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     endTimeAt = ZonedDateTime.parse("2024-08-15T00:00:00Z"),
                     instanceLimit = 5
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
             ),
             ngsiLdDateTime().minusHours(1)
         ).shouldSucceedWith {
@@ -452,9 +440,8 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer {
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 buildDefaultTestTemporalQuery(),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
             )
         ).shouldSucceedAndResult()
         assertTrue(scopeHistoryEntries.isEmpty())

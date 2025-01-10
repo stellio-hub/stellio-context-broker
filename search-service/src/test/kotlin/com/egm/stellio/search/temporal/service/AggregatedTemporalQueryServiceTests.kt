@@ -14,6 +14,7 @@ import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -45,7 +46,7 @@ import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var attributeInstanceService: AttributeInstanceService
@@ -508,7 +509,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
                 aggrPeriodDuration = aggrPeriodDuration,
                 aggrMethods = listOfNotNull(TemporalQuery.Aggregate.forMethod(aggrMethod))
             ),
-            withAggregatedValues = true
+            temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES
         )
 
     private fun assertAggregatedResult(

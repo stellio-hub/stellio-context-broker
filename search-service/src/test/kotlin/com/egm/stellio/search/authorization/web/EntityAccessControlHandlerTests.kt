@@ -21,6 +21,7 @@ import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AUTHZ_TEST_CONTEXT
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS_TERMS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_FAMILY_NAME
@@ -534,7 +535,7 @@ class EntityAccessControlHandlerTests {
             .bodyValue(requestPayload)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().jsonPath("$.detail", "Bad request")
+            .expectBody().jsonPath("$.title").isEqualTo("Bad request")
     }
 
     @Test
@@ -595,7 +596,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 200 and the number of results if requested limit is 0`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
         } returns Pair(3, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -609,7 +610,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
         } returns Pair(0, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -620,9 +621,43 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
+    fun `get authorized entities should not ask for deleted entities if includeDeleted query param is not provided`() {
+        coEvery {
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
+        } returns Pair(0, emptyList<ExpandedEntity>()).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/entities")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
+
+        coVerify {
+            authorizationService.getAuthorizedEntities(any(), false, any(), any())
+        }
+    }
+
+    @Test
+    fun `get authorized entities should ask for deleted entities if includeDeleted query param is true`() {
+        coEvery {
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
+        } returns Pair(0, emptyList<ExpandedEntity>()).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/entities?includeDeleted=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
+
+        coVerify {
+            authorizationService.getAuthorizedEntities(any(), true, any(), any())
+        }
+    }
+
+    @Test
     fun `get authorized entities should return entities I have a right on`() = runTest {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
         } returns Pair(
             2,
             listOf(
@@ -689,16 +724,14 @@ class EntityAccessControlHandlerTests {
             .exchange()
             .expectStatus().isBadRequest
             .expectBody()
-            .jsonPath(
-                "$.detail",
-                "The parameter q only accepts as a value one or more of ${AuthContextModel.ALL_IAM_RIGHTS_TERMS}"
-            )
+            .jsonPath("$.title")
+            .isEqualTo("The attrs parameter only accepts as a value one or more of $ALL_IAM_RIGHTS_TERMS")
     }
 
     @Test
     fun `get authorized entities should return 204 if authentication is not enabled`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
         } returns Pair(-1, emptyList<ExpandedEntity>()).right()
 
         webClient.get()

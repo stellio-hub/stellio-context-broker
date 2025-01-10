@@ -6,6 +6,7 @@ import com.egm.stellio.shared.model.AttributeCompactedType.LANGUAGEPROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.PROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.RELATIONSHIP
 import com.egm.stellio.shared.model.AttributeCompactedType.VOCABPROPERTY
+import com.egm.stellio.shared.model.AttributeCompactedType.entries
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.FEATURES_PROPERTY_TERM
 import com.egm.stellio.shared.util.FEATURE_COLLECTION_TYPE
@@ -23,6 +24,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VOCAB_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_ENTITY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TERM
@@ -39,8 +41,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_TERM
 import com.egm.stellio.shared.util.PROPERTIES_PROPERTY_TERM
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
-import java.util.Locale
-import kotlin.collections.Map
+import java.util.*
 
 typealias CompactedEntity = Map<String, Any>
 typealias CompactedAttributeInstance = Map<String, Any>
@@ -220,7 +221,8 @@ fun CompactedEntity.withoutSysAttrs(sysAttrToKeep: String?): Map<String, Any> {
     }
 
     return this.filter {
-        !sysAttrsToRemove.contains(it.key)
+        // deletedAt has to be kept at entity level (but not in attributes), see 5.8.6
+        !sysAttrsToRemove.minus(NGSILD_DELETED_AT_TERM).contains(it.key)
     }.mapValues {
         when (it.value) {
             is Map<*, *> -> removeSysAttrsFromAttrInstance(it.value as Map<*, *>)

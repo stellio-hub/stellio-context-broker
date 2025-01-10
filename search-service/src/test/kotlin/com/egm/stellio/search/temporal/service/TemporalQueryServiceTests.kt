@@ -20,6 +20,7 @@ import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIARY_TYPE
@@ -83,7 +84,7 @@ class TemporalQueryServiceTests {
     @Test
     fun `it should return an API exception if the entity does not exist`() = runTest {
         coEvery {
-            entityQueryService.checkEntityExistence(any())
+            entityQueryService.retrieve(any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         temporalQueryService.queryTemporalEntity(
@@ -91,9 +92,8 @@ class TemporalQueryServiceTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                withTemporalValues = true,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.TEMPORAL_VALUES,
+                withAudit = false
             )
         ).fold({
             assertInstanceOf(ResourceNotFoundException::class.java, it)
@@ -116,10 +116,9 @@ class TemporalQueryServiceTests {
                 )
             }
 
-        coEvery { entityQueryService.checkEntityExistence(any()) } returns Unit.right()
-        coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
-        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns attributes
         coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
+        coEvery { entityAttributeService.getForEntity(any(), any(), any(), any()) } returns attributes
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<Attribute>>())
@@ -140,16 +139,15 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
             )
         )
 
         coVerify {
-            entityQueryService.checkEntityExistence(entityUri)
+            entityQueryService.retrieve(entityUri)
             authorizationService.userCanReadEntity(entityUri, None)
-            entityAttributeService.getForEntity(entityUri, emptySet(), emptySet())
+            entityAttributeService.getForEntity(entityUri, emptySet(), emptySet(), false)
             attributeInstanceService.search(
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.temporalQuery.timerel == TemporalQuery.Timerel.AFTER &&
@@ -173,9 +171,8 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
             ),
             emptyList()
         )
@@ -196,9 +193,8 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
             ),
             emptyList()
         )
@@ -224,9 +220,8 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
             ),
             emptyList()
         )
@@ -246,11 +241,11 @@ class TemporalQueryServiceTests {
         )
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { entityQueryService.queryEntities(any(), any<() -> String?>()) } returns listOf(entityUri)
+        coEvery { entityQueryService.queryEntities(any(), any(), any<() -> String?>()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForEntities(any(), any())
         } returns listOf(attribute)
-        coEvery { entityQueryService.queryEntitiesCount(any(), any()) } returns 1.right()
+        coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 1.right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
         coEvery {
@@ -275,9 +270,8 @@ class TemporalQueryServiceTests {
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
-                withTemporalValues = true,
-                withAudit = false,
-                withAggregatedValues = false
+                temporalRepresentation = TemporalRepresentation.TEMPORAL_VALUES,
+                withAudit = false
             )
         )
 
@@ -305,6 +299,7 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
+                false,
                 any()
             )
             scopeService.retrieveHistory(listOf(entityUri), any())
@@ -322,7 +317,7 @@ class TemporalQueryServiceTests {
         )
 
         coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { entityQueryService.queryEntities(any(), any<() -> String?>()) } returns listOf(entityUri)
+        coEvery { entityQueryService.queryEntities(any(), any(), any<() -> String?>()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForEntities(any(), any())
         } returns listOf(attribute)
@@ -331,7 +326,7 @@ class TemporalQueryServiceTests {
             attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns emptyList<AttributeInstanceResult>().right()
         coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
-        coEvery { entityQueryService.queryEntitiesCount(any(), any()) } returns 1.right()
+        coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 1.right()
 
         temporalQueryService.queryTemporalEntities(
             TemporalEntitiesQueryFromGet(
@@ -345,9 +340,8 @@ class TemporalQueryServiceTests {
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
                     aggrMethods = listOf(TemporalQuery.Aggregate.AVG)
                 ),
-                withTemporalValues = false,
-                withAudit = false,
-                withAggregatedValues = true
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
             )
         )
             .fold({

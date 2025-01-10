@@ -26,8 +26,32 @@ import java.time.ZonedDateTime
 import kotlin.random.Random.Default.nextBoolean
 
 typealias CompactedEntityWithCSR = Pair<CompactedEntity, ContextSourceRegistration>
+typealias CompactedEntitiesWithCSR = Pair<List<CompactedEntity>, ContextSourceRegistration>
+
 typealias AttributeByDatasetId = Map<String?, CompactedAttributeInstance>
 object ContextSourceUtils {
+
+    fun mergeEntitiesLists(
+        localEntities: List<CompactedEntity>,
+        remoteEntitiesWithCSR: List<CompactedEntitiesWithCSR>
+    ): IorNel<NGSILDWarning, List<CompactedEntity>> {
+        val mergedEntityMap = localEntities.map { it.toMutableMap() }.associateBy { it[JSONLD_ID_TERM] }.toMutableMap()
+
+        val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }.mapNotNull { (entities, csr) ->
+            either {
+                entities.forEach { entity ->
+                    val id = entity[JSONLD_ID_TERM]
+                    mergedEntityMap[id]
+                        ?.let { it.putAll(getMergeNewValues(it, entity, csr).bind()) }
+                        ?: run { mergedEntityMap[id] = entity.toMutableMap() }
+                }
+                null
+            }.leftOrNull()
+        }.toNonEmptyListOrNull()
+
+        val entities = mergedEntityMap.values.toList()
+        return if (warnings == null) Ior.Right(entities) else Ior.Both(warnings, entities)
+    }
 
     fun mergeEntities(
         localEntity: CompactedEntity?,
@@ -129,7 +153,7 @@ object ContextSourceUtils {
                 attribute.associateBy { it[NGSILD_DATASET_ID_TERM] as? String }.right()
             }
             else -> {
-                RevalidationFailedWarning(
+                RevalidationFailedWarning( // could be avoided if Json payload is validated beforehand
                     "The received payload is invalid. Attribute is nor List nor a Map : $attribute",
                     csr
                 ).left()

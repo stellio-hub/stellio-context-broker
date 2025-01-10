@@ -3,6 +3,7 @@ package com.egm.stellio.search.scope
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LIST
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
@@ -27,12 +28,12 @@ object TemporalScopeBuilder {
         // if no history but entity has a scope, add an empty scope list (no history in the given time range)
         else if (scopeInstances.isEmpty())
             mapOf(NGSILD_SCOPE_PROPERTY to emptyList<String>())
-        else if (temporalEntitiesQuery.withAggregatedValues)
+        else if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES)
             buildScopeAggregatedRepresentation(
                 scopeInstances,
                 temporalEntitiesQuery.temporalQuery.aggrMethods!!
             )
-        else if (temporalEntitiesQuery.withTemporalValues)
+        else if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES)
             buildScopeSimplifiedRepresentation(scopeInstances)
         else
             buildScopeFullRepresentation(scopeInstances)

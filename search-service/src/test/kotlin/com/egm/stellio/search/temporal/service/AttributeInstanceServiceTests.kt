@@ -21,6 +21,7 @@ import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
@@ -39,10 +40,12 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
@@ -77,14 +80,12 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var attributeInstanceService: AttributeInstanceService
@@ -101,7 +102,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    private val now = Instant.now().atZone(ZoneOffset.UTC)
+    private val now = ngsiLdDateTime()
     private lateinit var incomingAttribute: Attribute
     private lateinit var outgoingAttribute: Attribute
     private lateinit var jsonAttribute: Attribute
@@ -331,7 +332,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         entityAttributeService.create(attribute2)
 
         (1..10).forEach { _ ->
-            val observedAt = Instant.now().atZone(ZoneOffset.UTC)
+            val observedAt = ngsiLdDateTime()
             val attributeMetadata = AttributeMetadata(
                 measuredValue = null,
                 value = "some value",
@@ -353,7 +354,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         }
 
         attributeInstanceService.search(
-            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery(), withTemporalValues = true),
+            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery(), TemporalRepresentation.TEMPORAL_VALUES),
             attribute2
         ).shouldSucceedWith { results ->
             assertThat(results)
@@ -381,7 +382,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 aggrPeriodDuration = "P30D",
                 aggrMethods = listOf(TemporalQuery.Aggregate.MAX)
             ),
-            withAggregatedValues = true
+            TemporalRepresentation.AGGREGATED_VALUES
         )
 
         val origin = attributeInstanceService.selectOldestDate(
@@ -492,7 +493,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
                 instanceLimit = 5,
             ),
-            withAggregatedValues = true
+            TemporalRepresentation.AGGREGATED_VALUES
         )
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith {
@@ -600,7 +601,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                     timerel = Timerel.AFTER,
                     timeAt = now.minusHours(1)
                 ),
-                withTemporalValues = true
+                TemporalRepresentation.TEMPORAL_VALUES
             ),
             incomingAttribute
         ).shouldSucceedWith { results ->
@@ -613,7 +614,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should create an attribute instance if it has a non null value`() = runTest {
+    fun `it should create an observed attribute instance if it has a non null value`() = runTest {
         val attributeInstanceService = spyk(
             AttributeInstanceService(databaseClient, searchProperties),
             recordPrivateCalls = true
@@ -641,7 +642,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             )
         )
 
-        attributeInstanceService.addAttributeInstance(
+        attributeInstanceService.addObservedAttributeInstance(
             incomingAttribute.id,
             attributeMetadata,
             attributeValues
@@ -675,7 +676,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should create an attribute instance with boolean value`() = runTest {
+    fun `it should create an observed attribute instance with boolean value`() = runTest {
         val attributeInstanceService = spyk(
             AttributeInstanceService(databaseClient, searchProperties),
             recordPrivateCalls = true
@@ -703,7 +704,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             )
         )
 
-        attributeInstanceService.addAttributeInstance(
+        attributeInstanceService.addObservedAttributeInstance(
             incomingAttribute.id,
             attributeMetadata,
             attributeValues
@@ -724,6 +725,61 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                                 }],
                                 "https://uri.etsi.org/ngsi-ld/hasValue":[{
                                     "@value":false
+                                }],
+                                "https://uri.etsi.org/ngsi-ld/instanceId":[{
+                                    "@id":"${it.instanceId}"
+                                }]
+                            }
+                            """.trimIndent()
+                        )
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should create a deleted attribute instance`() = runTest {
+        val attributeInstanceService = spyk(
+            AttributeInstanceService(databaseClient, searchProperties),
+            recordPrivateCalls = true
+        )
+        val deletedAt = ZonedDateTime.parse("2025-01-02T11:20:30.000001Z")
+        val attributeValues = mapOf(
+            NGSILD_DELETED_AT_PROPERTY to listOf(
+                mapOf(
+                    JSONLD_VALUE to deletedAt,
+                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
+                )
+            ),
+            NGSILD_PROPERTY_VALUE to listOf(
+                mapOf(
+                    JSONLD_VALUE to NGSILD_NULL
+                )
+            )
+        )
+
+        attributeInstanceService.addDeletedAttributeInstance(
+            incomingAttribute.id,
+            NGSILD_NULL,
+            deletedAt,
+            attributeValues
+        )
+
+        verify {
+            attributeInstanceService["create"](
+                match<AttributeInstance> {
+                    it.time.toString() == "2025-01-02T11:20:30.000001Z" &&
+                        it.value == "urn:ngsi-ld:null" &&
+                        it.measuredValue == null &&
+                        it.payload.asString().matchContent(
+                            """
+                            {
+                                "https://uri.etsi.org/ngsi-ld/deletedAt":[{
+                                    "@value":"2025-01-02T11:20:30.000001Z",
+                                    "@type":"https://uri.etsi.org/ngsi-ld/DateTime"
+                                }],
+                                "https://uri.etsi.org/ngsi-ld/hasValue":[{
+                                    "@value":"urn:ngsi-ld:null"
                                 }],
                                 "https://uri.etsi.org/ngsi-ld/instanceId":[{
                                     "@id":"${it.instanceId}"

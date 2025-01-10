@@ -3,6 +3,7 @@ package com.egm.stellio.search.temporal.model
 import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import java.time.Duration
 import java.time.Period
 import java.time.temporal.TemporalAmount
@@ -10,12 +11,11 @@ import java.time.temporal.TemporalAmount
 sealed class TemporalEntitiesQuery(
     open val entitiesQuery: EntitiesQuery,
     open val temporalQuery: TemporalQuery,
-    open val withTemporalValues: Boolean,
-    open val withAudit: Boolean,
-    open val withAggregatedValues: Boolean
+    open val temporalRepresentation: TemporalRepresentation,
+    open val withAudit: Boolean
 ) {
     fun isAggregatedWithDefinedDuration(): Boolean =
-        withAggregatedValues &&
+        temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES &&
             temporalQuery.aggrPeriodDuration != null &&
             temporalQuery.aggrPeriodDuration != "PT0S"
 
@@ -36,15 +36,13 @@ sealed class TemporalEntitiesQuery(
 data class TemporalEntitiesQueryFromGet(
     override val entitiesQuery: EntitiesQueryFromGet,
     override val temporalQuery: TemporalQuery,
-    override val withTemporalValues: Boolean,
-    override val withAudit: Boolean,
-    override val withAggregatedValues: Boolean
-) : TemporalEntitiesQuery(entitiesQuery, temporalQuery, withTemporalValues, withAudit, withAggregatedValues)
+    override val temporalRepresentation: TemporalRepresentation,
+    override val withAudit: Boolean
+) : TemporalEntitiesQuery(entitiesQuery, temporalQuery, temporalRepresentation, withAudit)
 
 data class TemporalEntitiesQueryFromPost(
     override val entitiesQuery: EntitiesQueryFromPost,
     override val temporalQuery: TemporalQuery,
-    override val withTemporalValues: Boolean,
-    override val withAudit: Boolean,
-    override val withAggregatedValues: Boolean
-) : TemporalEntitiesQuery(entitiesQuery, temporalQuery, withTemporalValues, withAudit, withAggregatedValues)
+    override val temporalRepresentation: TemporalRepresentation,
+    override val withAudit: Boolean
+) : TemporalEntitiesQuery(entitiesQuery, temporalQuery, temporalRepresentation, withAudit)

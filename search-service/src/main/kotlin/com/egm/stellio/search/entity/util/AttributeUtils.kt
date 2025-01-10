@@ -7,6 +7,7 @@ import arrow.core.right
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.valueToDoubleOrNull
 import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.Attribute.AttributeType
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -20,12 +21,17 @@ import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.NgsiLdVocabPropertyInstance
 import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
+import com.egm.stellio.shared.model.getRelationshipId
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -47,35 +53,35 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
     val (attributeType, attributeValueType, attributeValue) = when (this) {
         is NgsiLdPropertyInstance ->
             guessPropertyValueType(this).let {
-                Triple(Attribute.AttributeType.Property, it.first, it.second)
+                Triple(AttributeType.Property, it.first, it.second)
             }
         is NgsiLdRelationshipInstance ->
             Triple(
-                Attribute.AttributeType.Relationship,
+                AttributeType.Relationship,
                 Attribute.AttributeValueType.URI,
                 Triple(this.objectId.toString(), null, null)
             )
         is NgsiLdGeoPropertyInstance ->
             Triple(
-                Attribute.AttributeType.GeoProperty,
+                AttributeType.GeoProperty,
                 Attribute.AttributeValueType.GEOMETRY,
                 Triple(null, null, this.coordinates)
             )
         is NgsiLdJsonPropertyInstance ->
             Triple(
-                Attribute.AttributeType.JsonProperty,
+                AttributeType.JsonProperty,
                 Attribute.AttributeValueType.JSON,
                 Triple(JsonUtils.serializeObject(this.json), null, null)
             )
         is NgsiLdLanguagePropertyInstance ->
             Triple(
-                Attribute.AttributeType.LanguageProperty,
+                AttributeType.LanguageProperty,
                 Attribute.AttributeValueType.ARRAY,
                 Triple(JsonUtils.serializeObject(this.languageMap), null, null)
             )
         is NgsiLdVocabPropertyInstance ->
             Triple(
-                Attribute.AttributeType.VocabProperty,
+                AttributeType.VocabProperty,
                 Attribute.AttributeValueType.ARRAY,
                 Triple(JsonUtils.serializeObject(this.vocab), null, null)
             )
@@ -97,17 +103,17 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
 }
 
 fun guessAttributeValueType(
-    attributeType: Attribute.AttributeType,
+    attributeType: AttributeType,
     expandedAttributeInstance: ExpandedAttributeInstance
 ): Attribute.AttributeValueType =
     when (attributeType) {
-        Attribute.AttributeType.Property ->
+        AttributeType.Property ->
             guessPropertyValueType(expandedAttributeInstance.getPropertyValue()!!).first
-        Attribute.AttributeType.Relationship -> Attribute.AttributeValueType.URI
-        Attribute.AttributeType.GeoProperty -> Attribute.AttributeValueType.GEOMETRY
-        Attribute.AttributeType.JsonProperty -> Attribute.AttributeValueType.JSON
-        Attribute.AttributeType.LanguageProperty -> Attribute.AttributeValueType.ARRAY
-        Attribute.AttributeType.VocabProperty -> Attribute.AttributeValueType.ARRAY
+        AttributeType.Relationship -> Attribute.AttributeValueType.URI
+        AttributeType.GeoProperty -> Attribute.AttributeValueType.GEOMETRY
+        AttributeType.JsonProperty -> Attribute.AttributeValueType.JSON
+        AttributeType.LanguageProperty -> Attribute.AttributeValueType.ARRAY
+        AttributeType.VocabProperty -> Attribute.AttributeValueType.ARRAY
     }
 
 fun guessPropertyValueType(
@@ -129,6 +135,21 @@ fun guessPropertyValueType(
         is ZonedDateTime -> Pair(Attribute.AttributeValueType.DATETIME, Triple(value.toString(), null, null))
         is LocalTime -> Pair(Attribute.AttributeValueType.TIME, Triple(value.toString(), null, null))
         else -> Pair(Attribute.AttributeValueType.STRING, Triple(value.toString(), null, null))
+    }
+
+/**
+ * Returns whether the expanded attribute instance holds a NGSI-LD Null value
+ */
+fun hasNgsiLdNullValue(
+    expandedAttributeInstance: ExpandedAttributeInstance,
+    attributeType: AttributeType
+): Boolean =
+    if (attributeType == AttributeType.Relationship) {
+        val value = expandedAttributeInstance.getRelationshipId()
+        value is URI && value.toString() == NGSILD_NULL
+    } else {
+        val value = expandedAttributeInstance.getMemberValue(attributeType.toExpandedValueMember())
+        value is String && value == NGSILD_NULL
     }
 
 fun Json.toExpandedAttributeInstance(): ExpandedAttributeInstance =
@@ -169,7 +190,7 @@ fun mergePatch(
                     ).deserializeAsMap()
                 )
             }
-        } else if (listOf(JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE).contains(attrName)) {
+        } else if (listOf(NGSILD_LANGUAGEPROPERTY_VALUE).contains(attrName)) {
             val sourceLangEntries = source[attrName] as List<Map<String, String>>
             val targetLangEntries = sourceLangEntries.toMutableList()
             (attrValue as List<Map<String, String>>).forEach { langEntry ->

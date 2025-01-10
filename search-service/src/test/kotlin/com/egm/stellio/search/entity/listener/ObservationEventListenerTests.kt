@@ -2,26 +2,23 @@ package com.egm.stellio.search.entity.listener
 
 import arrow.core.right
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
-import com.egm.stellio.search.entity.model.UpdateOperationResult
+import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.model.UpdatedDetails
 import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityService
-import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.called
+import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.mockkClass
 import io.mockk.verify
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,21 +32,26 @@ class ObservationEventListenerTests {
     @Autowired
     private lateinit var observationEventListener: ObservationEventListener
 
-    @MockkBean(relaxed = true)
+    @MockkBean
     private lateinit var entityService: EntityService
 
-    @MockkBean(relaxed = true)
+    @MockkBean
     private lateinit var entityEventService: EntityEventService
 
     private val expectedEntityId = "urn:ngsi-ld:BeeHive:01".toUri()
     private val expectedTemperatureDatasetId = "urn:ngsi-ld:Dataset:WeatherApi".toUri()
+
+    @BeforeEach
+    fun clearMocks() {
+        clearAllMocks()
+    }
 
     @Test
     fun `it should parse and transmit an ENTITY_CREATE event`() = runTest {
         val observationEvent = loadSampleData("events/entity/entityCreateEvent.json")
 
         coEvery {
-            entityService.createEntity(any<NgsiLdEntity>(), any(), any())
+            entityService.createEntity(any(), any(), any())
         } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
 
@@ -57,7 +59,7 @@ class ObservationEventListenerTests {
 
         coVerify {
             entityService.createEntity(
-                any<NgsiLdEntity>(),
+                any(),
                 any(),
                 eq("0123456789-1234-5678-987654321")
             )
@@ -79,23 +81,17 @@ class ObservationEventListenerTests {
         coEvery {
             entityService.partialUpdateAttribute(any(), any(), any())
         } returns UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(
-                    TEMPERATURE_PROPERTY,
-                    expectedTemperatureDatasetId,
-                    UpdateOperationResult.UPDATED
-                )
-            ),
-            notUpdated = arrayListOf()
+            updated = listOf(TEMPERATURE_PROPERTY),
+            notUpdated = emptyList()
         ).right()
 
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any())
         } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             entityService.partialUpdateAttribute(
                 expectedEntityId,
                 match { it.first == TEMPERATURE_PROPERTY },
@@ -106,14 +102,12 @@ class ObservationEventListenerTests {
             entityEventService.publishAttributeChangeEvents(
                 null,
                 eq(expectedEntityId),
-                match { it.containsKey(TEMPERATURE_PROPERTY) },
                 match {
-                    it.updated.size == 1 &&
-                        it.updated[0].attributeName == TEMPERATURE_PROPERTY &&
-                        it.updated[0].datasetId == expectedTemperatureDatasetId &&
-                        it.updated[0].updateOperationResult == UpdateOperationResult.UPDATED
-                },
-                eq(false)
+                    it.size == 1 &&
+                        it[0].attributeName == TEMPERATURE_PROPERTY &&
+                        it[0].datasetId == expectedTemperatureDatasetId &&
+                        it[0].operationStatus == OperationStatus.UPDATED
+                }
             )
         }
     }
@@ -131,6 +125,9 @@ class ObservationEventListenerTests {
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
+        coVerify {
+            entityService.partialUpdateAttribute(any(), any(), any())
+        }
         verify { entityEventService wasNot called }
     }
 
@@ -141,19 +138,11 @@ class ObservationEventListenerTests {
         coEvery {
             entityService.appendAttributes(any(), any(), any(), any())
         } returns UpdateResult(
-            listOf(
-                UpdatedDetails(
-                    TEMPERATURE_PROPERTY,
-                    expectedTemperatureDatasetId,
-                    UpdateOperationResult.APPENDED
-                )
-            ),
+            listOf(TEMPERATURE_PROPERTY),
             emptyList()
         ).right()
-        val mockedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
-        every { mockedExpandedEntity.types } returns listOf(BEEHIVE_TYPE)
         coEvery {
-            entityEventService.publishAttributeChangeEvents(any(), any(), any(), any(), any())
+            entityEventService.publishAttributeChangeEvents(any(), any(), any())
         } returns Job()
 
         observationEventListener.dispatchObservationMessage(observationEvent)
@@ -171,15 +160,11 @@ class ObservationEventListenerTests {
                 null,
                 eq(expectedEntityId),
                 match {
-                    it.containsKey(TEMPERATURE_PROPERTY)
-                },
-                match {
-                    it.updated.size == 1 &&
-                        it.updated[0].updateOperationResult == UpdateOperationResult.APPENDED &&
-                        it.updated[0].attributeName == TEMPERATURE_PROPERTY &&
-                        it.updated[0].datasetId == expectedTemperatureDatasetId
-                },
-                eq(true)
+                    it.size == 1 &&
+                        it[0].operationStatus == OperationStatus.APPENDED &&
+                        it[0].attributeName == TEMPERATURE_PROPERTY &&
+                        it[0].datasetId == expectedTemperatureDatasetId
+                }
             )
         }
     }

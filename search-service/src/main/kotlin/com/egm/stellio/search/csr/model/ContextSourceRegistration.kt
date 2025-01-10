@@ -19,6 +19,8 @@ import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.convertValue
 import org.springframework.http.MediaType
@@ -40,12 +42,14 @@ data class ContextSourceRegistration(
     val observationInterval: TimeInterval? = null,
     val managementInterval: TimeInterval? = null,
     val status: StatusType? = null,
+    @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     val timesSent: Int = 0,
+    @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     val timesFailed: Int = 0,
     val lastFailure: ZonedDateTime? = null,
     val lastSuccess: ZonedDateTime? = null,
 ) {
-
+    @JsonIgnore
     fun isAuxiliary(): Boolean = mode == Mode.AUXILIARY
 
     data class TimeInterval(
@@ -85,22 +89,19 @@ data class ContextSourceRegistration(
     data class EntityInfo(
         val id: URI? = null,
         val idPattern: String? = null,
-        @JsonFormat(
-            with = [
-                JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY,
-                JsonFormat.Feature.WRITE_SINGLE_ELEM_ARRAYS_UNWRAPPED
-            ]
-        )
-        val type: List<String>
+        // no WRITE_SINGLE_ELEM_ARRAYS_UNWRAPPED because it is used for the database
+        @JsonFormat(with = [JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY])
+        @JsonProperty("type")
+        val types: List<String>
     ) {
         fun expand(contexts: List<String>): EntityInfo =
             this.copy(
-                type = type.map { expandJsonLdTerm(it, contexts) },
+                types = types.map { expandJsonLdTerm(it, contexts) },
             )
 
         fun compact(contexts: List<String>): EntityInfo =
             this.copy(
-                type = type.map { compactTerm(it, contexts) },
+                types = types.map { compactTerm(it, contexts) },
             )
 
         fun validate(): Either<BadRequestDataException, Unit> {

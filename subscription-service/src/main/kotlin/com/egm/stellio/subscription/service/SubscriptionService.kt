@@ -646,7 +646,7 @@ class SubscriptionService(
         else {
             val entityTypes = expandedEntity.types
             entities.joinToString(" OR ") {
-                val typeSelectionQuery = buildTypeQuery(it.typeSelection, entityTypes)
+                val typeSelectionQuery = buildTypeQuery(it.typeSelection, target = entityTypes)
                 val idQuery = it.id?.let { " '${expandedEntity.id}' = '$it' " }
                 val idPatternQuery = it.idPattern?.let { " '${expandedEntity.id}' ~ '$it' " }
                 listOfNotNull(typeSelectionQuery, idQuery, idPatternQuery)

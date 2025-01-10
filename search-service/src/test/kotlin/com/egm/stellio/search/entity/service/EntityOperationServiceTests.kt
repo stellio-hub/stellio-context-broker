@@ -40,9 +40,6 @@ class EntityOperationServiceTests {
     @MockkBean
     private lateinit var entityService: EntityService
 
-    @MockkBean(relaxed = true)
-    private lateinit var entityAttributeService: EntityAttributeService
-
     @MockkBean
     private lateinit var entityQueryService: EntityQueryService
 
@@ -282,11 +279,8 @@ class EntityOperationServiceTests {
     @Test
     fun `batch replace should ask to replace entities`() = runTest {
         coEvery {
-            entityAttributeService.deleteAttributes(any())
+            entityService.replaceEntity(any(), any(), any(), any())
         } returns Unit.right()
-        coEvery {
-            entityService.appendAttributes(any(), any(), any(), any())
-        } returns EMPTY_UPDATE_RESULT.right()
 
         val batchOperationResult = entityOperationService.replace(
             listOf(
@@ -302,13 +296,9 @@ class EntityOperationServiceTests {
         )
         assertTrue(batchOperationResult.errors.isEmpty())
 
-        coVerify { entityAttributeService.deleteAttributes(firstEntityURI) }
-        coVerify { entityAttributeService.deleteAttributes(secondEntityURI) }
         coVerify {
-            entityService.appendAttributes(eq(firstEntityURI), any(), false, sub)
-        }
-        coVerify {
-            entityService.appendAttributes(eq(secondEntityURI), any(), false, sub)
+            entityService.replaceEntity(firstEntityURI, any(), any(), any())
+            entityService.replaceEntity(secondEntityURI, any(), any(), any())
         }
     }
 
@@ -457,7 +447,8 @@ class EntityOperationServiceTests {
                 firstExpandedEntity to firstEntity,
                 secondExpandedEntity to secondEntity
             ),
-            null,
+            disallowOverwrite = false,
+            updateMode = false,
             sub
         )
 
@@ -484,7 +475,8 @@ class EntityOperationServiceTests {
                 firstExpandedEntity to firstEntity,
                 secondExpandedEntity to secondEntity
             ),
-            "update",
+            disallowOverwrite = false,
+            updateMode = true,
             sub
         )
 
@@ -523,7 +515,8 @@ class EntityOperationServiceTests {
                 firstExpandedEntity to firstEntity,
                 secondExpandedEntity to secondEntity
             ),
-            "update",
+            disallowOverwrite = false,
+            updateMode = true,
             sub
         )
 
@@ -567,7 +560,8 @@ class EntityOperationServiceTests {
                 firstExpandedEntity to firstEntity,
                 secondExpandedEntity to secondEntity
             ),
-            null,
+            disallowOverwrite = false,
+            updateMode = false,
             sub
         )
 

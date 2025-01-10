@@ -1,11 +1,14 @@
 package com.egm.stellio.search.csr.service
 
+import arrow.core.left
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
+import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
@@ -25,7 +28,12 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
+import com.ninjasquad.springmockk.MockkBean
+import com.ninjasquad.springmockk.SpykBean
+import io.mockk.coEvery
+import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -38,6 +46,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.LinkedMultiValueMap
+import org.springframework.util.MultiValueMap
 import wiremock.com.google.common.net.HttpHeaders.ACCEPT
 import wiremock.com.google.common.net.HttpHeaders.CONTENT_TYPE
 
@@ -46,8 +55,14 @@ import wiremock.com.google.common.net.HttpHeaders.CONTENT_TYPE
 @ActiveProfiles("test")
 class ContextSourceCallerTests : WithTimescaleContainer, WithKafkaContainer {
 
-    @Autowired
+    @SpykBean
     private lateinit var contextSourceCaller: ContextSourceCaller
+
+    @Autowired
+    private lateinit var applicationProperties: ApplicationProperties
+
+    @MockkBean
+    private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
 
     private val apiaryId = "urn:ngsi-ld:Apiary:TEST"
 
@@ -130,6 +145,37 @@ class ContextSourceCallerTests : WithTimescaleContainer, WithKafkaContainer {
     }
 
     @Test
+    fun `queryEntitiesFromAllSources should return the warnings sent by the CSRs and update the statuses`() = runTest {
+        val csr = gimmeRawCSR()
+
+        coEvery {
+            contextSourceRegistrationService
+                .getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(csr, csr)
+
+        coEvery {
+            contextSourceCaller.queryEntitiesFromContextSource(any(), any(), any())
+        } returns MiscellaneousWarning(
+            "message with\nline\nbreaks",
+            csr
+        ).left() andThen
+            MiscellaneousWarning("message", csr).left()
+
+        coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+
+        val queryParams = MultiValueMap.fromSingleValue<String, String>(emptyMap())
+        val headers = HttpHeaders()
+
+        val (warnings, _) = contextSourceCaller.queryEntitiesFromAllContextSources(
+            composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, emptyList()).getOrNull()!!,
+            headers,
+            queryParams
+        )
+        assertThat(warnings).hasSize(2)
+        coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
+    }
+
+    @Test
     fun `retrieveEntityFromContextSource should return the entity when the request succeeds`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
@@ -171,6 +217,34 @@ class ContextSourceCallerTests : WithTimescaleContainer, WithKafkaContainer {
 
         assertTrue(response.isLeft())
         assertInstanceOf(RevalidationFailedWarning::class.java, response.leftOrNull())
+    }
+
+    @Test
+    fun `retrieveEntityFromAllSources should return the warnings sent by the CSRs and update the statuses`() = runTest {
+        val csr = gimmeRawCSR()
+
+        coEvery {
+            contextSourceRegistrationService
+                .getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(csr, csr)
+
+        coEvery {
+            contextSourceCaller.retrieveEntityFromContextSource(any(), any(), any(), any())
+        } returns MiscellaneousWarning(
+            "message with\nline\nbreaks",
+            csr
+        ).left() andThen
+            MiscellaneousWarning("message", csr).left()
+
+        coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+
+        val (warnings, _) = contextSourceCaller.retrieveEntityFromAllContextSources(
+            apiaryId.toUri(),
+            HttpHeaders(),
+            MultiValueMap.fromSingleValue(emptyMap())
+        )
+        assertThat(warnings).hasSize(2)
+        coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
     }
 
     @Test

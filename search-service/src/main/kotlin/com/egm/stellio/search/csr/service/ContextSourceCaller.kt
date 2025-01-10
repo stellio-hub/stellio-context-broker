@@ -5,11 +5,16 @@ import arrow.core.getOrNone
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import arrow.core.separateEither
+import arrow.fx.coroutines.parMap
+import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
+import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
@@ -20,6 +25,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.stereotype.Service
 import org.springframework.util.CollectionUtils
 import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.client.ClientResponse
@@ -30,10 +36,48 @@ import java.net.URI
 
 typealias QueryEntitiesResponse = Pair<List<CompactedEntity>, Int?>
 
-object ContextSourceCaller {
+@Service
+class ContextSourceCaller(
+    private val contextSourceRegistrationService: ContextSourceRegistrationService,
+) {
+
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    suspend fun retrieveContextSourceEntity(
+    suspend fun retrieveEntityFromAllContextSources(
+        id: URI,
+        httpHeaders: HttpHeaders,
+        queryParams: MultiValueMap<String, String>
+    ): Pair<List<NGSILDWarning>, List<CompactedEntityWithCSR>> {
+        val csrFilters =
+            CSRFilters(
+                ids = setOf(id),
+                operations = listOf(
+                    Operation.RETRIEVE_ENTITY,
+                    Operation.FEDERATION_OPS,
+                    Operation.RETRIEVE_OPS,
+                    Operation.REDIRECTION_OPS
+                )
+            )
+
+        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
+
+        // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
+        return matchingCSR.parMap { csr ->
+            val response = retrieveEntityFromContextSource(
+                httpHeaders,
+                csr,
+                id,
+                queryParams
+            )
+            contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
+            response.map { it?.let { it to csr } }
+        }.separateEither()
+            .let { (warnings, maybeResponses) ->
+                warnings.toMutableList() to maybeResponses.filterNotNull()
+            }
+    }
+
+    suspend fun retrieveEntityFromContextSource(
         httpHeaders: HttpHeaders,
         csr: ContextSourceRegistration,
         id: URI,
@@ -55,7 +99,45 @@ object ContextSourceCaller {
         )
     }
 
-    suspend fun queryContextSourceEntities(
+    suspend fun queryEntitiesFromAllContextSources(
+        entitiesQuery: EntitiesQueryFromGet,
+        httpHeaders: HttpHeaders,
+        queryParams: MultiValueMap<String, String>
+    ): Triple<List<NGSILDWarning>, List<CompactedEntitiesWithCSR>, List<Int?>> {
+        val csrFilters =
+            CSRFilters(
+                ids = entitiesQuery.ids,
+                idPattern = entitiesQuery.idPattern,
+                typeSelection = entitiesQuery.typeSelection,
+                operations = listOf(
+                    Operation.QUERY_ENTITY,
+                    Operation.FEDERATION_OPS,
+                    Operation.RETRIEVE_OPS,
+                    Operation.REDIRECTION_OPS
+                )
+            )
+
+        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
+
+        return matchingCSR.parMap { csr ->
+            val response = queryEntitiesFromContextSource(
+                httpHeaders,
+                csr,
+                queryParams
+            )
+            contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
+            response.map { (entities, count) -> Triple(entities, csr, count) }
+        }.separateEither()
+            .let { (warnings, response) ->
+                Triple(
+                    warnings.toMutableList(),
+                    response.map { (entities, csr, _) -> entities to csr },
+                    response.map { (_, _, counts) -> counts }
+                )
+            }
+    }
+
+    suspend fun queryEntitiesFromContextSource(
         httpHeaders: HttpHeaders,
         csr: ContextSourceRegistration,
         params: MultiValueMap<String, String>

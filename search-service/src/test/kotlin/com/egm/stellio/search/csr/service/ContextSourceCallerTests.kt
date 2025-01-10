@@ -53,7 +53,7 @@ import wiremock.com.google.common.net.HttpHeaders.CONTENT_TYPE
 @SpringBootTest
 @WireMockTest(httpPort = 8089)
 @ActiveProfiles("test")
-class ContextSourceCallerTests : WithTimescaleContainer, WithKafkaContainer {
+class ContextSourceCallerTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @SpykBean
     private lateinit var contextSourceCaller: ContextSourceCaller

@@ -195,10 +195,10 @@ private fun extractTemporalRepresentation(
 ): Either<APIException, TemporalRepresentation> = either {
     val optionsParam = Optional.ofNullable(queryParams.getFirst(QueryParameter.OPTIONS.key))
     val formatParam = queryParams.getFirst(QueryParameter.FORMAT.key)
-    if (formatParam != null) {
-        return TemporalRepresentation.fromString(formatParam)
+    return if (formatParam != null) {
+        TemporalRepresentation.fromString(formatParam)
     } else {
-        return if (!optionsParam.isEmpty) {
+        if (!optionsParam.isEmpty) {
             val hasTemporal = hasValueInOptionsParam(optionsParam, OptionsValue.TEMPORAL_VALUES).bind()
             val hasAggregated = hasValueInOptionsParam(optionsParam, OptionsValue.AGGREGATED_VALUES).bind()
             when {

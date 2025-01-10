@@ -17,8 +17,8 @@ import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.service.TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange
 import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder
-import com.egm.stellio.search.temporal.web.Range
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
+import com.egm.stellio.search.temporal.web.Range
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException

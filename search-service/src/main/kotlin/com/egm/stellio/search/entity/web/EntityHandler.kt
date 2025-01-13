@@ -71,7 +71,7 @@ class EntityHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
     private val entityQueryService: EntityQueryService,
-    private val contextSourceCaller: DistributedEntityConsumptionService,
+    private val distributedEntityConsumptionService: DistributedEntityConsumptionService,
     private val linkedEntityService: LinkedEntityService
 ) : BaseHandler() {
 
@@ -214,7 +214,11 @@ class EntityHandler(
             }
 
         val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
-            contextSourceCaller.distributeQueryEntitiesOperation(entitiesQuery, httpHeaders, queryParams)
+            distributedEntityConsumptionService.distributeQueryEntitiesOperation(
+                entitiesQuery,
+                httpHeaders,
+                queryParams
+            )
 
         val maxCount = (remoteCounts + localCount).maxBy { it ?: 0 } ?: 0
 
@@ -277,7 +281,7 @@ class EntityHandler(
             compactEntity(filteredExpandedEntity, contexts)
         }
 
-        val (warnings, remoteEntitiesWithCSR) = contextSourceCaller.distributeRetrieveEntityOperation(
+        val (warnings, remoteEntitiesWithCSR) = distributedEntityConsumptionService.distributeRetrieveEntityOperation(
             entityId,
             httpHeaders,
             queryParams

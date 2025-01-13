@@ -56,7 +56,7 @@ import wiremock.com.google.common.net.HttpHeaders.CONTENT_TYPE
 class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @SpykBean
-    private lateinit var contextSourceCaller: DistributedEntityConsumptionService
+    private lateinit var distributedEntityConsumptionService: DistributedEntityConsumptionService
 
     @Autowired
     private lateinit var applicationProperties: ApplicationProperties
@@ -112,7 +112,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 )
         )
 
-        val response = contextSourceCaller.queryEntitiesFromContextSource(
+        val response = distributedEntityConsumptionService.queryEntitiesFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             emptyParams
@@ -134,7 +134,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 )
         )
 
-        val response = contextSourceCaller.queryEntitiesFromContextSource(
+        val response = distributedEntityConsumptionService.queryEntitiesFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             emptyParams
@@ -155,7 +155,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
             } returns listOf(csr, csr)
 
             coEvery {
-                contextSourceCaller.queryEntitiesFromContextSource(any(), any(), any())
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any())
             } returns MiscellaneousWarning(
                 "message with\nline\nbreaks",
                 csr
@@ -167,7 +167,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
             val queryParams = MultiValueMap.fromSingleValue<String, String>(emptyMap())
             val headers = HttpHeaders()
 
-            val (warnings, _) = contextSourceCaller.distributeQueryEntitiesOperation(
+            val (warnings, _) = distributedEntityConsumptionService.distributeQueryEntitiesOperation(
                 composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, emptyList()).getOrNull()!!,
                 headers,
                 queryParams
@@ -188,7 +188,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 )
         )
 
-        val response = contextSourceCaller.retrieveEntityFromContextSource(
+        val response = distributedEntityConsumptionService.retrieveEntityFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             apiaryId.toUri(),
@@ -209,7 +209,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 )
         )
 
-        val response = contextSourceCaller.retrieveEntityFromContextSource(
+        val response = distributedEntityConsumptionService.retrieveEntityFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             apiaryId.toUri(),
@@ -231,7 +231,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
             } returns listOf(csr, csr)
 
             coEvery {
-                contextSourceCaller.retrieveEntityFromContextSource(any(), any(), any(), any())
+                distributedEntityConsumptionService.retrieveEntityFromContextSource(any(), any(), any(), any())
             } returns MiscellaneousWarning(
                 "message with\nline\nbreaks",
                 csr
@@ -240,7 +240,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
 
             coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
 
-            val (warnings, _) = contextSourceCaller.distributeRetrieveEntityOperation(
+            val (warnings, _) = distributedEntityConsumptionService.distributeRetrieveEntityOperation(
                 apiaryId.toUri(),
                 HttpHeaders(),
                 MultiValueMap.fromSingleValue(emptyMap())
@@ -253,7 +253,8 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
     fun `getDistributedInformation should return a MiscellaneousWarning if it receives no answer`() = runTest {
         val csr = gimmeRawCSR().copy(endpoint = "http://localhost:invalid".toUri())
         val path = "/ngsi-ld/v1/entities/$apiaryId"
-        val response = contextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response =
+            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
 
         assertTrue(response.isLeft())
         assertInstanceOf(MiscellaneousWarning::class.java, response.leftOrNull())
@@ -268,7 +269,8 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 .willReturn(unauthorized())
         )
 
-        val response = contextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response =
+            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
 
         assertTrue(response.isLeft())
         assertInstanceOf(MiscellaneousPersistentWarning::class.java, response.leftOrNull())
@@ -283,7 +285,8 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 .willReturn(notFound())
         )
 
-        val response = contextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response =
+            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
 
         assertTrue(response.isRight())
         assertNull(response.getOrNull()!!.first)
@@ -299,7 +302,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         )
         val header = HttpHeaders()
         header.accept = listOf(GEO_JSON_MEDIA_TYPE)
-        contextSourceCaller.getDistributedInformation(
+        distributedEntityConsumptionService.getDistributedInformation(
             header,
             csr,
             path,
@@ -320,7 +323,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 .willReturn(notFound())
         )
         val params = LinkedMultiValueMap(mapOf(QueryParameter.OPTIONS.key to listOf("simplified")))
-        contextSourceCaller.getDistributedInformation(
+        distributedEntityConsumptionService.getDistributedInformation(
             HttpHeaders.EMPTY,
             csr,
             path,

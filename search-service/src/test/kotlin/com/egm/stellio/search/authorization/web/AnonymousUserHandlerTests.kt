@@ -42,7 +42,7 @@ class AnonymousUserHandlerTests {
     private lateinit var entityQueryService: EntityQueryService
 
     @MockkBean
-    private lateinit var contextSourceCaller: DistributedEntityConsumptionService
+    private lateinit var distributedEntityConsumptionService: DistributedEntityConsumptionService
 
     @MockkBean(relaxed = true)
     private lateinit var linkedEntityService: LinkedEntityService

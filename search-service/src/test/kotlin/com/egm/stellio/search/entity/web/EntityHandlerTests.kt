@@ -108,7 +108,7 @@ class EntityHandlerTests {
     private lateinit var entityQueryService: EntityQueryService
 
     @MockkBean
-    private lateinit var contextSourceCaller: DistributedEntityConsumptionService
+    private lateinit var distributedEntityConsumptionService: DistributedEntityConsumptionService
 
     @MockkBean(relaxed = true)
     private lateinit var linkedEntityService: LinkedEntityService
@@ -128,11 +128,11 @@ class EntityHandlerTests {
     @BeforeEach
     fun mockCSR() {
         coEvery {
-            contextSourceCaller
+            distributedEntityConsumptionService
                 .distributeRetrieveEntityOperation(any(), any(), any())
         } returns (emptyList<NGSILDWarning>() to emptyList())
         coEvery {
-            contextSourceCaller
+            distributedEntityConsumptionService
                 .distributeQueryEntitiesOperation(any(), any(), any())
         } returns Triple(emptyList(), emptyList(), emptyList())
     }
@@ -979,7 +979,7 @@ class EntityHandlerTests {
         } returns ResourceNotFoundException("no entity").left()
 
         coEvery {
-            contextSourceCaller
+            distributedEntityConsumptionService
                 .distributeRetrieveEntityOperation(any(), any(), any())
         } returns (
             listOf(
@@ -1300,7 +1300,7 @@ class EntityHandlerTests {
         } returns (emptyList<ExpandedEntity>() to 0).right()
 
         coEvery {
-            contextSourceCaller
+            distributedEntityConsumptionService
                 .distributeQueryEntitiesOperation(any(), any(), any())
         } returns Triple(
             listOf(

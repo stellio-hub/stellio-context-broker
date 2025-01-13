@@ -6,12 +6,53 @@
     <ID>ClassNaming:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration : BaseJavaMigration</ID>
     <ID>ComplexCondition:EntitiesQueryUtils.kt$geoQuery == null &amp;&amp; q.isNullOrEmpty() &amp;&amp; typeSelection.isNullOrEmpty() &amp;&amp; attrs.isEmpty()</ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
+    <ID>ImportOrdering:EntityHandler.kt$import arrow.core.getOrElse import arrow.core.left import
+      arrow.core.raise.either import arrow.core.right import com.egm.stellio.search.csr.model.addWarnings import
+      com.egm.stellio.search.csr.service.DistributedEntityConsumptionService import
+      com.egm.stellio.search.csr.service.ContextSourceUtils import
+      com.egm.stellio.search.entity.service.EntityQueryService import
+      com.egm.stellio.search.entity.service.EntityService import
+      com.egm.stellio.search.entity.service.LinkedEntityService import
+      com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet import
+      com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters import
+      com.egm.stellio.shared.config.ApplicationProperties import com.egm.stellio.shared.model.BadRequestDataException
+      import com.egm.stellio.shared.model.ExpandedEntity import
+      com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations import
+      com.egm.stellio.shared.model.ResourceNotFoundException import com.egm.stellio.shared.model.filterAttributes import
+      com.egm.stellio.shared.model.toFinalRepresentation import com.egm.stellio.shared.model.toNgsiLdEntity import
+      com.egm.stellio.shared.queryparameter.AllowedParameters import com.egm.stellio.shared.queryparameter.OptionsValue
+      import com.egm.stellio.shared.queryparameter.QP import com.egm.stellio.shared.queryparameter.QueryParameter import
+      com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE import
+      com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE import
+      com.egm.stellio.shared.util.JsonLdUtils.compactEntities import
+      com.egm.stellio.shared.util.JsonLdUtils.compactEntity import
+      com.egm.stellio.shared.util.JsonLdUtils.expandAttribute import
+      com.egm.stellio.shared.util.JsonLdUtils.expandAttributes import
+      com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity import
+      com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm import
+      com.egm.stellio.shared.util.JsonUtils.serializeObject import com.egm.stellio.shared.util.buildQueryResponse import
+      com.egm.stellio.shared.util.extractPayloadAndContexts import com.egm.stellio.shared.util.getApplicableMediaType
+      import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault import
+      com.egm.stellio.shared.util.getSubFromSecurityContext import com.egm.stellio.shared.util.missingPathErrorResponse
+      import com.egm.stellio.shared.util.parseTimeParameter import
+      com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders import com.egm.stellio.shared.util.toUri import
+      com.egm.stellio.shared.web.BaseHandler import org.springframework.http.HttpHeaders import
+      org.springframework.http.HttpStatus import org.springframework.http.MediaType.APPLICATION_JSON_VALUE import
+      org.springframework.http.ResponseEntity import org.springframework.util.MultiValueMap import
+      org.springframework.validation.annotation.Validated import org.springframework.web.bind.annotation.DeleteMapping
+      import org.springframework.web.bind.annotation.GetMapping import
+      org.springframework.web.bind.annotation.PatchMapping import org.springframework.web.bind.annotation.PathVariable
+      import org.springframework.web.bind.annotation.PostMapping import
+      org.springframework.web.bind.annotation.PutMapping import org.springframework.web.bind.annotation.RequestBody
+      import org.springframework.web.bind.annotation.RequestHeader import
+      org.springframework.web.bind.annotation.RequestMapping import org.springframework.web.bind.annotation.RequestParam
+      import org.springframework.web.bind.annotation.RestController import reactor.core.publisher.Mono import
+      java.net.URI
+    </ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EnabledAuthorizationServiceTests.kt$EnabledAuthorizationServiceTests$@Test fun `it should return serialized access control entities with other rigths if user is owner`()</ID>
     <ID>LongMethod:EntityAccessControlHandler.kt$EntityAccessControlHandler$@PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun addRightsOnEntities( @RequestHeader httpHeaders: HttpHeaders, @PathVariable subjectId: String, @RequestBody requestBody: Mono&lt;String&gt;, @AllowedParameters @RequestParam queryParams: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>LongMethod:EntityEventService.kt$EntityEventService$private fun publishAttributeChangeEvent( sub: String?, tenantName: String, entityId: URI, entityTypesAndPayload: Pair&lt;List&lt;ExpandedTerm&gt;, String&gt;, attributeOperationResult: SucceededAttributeOperationResult )</ID>
-    <ID>LongMethod:EntityHandler.kt$EntityHandler$@GetMapping("/{entityId}", produces = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, GEO_JSON_CONTENT_TYPE]) suspend fun getByURI( @RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: URI, @AllowedParameters( implemented = [ QP.OPTIONS, QP.FORMAT, QP.TYPE, QP.ATTRS, QP.GEOMETRY_PROPERTY, QP.LANG, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID, ], notImplemented = [QP.PICK, QP.OMIT, QP.ENTITY_MAP, QP.LOCAL, QP.VIA] ) @RequestParam queryParams: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
-    <ID>LongMethod:EntityHandler.kt$EntityHandler$@GetMapping(produces = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, GEO_JSON_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @AllowedParameters( implemented = [ QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q, QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY, QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID, ], notImplemented = [QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.LOCAL, QP.VIA] ) @RequestParam queryParams: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>LongMethod:LinkedEntityServiceTests.kt$LinkedEntityServiceTests$@Test fun `it should inline entities up to the asked 2nd level`()</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun mergePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun partialUpdatePatchProvider(): Stream&lt;Arguments&gt;</ID>
@@ -29,6 +70,8 @@
     <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( entityUri: URI, ngsiLdAttributes: List&lt;NgsiLdAttribute&gt;, expandedAttributes: ExpandedAttributes, disallowOverwrite: Boolean, createdAt: ZonedDateTime, sub: Sub? )</ID>
     <ID>LongParameterList:TemporalEntityHandler.kt$TemporalEntityHandler$( @RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: URI, @PathVariable attrId: String, @PathVariable instanceId: URI, @RequestBody requestBody: Mono&lt;String&gt;, @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA]) @RequestParam queryParams: MultiValueMap&lt;String, String&gt; )</ID>
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
+    <ID>MaxLineLength:DistributedEntityConsumptionServiceTests.kt$DistributedEntityConsumptionServiceTests$fun</ID>
+    <ID>MaximumLineLength:DistributedEntityConsumptionServiceTests.kt$DistributedEntityConsumptionServiceTests$</ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>SwallowedException:TemporalQueryUtils.kt$e: IllegalArgumentException</ID>
   </CurrentIssues>

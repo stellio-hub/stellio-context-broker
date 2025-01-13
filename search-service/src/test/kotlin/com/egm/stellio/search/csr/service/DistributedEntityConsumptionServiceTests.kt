@@ -53,10 +53,10 @@ import wiremock.com.google.common.net.HttpHeaders.CONTENT_TYPE
 @SpringBootTest
 @WireMockTest(httpPort = 8089)
 @ActiveProfiles("test")
-class ContextSourceCallerTests : WithTimescaleContainer, WithKafkaContainer() {
+class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @SpykBean
-    private lateinit var contextSourceCaller: ContextSourceCaller
+    private lateinit var contextSourceCaller: DistributedEntityConsumptionService
 
     @Autowired
     private lateinit var applicationProperties: ApplicationProperties
@@ -145,35 +145,36 @@ class ContextSourceCallerTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `queryEntitiesFromAllSources should return the warnings sent by the CSRs and update the statuses`() = runTest {
-        val csr = gimmeRawCSR()
+    fun `distributeQueryEntitiesOperation should return the warnings sent by the CSRs and update the statuses`() =
+        runTest {
+            val csr = gimmeRawCSR()
 
-        coEvery {
-            contextSourceRegistrationService
-                .getContextSourceRegistrations(any(), any(), any())
-        } returns listOf(csr, csr)
+            coEvery {
+                contextSourceRegistrationService
+                    .getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(csr, csr)
 
-        coEvery {
-            contextSourceCaller.queryEntitiesFromContextSource(any(), any(), any())
-        } returns MiscellaneousWarning(
-            "message with\nline\nbreaks",
-            csr
-        ).left() andThen
-            MiscellaneousWarning("message", csr).left()
+            coEvery {
+                contextSourceCaller.queryEntitiesFromContextSource(any(), any(), any())
+            } returns MiscellaneousWarning(
+                "message with\nline\nbreaks",
+                csr
+            ).left() andThen
+                MiscellaneousWarning("message", csr).left()
 
-        coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
 
-        val queryParams = MultiValueMap.fromSingleValue<String, String>(emptyMap())
-        val headers = HttpHeaders()
+            val queryParams = MultiValueMap.fromSingleValue<String, String>(emptyMap())
+            val headers = HttpHeaders()
 
-        val (warnings, _) = contextSourceCaller.queryEntitiesFromAllContextSources(
-            composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, emptyList()).getOrNull()!!,
-            headers,
-            queryParams
-        )
-        assertThat(warnings).hasSize(2)
-        coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
-    }
+            val (warnings, _) = contextSourceCaller.distributeQueryEntitiesOperation(
+                composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, emptyList()).getOrNull()!!,
+                headers,
+                queryParams
+            )
+            assertThat(warnings).hasSize(2)
+            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
+        }
 
     @Test
     fun `retrieveEntityFromContextSource should return the entity when the request succeeds`() = runTest {
@@ -220,32 +221,33 @@ class ContextSourceCallerTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `retrieveEntityFromAllSources should return the warnings sent by the CSRs and update the statuses`() = runTest {
-        val csr = gimmeRawCSR()
+    fun `distributeRetrieveEntityOperation should return the warnings sent by the CSRs and update the statuses`() =
+        runTest {
+            val csr = gimmeRawCSR()
 
-        coEvery {
-            contextSourceRegistrationService
-                .getContextSourceRegistrations(any(), any(), any())
-        } returns listOf(csr, csr)
+            coEvery {
+                contextSourceRegistrationService
+                    .getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(csr, csr)
 
-        coEvery {
-            contextSourceCaller.retrieveEntityFromContextSource(any(), any(), any(), any())
-        } returns MiscellaneousWarning(
-            "message with\nline\nbreaks",
-            csr
-        ).left() andThen
-            MiscellaneousWarning("message", csr).left()
+            coEvery {
+                contextSourceCaller.retrieveEntityFromContextSource(any(), any(), any(), any())
+            } returns MiscellaneousWarning(
+                "message with\nline\nbreaks",
+                csr
+            ).left() andThen
+                MiscellaneousWarning("message", csr).left()
 
-        coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
 
-        val (warnings, _) = contextSourceCaller.retrieveEntityFromAllContextSources(
-            apiaryId.toUri(),
-            HttpHeaders(),
-            MultiValueMap.fromSingleValue(emptyMap())
-        )
-        assertThat(warnings).hasSize(2)
-        coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
-    }
+            val (warnings, _) = contextSourceCaller.distributeRetrieveEntityOperation(
+                apiaryId.toUri(),
+                HttpHeaders(),
+                MultiValueMap.fromSingleValue(emptyMap())
+            )
+            assertThat(warnings).hasSize(2)
+            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
+        }
 
     @Test
     fun `getDistributedInformation should return a MiscellaneousWarning if it receives no answer`() = runTest {

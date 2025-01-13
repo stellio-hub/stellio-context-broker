@@ -6,7 +6,7 @@ import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
-import com.egm.stellio.search.csr.service.ContextSourceCaller
+import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateResult
@@ -108,7 +108,7 @@ class EntityHandlerTests {
     private lateinit var entityQueryService: EntityQueryService
 
     @MockkBean
-    private lateinit var contextSourceCaller: ContextSourceCaller
+    private lateinit var contextSourceCaller: DistributedEntityConsumptionService
 
     @MockkBean(relaxed = true)
     private lateinit var linkedEntityService: LinkedEntityService

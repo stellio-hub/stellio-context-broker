@@ -37,13 +37,13 @@ import java.net.URI
 typealias QueryEntitiesResponse = Pair<List<CompactedEntity>, Int?>
 
 @Service
-class ContextSourceCaller(
+class DistributedEntityConsumptionService(
     private val contextSourceRegistrationService: ContextSourceRegistrationService,
 ) {
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    suspend fun retrieveEntityFromAllContextSources(
+    suspend fun distributeRetrieveEntityOperation(
         id: URI,
         httpHeaders: HttpHeaders,
         queryParams: MultiValueMap<String, String>
@@ -99,7 +99,7 @@ class ContextSourceCaller(
         )
     }
 
-    suspend fun queryEntitiesFromAllContextSources(
+    suspend fun distributeQueryEntitiesOperation(
         entitiesQuery: EntitiesQueryFromGet,
         httpHeaders: HttpHeaders,
         queryParams: MultiValueMap<String, String>

@@ -214,7 +214,7 @@ class EntityHandler(
             }
 
         val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
-            contextSourceCaller.queryEntitiesFromAllContextSources(entitiesQuery, httpHeaders, queryParams)
+            contextSourceCaller.distributeQueryEntitiesOperation(entitiesQuery, httpHeaders, queryParams)
 
         val maxCount = (remoteCounts + localCount).maxBy { it ?: 0 } ?: 0
 
@@ -277,7 +277,7 @@ class EntityHandler(
             compactEntity(filteredExpandedEntity, contexts)
         }
 
-        val (warnings, remoteEntitiesWithCSR) = contextSourceCaller.retrieveEntityFromAllContextSources(
+        val (warnings, remoteEntitiesWithCSR) = contextSourceCaller.distributeRetrieveEntityOperation(
             entityId,
             httpHeaders,
             queryParams

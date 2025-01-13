@@ -129,11 +129,11 @@ class EntityHandlerTests {
     fun mockCSR() {
         coEvery {
             contextSourceCaller
-                .retrieveEntityFromAllContextSources(any(), any(), any())
+                .distributeRetrieveEntityOperation(any(), any(), any())
         } returns (emptyList<NGSILDWarning>() to emptyList())
         coEvery {
             contextSourceCaller
-                .queryEntitiesFromAllContextSources(any(), any(), any())
+                .distributeQueryEntitiesOperation(any(), any(), any())
         } returns Triple(emptyList(), emptyList(), emptyList())
     }
 
@@ -980,7 +980,7 @@ class EntityHandlerTests {
 
         coEvery {
             contextSourceCaller
-                .retrieveEntityFromAllContextSources(any(), any(), any())
+                .distributeRetrieveEntityOperation(any(), any(), any())
         } returns (
             listOf(
                 MiscellaneousWarning("message with\nline\nbreaks", csr),
@@ -1301,7 +1301,7 @@ class EntityHandlerTests {
 
         coEvery {
             contextSourceCaller
-                .queryEntitiesFromAllContextSources(any(), any(), any())
+                .distributeQueryEntitiesOperation(any(), any(), any())
         } returns Triple(
             listOf(
                 MiscellaneousWarning("message with\nline\nbreaks", csr),

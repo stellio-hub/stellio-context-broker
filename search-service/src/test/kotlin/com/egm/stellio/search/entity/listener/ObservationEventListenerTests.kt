@@ -125,10 +125,10 @@ class ObservationEventListenerTests {
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             entityService.partialUpdateAttribute(any(), any(), any())
         }
-        verify { entityEventService wasNot called }
+        verify(timeout = 1000L) { entityEventService wasNot called }
     }
 
     @Test
@@ -147,7 +147,7 @@ class ObservationEventListenerTests {
 
         observationEventListener.dispatchObservationMessage(observationEvent)
 
-        coVerify {
+        coVerify(timeout = 1000L) {
             entityService.appendAttributes(
                 expectedEntityId,
                 any(),

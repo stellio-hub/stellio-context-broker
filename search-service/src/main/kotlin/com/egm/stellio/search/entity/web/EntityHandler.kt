@@ -4,14 +4,9 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import arrow.core.separateEither
-import arrow.fx.coroutines.parMap
-import com.egm.stellio.search.csr.model.CSRFilters
-import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.addWarnings
-import com.egm.stellio.search.csr.service.ContextSourceCaller
-import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.search.csr.service.ContextSourceUtils
+import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.service.LinkedEntityService
@@ -76,7 +71,7 @@ class EntityHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
     private val entityQueryService: EntityQueryService,
-    private val contextSourceRegistrationService: ContextSourceRegistrationService,
+    private val distributedEntityConsumptionService: DistributedEntityConsumptionService,
     private val linkedEntityService: LinkedEntityService
 ) : BaseHandler() {
 
@@ -206,27 +201,8 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
 
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
-        val entitiesQuery = composeEntitiesQueryFromGet(
-            applicationProperties.pagination,
-            queryParams,
-            contexts
-        ).bind()
+        val entitiesQuery = composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
             .validateMinimalQueryEntitiesParameters().bind()
-
-        val csrFilters =
-            CSRFilters(
-                ids = entitiesQuery.ids,
-                idPattern = entitiesQuery.idPattern,
-                typeSelection = entitiesQuery.typeSelection,
-                operations = listOf(
-                    Operation.QUERY_ENTITY,
-                    Operation.FEDERATION_OPS,
-                    Operation.RETRIEVE_OPS,
-                    Operation.REDIRECTION_OPS
-                )
-            )
-
-        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
 
         val (entities, localCount) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
 
@@ -237,31 +213,21 @@ class EntityHandler(
                 linkedEntityService.processLinkedEntities(it, entitiesQuery, sub.getOrNull()).bind()
             }
 
-        val (warnings, remoteEntitiesWithCSR, remoteCounts) = matchingCSR.parMap { csr ->
-            val response = ContextSourceCaller.queryContextSourceEntities(
+        val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
+            distributedEntityConsumptionService.distributeQueryEntitiesOperation(
+                entitiesQuery,
                 httpHeaders,
-                csr,
                 queryParams
             )
-            contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
-            response.map { (entities, count) -> Triple(entities, csr, count) }
-        }.separateEither()
-            .let { (warnings, response) ->
-                Triple(
-                    warnings.toMutableList(),
-                    response.map { (entities, csr, _) -> entities to csr },
-                    response.map { (_, _, counts) -> counts }
-                )
-            }
 
         val maxCount = (remoteCounts + localCount).maxBy { it ?: 0 } ?: 0
 
-        val mergedEntities = ContextSourceUtils.mergeEntitiesLists(
+        val (warnings, mergedEntities) = ContextSourceUtils.mergeEntitiesLists(
             localEntities,
             remoteEntitiesWithCSR
         ).toPair().let { (mergeWarnings, mergedEntities) ->
-            mergeWarnings?.let { warnings.addAll(it) }
-            mergedEntities ?: emptyList()
+            val warnings = mergeWarnings?.let { queryWarnings + it } ?: queryWarnings
+            warnings to (mergedEntities ?: emptyList())
         }
 
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
@@ -305,19 +271,6 @@ class EntityHandler(
             contexts
         ).bind()
 
-        val csrFilters =
-            CSRFilters(
-                ids = setOf(entityId),
-                operations = listOf(
-                    Operation.RETRIEVE_ENTITY,
-                    Operation.FEDERATION_OPS,
-                    Operation.RETRIEVE_OPS,
-                    Operation.REDIRECTION_OPS
-                )
-            )
-
-        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
-
         val localEntity = either {
             val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
             expandedEntity.checkContainsAnyOf(entitiesQuery.attrs).bind()
@@ -328,20 +281,11 @@ class EntityHandler(
             compactEntity(filteredExpandedEntity, contexts)
         }
 
-        // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
-        val (warnings, remoteEntitiesWithCSR) = matchingCSR.parMap { csr ->
-            val response = ContextSourceCaller.retrieveContextSourceEntity(
-                httpHeaders,
-                csr,
-                entityId,
-                queryParams
-            )
-            contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
-            response.map { it?.let { it to csr } }
-        }.separateEither()
-            .let { (warnings, maybeResponses) ->
-                warnings.toMutableList() to maybeResponses.filterNotNull()
-            }
+        val (warnings, remoteEntitiesWithCSR) = distributedEntityConsumptionService.distributeRetrieveEntityOperation(
+            entityId,
+            httpHeaders,
+            queryParams
+        ).let { (warnings, it) -> warnings.toMutableList() to it }
 
         val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeEntities(
             localEntity.getOrNull(),

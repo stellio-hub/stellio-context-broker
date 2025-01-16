@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.MANAGED_BY_RELATIONSHIP
 import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
@@ -302,5 +303,37 @@ class ExpandedEntityTests {
         val nameAttributeInstances = expandedEntity.members[NGSILD_NAME_PROPERTY] as ExpandedAttributeInstances
         assertThat(nameAttributeInstances).hasSize(1)
         assertThat(nameAttributeInstances[0]).containsKey(NGSILD_CREATED_AT_PROPERTY)
+    }
+
+    @Test
+    fun `getFilteredAndRemoved should filter properties and relationship separately`() = runTest {
+        val entity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "name": {
+                "type": "Property",
+                "value": "An entity"
+            },
+            "managedBy": {
+                 "type": "Relationship",
+                 "datasetId": "urn:ngsi-ld:Dataset:french-name",
+                 "object": "urn:ngsi-ld:Apiculteur:1230"
+            },
+            "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+        }
+        """.trimIndent()
+
+//        val (filteredEntity, remainingEntity) = expandJsonLdEntity(entity)
+//            .getFilteredAndRemoved(setOf(NGSILD_NAME_PROPERTY), setOf(MANAGED_BY_RELATIONSHIP))
+//
+//        assertThat(filteredEntity.members).containsKeys(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
+//        assertThat(remainingEntity.members).doesNotContainKeys(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
+
+        val (inversedFilteredEntity, inversedRemainingEntity) = expandJsonLdEntity(entity)
+            .getFilteredAndRemoved(setOf(MANAGED_BY_RELATIONSHIP), setOf(NGSILD_NAME_PROPERTY))
+
+        assertThat(inversedFilteredEntity.members).doesNotContainKeys(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
+        assertThat(inversedRemainingEntity.members).containsKeys(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
     }
 }

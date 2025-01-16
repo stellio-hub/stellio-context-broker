@@ -12,6 +12,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import java.time.ZonedDateTime
 
@@ -110,6 +112,31 @@ data class ExpandedEntity(
                 }.ifEmpty { null }
             }
     )
+
+    private fun removeAttributes(attributes: Set<String>): ExpandedEntity = ExpandedEntity(
+        members.filterKeys { it !in attributes }
+    )
+
+    // todo should check properties and relationships + test
+    fun getFilteredAndRemoved(
+        properties: Set<String>?,
+        relationships: Set<String>?
+    ): Pair<ExpandedEntity, ExpandedEntity> {
+        val attributes = getAttributes().entries.mapNotNull { (term, attribute) ->
+            // todo why is it a list? (maybe jsonLd expansion library?)
+            val attributeType = attribute.first()[JSONLD_TYPE]?.first()
+            when {
+                attributeType == null -> null
+                NGSILD_RELATIONSHIP_TYPE.uri == attributeType && relationships == null -> term
+                NGSILD_RELATIONSHIP_TYPE.uri == attributeType && term in relationships!! -> term
+                NGSILD_RELATIONSHIP_TYPE.uri != attributeType && properties == null -> term
+                NGSILD_RELATIONSHIP_TYPE.uri != attributeType && term in properties!! -> term
+                else -> null
+            }
+        }.toSet()
+
+        return filterAttributes(attributes, emptySet()) to removeAttributes(attributes)
+    }
 }
 
 fun List<ExpandedEntity>.filterAttributes(

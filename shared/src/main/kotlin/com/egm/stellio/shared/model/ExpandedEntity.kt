@@ -88,14 +88,10 @@ data class ExpandedEntity(
             this.plus(propertyKey to JsonLdUtils.buildNonReifiedTemporalValue(dateTime))
         else this
 
-    fun filterAttributes(includedAttributes: Set<String>, includedDatasetIds: Set<String>): Map<String, Any> =
-        filterEntityOnAttributes(this.members, includedAttributes, includedDatasetIds)
-
-    private fun filterEntityOnAttributes(
-        members: Map<String, Any>,
+    fun filterAttributes(
         includedAttributes: Set<String>,
         includedDatasetIds: Set<String>,
-    ): Map<String, Any> =
+    ): ExpandedEntity = ExpandedEntity(
         if (includedAttributes.isEmpty() && includedDatasetIds.isEmpty()) {
             members
         } else
@@ -113,6 +109,7 @@ data class ExpandedEntity(
                         includedDatasetIds.contains(expandedAttributeInstance.getDatasetId().toString())
                 }.ifEmpty { null }
             }
+    )
 }
 
 fun List<ExpandedEntity>.filterAttributes(
@@ -120,5 +117,5 @@ fun List<ExpandedEntity>.filterAttributes(
     includedDatasetIds: Set<String>
 ): List<ExpandedEntity> =
     this.map {
-        ExpandedEntity(it.filterAttributes(includedAttributes, includedDatasetIds))
+        it.filterAttributes(includedAttributes, includedDatasetIds)
     }

@@ -14,7 +14,6 @@ import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.filterAttributes
@@ -276,9 +275,8 @@ class EntityHandler(
             val expandedEntity = entityQueryService.queryEntity(entityId, sub.getOrNull()).bind()
             expandedEntity.checkContainsAnyOf(entitiesQuery.attrs).bind()
 
-            val filteredExpandedEntity = ExpandedEntity(
-                expandedEntity.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
-            )
+            val filteredExpandedEntity = expandedEntity.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
+
             compactEntity(filteredExpandedEntity, contexts)
         }
 

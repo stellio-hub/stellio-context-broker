@@ -198,8 +198,9 @@ class EntityHandler(
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val sub = getSubFromSecurityContext()
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
 
+        val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val entitiesQuery = composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
             .validateMinimalQueryEntitiesParameters().bind()
@@ -230,7 +231,6 @@ class EntityHandler(
             warnings to (mergedEntities ?: emptyList())
         }
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         buildQueryResponse(
             mergedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             maxCount,
@@ -262,6 +262,7 @@ class EntityHandler(
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val mediaType = getApplicableMediaType(httpHeaders).bind()
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         val sub = getSubFromSecurityContext()
 
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
@@ -302,7 +303,6 @@ class EntityHandler(
         val mergedEntityWithLinkedEntities =
             linkedEntityService.processLinkedEntities(mergedEntity, entitiesQuery, sub.getOrNull()).bind()
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .let {
                 val body = if (mergedEntityWithLinkedEntities.size == 1)

@@ -125,11 +125,8 @@ data class ContextSourceRegistration(
             information = information.map { it.compact(contexts) }
         )
 
-    fun serialize(
-        contexts: List<String>,
-        mediaType: MediaType = JSON_LD_MEDIA_TYPE,
-        includeSysAttrs: Boolean = false
-    ): String {
+    fun serialize(contexts: List<String>, mediaType: MediaType = JSON_LD_MEDIA_TYPE, includeSysAttrs: Boolean = false)
+    : String {
         return DataTypes.mapper.writeValueAsString(
             DataTypes.mapper.convertValue<Map<String, Any>>(
                 this.compact(contexts)
@@ -154,6 +151,20 @@ data class ContextSourceRegistration(
         if (!id.isAbsolute)
             BadRequestDataException(invalidUriMessage("$id")).left()
         else Unit.right()
+
+    fun getMatchingInformation(csrFilters: InternalCSRFilters):List<RegistrationInfo>{
+        information.filter {info ->
+            info.entities?.any { entityInfo ->
+                entityInfo.id?.let { csrFilters.ids.contains(it) } ?: true &&
+                entityInfo.types.let { types -> types.any { csrFilters.types?.contains(it) ?: true } } &&
+                entityInfo.idPattern?.let { pattern ->
+                    csrFilters.ids.any { pattern.toRegex().matches(it.toString()) }
+                } ?: true
+
+            } ?: true
+
+        }
+    }
     companion object {
 
         fun deserialize(

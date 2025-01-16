@@ -2,6 +2,8 @@ package com.egm.stellio.shared.model
 
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
+import com.egm.stellio.shared.util.JsonLdUtils.logger
+import com.egm.stellio.shared.util.mapper
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -20,6 +22,7 @@ sealed class APIException(
     override val message: String,
     open val detail: String = DEFAULT_DETAIL
 ) : Exception(message) {
+
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun toProblemDetail(): ProblemDetail = ProblemDetail.forStatusAndDetail(status, this.detail).also {
@@ -33,6 +36,38 @@ sealed class APIException(
             .body(toProblemDetail())
     }
 }
+
+data class ContextSourceException(val problemDetail: ProblemDetail) : APIException(
+    type = problemDetail.type,
+    status = HttpStatus.valueOf(problemDetail.status),
+    message = problemDetail.title ?: "no title provided",
+    detail = problemDetail.detail ?: "no detail provided"
+) {
+    constructor(response: String?) : this(
+        mapper.readValue(
+            response,
+            ProblemDetail::class.java
+        )
+    )
+}
+
+data class ConflictException(override val message: String) : APIException(
+    ErrorType.CONFLICT.type,
+    HttpStatus.CONFLICT,
+    message
+)
+
+data class GatewayTimeoutException(override val message: String) : APIException(
+    ErrorType.GATEWAY_TIMEOUT.type,
+    HttpStatus.GATEWAY_TIMEOUT,
+    message
+)
+
+data class BadGatewayException(override val message: String) : APIException(
+    ErrorType.BAD_GATEWAY.type,
+    HttpStatus.BAD_GATEWAY,
+    message
+)
 
 data class AlreadyExistsException(override val message: String) : APIException(
     ErrorType.ALREADY_EXISTS.type,
@@ -138,6 +173,9 @@ enum class ErrorType(val type: URI) {
     INVALID_REQUEST(URI("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest")),
     BAD_REQUEST_DATA(URI("https://uri.etsi.org/ngsi-ld/errors/BadRequestData")),
     ALREADY_EXISTS(URI("https://uri.etsi.org/ngsi-ld/errors/AlreadyExists")),
+    CONFLICT(URI("https://uri.etsi.org/ngsi-ld/errors/Conflict")), // todo defined only in 6.3.17
+    BAD_GATEWAY(URI("https://uri.etsi.org/ngsi-ld/errors/BadGateway")), // todo defined only in 6.3.17
+    GATEWAY_TIMEOUT(URI("https://uri.etsi.org/ngsi-ld/errors/GatewayTimeout")), // todo defined only in 6.3.17
     OPERATION_NOT_SUPPORTED(URI("https://uri.etsi.org/ngsi-ld/errors/OperationNotSupported")),
     RESOURCE_NOT_FOUND(URI("https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound")),
     INTERNAL_ERROR(URI("https://uri.etsi.org/ngsi-ld/errors/InternalError")),

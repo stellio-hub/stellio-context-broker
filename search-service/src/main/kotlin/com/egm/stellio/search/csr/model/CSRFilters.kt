@@ -3,7 +3,7 @@ package com.egm.stellio.search.csr.model
 import com.egm.stellio.shared.model.EntityTypeSelection
 import java.net.URI
 
-data class CSRFilters( // we should use a combination of EntitiesQuery TemporalQuery (when we implement all operations)
+open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQuery (when we implement all operations)
     val ids: Set<URI> = emptySet(),
     val typeSelection: EntityTypeSelection? = null,
     val idPattern: String? = null,
@@ -13,12 +13,24 @@ data class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
         ids: Set<URI> = emptySet(),
         typeSelection: EntityTypeSelection? = null,
         idPattern: String? = null,
-        operations: List<Operation>
+        operations: List<Operation>? = null
     ) :
         this(
             ids = ids,
             typeSelection = typeSelection,
             idPattern = idPattern,
-            csf = operations.joinToString("|") { "${ContextSourceRegistration::operations.name}==${it.key}" }
+            csf = operations?.joinToString("|") { "${ContextSourceRegistration::operations.name}==${it.key}" }
         )
 }
+
+class InternalCSRFilters(
+    ids: Set<URI> = emptySet(),
+    val types: Set<String>? = null,
+    idPattern: String? = null,
+    operations: List<Operation>? = null
+) : CSRFilters(
+    ids = ids,
+    typeSelection = types?.joinToString("|"),
+    idPattern = idPattern,
+    operations = operations
+)

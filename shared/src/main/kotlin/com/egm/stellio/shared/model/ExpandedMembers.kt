@@ -54,7 +54,7 @@ fun ExpandedAttributes.getAttributeFromExpandedAttributes(
     }
 
 fun ExpandedAttribute.toExpandedAttributes(): ExpandedAttributes =
-    mapOf(this.first to this.second)
+    mapOf(this)
 
 fun ExpandedAttributeInstances.addSubAttribute(
     subAttributeName: ExpandedTerm,

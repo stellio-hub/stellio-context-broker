@@ -40,6 +40,8 @@ class DistributedEntityProvisionService(
         entity: ExpandedEntity,
         contexts: List<String>,
     ): Pair<List<APIException>, ExpandedEntity> {
+        val path = "/ngsi-ld/v1/entities"
+
         var remainingEntity = entity
         val csrFilters =
             InternalCSRFilters(
@@ -61,19 +63,22 @@ class DistributedEntityProvisionService(
             )
         } ?: emptyList() // todo remainingEntity should be treated after all exclusive CSR
         val redirectResponses = matchingCSR[Mode.REDIRECT]?.mapNotNull { csr ->
-            createEntityInContextSource(httpHeaders, csr, entity, contexts, csrFilters).fold(
-                { it },
-                {
-                    remainingEntity = it
-                    null
-                }
-            )
+            {
+                val matchingInformation = csr.getMatchingInformation(csrFilters)
+                val properties = if (matchingInformation.any { it.propertyNames == null }) null
+                else matchingInformation.flatMap { it.propertyNames!! }.toSet()
+
+                val relationships = if (matchingInformation.any { it.relationshipNames == null }) null
+                else matchingInformation.flatMap { it.relationshipNames!! }.toSet()
+
+                val (filteredEntity, remainingEntity) = entity.getFilteredAndRemoved(properties, relationships)
+                null
+            }
         } ?: emptyList()
         val inclusiveResponses = matchingCSR[Mode.INCLUSIVE]?.mapNotNull { csr ->
             createEntityInContextSource(httpHeaders, csr, entity, contexts, csrFilters).leftOrNull()
         } ?: emptyList()
-        return exclusiveResponses.toMutableList() +
-            redirectResponses.toMutableList() +
+        return exclusiveResponses.toMutableList() + // todo redirectResponses
             inclusiveResponses.toMutableList() to remainingEntity
     }
 
@@ -86,24 +91,21 @@ class DistributedEntityProvisionService(
     ): Either<APIException, ExpandedEntity> = either {
         val path = "/ngsi-ld/v1/entities"
         val matchingInformation = csr.getMatchingInformation(csrFilters)
-        val includeAllProperties = matchingInformation.any { it.propertyNames == null }
-        val includeAllRelationships = matchingInformation.any { it.relationshipNames == null }
-        val attributes = matchingInformation.flatMap { it.propertyNames!! }.toSet()
-        val relationships = matchingInformation.flatMap { it.relationshipNames!! }.toSet()
 
-        val matchingEntity = ExpandedEntity(entity.filterAttributes(attributes, emptySet()))
-        val remainingEntity = entity
-        return if (!csr.operations.any {
-                listOf(
-                    Operation.CREATE_ENTITY,
-                    Operation.REDIRECTION_OPS
-                ).contains(it)
-            }
+        val properties = if (matchingInformation.any { it.propertyNames == null }) null
+        else matchingInformation.flatMap { it.propertyNames!! }.toSet()
+
+        val relationships = if (matchingInformation.any { it.relationshipNames == null }) null
+        else matchingInformation.flatMap { it.relationshipNames!! }.toSet()
+
+        val (filteredEntity, remainingEntity) = entity.getFilteredAndRemoved(properties, relationships)
+        return if (
+            csr.mode in setOf(Mode.REDIRECT, Mode.INCLUSIVE) &&
+            !csr.operations.any { it in setOf(Operation.CREATE_ENTITY, Operation.REDIRECTION_OPS) }
         )
             ConflictException("The CSR ${csr.id} does not support creation of entities").left()
         else {
-            postDistributedInformation(httpHeaders, compactEntity(matchingEntity, contexts), csr, path)
-
+            postDistributedInformation(httpHeaders, compactEntity(filteredEntity, contexts), csr, path).bind()
             remainingEntity.right()
         }
     }

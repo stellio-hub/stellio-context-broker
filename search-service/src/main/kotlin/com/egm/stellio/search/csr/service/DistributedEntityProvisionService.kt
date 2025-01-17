@@ -8,16 +8,16 @@ import arrow.core.right
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.InternalCSRFilters
 import com.egm.stellio.search.csr.model.Mode
-import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadGatewayException
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.model.ConflictException
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.toUri
+import org.json.XMLTokener.entity
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -32,6 +32,7 @@ import java.net.URI
 class DistributedEntityProvisionService(
     private val contextSourceRegistrationService: ContextSourceRegistrationService,
 ) {
+    val createPath = "/ngsi-ld/v1/entities"
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
@@ -40,9 +41,6 @@ class DistributedEntityProvisionService(
         entity: ExpandedEntity,
         contexts: List<String>,
     ): Pair<List<APIException>, ExpandedEntity> {
-        val path = "/ngsi-ld/v1/entities"
-
-        var remainingEntity = entity
         val csrFilters =
             InternalCSRFilters(
                 ids = setOf(entity.id.toUri()),
@@ -53,64 +51,60 @@ class DistributedEntityProvisionService(
             filters = csrFilters,
         ).groupBy { it.mode }
 
-        val exclusiveResponses = matchingCSR[Mode.EXCLUSIVE]?.mapNotNull { csr ->
-            createEntityInContextSource(httpHeaders, csr, entity, contexts, csrFilters).fold(
-                { it },
-                {
-                    remainingEntity = it
-                    null
-                }
-            )
-        } ?: emptyList() // todo remainingEntity should be treated after all exclusive CSR
-        val redirectResponses = matchingCSR[Mode.REDIRECT]?.mapNotNull { csr ->
-            {
-                val matchingInformation = csr.getMatchingInformation(csrFilters)
-                val properties = if (matchingInformation.any { it.propertyNames == null }) null
-                else matchingInformation.flatMap { it.propertyNames!! }.toSet()
-
-                val relationships = if (matchingInformation.any { it.relationshipNames == null }) null
-                else matchingInformation.flatMap { it.relationshipNames!! }.toSet()
-
-                val (filteredEntity, remainingEntity) = entity.getFilteredAndRemoved(properties, relationships)
-                null
-            }
-        } ?: emptyList()
-        val inclusiveResponses = matchingCSR[Mode.INCLUSIVE]?.mapNotNull { csr ->
-            createEntityInContextSource(httpHeaders, csr, entity, contexts, csrFilters).leftOrNull()
-        } ?: emptyList()
-        return exclusiveResponses.toMutableList() + // todo redirectResponses
-            inclusiveResponses.toMutableList() to remainingEntity
-    }
-
-    suspend fun createEntityInContextSource(
-        httpHeaders: HttpHeaders,
-        csr: ContextSourceRegistration,
-        entity: ExpandedEntity,
-        contexts: List<String>,
-        csrFilters: InternalCSRFilters
-    ): Either<APIException, ExpandedEntity> = either {
-        val path = "/ngsi-ld/v1/entities"
-        val matchingInformation = csr.getMatchingInformation(csrFilters)
-
-        val properties = if (matchingInformation.any { it.propertyNames == null }) null
-        else matchingInformation.flatMap { it.propertyNames!! }.toSet()
-
-        val relationships = if (matchingInformation.any { it.relationshipNames == null }) null
-        else matchingInformation.flatMap { it.relationshipNames!! }.toSet()
-
-        val (filteredEntity, remainingEntity) = entity.getFilteredAndRemoved(properties, relationships)
-        return if (
-            csr.mode in setOf(Mode.REDIRECT, Mode.INCLUSIVE) &&
-            !csr.operations.any { it in setOf(Operation.CREATE_ENTITY, Operation.REDIRECTION_OPS) }
+        val (exclusiveErrors, entityAfterExclusive) = distributeCreateEntityForContextSources(
+            matchingCSR[Mode.EXCLUSIVE], // could be only one
+            csrFilters,
+            entity,
+            httpHeaders,
+            contexts
         )
-            ConflictException("The CSR ${csr.id} does not support creation of entities").left()
-        else {
-            postDistributedInformation(httpHeaders, compactEntity(filteredEntity, contexts), csr, path).bind()
-            remainingEntity.right()
-        }
+        val (redirectErrors, entityAfterRedirect) = distributeCreateEntityForContextSources(
+            matchingCSR[Mode.REDIRECT],
+            csrFilters,
+            entityAfterExclusive,
+            httpHeaders,
+            contexts
+        )
+        val (inclusiveError, _) = distributeCreateEntityForContextSources(
+            matchingCSR[Mode.INCLUSIVE],
+            csrFilters,
+            entityAfterRedirect,
+            httpHeaders,
+            contexts
+        )
+        return exclusiveErrors.toMutableList() +
+            redirectErrors.toMutableList() +
+            inclusiveError.toMutableList() to entityAfterRedirect
     }
 
-    suspend fun postDistributedInformation(
+    private suspend fun distributeCreateEntityForContextSources(
+        csrs: List<ContextSourceRegistration>?,
+        csrFilters: InternalCSRFilters,
+        entity: ExpandedEntity,
+        headers: HttpHeaders,
+        contexts: List<String>
+    ): Pair<List<APIException>, ExpandedEntity> {
+        val allCreatedAttrs = mutableSetOf<ExpandedTerm>()
+        val errors = csrs?.mapNotNull { csr ->
+            csr.getMatchingPropertiesAndRelationships(csrFilters)
+                .let { (properties, relationships) -> entity.getAssociatedAttributes(properties, relationships) }
+                .let { attrs ->
+                    if (attrs.isEmpty()) {
+                        null
+                    } else {
+                        postDistributedInformation(
+                            headers,
+                            compactEntity(entity.filterAttributes(attrs, emptySet()), contexts),
+                            csr,
+                            createPath
+                        ).onRight { allCreatedAttrs.addAll(attrs) }.leftOrNull()
+                    }
+                }
+        } ?: emptyList()
+        return errors to entity.omitAttributes(allCreatedAttrs)
+    }
+
+    private suspend fun postDistributedInformation(
         httpHeaders: HttpHeaders,
         entity: CompactedEntity,
         csr: ContextSourceRegistration,

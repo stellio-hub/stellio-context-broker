@@ -7,6 +7,7 @@ import arrow.core.right
 import com.egm.stellio.search.csr.model.addWarnings
 import com.egm.stellio.search.csr.service.ContextSourceUtils
 import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
+import com.egm.stellio.search.csr.service.DistributedEntityProvisionService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.service.LinkedEntityService
@@ -71,6 +72,7 @@ class EntityHandler(
     private val entityService: EntityService,
     private val entityQueryService: EntityQueryService,
     private val distributedEntityConsumptionService: DistributedEntityConsumptionService,
+    private val distributedEntityProvisionService: DistributedEntityProvisionService,
     private val linkedEntityService: LinkedEntityService
 ) : BaseHandler() {
 
@@ -87,10 +89,14 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-        val expandedEntity = expandJsonLdEntity(body, contexts)
-        val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
-        entityService.createEntity(ngsiLdEntity, expandedEntity, sub.getOrNull()).bind()
+        val expandedEntity = expandJsonLdEntity(body, contexts)
+        val (errors, remainingEntity) = distributedEntityProvisionService
+            .distributeCreateEntity(httpHeaders, expandedEntity, contexts)
+
+        val ngsiLdEntity = remainingEntity.toNgsiLdEntity().bind()
+
+        entityService.createEntity(ngsiLdEntity, remainingEntity, sub.getOrNull()).bind()
 
         ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/entities/${ngsiLdEntity.id}"))

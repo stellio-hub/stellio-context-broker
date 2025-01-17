@@ -306,7 +306,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `getFilteredAndRemoved should filter properties and relationship separately`() = runTest {
+    fun `getAssociatedAttributes should check properties and relationship separately`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -324,16 +324,14 @@ class ExpandedEntityTests {
         }
         """.trimIndent()
 
-//        val (filteredEntity, remainingEntity) = expandJsonLdEntity(entity)
-//            .getFilteredAndRemoved(setOf(NGSILD_NAME_PROPERTY), setOf(MANAGED_BY_RELATIONSHIP))
-//
-//        assertThat(filteredEntity.members).containsKeys(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
-//        assertThat(remainingEntity.members).doesNotContainKeys(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
+        val attrs = expandJsonLdEntity(entity)
+            .getAssociatedAttributes(setOf(NGSILD_NAME_PROPERTY), setOf(MANAGED_BY_RELATIONSHIP))
 
-        val (inversedFilteredEntity, inversedRemainingEntity) = expandJsonLdEntity(entity)
-            .getFilteredAndRemoved(setOf(MANAGED_BY_RELATIONSHIP), setOf(NGSILD_NAME_PROPERTY))
+        assertThat(attrs).contains(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
 
-        assertThat(inversedFilteredEntity.members).doesNotContainKeys(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
-        assertThat(inversedRemainingEntity.members).containsKeys(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
+        val inversedAttrs = expandJsonLdEntity(entity)
+            .getAssociatedAttributes(setOf(MANAGED_BY_RELATIONSHIP), setOf(NGSILD_NAME_PROPERTY))
+
+        assertThat(inversedAttrs).doesNotContain(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
     }
 }

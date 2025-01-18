@@ -193,7 +193,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should correctly transform geoproperties`() = runTest {
+    fun `it should correctly transform core geoproperties`() = runTest {
         val payload =
             """
                 {
@@ -242,7 +242,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should correctly transform and restore geoproperties`() = runTest {
+    fun `it should correctly transform and restore core geoproperties`() = runTest {
         val payload =
             """
                 {
@@ -274,6 +274,42 @@ class JsonLdUtilsTests {
         val deserializedPayload = payload.deserializeAsMap()
         val expandedEntity = expandJsonLdEntityF(deserializedPayload, NGSILD_TEST_CORE_CONTEXTS)
             .shouldSucceedAndResult()
+        val compactedEntity = compactEntity(expandedEntity, NGSILD_TEST_CORE_CONTEXTS)
+        assertJsonPayloadsAreEqual(
+            serializeObject(deserializedPayload.plus(JSONLD_CONTEXT to NGSILD_TEST_CORE_CONTEXT)),
+            serializeObject(compactedEntity)
+        )
+    }
+
+    @Test
+    fun `it should correctly transform and restore a user defined geoproperty`() = runTest {
+        val payload =
+            """
+                {
+                    "id": "urn:ngsi-ld:Device:01234",
+                    "type": "Device",
+                    "userDefinedGeoProperty": {
+                        "type": "GeoProperty",
+                        "value": {
+                            "type": "Point",
+                            "coordinates": [ 100.12, 0.23 ]
+                        }
+                    }
+                }
+            """.trimIndent()
+
+        val deserializedPayload = payload.deserializeAsMap()
+        val expandedEntity = expandJsonLdEntityF(deserializedPayload, NGSILD_TEST_CORE_CONTEXTS)
+            .shouldSucceedAndResult()
+
+        val userDefinedGeoProperty = expandedEntity.getAttributes()
+            .getAttributeFromExpandedAttributes(NGSILD_DEFAULT_VOCAB + "userDefinedGeoProperty", null)
+        assertNotNull(userDefinedGeoProperty)
+        assertEquals(
+            "POINT (100.12 0.23)",
+            userDefinedGeoProperty!!.getMemberValueAsString(NGSILD_PROPERTY_VALUE)
+        )
+
         val compactedEntity = compactEntity(expandedEntity, NGSILD_TEST_CORE_CONTEXTS)
         assertJsonPayloadsAreEqual(
             serializeObject(deserializedPayload.plus(JSONLD_CONTEXT to NGSILD_TEST_CORE_CONTEXT)),

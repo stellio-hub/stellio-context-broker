@@ -122,8 +122,7 @@ class JsonUtilsTests {
                 DEFAULT_TENANT_NAME,
                 entityId,
                 listOf(BEEHIVE_TYPE),
-                serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS)),
-                emptyList()
+                serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS))
             )
         )
         assertJsonPayloadsAreEqual(loadSampleData("events/entity/entityCreateEvent.json"), event)
@@ -144,8 +143,7 @@ class JsonUtilsTests {
                         ZonedDateTime.parse("2024-12-23T17:01:02Z"),
                         APIC_COMPOUND_CONTEXTS
                     ).members
-                ),
-                emptyList()
+                )
             )
         )
         assertJsonPayloadsAreEqual(loadSampleData("events/entity/entityDeleteEvent.json"), event)

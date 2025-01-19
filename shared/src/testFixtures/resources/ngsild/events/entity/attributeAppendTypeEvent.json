@@ -6,6 +6,5 @@
   "overwrite" : true,
   "operationPayload" : "[\"https://ontology.eglobalmark.com/apic#BeeHive\",\"https://ontology.eglobalmark.com/apic#Apiary\"]",
   "updatedEntity" : "{\"@id\":\"urn:ngsi-ld:BeeHive:01\",\"@type\":[\"https://ontology.eglobalmark.com/apic#BeeHive\",\"https://ontology.eglobalmark.com/apic#Apiary\"],\"https://uri.etsi.org/ngsi-ld/createdAt\":[{\"@type\":\"https://uri.etsi.org/ngsi-ld/DateTime\",\"@value\":\"2022-02-13T08:02:49.359316Z\"}],\"https://uri.etsi.org/ngsi-ld/location\":[{\"@type\":[\"https://uri.etsi.org/ngsi-ld/GeoProperty\"],\"https://uri.etsi.org/ngsi-ld/hasValue\":[{\"@value\":\"POINT (24.30623 60.07966)\"}]}],\"https://uri.etsi.org/ngsi-ld/modifiedAt\":[{\"@type\":\"https://uri.etsi.org/ngsi-ld/DateTime\",\"@value\":\"2022-02-13T08:07:08.524818Z\"}]}",
-  "contexts" : [],
   "operationType" : "ATTRIBUTE_APPEND"
 }

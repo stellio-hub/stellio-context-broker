@@ -126,8 +126,11 @@ data class ContextSourceRegistration(
             information = information.map { it.compact(contexts) }
         )
 
-    fun serialize(contexts: List<String>, mediaType: MediaType = JSON_LD_MEDIA_TYPE, includeSysAttrs: Boolean = false):
-        String {
+    fun serialize(
+        contexts: List<String>,
+        mediaType: MediaType = JSON_LD_MEDIA_TYPE,
+        includeSysAttrs: Boolean = false
+    ): String {
         return DataTypes.mapper.writeValueAsString(
             DataTypes.mapper.convertValue<Map<String, Any>>(
                 this.compact(contexts)

@@ -98,6 +98,21 @@ object JsonLdUtils {
 
     val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
 
+    const val NGSILD_CREATED_AT_TERM = "createdAt"
+    const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
+    const val NGSILD_DELETED_AT_TERM = "deletedAt"
+    val NGSILD_SYSATTRS_TERMS = setOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM, NGSILD_DELETED_AT_TERM)
+    const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_CREATED_AT_TERM"
+    const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_MODIFIED_AT_TERM"
+    const val NGSILD_DELETED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_DELETED_AT_TERM"
+    val NGSILD_SYSATTRS_PROPERTIES = setOf(
+        NGSILD_CREATED_AT_PROPERTY,
+        NGSILD_MODIFIED_AT_PROPERTY,
+        NGSILD_DELETED_AT_PROPERTY
+    )
+    const val NGSILD_OBSERVED_AT_TERM = "observedAt"
+    const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
+
     // List of members that are part of a core entity base definition (i.e., without attributes)
     val JSONLD_EXPANDED_ENTITY_CORE_MEMBERS =
         setOf(
@@ -118,16 +133,6 @@ object JsonLdUtils {
             NGSILD_MODIFIED_AT_TERM
         )
 
-    const val NGSILD_CREATED_AT_TERM = "createdAt"
-    const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
-    val NGSILD_SYSATTRS_TERMS = setOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM, NGSILD_DELETED_AT_TERM)
-    const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_CREATED_AT_TERM"
-    const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_MODIFIED_AT_TERM"
-    val NGSILD_SYSATTRS_PROPERTIES = setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
-    const val NGSILD_OBSERVED_AT_TERM = "observedAt"
-    const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
-    const val NGSILD_DELETED_AT_TERM = "deletedAt"
-    const val NGSILD_DELETED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_DELETED_AT_TERM"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_UNIT_CODE_TERM = "unitCode"
     const val NGSILD_LOCATION_TERM = "location"

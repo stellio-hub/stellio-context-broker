@@ -8,6 +8,7 @@ import com.egm.stellio.search.csr.model.addWarnings
 import com.egm.stellio.search.csr.service.ContextSourceUtils
 import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
 import com.egm.stellio.search.csr.service.DistributedEntityProvisionService
+import com.egm.stellio.search.csr.service.DistributionStatus
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.service.LinkedEntityService
@@ -91,16 +92,44 @@ class EntityHandler(
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
         val expandedEntity = expandJsonLdEntity(body, contexts)
-        val (errors, remainingEntity) = distributedEntityProvisionService
+
+        val (distributionStatuses, remainingEntity) = distributedEntityProvisionService
             .distributeCreateEntity(httpHeaders, expandedEntity, contexts)
 
-        val ngsiLdEntity = remainingEntity.toNgsiLdEntity().bind()
+        val allStatuses = if (remainingEntity.members.isNotEmpty()) {
+            val localStatus: DistributionStatus = either {
+                val ngsiLdEntity = remainingEntity.toNgsiLdEntity().bind()
+                entityService.createEntity(ngsiLdEntity, remainingEntity, sub.getOrNull()).bind()
+            }.fold({ (it to null).left() }, { it.right() })
+            distributionStatuses + listOf(localStatus)
+        } else distributionStatuses
 
-        entityService.createEntity(ngsiLdEntity, remainingEntity, sub.getOrNull()).bind()
+        when {
+            allStatuses.size == 1 && allStatuses.first().isLeft() ->
+                allStatuses.first().leftOrNull()!!.let { (onlyException, _) -> onlyException.toErrorResponse() }
 
-        ResponseEntity.status(HttpStatus.CREATED)
-            .location(URI("/ngsi-ld/v1/entities/${ngsiLdEntity.id}"))
-            .build<String>()
+            allStatuses.any { it.isLeft() } -> {
+                val result = BatchOperationResult(
+                    errors = allStatuses.mapNotNull {
+                        it.fold(
+                            { (exception, csr) ->
+                                BatchEntityError(
+                                    expandedEntity.id.toUri(),
+                                    mutableListOf(exception.type.toString(), exception.message, exception.detail),
+                                    csr?.id
+                                )
+                            },
+                            { null }
+                        )
+                    }.toMutableList()
+                )
+                ResponseEntity.status(HttpStatus.MULTI_STATUS).body(result)
+            }
+
+            else -> ResponseEntity.status(HttpStatus.CREATED)
+                .location(URI("/ngsi-ld/v1/entities/${expandedEntity.id}"))
+                .build<String>()
+        }
     }.fold(
         { it.toErrorResponse() },
         { it }

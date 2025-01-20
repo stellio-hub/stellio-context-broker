@@ -13,7 +13,7 @@ open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
         ids: Set<URI> = emptySet(),
         typeSelection: EntityTypeSelection? = null,
         idPattern: String? = null,
-        operations: List<Operation>? = null
+        operations: List<Operation>?
     ) :
         this(
             ids = ids,

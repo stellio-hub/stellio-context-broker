@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -154,6 +155,29 @@ data class ContextSourceRegistration(
         if (!id.isAbsolute)
             BadRequestDataException(invalidUriMessage("$id")).left()
         else Unit.right()
+
+    fun getMatchingPropertiesAndRelationships(
+        csrFilters: InternalCSRFilters
+    ): Pair<Set<ExpandedTerm>?, Set<ExpandedTerm>?> {
+        val matchingInformation = getMatchingInformation(csrFilters)
+        val properties = if (matchingInformation.any { it.propertyNames == null }) null
+        else matchingInformation.flatMap { it.propertyNames!! }.toSet()
+        val relationships = if (matchingInformation.any { it.relationshipNames == null }) null
+        else matchingInformation.flatMap { it.relationshipNames!! }.toSet()
+        return properties to relationships
+    }
+
+    private fun getMatchingInformation(csrFilters: InternalCSRFilters): List<RegistrationInfo> =
+        information.filter { info ->
+            info.entities?.any { entityInfo ->
+                entityInfo.id?.let { csrFilters.ids.contains(it) } ?: true &&
+                    entityInfo.types.let { types -> types.any { csrFilters.types?.contains(it) ?: true } } &&
+                    entityInfo.idPattern?.let { pattern ->
+                        csrFilters.ids.any { pattern.toRegex().matches(it.toString()) }
+                    } ?: true
+            } ?: true
+        }
+
     companion object {
 
         fun deserialize(

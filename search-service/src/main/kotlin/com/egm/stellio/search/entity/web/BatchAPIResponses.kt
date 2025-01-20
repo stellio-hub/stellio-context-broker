@@ -36,9 +36,13 @@ data class BatchEntitySuccess(
     val updateResult: UpdateResult? = null
 )
 
+/**
+ * BatchEntityError type as defined in 5.2.17
+ */
 data class BatchEntityError(
     val entityId: URI,
-    val error: MutableList<String>
+    val error: MutableList<String>,
+    val registrationId: URI? = null
 )
 
 typealias JsonLdNgsiLdEntity = Pair<ExpandedEntity, NgsiLdEntity>

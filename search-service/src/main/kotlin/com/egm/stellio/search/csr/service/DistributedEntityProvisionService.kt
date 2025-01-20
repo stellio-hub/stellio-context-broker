@@ -16,6 +16,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.toUri
 import org.json.XMLTokener.entity
 import org.slf4j.Logger
@@ -27,6 +28,8 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBodyOrNull
 import org.springframework.web.reactive.function.client.awaitExchange
 import java.net.URI
+
+typealias DistributionStatus = Either<Pair<APIException, ContextSourceRegistration?>, Unit>
 
 @Service
 class DistributedEntityProvisionService(
@@ -40,7 +43,7 @@ class DistributedEntityProvisionService(
         httpHeaders: HttpHeaders,
         entity: ExpandedEntity,
         contexts: List<String>,
-    ): Pair<List<APIException>, ExpandedEntity> {
+    ): Pair<List<DistributionStatus>, ExpandedEntity> {
         val csrFilters =
             InternalCSRFilters(
                 ids = setOf(entity.id.toUri()),
@@ -83,9 +86,9 @@ class DistributedEntityProvisionService(
         entity: ExpandedEntity,
         headers: HttpHeaders,
         contexts: List<String>
-    ): Pair<List<APIException>, ExpandedEntity> {
+    ): Pair<List<DistributionStatus>, ExpandedEntity> {
         val allCreatedAttrs = mutableSetOf<ExpandedTerm>()
-        val errors = csrs?.mapNotNull { csr ->
+        val responses: List<DistributionStatus> = csrs?.mapNotNull { csr ->
             csr.getMatchingPropertiesAndRelationships(csrFilters)
                 .let { (properties, relationships) -> entity.getAssociatedAttributes(properties, relationships) }
                 .let { attrs ->
@@ -97,11 +100,17 @@ class DistributedEntityProvisionService(
                             compactEntity(entity.filterAttributes(attrs, emptySet()), contexts),
                             csr,
                             createPath
-                        ).onRight { allCreatedAttrs.addAll(attrs) }.leftOrNull()
+                        ).fold(
+                            { (it to csr).left() },
+                            {
+                                allCreatedAttrs.addAll(attrs)
+                                Unit.right()
+                            }
+                        )
                     }
                 }
         } ?: emptyList()
-        return errors to entity.omitAttributes(allCreatedAttrs)
+        return responses to entity.omitAttributes(allCreatedAttrs)
     }
 
     private suspend fun postDistributedInformation(
@@ -125,7 +134,7 @@ class DistributedEntityProvisionService(
             }.bodyValue(entity)
 
         return runCatching {
-            val (statusCode, response, headers) = request.awaitExchange { response ->
+            val (statusCode, response, _) = request.awaitExchange { response ->
                 Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
             }
 

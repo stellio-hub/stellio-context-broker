@@ -57,7 +57,7 @@ class EntityEventService(
             logger.debug("Sending create event for entity {} in tenant {}", entityId, tenantName)
             entity.onRight {
                 publishEntityEvent(
-                    EntityCreateEvent(sub, tenantName, entityId, entityTypes, it.second, emptyList())
+                    EntityCreateEvent(sub, tenantName, entityId, entityTypes, it.second)
                 )
             }.logEntityEvent(EventsType.ENTITY_CREATE, entityId, tenantName)
         }
@@ -74,7 +74,7 @@ class EntityEventService(
             logger.debug("Sending replace event for entity {} in tenant {}", entityId, tenantName)
             entity.onRight {
                 publishEntityEvent(
-                    EntityReplaceEvent(sub, tenantName, entityId, entityTypes, it.second, emptyList())
+                    EntityReplaceEvent(sub, tenantName, entityId, entityTypes, it.second)
                 )
             }.logEntityEvent(EventsType.ENTITY_REPLACE, entityId, tenantName)
         }
@@ -95,8 +95,7 @@ class EntityEventService(
                     previousEntity.entityId,
                     previousEntity.types,
                     previousEntity.payload.asString(),
-                    serializeObject(deletedEntityPayload.members),
-                    emptyList()
+                    serializeObject(deletedEntityPayload.members)
                 )
             )
         }
@@ -151,8 +150,7 @@ class EntityEventService(
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
                         serializeObject(attributeOperationResult.newExpandedValue),
-                        payload,
-                        emptyList()
+                        payload
                     )
                 )
 
@@ -166,8 +164,7 @@ class EntityEventService(
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
                         serializeObject(attributeOperationResult.newExpandedValue),
-                        payload,
-                        emptyList()
+                        payload
                     )
                 )
 
@@ -181,8 +178,7 @@ class EntityEventService(
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
                         serializeObject(attributeOperationResult.newExpandedValue),
-                        payload,
-                        emptyList()
+                        payload
                     )
                 )
 
@@ -195,8 +191,7 @@ class EntityEventService(
                         types,
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
-                        injectDeletedAttribute(payload, attributeName, attributeOperationResult.newExpandedValue),
-                        emptyList()
+                        injectDeletedAttribute(payload, attributeName, attributeOperationResult.newExpandedValue)
                     )
                 )
 
@@ -232,8 +227,7 @@ class EntityEventService(
                         it.first,
                         attributeName,
                         attributeOperationResult.datasetId,
-                        injectDeletedAttribute(it.second, attributeName, attributeOperationResult.newExpandedValue),
-                        emptyList()
+                        injectDeletedAttribute(it.second, attributeName, attributeOperationResult.newExpandedValue)
                     )
                 )
             }.logAttributeEvent("Attribute Delete", entityId, tenantName)

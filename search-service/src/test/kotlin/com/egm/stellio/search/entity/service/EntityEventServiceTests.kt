@@ -85,8 +85,7 @@ class EntityEventServiceTests {
                 DEFAULT_TENANT_NAME,
                 breedingServiceUri,
                 listOf(breedingServiceType),
-                EMPTY_PAYLOAD,
-                listOf(AQUAC_COMPOUND_CONTEXT)
+                EMPTY_PAYLOAD
             )
         )
 
@@ -168,8 +167,7 @@ class EntityEventServiceTests {
                         it.entityTypes == listOf(breedingServiceType) &&
                         it.attributeName == fishNumberProperty &&
                         it.datasetId == null &&
-                        it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute)) &&
-                        it.contexts.isEmpty()
+                        it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute))
                 }
             )
         }
@@ -204,8 +202,7 @@ class EntityEventServiceTests {
                         it.entityTypes == listOf(breedingServiceType) &&
                         it.attributeName == fishNumberProperty &&
                         it.datasetId == null &&
-                        it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute)) &&
-                        it.contexts.isEmpty()
+                        it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute))
                 }
             )
         }
@@ -254,8 +251,7 @@ class EntityEventServiceTests {
                                         it.datasetId == null &&
                                         it.operationPayload.matchContent(
                                             serializedAttributePayload(jsonLdAttributes)
-                                        ) &&
-                                        it.contexts.isEmpty()
+                                        )
                                 }
 
                             is AttributeReplaceEvent ->
@@ -266,8 +262,7 @@ class EntityEventServiceTests {
                                         it.datasetId == fishName1DatasetUri &&
                                         it.operationPayload.matchContent(
                                             serializedAttributePayload(jsonLdAttributes, fishNameProperty)
-                                        ) &&
-                                        it.contexts.isEmpty()
+                                        )
                                 }
 
                             else -> false
@@ -325,8 +320,7 @@ class EntityEventServiceTests {
                                     it.operationPayload.matchContent(
                                         serializedAttributePayload(jsonLdAttributes, fishNameProperty)
                                     )
-                                ) &&
-                            it.contexts.isEmpty()
+                                )
                     }
                 }
             )
@@ -387,8 +381,7 @@ class EntityEventServiceTests {
                                     it.operationPayload.matchContent(
                                         serializedAttributePayload(jsonLdAttributes, fishNameProperty, 1)
                                     )
-                                ) &&
-                            it.contexts.isEmpty()
+                                )
                     }
                 }
             )
@@ -430,8 +423,7 @@ class EntityEventServiceTests {
                         it.entityTypes == listOf(breedingServiceType) &&
                         it.attributeName == fishNameProperty &&
                         it.datasetId == fishName1DatasetUri &&
-                        it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute)) &&
-                        it.contexts.isEmpty()
+                        it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute))
                 }
             )
         }
@@ -466,8 +458,7 @@ class EntityEventServiceTests {
                             it.entityId == breedingServiceUri &&
                             it.entityTypes == listOf(breedingServiceType) &&
                             it.attributeName == fishNameProperty &&
-                            it.datasetId == fishName1DatasetUri &&
-                            it.contexts.isEmpty()
+                            it.datasetId == fishName1DatasetUri
                     }
                 }
             )
@@ -502,8 +493,7 @@ class EntityEventServiceTests {
                             it.entityId == breedingServiceUri &&
                             it.entityTypes == listOf(breedingServiceType) &&
                             it.attributeName == fishNameProperty &&
-                            it.datasetId == fishName1DatasetUri &&
-                            it.contexts.isEmpty()
+                            it.datasetId == fishName1DatasetUri
                     }
                 }
             )

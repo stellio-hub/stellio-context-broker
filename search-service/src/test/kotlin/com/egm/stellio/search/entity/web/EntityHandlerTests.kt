@@ -7,6 +7,8 @@ import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
+import com.egm.stellio.search.csr.service.DistributedEntityProvisionService
+import com.egm.stellio.search.csr.service.DistributionStatus
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateResult
@@ -110,6 +112,9 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var distributedEntityConsumptionService: DistributedEntityConsumptionService
 
+    @MockkBean
+    private lateinit var distributedEntityProvisionService: DistributedEntityProvisionService
+
     @MockkBean(relaxed = true)
     private lateinit var linkedEntityService: LinkedEntityService
 
@@ -126,7 +131,7 @@ class EntityHandlerTests {
     }
 
     @BeforeEach
-    fun mockCSR() {
+    fun mockNoCSR() {
         coEvery {
             distributedEntityConsumptionService
                 .distributeRetrieveEntityOperation(any(), any(), any())
@@ -135,6 +140,11 @@ class EntityHandlerTests {
             distributedEntityConsumptionService
                 .distributeQueryEntitiesOperation(any(), any(), any())
         } returns Triple(emptyList(), emptyList(), emptyList())
+        val capturedExpandedEntity = slot<ExpandedEntity>()
+        coEvery {
+            distributedEntityProvisionService
+                .distributeCreateEntity(any(), capture(capturedExpandedEntity), any())
+        } answers { emptyList<DistributionStatus>() to capturedExpandedEntity.captured }
     }
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()

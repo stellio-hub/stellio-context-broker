@@ -7,6 +7,7 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
+import org.springframework.http.ProblemDetail
 import java.net.URI
 
 data class BatchOperationResult(
@@ -25,7 +26,7 @@ data class BatchOperationResult(
     @JsonIgnore
     fun addEntitiesToErrors(entities: List<Pair<String, APIException>>) =
         entities.forEach {
-            errors.add(BatchEntityError(it.first.toUri(), arrayListOf(it.second.message)))
+            errors.add(BatchEntityError(it.first.toUri(), it.second.toProblemDetail()))
         }
 }
 
@@ -41,7 +42,7 @@ data class BatchEntitySuccess(
  */
 data class BatchEntityError(
     val entityId: URI,
-    val error: MutableList<String>,
+    val error: ProblemDetail,
     val registrationId: URI? = null
 )
 

@@ -20,6 +20,7 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.ConflictException
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
@@ -343,6 +344,85 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 501 if it contains a not implemented query parameter`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities?local=true")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(501)
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
+                    "title": "The ['local'] parameters have not been implemented yet. This endpoint does not accept any query parameters. ",
+                    "detail": "$DEFAULT_DETAIL"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `create entity should return a 207 if some contextSources failed`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+        val capturedExpandedEntity = slot<ExpandedEntity>()
+        val conflictstatus = ConflictException("error") to gimmeRawCSR()
+
+        coEvery {
+            distributedEntityProvisionService
+                .distributeCreateEntity(any(), capture(capturedExpandedEntity), any())
+        } answers {
+            listOf(Unit.right(), conflictstatus.left()) to capturedExpandedEntity.captured
+        } andThenAnswer {
+            listOf(conflictstatus.left()) to capturedExpandedEntity.captured
+        }
+
+        coEvery {
+            entityService.createEntity(any(), any(), sub.getOrNull())
+        } returns AccessDeniedException("User forbidden to create entities").left()
+
+        val expectedJson = """
+                {
+                    "success": [],
+                    "errors":[
+                        {
+                            "entityId":"urn:ngsi-ld:BreedingService:0214",
+                            "error":[
+                                "https://uri.etsi.org/ngsi-ld/errors/Conflict",
+                                "error",
+                                "$DEFAULT_DETAIL"
+                            ],
+                            "registrationId":"urn:ngsi-ld:ContextSourceRegistration:test"
+                        },
+                        {
+                            "entityId":"urn:ngsi-ld:BreedingService:0214",
+                            "error":[
+                                "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                                "User forbidden to create entities",
+                                "$DEFAULT_DETAIL"
+                            ],
+                            "registrationId":null
+                        }
+                    ]
+                }
+        """.trimIndent()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(207)
+            .expectBody().json(expectedJson)
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(207)
+            .expectBody().json(expectedJson)
+    }
+
+    @Test
+    fun `create entity should return a 409 if a context source containing all the information return a conflict`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         webClient.post()

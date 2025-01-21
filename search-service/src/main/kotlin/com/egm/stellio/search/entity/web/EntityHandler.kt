@@ -115,7 +115,7 @@ class EntityHandler(
                             { (exception, csr) ->
                                 BatchEntityError(
                                     expandedEntity.id.toUri(),
-                                    mutableListOf(exception.type.toString(), exception.message, exception.detail),
+                                    exception.toProblemDetail(),
                                     csr?.id
                                 )
                             },

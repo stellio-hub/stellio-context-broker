@@ -160,10 +160,15 @@ data class ContextSourceRegistration(
         csrFilters: InternalCSRFilters
     ): Pair<Set<ExpandedTerm>?, Set<ExpandedTerm>?> {
         val matchingInformation = getMatchingInformation(csrFilters)
-        val properties = if (matchingInformation.any { it.propertyNames == null }) null
-        else matchingInformation.flatMap { it.propertyNames!! }.toSet()
-        val relationships = if (matchingInformation.any { it.relationshipNames == null }) null
-        else matchingInformation.flatMap { it.relationshipNames!! }.toSet()
+
+        val properties =
+            if (matchingInformation.any { it.propertyNames == null }) null
+            else matchingInformation.flatMap { it.propertyNames!! }.toSet()
+
+        val relationships =
+            if (matchingInformation.any { it.relationshipNames == null }) null
+            else matchingInformation.flatMap { it.relationshipNames!! }.toSet()
+
         return properties to relationships
     }
 

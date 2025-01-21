@@ -131,6 +131,9 @@ class DistributedEntityProvisionService(
                     .build()
             }.headers { newHeaders ->
                 httpHeaders.getOrNone(HttpHeaders.LINK).onSome { link -> newHeaders[HttpHeaders.LINK] = link }
+                httpHeaders.getOrNone(HttpHeaders.CONTENT_TYPE).onSome { accept ->
+                    newHeaders[HttpHeaders.CONTENT_TYPE] = accept
+                }
             }.bodyValue(entity)
 
         return runCatching {

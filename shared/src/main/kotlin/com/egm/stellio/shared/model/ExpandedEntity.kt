@@ -120,7 +120,6 @@ data class ExpandedEntity(
         properties: Set<String>?,
         relationships: Set<String>?
     ): Set<ExpandedTerm> = getAttributes().entries.mapNotNull { (term, attribute) ->
-        // todo why is it a list? (maybe jsonLd expansion library?)
         val attributeType = attribute.first()[JSONLD_TYPE]?.first()
         when {
             attributeType == null -> null

@@ -15,6 +15,10 @@ const val DEFAULT_DETAIL = "If you have difficulty identifying the exact cause o
     "please check the list of some usual causes on https://stellio.readthedocs.io/en/latest/TROUBLESHOOT.html . " +
     "If the error is still not clear or if you think it is a bug, feel free to open an issue on " +
     "https://github.com/stellio-hub/stellio-context-broker"
+const val TYPE_PROPERTY = "type"
+const val TITLE_PROPERTY = "title"
+const val STATUS_PROPERTY = "status"
+const val DETAIL_PROPERTY = "detail"
 
 sealed class APIException(
     open val type: URI,
@@ -52,12 +56,12 @@ data class ContextSourceException(
             val responseMap = response.deserializeAsMap()
             return kotlin.runCatching {
                 // mandatory
-                val type = responseMap[ProblemDetail::type.name].toString().toUri()
-                val title = responseMap[ProblemDetail::title.name]!!.toString()
+                val type = responseMap[TYPE_PROPERTY].toString().toUri()
+                val title = responseMap[TITLE_PROPERTY]!!.toString()
 
                 // optional
-                val status = responseMap[ProblemDetail::status.name]?.let { HttpStatus.valueOf(it as Int) }
-                val detail = responseMap[ProblemDetail::detail.name]?.toString()
+                val status = responseMap[STATUS_PROPERTY]?.let { HttpStatus.valueOf(it as Int) }
+                val detail = responseMap[DETAIL_PROPERTY]?.toString()
 
                 ContextSourceException(
                     type = type,

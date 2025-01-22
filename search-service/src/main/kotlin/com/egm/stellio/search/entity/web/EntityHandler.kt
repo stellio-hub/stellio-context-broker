@@ -110,7 +110,7 @@ class EntityHandler(
                 allStatuses.first().leftOrNull()!!.let { (onlyException, _) -> onlyException.toErrorResponse() }
 
             allStatuses.any { it.isLeft() } -> {
-                val result = BatchOperationResult(
+                val result = BatchOperationResult( // may need to add ids from successfull csr (spec unclear)
                     errors = allStatuses.mapNotNull {
                         it.fold(
                             { (exception, csr) ->

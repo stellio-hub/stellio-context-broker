@@ -23,6 +23,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBodyOrNull
@@ -146,8 +147,15 @@ class DistributedEntityProvisionService(
             val (statusCode, response, _) = request.awaitExchange { response ->
                 Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
             }
-
-            if (statusCode.is2xxSuccessful) {
+            if (statusCode.value() == HttpStatus.MULTI_STATUS.value()) {
+                // this part need clarification from the specification
+                ContextSourceException(
+                    type = URI("https://uri.etsi.org/ngsi-ld/errors/MultiStatus"),
+                    status = HttpStatus.MULTI_STATUS,
+                    title = "Context source returned 207",
+                    detail = response ?: "no message"
+                ).left()
+            } else if (statusCode.is2xxSuccessful) {
                 logger.info("Successfully post data to CSR ${csr.id} at $uri")
                 Unit.right()
             } else if (response == null) {

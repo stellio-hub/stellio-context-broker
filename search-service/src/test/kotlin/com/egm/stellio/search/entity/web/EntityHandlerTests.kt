@@ -22,6 +22,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ConflictException
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
+import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NgsiLdEntity
@@ -387,20 +388,18 @@ class EntityHandlerTests {
                     "errors":[
                         {
                             "entityId":"urn:ngsi-ld:BreedingService:0214",
-                            "error":[
-                                "https://uri.etsi.org/ngsi-ld/errors/Conflict",
-                                "error",
-                                "$DEFAULT_DETAIL"
-                            ],
+                            "error":{
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/Conflict",
+                                "title": "error"
+                            },
                             "registrationId":"urn:ngsi-ld:ContextSourceRegistration:test"
                         },
                         {
                             "entityId":"urn:ngsi-ld:BreedingService:0214",
-                            "error":[
-                                "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                                "User forbidden to create entities",
-                                "$DEFAULT_DETAIL"
-                            ],
+                            "error":{
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                                "title": "User forbidden to create entities"
+                            },
                             "registrationId":null
                         }
                     ]
@@ -424,17 +423,25 @@ class EntityHandlerTests {
     @Test
     fun `create entity should return a 409 if a context source containing all the information return a conflict`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+        val conflictstatus = ConflictException("my test message") to gimmeRawCSR()
+        val capturedExpandedEntity = slot<ExpandedEntity>()
 
+        coEvery {
+            distributedEntityProvisionService
+                .distributeCreateEntity(any(), capture(capturedExpandedEntity), any())
+        } answers {
+            listOf(conflictstatus.left()) to null
+        }
         webClient.post()
-            .uri("/ngsi-ld/v1/entities?local=true")
+            .uri("/ngsi-ld/v1/entities")
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isEqualTo(501)
+            .expectStatus().isEqualTo(409)
             .expectBody().json(
                 """
                 {
-                    "type": "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
-                    "title": "The ['local'] parameters have not been implemented yet. This endpoint does not accept any query parameters. ",
+                    "type": "${ErrorType.CONFLICT.type}",
+                    "title": "my test message",
                     "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()

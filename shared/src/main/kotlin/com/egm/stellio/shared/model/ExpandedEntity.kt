@@ -27,6 +27,10 @@ data class ExpandedEntity(
             Unit.right()
         else ResourceNotFoundException(entityOrAttrsNotFoundMessage(id, expandedAttributes)).left()
 
+    fun asNonCoreAttributes(): Boolean = members.keys.any {
+        !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it)
+    }
+
     fun getAttributes(): ExpandedAttributes =
         members.filter { !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key) }
             .mapValues { castAttributeValue(it.value) }
@@ -119,17 +123,14 @@ data class ExpandedEntity(
     fun getAssociatedAttributes(
         properties: Set<String>?,
         relationships: Set<String>?
-    ): Set<ExpandedTerm> = getAttributes().entries.mapNotNull { (term, attribute) ->
+    ): Set<ExpandedTerm> = getAttributes().filter { (term, attribute) ->
         val attributeType = attribute.first()[JSONLD_TYPE]?.first()
-        when {
-            attributeType == null -> null
-            NGSILD_RELATIONSHIP_TYPE.uri == attributeType && relationships == null -> term
-            NGSILD_RELATIONSHIP_TYPE.uri == attributeType && term in relationships!! -> term
-            NGSILD_RELATIONSHIP_TYPE.uri != attributeType && properties == null -> term
-            NGSILD_RELATIONSHIP_TYPE.uri != attributeType && term in properties!! -> term
-            else -> null
+        if (NGSILD_RELATIONSHIP_TYPE.uri == attributeType) {
+            relationships == null || term in relationships
+        } else {
+            properties == null || term in properties
         }
-    }.toSet()
+    }.keys
 }
 
 fun List<ExpandedEntity>.filterAttributes(

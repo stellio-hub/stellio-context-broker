@@ -8,17 +8,17 @@ import arrow.core.right
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.InternalCSRFilters
 import com.egm.stellio.search.csr.model.Mode
+import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadGatewayException
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.ConflictException
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
-import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.toUri
-import org.json.XMLTokener.entity
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -43,7 +43,7 @@ class DistributedEntityProvisionService(
         httpHeaders: HttpHeaders,
         entity: ExpandedEntity,
         contexts: List<String>,
-    ): Pair<List<DistributionStatus>, ExpandedEntity> {
+    ): Pair<List<DistributionStatus>, ExpandedEntity?> {
         val csrFilters =
             InternalCSRFilters(
                 ids = setOf(entity.id.toUri()),
@@ -61,6 +61,8 @@ class DistributedEntityProvisionService(
             httpHeaders,
             contexts
         )
+        if (entityAfterExclusive == null) return exclusiveErrors to null
+
         val (redirectErrors, entityAfterRedirect) = distributeCreateEntityForContextSources(
             matchingCSR[Mode.REDIRECT],
             csrFilters,
@@ -68,6 +70,8 @@ class DistributedEntityProvisionService(
             httpHeaders,
             contexts
         )
+        if (entityAfterRedirect == null) return exclusiveErrors + redirectErrors to null
+
         val (inclusiveError, _) = distributeCreateEntityForContextSources(
             matchingCSR[Mode.INCLUSIVE],
             csrFilters,
@@ -75,9 +79,7 @@ class DistributedEntityProvisionService(
             httpHeaders,
             contexts
         )
-        return exclusiveErrors.toMutableList() +
-            redirectErrors.toMutableList() +
-            inclusiveError.toMutableList() to entityAfterRedirect
+        return exclusiveErrors + redirectErrors + inclusiveError to entityAfterRedirect
     }
 
     private suspend fun distributeCreateEntityForContextSources(
@@ -86,14 +88,17 @@ class DistributedEntityProvisionService(
         entity: ExpandedEntity,
         headers: HttpHeaders,
         contexts: List<String>
-    ): Pair<List<DistributionStatus>, ExpandedEntity> {
-        val allCreatedAttrs = mutableSetOf<ExpandedTerm>()
+    ): Pair<List<DistributionStatus>, ExpandedEntity?> {
+        val allProcessedAttrs = mutableSetOf<ExpandedTerm>()
         val responses: List<DistributionStatus> = csrs?.mapNotNull { csr ->
             csr.getMatchingPropertiesAndRelationships(csrFilters)
                 .let { (properties, relationships) -> entity.getAssociatedAttributes(properties, relationships) }
                 .let { attrs ->
+                    allProcessedAttrs.addAll(attrs)
                     if (attrs.isEmpty()) {
                         null
+                    } else if (csr.operations.any { it == Operation.CREATE_ENTITY || it == Operation.UPDATE_OPS }) {
+                        (ConflictException("csr: ${csr.id} does not support creation of entities") to csr).left()
                     } else {
                         postDistributedInformation(
                             headers,
@@ -102,15 +107,15 @@ class DistributedEntityProvisionService(
                             createPath
                         ).fold(
                             { (it to csr).left() },
-                            {
-                                allCreatedAttrs.addAll(attrs)
-                                Unit.right()
-                            }
+                            { Unit.right() }
                         )
                     }
                 }
         } ?: emptyList()
-        return responses to entity.omitAttributes(allCreatedAttrs)
+        return if (responses.isNotEmpty()) {
+            val remainingEntity = entity.omitAttributes(allProcessedAttrs)
+            responses to if (remainingEntity.asNonCoreAttributes()) remainingEntity else null
+        } else responses to entity
     }
 
     private suspend fun postDistributedInformation(

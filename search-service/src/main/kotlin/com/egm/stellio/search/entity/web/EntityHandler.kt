@@ -96,7 +96,7 @@ class EntityHandler(
         val (distributionStatuses, remainingEntity) = distributedEntityProvisionService
             .distributeCreateEntity(httpHeaders, expandedEntity, contexts)
 
-        val allStatuses = if (remainingEntity.members.isNotEmpty()) {
+        val allStatuses = if (remainingEntity != null) {
             val localStatus: DistributionStatus = either {
                 val ngsiLdEntity = remainingEntity.toNgsiLdEntity().bind()
                 entityService.createEntity(ngsiLdEntity, remainingEntity, sub.getOrNull()).bind()

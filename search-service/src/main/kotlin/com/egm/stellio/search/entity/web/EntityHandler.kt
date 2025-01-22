@@ -92,6 +92,7 @@ class EntityHandler(
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
         val expandedEntity = expandJsonLdEntity(body, contexts)
+        expandedEntity.toNgsiLdEntity().bind()
 
         val (distributionStatuses, remainingEntity) = distributedEntityProvisionService
             .distributeCreateEntity(httpHeaders, expandedEntity, contexts)

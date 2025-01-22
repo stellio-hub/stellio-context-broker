@@ -2,8 +2,8 @@ package com.egm.stellio.shared.model
 
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
-import com.egm.stellio.shared.util.JsonLdUtils.logger
-import com.egm.stellio.shared.util.mapper
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.toUri
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -17,8 +17,8 @@ const val DEFAULT_DETAIL = "If you have difficulty identifying the exact cause o
     "https://github.com/stellio-hub/stellio-context-broker"
 
 sealed class APIException(
-    val type: URI,
-    val status: HttpStatus,
+    open val type: URI,
+    open val status: HttpStatus,
     override val message: String,
     open val detail: String = DEFAULT_DETAIL
 ) : Exception(message) {
@@ -36,18 +36,45 @@ sealed class APIException(
     }
 }
 
-data class ContextSourceException(val problemDetail: ProblemDetail) : APIException(
-    type = problemDetail.type,
-    status = HttpStatus.valueOf(problemDetail.status),
-    message = problemDetail.title ?: "no title provided",
-    detail = problemDetail.detail ?: "no detail provided"
+data class ContextSourceException(
+    override val type: URI,
+    override val status: HttpStatus,
+    val title: String,
+    override val detail: String
+) : APIException(
+    type = type,
+    status = status,
+    message = title,
+    detail = detail,
 ) {
-    constructor(response: String?) : this(
-        mapper.readValue(
-            response,
-            ProblemDetail::class.java
-        )
-    )
+    companion object {
+        fun fromResponse(response: String): ContextSourceException {
+            val responseMap = response.deserializeAsMap()
+            return kotlin.runCatching {
+                // mandatory
+                val type = responseMap[ProblemDetail::type.name].toString().toUri()
+                val title = responseMap[ProblemDetail::title.name]!!.toString()
+
+                // optional
+                val status = responseMap[ProblemDetail::status.name]?.let { HttpStatus.valueOf(it as Int) }
+                val detail = responseMap[ProblemDetail::detail.name]?.toString()
+
+                ContextSourceException(
+                    type = type,
+                    status = status ?: HttpStatus.BAD_GATEWAY,
+                    title = title,
+                    detail = detail ?: "no detail provided"
+                )
+            }.fold({ it }, {
+                ContextSourceException(
+                    ErrorType.BAD_GATEWAY.type,
+                    HttpStatus.BAD_GATEWAY,
+                    "ContextSource sent a badly formed error",
+                    response
+                )
+            })
+        }
+    }
 }
 
 data class ConflictException(override val message: String) : APIException(
@@ -172,6 +199,8 @@ enum class ErrorType(val type: URI) {
     INVALID_REQUEST(URI("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest")),
     BAD_REQUEST_DATA(URI("https://uri.etsi.org/ngsi-ld/errors/BadRequestData")),
     ALREADY_EXISTS(URI("https://uri.etsi.org/ngsi-ld/errors/AlreadyExists")),
+
+    // todo add error to the presentation
     CONFLICT(URI("https://uri.etsi.org/ngsi-ld/errors/Conflict")), // defined only in 6.3.17
     BAD_GATEWAY(URI("https://uri.etsi.org/ngsi-ld/errors/BadGateway")), // defined only in 6.3.17
     GATEWAY_TIMEOUT(URI("https://uri.etsi.org/ngsi-ld/errors/GatewayTimeout")), // defined only in 6.3.17

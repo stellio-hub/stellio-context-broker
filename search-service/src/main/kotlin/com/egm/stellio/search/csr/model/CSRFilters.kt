@@ -24,12 +24,12 @@ open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
 
     constructor(
         ids: Set<URI> = emptySet(),
-        types: Set<String>? = null,
+        types: Set<String>,
         idPattern: String? = null,
         operations: List<Operation>? = null
     ) : this(
         ids = ids,
-        typeSelection = types?.joinToString("|"),
+        typeSelection = types.joinToString("|"),
         idPattern = idPattern,
         operations = operations
     )

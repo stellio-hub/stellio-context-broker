@@ -96,8 +96,7 @@ class DistributedEntityProvisionService(
     ): Pair<List<DistributionStatus>, ExpandedEntity?> {
         val allProcessedAttrs = mutableSetOf<ExpandedTerm>()
         val responses: List<DistributionStatus> = csrs?.mapNotNull { csr ->
-            csr.getMatchingPropertiesAndRelationships(registrationInfoFilter)
-                .let { (properties, relationships) -> entity.getAssociatedAttributes(properties, relationships) }
+            csr.getAssociatedAttributes(registrationInfoFilter, entity)
                 .let { attrs ->
                     allProcessedAttrs.addAll(attrs)
                     if (attrs.isEmpty()) {

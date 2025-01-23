@@ -12,7 +12,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import java.time.ZonedDateTime
 
@@ -119,18 +118,6 @@ data class ExpandedEntity(
     fun omitAttributes(attributes: Set<String>): ExpandedEntity = ExpandedEntity(
         members.filterKeys { it !in attributes }
     )
-
-    fun getAssociatedAttributes(
-        properties: Set<String>?,
-        relationships: Set<String>?
-    ): Set<ExpandedTerm> = getAttributes().filter { (term, attribute) ->
-        val attributeType = attribute.first()[JSONLD_TYPE]?.first()
-        if (NGSILD_RELATIONSHIP_TYPE.uri == attributeType) {
-            relationships == null || term in relationships
-        } else {
-            properties == null || term in properties
-        }
-    }.keys
 }
 
 fun List<ExpandedEntity>.filterAttributes(

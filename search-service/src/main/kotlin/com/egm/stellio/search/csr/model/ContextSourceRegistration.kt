@@ -6,12 +6,15 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CSR_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
@@ -25,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.convertValue
 import org.springframework.http.MediaType
+import org.springframework.messaging.simp.SimpAttributesContextHolder.getAttributes
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -156,10 +160,11 @@ data class ContextSourceRegistration(
             BadRequestDataException(invalidUriMessage("$id")).left()
         else Unit.right()
 
-    fun getMatchingPropertiesAndRelationships(
-        csrFilters: InternalCSRFilters
-    ): Pair<Set<ExpandedTerm>?, Set<ExpandedTerm>?> {
-        val matchingInformation = getMatchingInformation(csrFilters)
+    fun getAssociatedAttributes(
+        registrationInfoFilter: RegistrationInfoFilter,
+        entity: ExpandedEntity,
+    ): Set<ExpandedTerm> {
+        val matchingInformation = getMatchingInformation(registrationInfoFilter)
 
         val properties =
             if (matchingInformation.any { it.propertyNames == null }) null
@@ -169,16 +174,27 @@ data class ContextSourceRegistration(
             if (matchingInformation.any { it.relationshipNames == null }) null
             else matchingInformation.flatMap { it.relationshipNames!! }.toSet()
 
-        return properties to relationships
+        return entity.getAttributes().filter { (term, attribute) ->
+            val attributeType = attribute.first()[JSONLD_TYPE]?.first()
+            if (NGSILD_RELATIONSHIP_TYPE.uri == attributeType) {
+                relationships == null || term in relationships
+            } else {
+                properties == null || term in properties
+            }
+        }.keys
     }
 
-    private fun getMatchingInformation(csrFilters: InternalCSRFilters): List<RegistrationInfo> =
+    private fun getMatchingInformation(registrationInfoFilter: RegistrationInfoFilter): List<RegistrationInfo> =
         information.filter { info ->
             info.entities?.any { entityInfo ->
-                entityInfo.id?.let { csrFilters.ids.contains(it) } ?: true &&
-                    entityInfo.types.let { types -> types.any { csrFilters.types?.contains(it) ?: true } } &&
+                entityInfo.id?.let { registrationInfoFilter.ids.contains(it) } ?: true &&
+                    entityInfo.types.let { types ->
+                        types.any {
+                            registrationInfoFilter.types?.contains(it) ?: true
+                        }
+                    } &&
                     entityInfo.idPattern?.let { pattern ->
-                        csrFilters.ids.any { pattern.toRegex().matches(it.toString()) }
+                        registrationInfoFilter.ids.any { pattern.toRegex().matches(it.toString()) }
                     } ?: true
             } ?: true
         }

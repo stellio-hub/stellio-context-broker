@@ -122,7 +122,7 @@ class DistributedEntityProvisionService(
         } else responses to entity
     }
 
-    private suspend fun postDistributedInformation(
+    internal suspend fun postDistributedInformation(
         httpHeaders: HttpHeaders,
         entity: CompactedEntity,
         csr: ContextSourceRegistration,
@@ -163,7 +163,7 @@ class DistributedEntityProvisionService(
             } else if (response == null) {
                 val message = "No error message received from CSR ${csr.id} at $uri"
                 logger.warn(message)
-                GatewayTimeoutException(message).left()
+                BadGatewayException(message).left()
             } else {
                 logger.warn("Error creating an entity for CSR at $uri: $response")
                 ContextSourceException.fromResponse(response).left()
@@ -173,7 +173,7 @@ class DistributedEntityProvisionService(
             onFailure = { e ->
                 logger.warn("Error contacting CSR at $uri: ${e.message}")
                 logger.warn(e.stackTraceToString())
-                BadGatewayException(
+                GatewayTimeoutException(
                     "Error connecting to CSR at $uri: \"${e.cause}:${e.message}\""
                 ).left()
             }

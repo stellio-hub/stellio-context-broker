@@ -53,8 +53,8 @@ data class ContextSourceException(
 ) {
     companion object {
         fun fromResponse(response: String): ContextSourceException {
-            val responseMap = response.deserializeAsMap()
             return kotlin.runCatching {
+                val responseMap = response.deserializeAsMap()
                 // mandatory
                 val type = responseMap[TYPE_PROPERTY].toString().toUri()
                 val title = responseMap[TITLE_PROPERTY]!!.toString()

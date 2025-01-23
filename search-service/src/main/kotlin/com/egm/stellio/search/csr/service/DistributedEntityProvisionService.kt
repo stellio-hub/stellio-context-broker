@@ -5,10 +5,11 @@ import arrow.core.getOrNone
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
-import com.egm.stellio.search.csr.model.InternalCSRFilters
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
+import com.egm.stellio.search.csr.model.RegistrationInfoFilter
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadGatewayException
 import com.egm.stellio.shared.model.CompactedEntity
@@ -47,10 +48,12 @@ class DistributedEntityProvisionService(
         contexts: List<String>,
     ): Pair<List<DistributionStatus>, ExpandedEntity?> {
         val csrFilters =
-            InternalCSRFilters(
+            CSRFilters(
                 ids = setOf(entity.id.toUri()),
                 types = entity.types.toSet()
             )
+        val registrationInfoFilter =
+            RegistrationInfoFilter(ids = setOf(entity.id.toUri()), types = entity.types.toSet())
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
             filters = csrFilters,
@@ -58,7 +61,7 @@ class DistributedEntityProvisionService(
 
         val (exclusiveErrors, entityAfterExclusive) = distributeCreateEntityForContextSources(
             matchingCSR[Mode.EXCLUSIVE], // could be only one
-            csrFilters,
+            registrationInfoFilter,
             entity,
             httpHeaders,
             contexts
@@ -67,7 +70,7 @@ class DistributedEntityProvisionService(
 
         val (redirectErrors, entityAfterRedirect) = distributeCreateEntityForContextSources(
             matchingCSR[Mode.REDIRECT],
-            csrFilters,
+            registrationInfoFilter,
             entityAfterExclusive,
             httpHeaders,
             contexts
@@ -76,7 +79,7 @@ class DistributedEntityProvisionService(
 
         val (inclusiveError, _) = distributeCreateEntityForContextSources(
             matchingCSR[Mode.INCLUSIVE],
-            csrFilters,
+            registrationInfoFilter,
             entityAfterRedirect,
             httpHeaders,
             contexts
@@ -86,14 +89,14 @@ class DistributedEntityProvisionService(
 
     private suspend fun distributeCreateEntityForContextSources(
         csrs: List<ContextSourceRegistration>?,
-        csrFilters: InternalCSRFilters,
+        registrationInfoFilter: RegistrationInfoFilter,
         entity: ExpandedEntity,
         headers: HttpHeaders,
         contexts: List<String>
     ): Pair<List<DistributionStatus>, ExpandedEntity?> {
         val allProcessedAttrs = mutableSetOf<ExpandedTerm>()
         val responses: List<DistributionStatus> = csrs?.mapNotNull { csr ->
-            csr.getMatchingPropertiesAndRelationships(csrFilters)
+            csr.getMatchingPropertiesAndRelationships(registrationInfoFilter)
                 .let { (properties, relationships) -> entity.getAssociatedAttributes(properties, relationships) }
                 .let { attrs ->
                     allProcessedAttrs.addAll(attrs)

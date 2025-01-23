@@ -21,16 +21,16 @@ open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
             idPattern = idPattern,
             csf = operations?.joinToString("|") { "${ContextSourceRegistration::operations.name}==${it.key}" }
         )
-}
 
-class InternalCSRFilters(
-    ids: Set<URI> = emptySet(),
-    val types: Set<String>? = null,
-    idPattern: String? = null,
-    operations: List<Operation>? = null
-) : CSRFilters(
-    ids = ids,
-    typeSelection = types?.joinToString("|"),
-    idPattern = idPattern,
-    operations = operations
-)
+    constructor(
+        ids: Set<URI> = emptySet(),
+        types: Set<String>? = null,
+        idPattern: String? = null,
+        operations: List<Operation>? = null
+    ) : this(
+        ids = ids,
+        typeSelection = types?.joinToString("|"),
+        idPattern = idPattern,
+        operations = operations
+    )
+}

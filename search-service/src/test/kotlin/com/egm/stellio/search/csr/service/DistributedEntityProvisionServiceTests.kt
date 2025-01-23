@@ -1,6 +1,9 @@
 package com.egm.stellio.search.csr.service
 
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
+import com.egm.stellio.search.csr.model.RegistrationInfoFilter
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.ContextSourceException
@@ -8,6 +11,8 @@ import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.badRequest
@@ -16,9 +21,14 @@ import com.github.tomakehurst.wiremock.client.WireMock.stubFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.SpykBean
+import io.mockk.coEvery
+import io.mockk.spyk
 import kotlinx.coroutines.test.runTest
+import org.json.XMLTokener.entity
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
@@ -51,6 +61,16 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
               "type":"Property",
               "value":"ApiarySophia"
            },
+                      "name": {
+                         "type":"Property",
+                         "value":"ApiarySophia"
+                      },
+           "temperature":{
+              "type":"Property",
+              "value":"19",
+              "unitCode":"Cel"
+           },
+           
            "@context":[ "$APIC_COMPOUND_CONTEXT" ]
         }
         """.trimIndent()
@@ -65,7 +85,111 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         }
         """.trimIndent()
 
-    private val responseWithBadPayload = "error message not respecting specification"
+    private val invalidErrorResponse = "error message not respecting specification"
+
+    private val contextSourceException = ContextSourceException(
+        type = ErrorType.BAD_REQUEST_DATA.type,
+        status = HttpStatus.MULTI_STATUS,
+        title = "A valid error",
+        detail = "The detail of the valid Error"
+    )
+    private val contexts = listOf(APIC_COMPOUND_CONTEXT)
+
+    @Test
+    fun `distributeCreateEntityForContextSources should return received errors and successes`() = runTest {
+        val csr = spyk(gimmeRawCSR())
+
+        coEvery {
+            distributedEntityProvisionService.postDistributedInformation(any(), any(), any(), any())
+        } returns contextSourceException.left() andThen Unit.right()
+
+        coEvery {
+            csr.getAssociatedAttributes(any(), any())
+        } returns setOf(NGSILD_NAME_PROPERTY) andThen setOf(TEMPERATURE_PROPERTY)
+
+        val (distributionsStatuses, _) = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+            listOf(csr, csr),
+            RegistrationInfoFilter(),
+            expandJsonLdEntity(entity),
+            HttpHeaders(),
+            contexts
+        )
+
+        val firstStatus = distributionsStatuses.first()
+        val secondStatus = distributionsStatuses.getOrNull(1)!!
+        assertTrue(firstStatus.isLeft())
+        assertTrue(secondStatus.isRight())
+
+        assertEquals(firstStatus.leftOrNull()?.first, contextSourceException)
+    }
+
+    @Test
+    fun `distributeCreateEntityForContextSources should return null if all the entity have been processed`() = runTest {
+        val csr = spyk(gimmeRawCSR())
+        coEvery {
+            csr.getAssociatedAttributes(any(), any())
+        } returns setOf(NGSILD_NAME_PROPERTY) andThen setOf(TEMPERATURE_PROPERTY)
+
+        coEvery {
+            distributedEntityProvisionService.postDistributedInformation(any(), any(), any(), any())
+        } returns contextSourceException.left() andThen Unit.right()
+
+        val (_, entity) = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+            listOf(csr, csr),
+            RegistrationInfoFilter(),
+            expandJsonLdEntity(entity),
+            HttpHeaders(),
+            contexts
+        )
+
+        assertNull(entity)
+    }
+
+    @Test
+    fun `distributeCreateEntityForContextSources should return only non processed attributes`() = runTest {
+        val csr = spyk(gimmeRawCSR())
+        coEvery {
+            csr.getAssociatedAttributes(any(), any())
+        } returns setOf(NGSILD_NAME_PROPERTY)
+
+        coEvery {
+            distributedEntityProvisionService.postDistributedInformation(any(), any(), any(), any())
+        } returns Unit.right()
+
+        val (_, successEntity) = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+            listOf(csr),
+            RegistrationInfoFilter(),
+            expandJsonLdEntity(entity),
+            HttpHeaders(),
+            contexts
+        )
+
+        assertNull(successEntity?.getAttributes()?.get(NGSILD_NAME_PROPERTY))
+        assertNotNull(successEntity?.getAttributes()?.get(TEMPERATURE_PROPERTY))
+    }
+
+    @Test
+    fun `distributeCreateEntityForContextSources should remove the attrs even when the csr is in error`() = runTest {
+        val csr = spyk(gimmeRawCSR())
+
+        coEvery {
+            csr.getAssociatedAttributes(any(), any())
+        } returns setOf(NGSILD_NAME_PROPERTY)
+        coEvery {
+            distributedEntityProvisionService.postDistributedInformation(any(), any(), any(), any())
+        } returns contextSourceException.left()
+
+        val (_, errorEntity) = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+            listOf(csr),
+            RegistrationInfoFilter(),
+            expandJsonLdEntity(entity),
+            HttpHeaders(),
+            contexts
+        )
+
+        assertNull(errorEntity?.getAttributes()?.get(NGSILD_NAME_PROPERTY))
+        assertNotNull(errorEntity?.getAttributes()?.get(TEMPERATURE_PROPERTY))
+    }
 
     @Test
     fun `postDistributedInformation should process badly formed errors`() = runTest {
@@ -74,7 +198,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         stubFor(
             post(urlMatching(path))
-                .willReturn(badRequest().withBody(responseWithBadPayload))
+                .willReturn(badRequest().withBody(invalidErrorResponse))
         )
 
         val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
@@ -83,7 +207,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         assertTrue(response.isLeft())
         assertEquals(response.leftOrNull()?.type, ErrorType.BAD_GATEWAY.type)
         assertEquals(response.leftOrNull()?.status, HttpStatus.BAD_GATEWAY)
-        assertEquals(response.leftOrNull()?.detail, responseWithBadPayload)
+        assertEquals(response.leftOrNull()?.detail, invalidErrorResponse)
     }
 
     @Test

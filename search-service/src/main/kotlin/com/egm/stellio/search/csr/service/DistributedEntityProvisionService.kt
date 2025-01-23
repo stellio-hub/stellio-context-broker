@@ -87,7 +87,7 @@ class DistributedEntityProvisionService(
         return exclusiveErrors + redirectErrors + inclusiveError to entityAfterRedirect
     }
 
-    private suspend fun distributeCreateEntityForContextSources(
+    internal suspend fun distributeCreateEntityForContextSources(
         csrs: List<ContextSourceRegistration>?,
         registrationInfoFilter: RegistrationInfoFilter,
         entity: ExpandedEntity,

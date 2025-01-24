@@ -31,7 +31,7 @@ import org.springframework.web.reactive.function.client.awaitBodyOrNull
 import org.springframework.web.reactive.function.client.awaitExchange
 import java.net.URI
 
-// ContextsourceRegistration is null in case of local error
+// ContextSourceRegistration is null in case of local error
 typealias DistributionStatus = Either<Pair<APIException, ContextSourceRegistration?>, Unit>
 
 @Service

@@ -3,9 +3,12 @@ package com.egm.stellio.search.csr.service
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
+import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.RegistrationInfoFilter
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.model.BadGatewayException
+import com.egm.stellio.shared.model.ConflictException
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.GatewayTimeoutException
@@ -20,11 +23,13 @@ import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.stubFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
+import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery
+import io.mockk.coVerifyOrder
 import io.mockk.spyk
 import kotlinx.coroutines.test.runTest
-import org.json.XMLTokener.entity
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -44,11 +49,8 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     @SpykBean
     private lateinit var distributedEntityProvisionService: DistributedEntityProvisionService
 
-//    @Autowired
-//    private lateinit var applicationProperties: ApplicationProperties
-//
-//    @MockkBean
-//    private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
+    @MockkBean
+    private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
 
     private val apiaryId = "urn:ngsi-ld:Apiary:TEST"
 
@@ -94,6 +96,69 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         detail = "The detail of the valid Error"
     )
     private val contexts = listOf(APIC_COMPOUND_CONTEXT)
+
+    @Test
+    fun `distributeCreateEntity should return the errors received and the remainingEntity`() = runTest {
+        val firstExclusiveCsr = gimmeRawCSR(id = "id:exclusive:1".toUri(), mode = Mode.EXCLUSIVE)
+        val firstRedirectCsr = gimmeRawCSR(id = "id:redirect:1".toUri(), mode = Mode.REDIRECT)
+        val firstInclusiveCsr = gimmeRawCSR(id = "id:inclusive:1".toUri(), mode = Mode.INCLUSIVE)
+        val secondRedirectCsr = gimmeRawCSR(id = "id:redirect:2".toUri(), mode = Mode.REDIRECT)
+        val secondInclusiveCsr = gimmeRawCSR(id = "id:inclusive:2;".toUri(), mode = Mode.INCLUSIVE)
+
+        val entryEntity = expandJsonLdEntity(entity)
+        val entityWithIgnoredTemperature = entryEntity.omitAttributes(setOf(TEMPERATURE_PROPERTY))
+        val entityWithIgnoredTemperatureAndName = entryEntity.omitAttributes(setOf(NGSILD_NAME_PROPERTY))
+
+        val firstExclusiveStatus = (ConflictException("conflict") to firstExclusiveCsr).left()
+        val firstRedirectStatus = (BadGatewayException("badGateway") to firstRedirectCsr).left()
+        val secondInclusiveStatus = (ConflictException("conflict") to secondInclusiveCsr).left()
+
+        coEvery {
+            distributedEntityProvisionService.distributeCreateEntityForContextSources(any(), any(), any(), any(), any())
+        } returns
+            (listOf(firstExclusiveStatus) to entityWithIgnoredTemperature) andThen
+            (listOf(firstRedirectStatus, Unit.right()) to entityWithIgnoredTemperatureAndName) andThen
+            (listOf(Unit.right(), secondInclusiveStatus) to null)
+
+        coEvery {
+            contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(firstInclusiveCsr, firstExclusiveCsr, firstRedirectCsr, secondInclusiveCsr, secondRedirectCsr)
+
+        val (distributionsStatuses, remainingEntity) = distributedEntityProvisionService.distributeCreateEntity(
+            HttpHeaders(),
+            entryEntity,
+            contexts
+        )
+        assertThat(distributionsStatuses)
+            .contains(Unit.right(), firstRedirectStatus, firstExclusiveStatus, secondInclusiveStatus)
+            .size().isEqualTo(5)
+
+        assertEquals(entityWithIgnoredTemperatureAndName, remainingEntity)
+
+        coVerifyOrder {
+            distributedEntityProvisionService.distributeCreateEntityForContextSources(
+                listOf(firstExclusiveCsr),
+                any(),
+                entryEntity,
+                any(),
+                any()
+            )
+            distributedEntityProvisionService.distributeCreateEntityForContextSources(
+                listOf(firstRedirectCsr, secondRedirectCsr),
+                any(),
+                entityWithIgnoredTemperature,
+                any(),
+                any()
+            )
+            distributedEntityProvisionService.distributeCreateEntityForContextSources(
+                listOf(firstInclusiveCsr, secondInclusiveCsr),
+                any(),
+                entityWithIgnoredTemperatureAndName,
+                any(),
+                any()
+            )
+        }
+    }
 
     @Test
     fun `distributeCreateEntityForContextSources should return received errors and successes`() = runTest {

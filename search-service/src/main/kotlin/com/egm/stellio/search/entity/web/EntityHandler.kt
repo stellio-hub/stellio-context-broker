@@ -84,7 +84,7 @@ class EntityHandler(
     suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @AllowedParameters(implemented = [QueryParameter.LOCAL], notImplemented = [QueryParameter.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
@@ -95,8 +95,10 @@ class EntityHandler(
         expandedEntity.toNgsiLdEntity().bind()
         val entityId = expandedEntity.id.toUri()
 
-        val (result, remainingEntity) = distributedEntityProvisionService
-            .distributeCreateEntity(expandedEntity, contexts)
+        val (result, remainingEntity) = if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() == true) {
+            distributedEntityProvisionService
+                .distributeCreateEntity(expandedEntity, contexts)
+        } else BatchOperationResult() to expandedEntity
 
         if (remainingEntity != null) {
             either {

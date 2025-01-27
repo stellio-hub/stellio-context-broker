@@ -347,7 +347,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entities?local=true")
+            .uri("/ngsi-ld/v1/entities?via=true")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(501)
@@ -355,7 +355,7 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
-                    "title": "The ['local'] parameters have not been implemented yet. This endpoint does not accept any query parameters. ",
+                    "title": "The ['Via'] parameters have not been implemented yet. This endpoint does not accept any query parameters. ",
                     "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()

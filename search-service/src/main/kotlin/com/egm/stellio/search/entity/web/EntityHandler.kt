@@ -95,10 +95,11 @@ class EntityHandler(
         expandedEntity.toNgsiLdEntity().bind()
         val entityId = expandedEntity.id.toUri()
 
-        val (result, remainingEntity) = if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() == true) {
-            distributedEntityProvisionService
-                .distributeCreateEntity(expandedEntity, contexts)
-        } else BatchOperationResult() to expandedEntity
+        val (result, remainingEntity) =
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() == false) {
+                distributedEntityProvisionService
+                    .distributeCreateEntity(expandedEntity, contexts)
+            } else BatchOperationResult() to expandedEntity
 
         if (remainingEntity != null) {
             either {
@@ -229,22 +230,24 @@ class EntityHandler(
                 linkedEntityService.processLinkedEntities(it, entitiesQuery, sub.getOrNull()).bind()
             }
 
-        val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
-            distributedEntityConsumptionService.distributeQueryEntitiesOperation(
-                entitiesQuery,
-                httpHeaders,
-                queryParams
-            )
-
-        val maxCount = (remoteCounts + localCount).maxBy { it ?: 0 } ?: 0
-
-        val (warnings, mergedEntities) = ContextSourceUtils.mergeEntitiesLists(
-            localEntities,
-            remoteEntitiesWithCSR
-        ).toPair().let { (mergeWarnings, mergedEntities) ->
-            val warnings = mergeWarnings?.let { queryWarnings + it } ?: queryWarnings
-            warnings to (mergedEntities ?: emptyList())
-        }
+        val (warnings, entities, count) =
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() == false) {
+                val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
+                    distributedEntityConsumptionService.distributeQueryEntitiesOperation(
+                        entitiesQuery,
+                        httpHeaders,
+                        queryParams
+                    )
+                val maxCount = (remoteCounts + localCount).maxBy { it ?: 0 } ?: 0
+                val (warnings, mergedEntities) = ContextSourceUtils.mergeEntitiesLists(
+                    localEntities,
+                    remoteEntitiesWithCSR
+                ).toPair().let { (mergeWarnings, mergedEntities) ->
+                    val warnings = mergeWarnings?.let { queryWarnings + it } ?: queryWarnings
+                    warnings to (mergedEntities ?: emptyList())
+                }
+                Triple(warnings, mergedEntities, maxCount)
+            } else Triple(emptyList(), localEntities, localCount)
 
         buildQueryResponse(
             mergedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
@@ -296,16 +299,18 @@ class EntityHandler(
             compactEntity(filteredExpandedEntity, contexts)
         }
 
-        val (warnings, remoteEntitiesWithCSR) = distributedEntityConsumptionService.distributeRetrieveEntityOperation(
-            entityId,
-            httpHeaders,
-            queryParams
-        ).let { (warnings, it) -> warnings.toMutableList() to it }
-
-        val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeEntities(
-            localEntity.getOrNull(),
-            remoteEntitiesWithCSR
-        ).toPair()
+        val (entity, warnings) =
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() == false) {
+                val (warnings, remoteEntitiesWithCSR) = distributedEntityConsumptionService
+                    .distributeRetrieveEntityOperation(
+                        entityId,
+                        httpHeaders,
+                        queryParams
+                    ).let { (warnings, it) -> warnings.toMutableList() to it }
+                val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeEntities(
+                    localEntity.getOrNull(),
+                    remoteEntitiesWithCSR
+                ).toPair()
 
         mergeWarnings?.let { warnings.addAll(it) }
 

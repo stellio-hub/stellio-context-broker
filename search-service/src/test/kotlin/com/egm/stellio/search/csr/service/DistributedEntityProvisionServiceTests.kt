@@ -37,7 +37,6 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 
@@ -114,7 +113,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         val secondInclusiveStatus = (ConflictException("conflict") to secondInclusiveCsr).left()
 
         coEvery {
-            distributedEntityProvisionService.distributeCreateEntityForContextSources(any(), any(), any(), any(), any())
+            distributedEntityProvisionService.distributeCreateEntityForContextSources(any(), any(), any(), any())
         } returns
             (listOf(firstExclusiveStatus) to entityWithIgnoredTemperature) andThen
             (listOf(firstRedirectStatus, Unit.right()) to entityWithIgnoredTemperatureAndName) andThen
@@ -125,7 +124,6 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         } returns listOf(firstInclusiveCsr, firstExclusiveCsr, firstRedirectCsr, secondInclusiveCsr, secondRedirectCsr)
 
         val (distributionsStatuses, remainingEntity) = distributedEntityProvisionService.distributeCreateEntity(
-            HttpHeaders(),
             entryEntity,
             contexts
         )
@@ -141,21 +139,18 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
                 any(),
                 entryEntity,
                 any(),
-                any()
             )
             distributedEntityProvisionService.distributeCreateEntityForContextSources(
                 listOf(firstRedirectCsr, secondRedirectCsr),
                 any(),
                 entityWithIgnoredTemperature,
                 any(),
-                any()
             )
             distributedEntityProvisionService.distributeCreateEntityForContextSources(
                 listOf(firstInclusiveCsr, secondInclusiveCsr),
                 any(),
                 entityWithIgnoredTemperatureAndName,
                 any(),
-                any()
             )
         }
     }
@@ -165,7 +160,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         val csr = spyk(gimmeRawCSR())
 
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any(), any())
+            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
         } returns contextSourceException.left() andThen Unit.right()
 
         coEvery {
@@ -176,7 +171,6 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             listOf(csr, csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
-            HttpHeaders(),
             contexts
         )
 
@@ -196,14 +190,13 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         } returns setOf(NGSILD_NAME_PROPERTY) andThen setOf(TEMPERATURE_PROPERTY)
 
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any(), any())
+            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
         } returns contextSourceException.left() andThen Unit.right()
 
         val (_, entity) = distributedEntityProvisionService.distributeCreateEntityForContextSources(
             listOf(csr, csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
-            HttpHeaders(),
             contexts
         )
 
@@ -218,14 +211,13 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         } returns setOf(NGSILD_NAME_PROPERTY)
 
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any(), any())
+            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
         } returns Unit.right()
 
         val (_, successEntity) = distributedEntityProvisionService.distributeCreateEntityForContextSources(
             listOf(csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
-            HttpHeaders(),
             contexts
         )
 
@@ -241,14 +233,13 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             csr.getAssociatedAttributes(any(), any())
         } returns setOf(NGSILD_NAME_PROPERTY)
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any(), any())
+            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
         } returns contextSourceException.left()
 
         val (_, errorEntity) = distributedEntityProvisionService.distributeCreateEntityForContextSources(
             listOf(csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
-            HttpHeaders(),
             contexts
         )
 
@@ -267,7 +258,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         )
 
         val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
-        val response = distributedEntityProvisionService.postDistributedInformation(HttpHeaders(), entity, csr, path)
+        val response = distributedEntityProvisionService.postDistributedInformation(entity, csr, path)
 
         assertTrue(response.isLeft())
         assertEquals(response.leftOrNull()?.type, ErrorType.BAD_GATEWAY.type)
@@ -286,7 +277,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         )
 
         val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
-        val response = distributedEntityProvisionService.postDistributedInformation(HttpHeaders(), entity, csr, path)
+        val response = distributedEntityProvisionService.postDistributedInformation(entity, csr, path)
 
         assertTrue(response.isLeft())
         assertInstanceOf(ContextSourceException::class.java, response.leftOrNull())
@@ -301,7 +292,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         val csr = gimmeRawCSR().copy(endpoint = "http://localhost:invalid".toUri())
         val path = "/ngsi-ld/v1/entities"
         val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
-        val response = distributedEntityProvisionService.postDistributedInformation(HttpHeaders(), entity, csr, path)
+        val response = distributedEntityProvisionService.postDistributedInformation(entity, csr, path)
 
         assertTrue(response.isLeft())
         assertInstanceOf(GatewayTimeoutException::class.java, response.leftOrNull())

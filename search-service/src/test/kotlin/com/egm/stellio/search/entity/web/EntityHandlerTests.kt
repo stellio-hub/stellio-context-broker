@@ -145,7 +145,7 @@ class EntityHandlerTests {
         val capturedExpandedEntity = slot<ExpandedEntity>()
         coEvery {
             distributedEntityProvisionService
-                .distributeCreateEntity(any(), capture(capturedExpandedEntity), any())
+                .distributeCreateEntity(capture(capturedExpandedEntity), any())
         } answers { emptyList<DistributionStatus>() to capturedExpandedEntity.captured }
     }
 
@@ -371,7 +371,7 @@ class EntityHandlerTests {
 
         coEvery {
             distributedEntityProvisionService
-                .distributeCreateEntity(any(), capture(capturedExpandedEntity), any())
+                .distributeCreateEntity(capture(capturedExpandedEntity), any())
         } answers {
             listOf(Unit.right(), conflictstatus.left()) to capturedExpandedEntity.captured
         } andThenAnswer {
@@ -428,7 +428,7 @@ class EntityHandlerTests {
 
         coEvery {
             distributedEntityProvisionService
-                .distributeCreateEntity(any(), capture(capturedExpandedEntity), any())
+                .distributeCreateEntity(capture(capturedExpandedEntity), any())
         } answers {
             listOf(conflictstatus.left()) to null
         }

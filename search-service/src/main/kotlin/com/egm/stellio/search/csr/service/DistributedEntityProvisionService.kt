@@ -1,7 +1,6 @@
 package com.egm.stellio.search.csr.service
 
 import arrow.core.Either
-import arrow.core.getOrNone
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
@@ -18,6 +17,7 @@ import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
+import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.toUri
 import org.slf4j.Logger
@@ -43,7 +43,6 @@ class DistributedEntityProvisionService(
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     suspend fun distributeCreateEntity(
-        httpHeaders: HttpHeaders,
         entity: ExpandedEntity,
         contexts: List<String>,
     ): Pair<List<DistributionStatus>, ExpandedEntity?> {
@@ -63,7 +62,6 @@ class DistributedEntityProvisionService(
             matchingCSR[Mode.EXCLUSIVE], // could be only one
             registrationInfoFilter,
             entity,
-            httpHeaders,
             contexts
         )
         if (entityAfterExclusive == null) return exclusiveErrors to null
@@ -72,7 +70,6 @@ class DistributedEntityProvisionService(
             matchingCSR[Mode.REDIRECT],
             registrationInfoFilter,
             entityAfterExclusive,
-            httpHeaders,
             contexts
         )
         if (entityAfterRedirect == null) return exclusiveErrors + redirectErrors to null
@@ -81,7 +78,6 @@ class DistributedEntityProvisionService(
             matchingCSR[Mode.INCLUSIVE],
             registrationInfoFilter,
             entityAfterRedirect,
-            httpHeaders,
             contexts
         )
         return exclusiveErrors + redirectErrors + inclusiveError to entityAfterRedirect
@@ -91,7 +87,6 @@ class DistributedEntityProvisionService(
         csrs: List<ContextSourceRegistration>?,
         registrationInfoFilter: RegistrationInfoFilter,
         entity: ExpandedEntity,
-        headers: HttpHeaders,
         contexts: List<String>
     ): Pair<List<DistributionStatus>, ExpandedEntity?> {
         val allProcessedAttrs = mutableSetOf<ExpandedTerm>()
@@ -105,7 +100,6 @@ class DistributedEntityProvisionService(
                         (ConflictException("csr: ${csr.id} does not support creation of entities") to csr).left()
                     } else {
                         postDistributedInformation(
-                            headers,
                             compactEntity(entity.filterAttributes(attrs, emptySet()), contexts),
                             csr,
                             createPath
@@ -123,7 +117,6 @@ class DistributedEntityProvisionService(
     }
 
     internal suspend fun postDistributedInformation(
-        httpHeaders: HttpHeaders,
         entity: CompactedEntity,
         csr: ContextSourceRegistration,
         path: String,
@@ -139,10 +132,7 @@ class DistributedEntityProvisionService(
                     .path(uri.path)
                     .build()
             }.headers { newHeaders ->
-                httpHeaders.getOrNone(HttpHeaders.LINK).onSome { link -> newHeaders[HttpHeaders.LINK] = link }
-                httpHeaders.getOrNone(HttpHeaders.CONTENT_TYPE).onSome { accept ->
-                    newHeaders[HttpHeaders.CONTENT_TYPE] = accept
-                }
+                newHeaders[HttpHeaders.CONTENT_TYPE] = JSON_LD_CONTENT_TYPE
             }.bodyValue(entity)
 
         return runCatching {

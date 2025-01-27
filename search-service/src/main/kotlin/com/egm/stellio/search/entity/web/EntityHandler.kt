@@ -96,7 +96,7 @@ class EntityHandler(
         val entityId = expandedEntity.id.toUri()
 
         val (result, remainingEntity) =
-            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() == false) {
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != false) {
                 distributedEntityProvisionService
                     .distributeCreateEntity(expandedEntity, contexts)
             } else BatchOperationResult() to expandedEntity
@@ -231,7 +231,7 @@ class EntityHandler(
             }
 
         val (warnings, entities, count) =
-            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() == false) {
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
                 val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
                     distributedEntityConsumptionService.distributeQueryEntitiesOperation(
                         entitiesQuery,
@@ -300,7 +300,7 @@ class EntityHandler(
         }
 
         val (entity, warnings) =
-            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() == false) {
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
                 val (warnings, remoteEntitiesWithCSR) = distributedEntityConsumptionService
                     .distributeRetrieveEntityOperation(
                         entityId,

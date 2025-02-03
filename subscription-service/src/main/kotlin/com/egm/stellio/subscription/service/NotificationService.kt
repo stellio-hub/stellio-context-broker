@@ -48,6 +48,8 @@ class NotificationService(
             notificationTrigger
         ).bind()
             .map {
+                // using the "previous" entity (it is actually the previous only for deleted entity events)
+                // to be able to send deleted attributes in case of a entityDeleted event
                 val filteredEntity = previousAndUpdatedExpandedEntities.first.filterAttributes(
                     it.notification.attributes?.toSet().orEmpty(),
                     it.datasetId?.toSet().orEmpty()

@@ -221,9 +221,9 @@ class EntityHandler(
         val entitiesQuery = composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
             .validateMinimalQueryEntitiesParameters().bind()
 
-        val (entities, localCount) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
+        val (expandedEntities, localCount) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
 
-        val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
+        val filteredEntities = expandedEntities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 
         val localEntities =
             compactEntities(filteredEntities, contexts).let {
@@ -250,8 +250,8 @@ class EntityHandler(
             } else Triple(emptyList(), localEntities, localCount)
 
         buildQueryResponse(
-            mergedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
-            maxCount,
+            entities.toFinalRepresentation(ngsiLdDataRepresentation),
+            count,
             "/ngsi-ld/v1/entities",
             entitiesQuery.paginationQuery,
             queryParams,
@@ -312,16 +312,17 @@ class EntityHandler(
                     remoteEntitiesWithCSR
                 ).toPair()
 
-        mergeWarnings?.let { warnings.addAll(it) }
+                mergeWarnings?.let { warnings.addAll(it) }
+                mergedEntity to warnings.toList()
+            } else localEntity.getOrNull() to emptyList()
 
-        if (mergedEntity == null) {
+        if (entity == null) {
             val localError = localEntity.leftOrNull()
             return localError!!.toErrorResponse().addWarnings(warnings)
         }
 
         val mergedEntityWithLinkedEntities =
-            linkedEntityService.processLinkedEntities(mergedEntity, entitiesQuery, sub.getOrNull()).bind()
-
+            linkedEntityService.processLinkedEntities(entity, entitiesQuery, sub.getOrNull()).bind()
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .let {
                 val body = if (mergedEntityWithLinkedEntities.size == 1)

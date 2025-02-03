@@ -1,9 +1,14 @@
 package com.egm.stellio.search.csr.service
 
+import arrow.core.left
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
+import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
+import com.egm.stellio.search.support.WithKafkaContainer
+import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
@@ -23,23 +28,41 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
+import com.ninjasquad.springmockk.MockkBean
+import com.ninjasquad.springmockk.SpykBean
+import io.mockk.coEvery
+import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.LinkedMultiValueMap
+import org.springframework.util.MultiValueMap
 import wiremock.com.google.common.net.HttpHeaders.ACCEPT
 import wiremock.com.google.common.net.HttpHeaders.CONTENT_TYPE
 
+@SpringBootTest
 @WireMockTest(httpPort = 8089)
 @ActiveProfiles("test")
-class ContextSourceCallerTests {
+class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
+
+    @SpykBean
+    private lateinit var distributedEntityConsumptionService: DistributedEntityConsumptionService
+
+    @Autowired
+    private lateinit var applicationProperties: ApplicationProperties
+
+    @MockkBean
+    private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
 
     private val apiaryId = "urn:ngsi-ld:Apiary:TEST"
 
@@ -75,7 +98,7 @@ class ContextSourceCallerTests {
         """.trimIndent()
 
     @Test
-    fun `queryContextSourceEntities should return the count and the entities when the request succeed`() = runTest {
+    fun `queryEntitiesFromContextSource should return the count and the entities when the request succeed`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities"
         val count = 222
@@ -89,7 +112,7 @@ class ContextSourceCallerTests {
                 )
         )
 
-        val response = ContextSourceCaller.queryContextSourceEntities(
+        val response = distributedEntityConsumptionService.queryEntitiesFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             emptyParams
@@ -100,7 +123,7 @@ class ContextSourceCallerTests {
     }
 
     @Test
-    fun `queryContextSourceEntities should return a RevalidationFailedWarning when receiving bad payload`() = runTest {
+    fun `queryEntities ContextSource should return a RevalidationFailedWarning when receiving bad payload`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities"
         stubFor(
@@ -111,7 +134,7 @@ class ContextSourceCallerTests {
                 )
         )
 
-        val response = ContextSourceCaller.queryContextSourceEntities(
+        val response = distributedEntityConsumptionService.queryEntitiesFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             emptyParams
@@ -122,7 +145,39 @@ class ContextSourceCallerTests {
     }
 
     @Test
-    fun `retrieveContextSourceEntity should return the entity when the request succeeds`() = runTest {
+    fun `distributeQueryEntitiesOperation should return the warnings sent by the CSRs and update the statuses`() =
+        runTest {
+            val csr = gimmeRawCSR()
+
+            coEvery {
+                contextSourceRegistrationService
+                    .getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(csr, csr)
+
+            coEvery {
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any())
+            } returns MiscellaneousWarning(
+                "message with\nline\nbreaks",
+                csr
+            ).left() andThen
+                MiscellaneousWarning("message", csr).left()
+
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+
+            val queryParams = MultiValueMap.fromSingleValue<String, String>(emptyMap())
+            val headers = HttpHeaders()
+
+            val (warnings, _) = distributedEntityConsumptionService.distributeQueryEntitiesOperation(
+                composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, emptyList()).getOrNull()!!,
+                headers,
+                queryParams
+            )
+            assertThat(warnings).hasSize(2)
+            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
+        }
+
+    @Test
+    fun `retrieveEntityFromContextSource should return the entity when the request succeeds`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
         stubFor(
@@ -133,7 +188,7 @@ class ContextSourceCallerTests {
                 )
         )
 
-        val response = ContextSourceCaller.retrieveContextSourceEntity(
+        val response = distributedEntityConsumptionService.retrieveEntityFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             apiaryId.toUri(),
@@ -143,7 +198,7 @@ class ContextSourceCallerTests {
     }
 
     @Test
-    fun `retrieveContextSourceEntity should return a RevalidationFailedWarning when receiving bad payload`() = runTest {
+    fun `retrieveEntityContextSource should return a RevalidationFailedWarning when receiving bad payload`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
         stubFor(
@@ -154,7 +209,7 @@ class ContextSourceCallerTests {
                 )
         )
 
-        val response = ContextSourceCaller.retrieveContextSourceEntity(
+        val response = distributedEntityConsumptionService.retrieveEntityFromContextSource(
             HttpHeaders.EMPTY,
             csr,
             apiaryId.toUri(),
@@ -166,10 +221,40 @@ class ContextSourceCallerTests {
     }
 
     @Test
+    fun `distributeRetrieveEntityOperation should return the warnings sent by the CSRs and update the statuses`() =
+        runTest {
+            val csr = gimmeRawCSR()
+
+            coEvery {
+                contextSourceRegistrationService
+                    .getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(csr, csr)
+
+            coEvery {
+                distributedEntityConsumptionService.retrieveEntityFromContextSource(any(), any(), any(), any())
+            } returns MiscellaneousWarning(
+                "message with\nline\nbreaks",
+                csr
+            ).left() andThen
+                MiscellaneousWarning("message", csr).left()
+
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+
+            val (warnings, _) = distributedEntityConsumptionService.distributeRetrieveEntityOperation(
+                apiaryId.toUri(),
+                HttpHeaders(),
+                MultiValueMap.fromSingleValue(emptyMap())
+            )
+            assertThat(warnings).hasSize(2)
+            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
+        }
+
+    @Test
     fun `getDistributedInformation should return a MiscellaneousWarning if it receives no answer`() = runTest {
         val csr = gimmeRawCSR().copy(endpoint = "http://localhost:invalid".toUri())
         val path = "/ngsi-ld/v1/entities/$apiaryId"
-        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response =
+            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
 
         assertTrue(response.isLeft())
         assertInstanceOf(MiscellaneousWarning::class.java, response.leftOrNull())
@@ -184,7 +269,8 @@ class ContextSourceCallerTests {
                 .willReturn(unauthorized())
         )
 
-        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response =
+            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
 
         assertTrue(response.isLeft())
         assertInstanceOf(MiscellaneousPersistentWarning::class.java, response.leftOrNull())
@@ -199,7 +285,8 @@ class ContextSourceCallerTests {
                 .willReturn(notFound())
         )
 
-        val response = ContextSourceCaller.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response =
+            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
 
         assertTrue(response.isRight())
         assertNull(response.getOrNull()!!.first)
@@ -215,7 +302,7 @@ class ContextSourceCallerTests {
         )
         val header = HttpHeaders()
         header.accept = listOf(GEO_JSON_MEDIA_TYPE)
-        ContextSourceCaller.getDistributedInformation(
+        distributedEntityConsumptionService.getDistributedInformation(
             header,
             csr,
             path,
@@ -236,7 +323,7 @@ class ContextSourceCallerTests {
                 .willReturn(notFound())
         )
         val params = LinkedMultiValueMap(mapOf(QueryParameter.OPTIONS.key to listOf("simplified")))
-        ContextSourceCaller.getDistributedInformation(
+        distributedEntityConsumptionService.getDistributedInformation(
             HttpHeaders.EMPTY,
             csr,
             path,

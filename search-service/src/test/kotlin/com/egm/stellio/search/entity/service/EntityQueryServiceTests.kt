@@ -172,8 +172,8 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should retrieve a list of entity payloads`() = runTest {
-        val expandedPayload = loadSampleData("beehive_expanded.jsonld")
-        expandedPayload.sampleDataToNgsiLdEntity().map {
+        val entityPayload = loadSampleData("beehive.jsonld")
+        entityPayload.sampleDataToNgsiLdEntity().map {
             entityService.createEntityPayload(
                 it.second,
                 it.first,
@@ -184,7 +184,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val entityPayloads = entityQueryService.retrieve(listOf(beehiveTestCId))
         assertEquals(1, entityPayloads.size)
         assertEquals(beehiveTestCId, entityPayloads[0].entityId)
-        assertJsonPayloadsAreEqual(expandedPayload, entityPayloads[0].payload.asString())
+        assertJsonPayloadsAreEqual(loadSampleData("beehive_expanded.jsonld"), entityPayloads[0].payload.asString())
     }
 
     @Test

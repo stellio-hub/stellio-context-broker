@@ -263,11 +263,12 @@ class EntityOperationHandler(
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val query = Query(requestBody.awaitFirst()).bind()
-
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
+            .copy(languageFilter = query.lang)
+        val sub = getSubFromSecurityContext()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val entitiesQuery = composeEntitiesQueryFromPost(
             applicationProperties.pagination,
             query,
@@ -280,10 +281,6 @@ class EntityOperationHandler(
         val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 
         val compactedEntities = compactEntities(filteredEntities, contexts)
-
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
-            .copy(languageFilter = query.lang)
-
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,

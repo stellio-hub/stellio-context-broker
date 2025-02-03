@@ -48,7 +48,9 @@ class NotificationService(
             notificationTrigger
         ).bind()
             .map {
-                val filteredEntity = previousAndUpdatedExpandedEntities.second.filterAttributes(
+                // using the "previous" entity (it is actually the previous only for deleted entity events)
+                // to be able to send deleted attributes in case of a entityDeleted event
+                val filteredEntity = previousAndUpdatedExpandedEntities.first.filterAttributes(
                     it.notification.attributes?.toSet().orEmpty(),
                     it.datasetId?.toSet().orEmpty()
                 )
@@ -62,7 +64,7 @@ class NotificationService(
                 val contexts = it.jsonldContext?.let { listOf(it.toString()) } ?: it.contexts
 
                 val compactedEntity = compactEntity(
-                    ExpandedEntity(filteredEntity),
+                    filteredEntity,
                     contexts
                 ).toFinalRepresentation(
                     NgsiLdDataRepresentation(

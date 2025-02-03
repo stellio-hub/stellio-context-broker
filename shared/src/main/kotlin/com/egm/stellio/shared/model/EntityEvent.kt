@@ -24,8 +24,7 @@ sealed class EntityEvent(
     open val sub: String?,
     open val tenantName: String = DEFAULT_TENANT_NAME,
     open val entityId: URI,
-    open val entityTypes: List<ExpandedTerm>,
-    open val contexts: List<String>
+    open val entityTypes: List<ExpandedTerm>
 ) {
     @JsonIgnore
     open fun getEntity(): String? = null
@@ -48,9 +47,8 @@ data class EntityCreateEvent(
     override val tenantName: String = DEFAULT_TENANT_NAME,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
-    val operationPayload: String,
-    override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_CREATE, sub, tenantName, entityId, entityTypes, contexts) {
+    val operationPayload: String
+) : EntityEvent(EventsType.ENTITY_CREATE, sub, tenantName, entityId, entityTypes) {
     override fun getEntity() = this.operationPayload
 }
 
@@ -60,9 +58,8 @@ data class EntityReplaceEvent(
     override val tenantName: String = DEFAULT_TENANT_NAME,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
-    val operationPayload: String,
-    override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_REPLACE, sub, tenantName, entityId, entityTypes, contexts) {
+    val operationPayload: String
+) : EntityEvent(EventsType.ENTITY_REPLACE, sub, tenantName, entityId, entityTypes) {
     override fun getEntity() = this.operationPayload
 }
 
@@ -74,9 +71,8 @@ data class EntityDeleteEvent(
     override val entityTypes: List<ExpandedTerm>,
     // null only when in the case of an IAM event (previous state is not known)
     val previousEntity: String?,
-    val updatedEntity: String,
-    override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_DELETE, sub, tenantName, entityId, entityTypes, contexts) {
+    val updatedEntity: String
+) : EntityEvent(EventsType.ENTITY_DELETE, sub, tenantName, entityId, entityTypes) {
     override fun getEntity() = this.previousEntity
 }
 
@@ -89,9 +85,8 @@ data class AttributeAppendEvent(
     val attributeName: ExpandedTerm,
     val datasetId: URI?,
     val operationPayload: String,
-    val updatedEntity: String,
-    override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_APPEND, sub, tenantName, entityId, entityTypes, contexts) {
+    val updatedEntity: String
+) : EntityEvent(EventsType.ATTRIBUTE_APPEND, sub, tenantName, entityId, entityTypes) {
     override fun getEntity() = this.updatedEntity
     override fun getAttribute() = this.attributeName
 }
@@ -105,9 +100,8 @@ data class AttributeReplaceEvent(
     val attributeName: ExpandedTerm,
     val datasetId: URI?,
     val operationPayload: String,
-    val updatedEntity: String,
-    override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_REPLACE, sub, tenantName, entityId, entityTypes, contexts) {
+    val updatedEntity: String
+) : EntityEvent(EventsType.ATTRIBUTE_REPLACE, sub, tenantName, entityId, entityTypes) {
     override fun getEntity() = this.updatedEntity
     override fun getAttribute() = this.attributeName
 }
@@ -121,9 +115,8 @@ data class AttributeUpdateEvent(
     val attributeName: ExpandedTerm,
     val datasetId: URI?,
     val operationPayload: String,
-    val updatedEntity: String,
-    override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_UPDATE, sub, tenantName, entityId, entityTypes, contexts) {
+    val updatedEntity: String
+) : EntityEvent(EventsType.ATTRIBUTE_UPDATE, sub, tenantName, entityId, entityTypes) {
     override fun getEntity() = this.updatedEntity
     override fun getAttribute() = this.attributeName
 }
@@ -136,9 +129,8 @@ data class AttributeDeleteEvent(
     override val entityTypes: List<ExpandedTerm>,
     val attributeName: ExpandedTerm,
     val datasetId: URI?,
-    val updatedEntity: String,
-    override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_DELETE, sub, tenantName, entityId, entityTypes, contexts) {
+    val updatedEntity: String
+) : EntityEvent(EventsType.ATTRIBUTE_DELETE, sub, tenantName, entityId, entityTypes) {
     override fun getEntity() = this.updatedEntity
     override fun getAttribute() = this.attributeName
 }

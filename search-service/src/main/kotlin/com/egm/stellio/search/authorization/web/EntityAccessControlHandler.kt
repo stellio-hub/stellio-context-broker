@@ -75,11 +75,13 @@ class EntityAccessControlHandler(
         @AllowedParameters(implemented = [QP.ID, QP.TYPE, QP.ATTRS, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.INCLUDE_DELETED])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
+
         val sub = getSubFromSecurityContext()
         val includeDeleted = queryParams.getFirst(QueryParameter.INCLUDE_DELETED.key)?.toBoolean() == true
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
-        val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
@@ -105,7 +107,6 @@ class EntityAccessControlHandler(
 
         val compactedEntities = compactEntities(entities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
@@ -126,10 +127,12 @@ class EntityAccessControlHandler(
         @AllowedParameters(implemented = [QP.COUNT, QP.OFFSET, QP.LIMIT])
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
+
         val sub = getSubFromSecurityContext()
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
-        val mediaType = getApplicableMediaType(httpHeaders).bind()
         val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
             params,
@@ -150,7 +153,6 @@ class EntityAccessControlHandler(
 
         val compactedEntities = compactEntities(entities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
@@ -171,12 +173,14 @@ class EntityAccessControlHandler(
         @AllowedParameters(implemented = [QP.COUNT, QP.OFFSET, QP.LIMIT])
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
+        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
+
         val sub = getSubFromSecurityContext()
 
         authorizationService.userIsAdmin(sub).bind()
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
-        val mediaType = getApplicableMediaType(httpHeaders).bind()
         val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
             params,
@@ -196,7 +200,6 @@ class EntityAccessControlHandler(
 
         val compactedEntities = compactEntities(entities, contexts)
 
-        val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,

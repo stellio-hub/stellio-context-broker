@@ -19,11 +19,11 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.4.1" apply false
+    id("org.springframework.boot") version "3.4.2" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("org.graalvm.buildtools.native") version "0.10.4"
-    kotlin("jvm") version "2.1.0" apply false
-    kotlin("plugin.spring") version "2.1.0" apply false
+    kotlin("jvm") version "2.1.10" apply false
+    kotlin("plugin.spring") version "2.1.10" apply false
     id("com.google.cloud.tools.jib") version "3.4.4" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.7" apply false
     id("org.sonarqube") version "6.0.1.5171"
@@ -69,7 +69,7 @@ subprojects {
         implementation("com.apicatalog:titanium-json-ld:1.4.1")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:2.0.0")
+        implementation("io.arrow-kt:arrow-fx-coroutines:2.0.1")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.20.0")
 

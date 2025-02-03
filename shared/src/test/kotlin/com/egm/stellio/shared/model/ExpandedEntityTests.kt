@@ -104,7 +104,7 @@ class ExpandedEntityTests {
 
         val attributesToMatch: Set<String> = parseAndExpandQueryParameter("managedBy", listOf(APIC_COMPOUND_CONTEXT))
 
-        val filteredEntity = ExpandedEntity(entity.filterAttributes(attributesToMatch, emptySet()))
+        val filteredEntity = entity.filterAttributes(attributesToMatch, emptySet())
 
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
@@ -129,7 +129,7 @@ class ExpandedEntityTests {
 
         val attributesToMatch: Set<String> = parseAndExpandQueryParameter("name", listOf(APIC_COMPOUND_CONTEXT))
         val datasetIdToMatch: Set<String> = setOf("urn:ngsi-ld:Dataset:english-name")
-        val filteredEntity = ExpandedEntity(entity.filterAttributes(attributesToMatch, datasetIdToMatch))
+        val filteredEntity = entity.filterAttributes(attributesToMatch, datasetIdToMatch)
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
@@ -157,7 +157,7 @@ class ExpandedEntityTests {
         """.trimIndent()
 
         val datasetIdToMatch: Set<String> = setOf("urn:ngsi-ld:Dataset:french-name")
-        val filteredEntity = ExpandedEntity(entity.filterAttributes(emptySet(), datasetIdToMatch))
+        val filteredEntity = entity.filterAttributes(emptySet(), datasetIdToMatch)
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
@@ -182,7 +182,7 @@ class ExpandedEntityTests {
             }
         """.trimIndent()
 
-        val filteredEntity = ExpandedEntity(entity.filterAttributes(emptySet(), setOf(NGSILD_NONE_TERM)))
+        val filteredEntity = entity.filterAttributes(emptySet(), setOf(NGSILD_NONE_TERM))
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
@@ -204,7 +204,7 @@ class ExpandedEntityTests {
         """.trimIndent()
 
         val attributesToMatch: Set<String> = parseAndExpandQueryParameter("name", listOf(APIC_COMPOUND_CONTEXT))
-        val filteredEntity = ExpandedEntity(entity.filterAttributes(attributesToMatch, setOf(NGSILD_NONE_TERM)))
+        val filteredEntity = entity.filterAttributes(attributesToMatch, setOf(NGSILD_NONE_TERM))
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
@@ -242,7 +242,7 @@ class ExpandedEntityTests {
             "urn:ngsi-ld:Dataset:english-name",
             "urn:ngsi-ld:Dataset:french-name"
         )
-        val filteredEntity = ExpandedEntity(entity.filterAttributes(emptySet(), datasetIdToMatch))
+        val filteredEntity = entity.filterAttributes(emptySet(), datasetIdToMatch)
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
@@ -261,7 +261,7 @@ class ExpandedEntityTests {
 
         val attributesToMatch: Set<String> = parseAndExpandQueryParameter("name", listOf(APIC_COMPOUND_CONTEXT))
         val datasetIdToMatch: Set<String> = setOf("urn:ngsi-ld:Dataset:managedBy")
-        val filteredEntity = ExpandedEntity(entity.filterAttributes(attributesToMatch, datasetIdToMatch))
+        val filteredEntity = entity.filterAttributes(attributesToMatch, datasetIdToMatch)
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }

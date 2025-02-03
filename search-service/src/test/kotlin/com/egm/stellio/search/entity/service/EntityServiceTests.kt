@@ -486,8 +486,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should add a type to an entity`() = runTest {
-        val expandedPayload = loadSampleData("beehive_expanded.jsonld")
-        expandedPayload.sampleDataToNgsiLdEntity().map {
+        val entityPayload = loadSampleData("beehive.jsonld")
+        entityPayload.sampleDataToNgsiLdEntity().map {
             entityService.createEntityPayload(
                 it.second,
                 it.first,

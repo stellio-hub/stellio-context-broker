@@ -6,8 +6,7 @@ import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
-import com.egm.stellio.search.csr.service.ContextSourceCaller
-import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
+import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateResult
@@ -65,7 +64,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockkClass
-import io.mockk.mockkObject
 import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
@@ -110,7 +108,7 @@ class EntityHandlerTests {
     private lateinit var entityQueryService: EntityQueryService
 
     @MockkBean
-    private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
+    private lateinit var distributedEntityConsumptionService: DistributedEntityConsumptionService
 
     @MockkBean(relaxed = true)
     private lateinit var linkedEntityService: LinkedEntityService
@@ -130,9 +128,13 @@ class EntityHandlerTests {
     @BeforeEach
     fun mockCSR() {
         coEvery {
-            contextSourceRegistrationService
-                .getContextSourceRegistrations(any(), any(), any())
-        } returns listOf()
+            distributedEntityConsumptionService
+                .distributeRetrieveEntityOperation(any(), any(), any())
+        } returns (emptyList<NGSILDWarning>() to emptyList())
+        coEvery {
+            distributedEntityConsumptionService
+                .distributeQueryEntitiesOperation(any(), any(), any())
+        } returns Triple(emptyList(), emptyList(), emptyList())
     }
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
@@ -970,40 +972,32 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entity by id should return the warnings sent by the CSRs and update the CSRs statuses`() {
+    fun `get entity by id should return the warnings sent by the CSRs`() {
         val csr = gimmeRawCSR()
         coEvery {
             entityQueryService.queryEntity("urn:ngsi-ld:BeeHive:TEST".toUri(), sub.getOrNull())
         } returns ResourceNotFoundException("no entity").left()
 
         coEvery {
-            contextSourceRegistrationService
-                .getContextSourceRegistrations(any(), any(), any())
-        } returns listOf(csr, csr)
+            distributedEntityConsumptionService
+                .distributeRetrieveEntityOperation(any(), any(), any())
+        } returns (
+            listOf(
+                MiscellaneousWarning("message with\nline\nbreaks", csr),
+                MiscellaneousWarning("message", csr)
+            ) to emptyList()
+            )
 
-        mockkObject(ContextSourceCaller) {
-            coEvery {
-                ContextSourceCaller.retrieveContextSourceEntity(any(), any(), any(), any())
-            } returns MiscellaneousWarning(
-                "message with\nline\nbreaks",
-                csr
-            ).left() andThen
-                MiscellaneousWarning("message", csr).left()
-
-            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
-            webClient.get()
-                .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
-                .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
-                .exchange()
-                .expectStatus().isNotFound
-                .expectHeader().valueEquals(
-                    NGSILDWarning.HEADER_NAME,
-                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message with line breaks\"",
-                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message\""
-                )
-
-            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
-        }
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isNotFound
+            .expectHeader().valueEquals(
+                NGSILDWarning.HEADER_NAME,
+                "199 urn:ngsi-ld:ContextSourceRegistration:test \"message with line breaks\"",
+                "199 urn:ngsi-ld:ContextSourceRegistration:test \"message\""
+            )
     }
 
     fun initializeQueryEntitiesMocks() {
@@ -1297,7 +1291,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entities should return the warnings sent by the CSRs and update the CSRs statuses`() {
+    fun `get entities should return the warnings sent by the CSRs`() {
         val csr = gimmeRawCSR()
         initializeQueryEntitiesMocks()
 
@@ -1306,33 +1300,26 @@ class EntityHandlerTests {
         } returns (emptyList<ExpandedEntity>() to 0).right()
 
         coEvery {
-            contextSourceRegistrationService
-                .getContextSourceRegistrations(any(), any(), any())
-        } returns listOf(csr, csr)
+            distributedEntityConsumptionService
+                .distributeQueryEntitiesOperation(any(), any(), any())
+        } returns Triple(
+            listOf(
+                MiscellaneousWarning("message with\nline\nbreaks", csr),
+                MiscellaneousWarning("message", csr)
+            ),
+            emptyList(), emptyList()
+        )
 
-        mockkObject(ContextSourceCaller) {
-            coEvery {
-                ContextSourceCaller.queryContextSourceEntities(any(), any(), any())
-            } returns MiscellaneousWarning(
-                "message with\nline\nbreaks",
-                csr
-            ).left() andThen
-                MiscellaneousWarning("message", csr).left()
-
-            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
-            webClient.get()
-                .uri("/ngsi-ld/v1/entities?type=$BEEHIVE_COMPACT_TYPE&count=true")
-                .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
-                .exchange()
-                .expectStatus().isOk
-                .expectHeader().valueEquals(
-                    NGSILDWarning.HEADER_NAME,
-                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message with line breaks\"",
-                    "199 urn:ngsi-ld:ContextSourceRegistration:test \"message\""
-                ).expectHeader().valueEquals(RESULTS_COUNT_HEADER, "0")
-
-            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
-        }
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities?type=$BEEHIVE_COMPACT_TYPE&count=true")
+            .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(
+                NGSILDWarning.HEADER_NAME,
+                "199 urn:ngsi-ld:ContextSourceRegistration:test \"message with line breaks\"",
+                "199 urn:ngsi-ld:ContextSourceRegistration:test \"message\""
+            ).expectHeader().valueEquals(RESULTS_COUNT_HEADER, "0")
     }
 
     @Test

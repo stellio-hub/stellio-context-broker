@@ -48,7 +48,7 @@ class NotificationService(
             notificationTrigger
         ).bind()
             .map {
-                val filteredEntity = previousAndUpdatedExpandedEntities.second.filterAttributes(
+                val filteredEntity = previousAndUpdatedExpandedEntities.first.filterAttributes(
                     it.notification.attributes?.toSet().orEmpty(),
                     it.datasetId?.toSet().orEmpty()
                 )

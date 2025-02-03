@@ -4,10 +4,13 @@ import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.toErrorResponse
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
+import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
+import org.springframework.http.ResponseEntity
 import java.net.URI
 
 data class BatchOperationResult(
@@ -28,6 +31,24 @@ data class BatchOperationResult(
         entities.forEach {
             errors.add(BatchEntityError(it.first.toUri(), it.second.toProblemDetail()))
         }
+
+    fun toNonBatchEndpointResponse(entityId: URI): ResponseEntity<*> {
+        val location = URI("/ngsi-ld/v1/entities/$entityId")
+        return when {
+            this.success.size == 1 && this.errors.size == 0 ->
+                ResponseEntity.status(HttpStatus.CREATED)
+                    .location(location)
+                    .build<String>()
+
+            this.success.size == 0 && this.errors.size == 1 ->
+                this.errors.first().error.toErrorResponse()
+
+            else ->
+                ResponseEntity.status(HttpStatus.MULTI_STATUS)
+                    .location(location)
+                    .body(this)
+        }
+    }
 }
 
 data class BatchEntitySuccess(

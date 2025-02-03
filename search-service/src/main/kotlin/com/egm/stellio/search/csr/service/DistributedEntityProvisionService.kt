@@ -9,6 +9,9 @@ import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RegistrationInfoFilter
+import com.egm.stellio.search.entity.web.BatchEntityError
+import com.egm.stellio.search.entity.web.BatchEntitySuccess
+import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadGatewayException
 import com.egm.stellio.shared.model.CompactedEntity
@@ -45,12 +48,13 @@ class DistributedEntityProvisionService(
     suspend fun distributeCreateEntity(
         entity: ExpandedEntity,
         contexts: List<String>,
-    ): Pair<List<DistributionStatus>, ExpandedEntity?> {
+    ): Pair<BatchOperationResult, ExpandedEntity?> {
         val csrFilters =
             CSRFilters(
                 ids = setOf(entity.id.toUri()),
                 types = entity.types.toSet()
             )
+        val result = BatchOperationResult()
         val registrationInfoFilter =
             RegistrationInfoFilter(ids = setOf(entity.id.toUri()), types = entity.types.toSet())
 
@@ -58,62 +62,82 @@ class DistributedEntityProvisionService(
             filters = csrFilters,
         ).groupBy { it.mode }
 
-        val (exclusiveErrors, entityAfterExclusive) = distributeCreateEntityForContextSources(
+        val entityAfterExclusive = distributeCreateEntityForContextSources(
             matchingCSR[Mode.EXCLUSIVE], // could be only one
             registrationInfoFilter,
             entity,
-            contexts
+            contexts,
+            result
         )
-        if (entityAfterExclusive == null) return exclusiveErrors to null
+        if (entityAfterExclusive == null) return result to null
 
-        val (redirectErrors, entityAfterRedirect) = distributeCreateEntityForContextSources(
+        val entityAfterRedirect = distributeCreateEntityForContextSources(
             matchingCSR[Mode.REDIRECT],
             registrationInfoFilter,
             entityAfterExclusive,
-            contexts
+            contexts,
+            result
         )
-        if (entityAfterRedirect == null) return exclusiveErrors + redirectErrors to null
+        if (entityAfterRedirect == null) return result to null
 
-        val (inclusiveError, _) = distributeCreateEntityForContextSources(
+        distributeCreateEntityForContextSources(
             matchingCSR[Mode.INCLUSIVE],
             registrationInfoFilter,
             entityAfterRedirect,
-            contexts
+            contexts,
+            result
         )
-        return exclusiveErrors + redirectErrors + inclusiveError to entityAfterRedirect
+        return result to entityAfterRedirect
     }
 
     internal suspend fun distributeCreateEntityForContextSources(
         csrs: List<ContextSourceRegistration>?,
         registrationInfoFilter: RegistrationInfoFilter,
         entity: ExpandedEntity,
-        contexts: List<String>
-    ): Pair<List<DistributionStatus>, ExpandedEntity?> {
+        contexts: List<String>,
+        resultToUpdate: BatchOperationResult
+    ): ExpandedEntity? {
         val allProcessedAttrs = mutableSetOf<ExpandedTerm>()
-        val responses: List<DistributionStatus> = csrs?.mapNotNull { csr ->
+        csrs?.forEach { csr ->
             csr.getAssociatedAttributes(registrationInfoFilter, entity)
                 .let { attrs ->
                     allProcessedAttrs.addAll(attrs)
-                    if (attrs.isEmpty()) {
-                        null
-                    } else if (csr.operations.any { it == Operation.CREATE_ENTITY || it == Operation.UPDATE_OPS }) {
-                        (ConflictException("csr: ${csr.id} does not support creation of entities") to csr).left()
+                    if (attrs.isEmpty()) Unit
+                    else if (csr.operations.any { it == Operation.CREATE_ENTITY || it == Operation.UPDATE_OPS }) {
+                        resultToUpdate.errors.add(
+                            BatchEntityError(
+                                entityId = entity.id.toUri(),
+                                registrationId = csr.id,
+                                error = ConflictException(
+                                    "csr: ${csr.id} does not support creation of entities"
+                                ).toProblemDetail()
+                            )
+                        )
                     } else {
                         postDistributedInformation(
                             compactEntity(entity.filterAttributes(attrs, emptySet()), contexts),
                             csr,
                             createPath
                         ).fold(
-                            { (it to csr).left() },
-                            { Unit.right() }
+                            {
+                                resultToUpdate.errors.add(
+                                    BatchEntityError(
+                                        entityId = entity.id.toUri(),
+                                        registrationId = csr.id,
+                                        error = it.toProblemDetail()
+                                    )
+                                )
+                                (it to csr).left()
+                            },
+                            { resultToUpdate.success.add(BatchEntitySuccess(csr.id)) }
                         )
                     }
                 }
-        } ?: emptyList()
-        return if (responses.isNotEmpty()) {
+        }
+        return if (allProcessedAttrs.isNotEmpty()) {
             val remainingEntity = entity.omitAttributes(allProcessedAttrs)
-            responses to if (remainingEntity.asNonCoreAttributes()) remainingEntity else null
-        } else responses to entity
+            if (remainingEntity.asNonCoreAttributes()) remainingEntity else null
+        } else entity
     }
 
     internal suspend fun postDistributedInformation(

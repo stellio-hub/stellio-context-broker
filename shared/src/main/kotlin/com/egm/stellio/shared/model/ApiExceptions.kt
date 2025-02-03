@@ -2,6 +2,7 @@ package com.egm.stellio.shared.model
 
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
+import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.toUri
 import org.slf4j.LoggerFactory
@@ -33,11 +34,15 @@ sealed class APIException(
         it.type = this.type
     }
     fun toErrorResponse(): ResponseEntity<ProblemDetail> {
-        logger.info("Returning error ${this.type} (${this.message})")
-        return ResponseEntity.status(status)
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(toProblemDetail())
+        return toProblemDetail().toErrorResponse()
     }
+}
+
+fun ProblemDetail.toErrorResponse(): ResponseEntity<ProblemDetail> {
+    logger.info("Returning error ${this.type} (${this.title})")
+    return ResponseEntity.status(this.status)
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(this)
 }
 
 data class ContextSourceException(

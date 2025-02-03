@@ -5,10 +5,10 @@ import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.RegistrationInfoFilter
+import com.egm.stellio.search.entity.web.BatchEntitySuccess
+import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.shared.model.BadGatewayException
-import com.egm.stellio.shared.model.ConflictException
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.GatewayTimeoutException
@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 
 @SpringBootTest
 @WireMockTest(httpPort = 8089)
@@ -97,7 +98,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     private val contexts = listOf(APIC_COMPOUND_CONTEXT)
 
     @Test
-    fun `distributeCreateEntity should return the errors received and the remainingEntity`() = runTest {
+    fun `distributeCreateEntity should return the remainingEntity`() = runTest {
         val firstExclusiveCsr = gimmeRawCSR(id = "id:exclusive:1".toUri(), mode = Mode.EXCLUSIVE)
         val firstRedirectCsr = gimmeRawCSR(id = "id:redirect:1".toUri(), mode = Mode.REDIRECT)
         val firstInclusiveCsr = gimmeRawCSR(id = "id:inclusive:1".toUri(), mode = Mode.INCLUSIVE)
@@ -108,28 +109,19 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         val entityWithIgnoredTemperature = entryEntity.omitAttributes(setOf(TEMPERATURE_PROPERTY))
         val entityWithIgnoredTemperatureAndName = entryEntity.omitAttributes(setOf(NGSILD_NAME_PROPERTY))
 
-        val firstExclusiveStatus = (ConflictException("conflict") to firstExclusiveCsr).left()
-        val firstRedirectStatus = (BadGatewayException("badGateway") to firstRedirectCsr).left()
-        val secondInclusiveStatus = (ConflictException("conflict") to secondInclusiveCsr).left()
-
         coEvery {
-            distributedEntityProvisionService.distributeCreateEntityForContextSources(any(), any(), any(), any())
+            distributedEntityProvisionService.distributeCreateEntityForContextSources(any(), any(), any(), any(), any())
         } returns
-            (listOf(firstExclusiveStatus) to entityWithIgnoredTemperature) andThen
-            (listOf(firstRedirectStatus, Unit.right()) to entityWithIgnoredTemperatureAndName) andThen
-            (listOf(Unit.right(), secondInclusiveStatus) to null)
+            entityWithIgnoredTemperature andThen entityWithIgnoredTemperatureAndName andThen null
 
         coEvery {
             contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
         } returns listOf(firstInclusiveCsr, firstExclusiveCsr, firstRedirectCsr, secondInclusiveCsr, secondRedirectCsr)
 
-        val (distributionsStatuses, remainingEntity) = distributedEntityProvisionService.distributeCreateEntity(
+        val (_, remainingEntity) = distributedEntityProvisionService.distributeCreateEntity(
             entryEntity,
             contexts
         )
-        assertThat(distributionsStatuses)
-            .contains(Unit.right(), firstRedirectStatus, firstExclusiveStatus, secondInclusiveStatus)
-            .size().isEqualTo(5)
 
         assertEquals(entityWithIgnoredTemperatureAndName, remainingEntity)
 
@@ -139,26 +131,30 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
                 any(),
                 entryEntity,
                 any(),
+                any()
             )
             distributedEntityProvisionService.distributeCreateEntityForContextSources(
                 listOf(firstRedirectCsr, secondRedirectCsr),
                 any(),
                 entityWithIgnoredTemperature,
                 any(),
+                any()
             )
             distributedEntityProvisionService.distributeCreateEntityForContextSources(
                 listOf(firstInclusiveCsr, secondInclusiveCsr),
                 any(),
                 entityWithIgnoredTemperatureAndName,
                 any(),
+                any()
             )
         }
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources should return received errors and successes`() = runTest {
+    fun `distributeCreateEntityForContextSources should update the result`() = runTest {
         val csr = spyk(gimmeRawCSR())
-
+        val firstURI = URI("id:1")
+        val secondURI = URI("id:2")
         coEvery {
             distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
         } returns contextSourceException.left() andThen Unit.right()
@@ -166,20 +162,25 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         coEvery {
             csr.getAssociatedAttributes(any(), any())
         } returns setOf(NGSILD_NAME_PROPERTY) andThen setOf(TEMPERATURE_PROPERTY)
+        coEvery {
+            csr.id
+        } returns firstURI andThen secondURI
 
-        val (distributionsStatuses, _) = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        val result = BatchOperationResult()
+
+        distributedEntityProvisionService.distributeCreateEntityForContextSources(
             listOf(csr, csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
-            contexts
+            contexts,
+            result
         )
 
-        val firstStatus = distributionsStatuses.first()
-        val secondStatus = distributionsStatuses.getOrNull(1)!!
-        assertTrue(firstStatus.isLeft())
-        assertTrue(secondStatus.isRight())
-
-        assertEquals(firstStatus.leftOrNull()?.first, contextSourceException)
+        assertThat(result.success).hasSize(1)
+        assertThat(result.success).contains(BatchEntitySuccess(secondURI))
+        assertThat(result.errors).hasSize(1)
+        assertEquals(firstURI, result.errors.first().registrationId)
+        assertEquals(contextSourceException.message, result.errors.first().error.title)
     }
 
     @Test
@@ -193,11 +194,12 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
         } returns contextSourceException.left() andThen Unit.right()
 
-        val (_, entity) = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        val entity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
             listOf(csr, csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
-            contexts
+            contexts,
+            BatchOperationResult()
         )
 
         assertNull(entity)
@@ -214,11 +216,12 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
         } returns Unit.right()
 
-        val (_, successEntity) = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        val successEntity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
             listOf(csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
-            contexts
+            contexts,
+            BatchOperationResult()
         )
 
         assertNull(successEntity?.getAttributes()?.get(NGSILD_NAME_PROPERTY))
@@ -236,11 +239,12 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
         } returns contextSourceException.left()
 
-        val (_, errorEntity) = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        val errorEntity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
             listOf(csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
-            contexts
+            contexts,
+            BatchOperationResult()
         )
 
         assertNull(errorEntity?.getAttributes()?.get(NGSILD_NAME_PROPERTY))

@@ -8,7 +8,6 @@ import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
 import com.egm.stellio.search.csr.service.DistributedEntityProvisionService
-import com.egm.stellio.search.csr.service.DistributionStatus
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateResult
@@ -146,7 +145,7 @@ class EntityHandlerTests {
         coEvery {
             distributedEntityProvisionService
                 .distributeCreateEntity(capture(capturedExpandedEntity), any())
-        } answers { emptyList<DistributionStatus>() to capturedExpandedEntity.captured }
+        } answers { BatchOperationResult() to capturedExpandedEntity.captured }
     }
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
@@ -367,24 +366,29 @@ class EntityHandlerTests {
     fun `create entity should return a 207 if some contextSources failed`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val capturedExpandedEntity = slot<ExpandedEntity>()
-        val conflictstatus = ConflictException("error") to gimmeRawCSR()
 
+        val error = BatchEntityError(
+            entityId = "urn:ngsi-ld:BreedingService:0214".toUri(),
+            error = ConflictException("error").toProblemDetail(),
+            registrationId = "id:2".toUri()
+        )
+        val firstResult = BatchOperationResult(
+            mutableListOf(BatchEntitySuccess("id:1".toUri())),
+            mutableListOf(error)
+        )
         coEvery {
             distributedEntityProvisionService
                 .distributeCreateEntity(capture(capturedExpandedEntity), any())
         } answers {
-            listOf(Unit.right(), conflictstatus.left()) to capturedExpandedEntity.captured
-        } andThenAnswer {
-            listOf(conflictstatus.left()) to capturedExpandedEntity.captured
+            firstResult to capturedExpandedEntity.captured
         }
-
         coEvery {
             entityService.createEntity(any(), any(), sub.getOrNull())
         } returns AccessDeniedException("User forbidden to create entities").left()
 
         val expectedJson = """
                 {
-                    "success": [],
+                    "success": ["id:1"],
                     "errors":[
                         {
                             "entityId":"urn:ngsi-ld:BreedingService:0214",
@@ -392,7 +396,7 @@ class EntityHandlerTests {
                                 "type": "https://uri.etsi.org/ngsi-ld/errors/Conflict",
                                 "title": "error"
                             },
-                            "registrationId":"urn:ngsi-ld:ContextSourceRegistration:test"
+                            "registrationId": "id:2"
                         },
                         {
                             "entityId":"urn:ngsi-ld:BreedingService:0214",
@@ -412,25 +416,27 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(207)
             .expectBody().json(expectedJson)
-        webClient.post()
-            .uri("/ngsi-ld/v1/entities")
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isEqualTo(207)
-            .expectBody().json(expectedJson)
     }
 
     @Test
     fun `create entity should return a 409 if a context source containing all the information return a conflict`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
-        val conflictstatus = ConflictException("my test message") to gimmeRawCSR()
         val capturedExpandedEntity = slot<ExpandedEntity>()
 
+        val error = BatchEntityError(
+            entityId = "entity:1".toUri(),
+            error = ConflictException("my test message").toProblemDetail(),
+            registrationId = "i:2".toUri()
+        )
+        val result = BatchOperationResult(
+            mutableListOf(),
+            mutableListOf(error)
+        )
         coEvery {
             distributedEntityProvisionService
                 .distributeCreateEntity(capture(capturedExpandedEntity), any())
         } answers {
-            listOf(conflictstatus.left()) to null
+            result to null
         }
         webClient.post()
             .uri("/ngsi-ld/v1/entities")

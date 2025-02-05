@@ -72,13 +72,13 @@ data class ContextSourceException(
                     type = type,
                     status = status ?: HttpStatus.BAD_GATEWAY,
                     title = title,
-                    detail = detail ?: "no detail provided"
+                    detail = detail ?: "The context source provided no additional detail about the error"
                 )
             }.fold({ it }, {
                 ContextSourceException(
                     ErrorType.BAD_GATEWAY.type,
                     HttpStatus.BAD_GATEWAY,
-                    "ContextSource sent a badly formed error",
+                    "The context source sent a badly formed error",
                     response
                 )
             })

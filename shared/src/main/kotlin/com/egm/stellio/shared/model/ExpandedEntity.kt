@@ -26,9 +26,10 @@ data class ExpandedEntity(
             Unit.right()
         else ResourceNotFoundException(entityOrAttrsNotFoundMessage(id, expandedAttributes)).left()
 
-    fun asNonCoreAttributes(): Boolean = members.keys.any {
-        !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it)
-    }
+    fun hasNonCoreAttributes(): Boolean =
+        members.keys.any {
+            !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it)
+        }
 
     fun getAttributes(): ExpandedAttributes =
         members.filter { !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key) }

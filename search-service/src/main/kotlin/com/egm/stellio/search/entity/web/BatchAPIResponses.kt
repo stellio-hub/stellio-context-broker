@@ -13,6 +13,9 @@ import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import java.net.URI
 
+/**
+ * BatchOperationResult type as defined in 5.2.16
+ */
 data class BatchOperationResult(
     val success: MutableList<BatchEntitySuccess> = mutableListOf(),
     val errors: MutableList<BatchEntityError> = mutableListOf()
@@ -32,15 +35,17 @@ data class BatchOperationResult(
             errors.add(BatchEntityError(it.first.toUri(), it.second.toProblemDetail()))
         }
 
+    // the BatchOperationResult is also used for distributed provision operation
+    // for those endpoint you return a single error if the all operation failed at once
     fun toNonBatchEndpointResponse(entityId: URI): ResponseEntity<*> {
         val location = URI("/ngsi-ld/v1/entities/$entityId")
         return when {
-            this.success.size == 1 && this.errors.size == 0 ->
+            this.success.size == 1 && this.errors.isEmpty() ->
                 ResponseEntity.status(HttpStatus.CREATED)
                     .location(location)
                     .build<String>()
 
-            this.success.size == 0 && this.errors.size == 1 ->
+            this.success.isEmpty() && this.errors.size == 1 ->
                 this.errors.first().error.toErrorResponse()
 
             else ->

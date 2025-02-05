@@ -28,7 +28,6 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.convertValue
 import org.springframework.http.MediaType
-import org.springframework.messaging.simp.SimpAttributesContextHolder.getAttributes
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -164,15 +163,15 @@ data class ContextSourceRegistration(
         registrationInfoFilter: RegistrationInfoFilter,
         entity: ExpandedEntity,
     ): Set<ExpandedTerm> {
-        val matchingInformation = getMatchingInformation(registrationInfoFilter)
+        val matchingRegistrationsInfo = getMatchingInformation(registrationInfoFilter)
 
         val properties =
-            if (matchingInformation.any { it.propertyNames == null }) null
-            else matchingInformation.flatMap { it.propertyNames!! }.toSet()
+            if (matchingRegistrationsInfo.any { it.propertyNames == null }) null
+            else matchingRegistrationsInfo.flatMap { it.propertyNames!! }.toSet()
 
         val relationships =
-            if (matchingInformation.any { it.relationshipNames == null }) null
-            else matchingInformation.flatMap { it.relationshipNames!! }.toSet()
+            if (matchingRegistrationsInfo.any { it.relationshipNames == null }) null
+            else matchingRegistrationsInfo.flatMap { it.relationshipNames!! }.toSet()
 
         return entity.getAttributes().filter { (term, attribute) ->
             val attributeType = attribute.first()[JSONLD_TYPE]?.first()

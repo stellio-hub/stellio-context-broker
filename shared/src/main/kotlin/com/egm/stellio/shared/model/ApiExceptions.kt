@@ -2,9 +2,9 @@ package com.egm.stellio.shared.model
 
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
-import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.toUri
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -27,7 +27,6 @@ sealed class APIException(
     override val message: String,
     open val detail: String = DEFAULT_DETAIL
 ) : Exception(message) {
-    private val logger = LoggerFactory.getLogger(javaClass)
 
     fun toProblemDetail(): ProblemDetail = ProblemDetail.forStatusAndDetail(status, this.detail).also {
         it.title = this.message
@@ -36,10 +35,14 @@ sealed class APIException(
     fun toErrorResponse(): ResponseEntity<ProblemDetail> {
         return toProblemDetail().toErrorResponse()
     }
+
+    companion object {
+        val logger: Logger = LoggerFactory.getLogger(APIException::class.java)
+    }
 }
 
 fun ProblemDetail.toErrorResponse(): ResponseEntity<ProblemDetail> {
-    logger.info("Returning error ${this.type} (${this.title})")
+    APIException.logger.info("Returning error ${this.type} (${this.title})")
     return ResponseEntity.status(this.status)
         .contentType(MediaType.APPLICATION_JSON)
         .body(this)
@@ -57,8 +60,8 @@ data class ContextSourceException(
     detail = detail,
 ) {
     companion object {
-        fun fromResponse(response: String): ContextSourceException {
-            return kotlin.runCatching {
+        fun fromResponse(response: String): ContextSourceException =
+            kotlin.runCatching {
                 val responseMap = response.deserializeAsMap()
                 // mandatory
                 val type = responseMap[TYPE_PROPERTY].toString().toUri()
@@ -82,7 +85,6 @@ data class ContextSourceException(
                     response
                 )
             })
-        }
     }
 }
 

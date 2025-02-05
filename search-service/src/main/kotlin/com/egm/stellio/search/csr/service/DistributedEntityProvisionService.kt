@@ -34,9 +34,6 @@ import org.springframework.web.reactive.function.client.awaitBodyOrNull
 import org.springframework.web.reactive.function.client.awaitExchange
 import java.net.URI
 
-// ContextSourceRegistration is null in case of local error
-typealias DistributionStatus = Either<Pair<APIException, ContextSourceRegistration?>, Unit>
-
 @Service
 class DistributedEntityProvisionService(
     private val contextSourceRegistrationService: ContextSourceRegistrationService,
@@ -103,17 +100,12 @@ class DistributedEntityProvisionService(
                 .let { attrs ->
                     allProcessedAttrs.addAll(attrs)
                     if (attrs.isEmpty()) Unit
-                    else if (csr.operations.any { it == Operation.CREATE_ENTITY || it == Operation.UPDATE_OPS }) {
-                        resultToUpdate.errors.add(
-                            BatchEntityError(
-                                entityId = entity.id.toUri(),
-                                registrationId = csr.id,
-                                error = ConflictException(
-                                    "csr: ${csr.id} does not support creation of entities"
-                                ).toProblemDetail()
-                            )
-                        )
-                    } else {
+                    else if (csr.operations.any {
+                            it == Operation.CREATE_ENTITY ||
+                                it == Operation.UPDATE_OPS ||
+                                it == Operation.REDIRECTION_OPS
+                        }
+                    ) {
                         postDistributedInformation(
                             compactEntity(entity.filterAttributes(attrs, emptySet()), contexts),
                             csr,
@@ -127,16 +119,25 @@ class DistributedEntityProvisionService(
                                         error = it.toProblemDetail()
                                     )
                                 )
-                                (it to csr).left()
                             },
                             { resultToUpdate.success.add(BatchEntitySuccess(csr.id)) }
+                        )
+                    } else {
+                        resultToUpdate.errors.add(
+                            BatchEntityError(
+                                entityId = entity.id.toUri(),
+                                registrationId = csr.id,
+                                error = ConflictException(
+                                    "csr: ${csr.id} does not support creation of entities"
+                                ).toProblemDetail()
+                            )
                         )
                     }
                 }
         }
         return if (allProcessedAttrs.isNotEmpty()) {
             val remainingEntity = entity.omitAttributes(allProcessedAttrs)
-            if (remainingEntity.asNonCoreAttributes()) remainingEntity else null
+            if (remainingEntity.hasNonCoreAttributes()) remainingEntity else null
         } else entity
     }
 

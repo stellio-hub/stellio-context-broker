@@ -4,6 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.Mode
+import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RegistrationInfoFilter
 import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.entity.web.BatchOperationResult
@@ -152,7 +153,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
     @Test
     fun `distributeCreateEntityForContextSources should update the result`() = runTest {
-        val csr = spyk(gimmeRawCSR())
+        val csr = spyk(gimmeRawCSR(operations = listOf(Operation.UPDATE_OPS)))
         val firstURI = URI("id:1")
         val secondURI = URI("id:2")
         coEvery {

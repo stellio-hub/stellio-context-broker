@@ -146,6 +146,10 @@ class EntityHandlerTests {
             distributedEntityProvisionService
                 .distributeCreateEntity(capture(capturedExpandedEntity), any())
         } answers { BatchOperationResult() to capturedExpandedEntity.captured }
+        coEvery {
+            distributedEntityProvisionService
+                .distributeDeleteEntity(any())
+        } answers { BatchOperationResult() }
     }
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
@@ -2429,6 +2433,56 @@ class EntityHandlerTests {
                 }
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `delete entity should return a 207 if some contextSources failed`() {
+        val error = BatchEntityError(
+            entityId = "urn:ngsi-ld:BreedingService:0214".toUri(),
+            error = ConflictException("error").toProblemDetail(),
+            registrationId = "id:2".toUri()
+        )
+        val firstResult = BatchOperationResult(
+            mutableListOf(BatchEntitySuccess("id:1".toUri())),
+            mutableListOf(error)
+        )
+        coEvery {
+            distributedEntityProvisionService.distributeDeleteEntity(any())
+        } returns firstResult
+
+        coEvery {
+            entityService.deleteEntity(any(), sub.getOrNull())
+        } returns AccessDeniedException("User forbidden to delete entities").left()
+
+        val expectedJson = """
+                {
+                    "success": ["id:1"],
+                    "errors":[
+                        {
+                            "entityId":"urn:ngsi-ld:BreedingService:0214",
+                            "error":{
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/Conflict",
+                                "title": "error"
+                            },
+                            "registrationId": "id:2"
+                        },
+                        {
+                            "entityId":"urn:ngsi-ld:BreedingService:0214",
+                            "error":{
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                                "title": "User forbidden to delete entities"
+                            },
+                            "registrationId":null
+                        }
+                    ]
+                }
+        """.trimIndent()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BreedingService:0214")
+            .exchange()
+            .expectStatus().isEqualTo(207)
+            .expectBody().json(expectedJson)
     }
 
     @Test

@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
@@ -153,7 +154,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         val firstURI = URI("id:1")
         val secondURI = URI("id:2")
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns contextSourceException.left() andThen Unit.right()
 
         coEvery {
@@ -188,7 +189,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         } returns setOf(NGSILD_NAME_PROPERTY) andThen setOf(TEMPERATURE_PROPERTY)
 
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns contextSourceException.left() andThen Unit.right()
 
         val entity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
@@ -210,7 +211,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         } returns setOf(NGSILD_NAME_PROPERTY)
 
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns Unit.right()
 
         val successEntity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
@@ -233,7 +234,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             csr.getAssociatedAttributes(any(), any())
         } returns setOf(NGSILD_NAME_PROPERTY)
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns contextSourceException.left()
 
         val errorEntity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
@@ -249,7 +250,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `postDistributedInformation should process badly formed errors`() = runTest {
+    fun `sendDistributedInformation should process badly formed errors`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities"
 
@@ -259,7 +260,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         )
 
         val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
-        val response = distributedEntityProvisionService.postDistributedInformation(entity, csr, path)
+        val response = distributedEntityProvisionService.sendDistributedInformation(entity, csr, path, HttpMethod.POST)
 
         assertTrue(response.isLeft())
         assertEquals(response.leftOrNull()?.type, ErrorType.BAD_GATEWAY.type)
@@ -268,7 +269,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `postDistributedInformation should return the received error`() = runTest {
+    fun `sendDistributedInformation should return the received error`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities"
 
@@ -278,7 +279,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         )
 
         val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
-        val response = distributedEntityProvisionService.postDistributedInformation(entity, csr, path)
+        val response = distributedEntityProvisionService.sendDistributedInformation(entity, csr, path, HttpMethod.POST)
 
         assertTrue(response.isLeft())
         assertInstanceOf(ContextSourceException::class.java, response.leftOrNull())
@@ -289,11 +290,11 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `postDistributedInformation should return a GatewayTimeout error if it receives no answer`() = runTest {
+    fun `sendDistributedInformation should return a GateWayTimeout error if it receives no answer`() = runTest {
         val csr = gimmeRawCSR().copy(endpoint = "http://localhost:invalid".toUri())
         val path = "/ngsi-ld/v1/entities"
         val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
-        val response = distributedEntityProvisionService.postDistributedInformation(entity, csr, path)
+        val response = distributedEntityProvisionService.sendDistributedInformation(entity, csr, path, HttpMethod.POST)
 
         assertTrue(response.isLeft())
         assertInstanceOf(GatewayTimeoutException::class.java, response.leftOrNull())

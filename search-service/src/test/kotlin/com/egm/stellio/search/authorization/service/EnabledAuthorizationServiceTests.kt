@@ -279,7 +279,7 @@ class EnabledAuthorizationServiceTests {
                 it.second.forEach { jsonLdEntity ->
                     assertEquals(1, jsonLdEntity.types.size)
                     assertEquals(GROUP_TYPE, jsonLdEntity.types[0])
-                    assertTrue(jsonLdEntity.id.startsWith(GROUP_ENTITY_PREFIX))
+                    assertTrue(jsonLdEntity.id.toString().startsWith(GROUP_ENTITY_PREFIX))
                 }
             }
     }
@@ -303,7 +303,7 @@ class EnabledAuthorizationServiceTests {
                 assertEquals(1, it.first)
                 assertEquals(1, it.second[0].types.size)
                 assertEquals(GROUP_TYPE, it.second[0].types[0])
-                assertTrue(it.second[0].id.startsWith(GROUP_ENTITY_PREFIX))
+                assertTrue(it.second[0].id.toString().startsWith(GROUP_ENTITY_PREFIX))
             }
 
         coVerify {
@@ -338,7 +338,7 @@ class EnabledAuthorizationServiceTests {
                 it.second.forEach { jsonLdEntity ->
                     assertEquals(1, jsonLdEntity.types.size)
                     assertEquals(USER_TYPE, jsonLdEntity.types[0])
-                    assertTrue(jsonLdEntity.id.startsWith(USER_ENTITY_PREFIX))
+                    assertTrue(jsonLdEntity.id.toString().startsWith(USER_ENTITY_PREFIX))
                     assertTrue(jsonLdEntity.members.containsKey(AUTH_PROP_USERNAME))
                 }
             }
@@ -432,7 +432,7 @@ class EnabledAuthorizationServiceTests {
             assertEquals(1, it.first)
             assertEquals(2, it.second.size)
 
-            val expandedEntityWithOtherRights = it.second.find { it.id == entityId01.toString() }!!
+            val expandedEntityWithOtherRights = it.second.find { it.id == entityId01 }!!
             assertEquals(4, expandedEntityWithOtherRights.members.size)
             assertTrue(expandedEntityWithOtherRights.members.containsKey(AUTH_REL_CAN_WRITE))
         }

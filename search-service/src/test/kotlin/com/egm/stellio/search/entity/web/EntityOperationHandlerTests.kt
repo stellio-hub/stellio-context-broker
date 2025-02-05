@@ -88,7 +88,7 @@ class EntityOperationHandlerTests {
             every { types } returns listOf(SENSOR_TYPE)
         }
         mockedTemperatureSensorExpandedEntity = mockkClass(ExpandedEntity::class) {
-            every { id } returns temperatureSensorUri.toString()
+            every { id } returns temperatureSensorUri
             every { members } returns emptyMap()
         }
         mockedDissolvedOxygenSensorEntity = mockkClass(NgsiLdEntity::class) {
@@ -96,7 +96,7 @@ class EntityOperationHandlerTests {
             every { types } returns listOf(SENSOR_TYPE)
         }
         mockedDissolvedOxygenSensorExpandedEntity = mockkClass(ExpandedEntity::class) {
-            every { id } returns dissolvedOxygenSensorUri.toString()
+            every { id } returns dissolvedOxygenSensorUri
             every { members } returns emptyMap()
         }
         mockedDeviceEntity = mockkClass(NgsiLdEntity::class) {
@@ -104,7 +104,7 @@ class EntityOperationHandlerTests {
             every { types } returns listOf(DEVICE_TYPE)
         }
         mockedDeviceExpandedEntity = mockkClass(ExpandedEntity::class) {
-            every { id } returns deviceUri.toString()
+            every { id } returns deviceUri
             every { members } returns emptyMap()
         }
     }

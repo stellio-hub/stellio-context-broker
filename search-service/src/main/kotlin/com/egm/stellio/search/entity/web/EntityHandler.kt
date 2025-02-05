@@ -93,7 +93,7 @@ class EntityHandler(
 
         val expandedEntity = expandJsonLdEntity(body, contexts)
         expandedEntity.toNgsiLdEntity().bind()
-        val entityId = expandedEntity.id.toUri()
+        val entityId = expandedEntity.id
 
         val (result, remainingEntity) =
             if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != false) {

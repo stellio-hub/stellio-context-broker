@@ -138,10 +138,10 @@ class ContextSourceRegistrationTests {
     fun `getAssociatedAttributes should check properties and relationship separately`() = runTest {
         val entity = expandJsonLdEntity(entityPayload)
         val registrationInfoFilter = RegistrationInfoFilter(
-            ids = setOf(entity.id.toUri()),
+            ids = setOf(entity.id),
             types = entity.types.toSet()
         )
-        val entityInfo = ContextSourceRegistration.EntityInfo(entity.id.toUri(), types = entity.types)
+        val entityInfo = ContextSourceRegistration.EntityInfo(entity.id, types = entity.types)
         val information = RegistrationInfo(
             entities = listOf(entityInfo),
             propertyNames = listOf(NGSILD_NAME_PROPERTY),
@@ -176,7 +176,7 @@ class ContextSourceRegistrationTests {
         val entity = expandJsonLdEntity(entityPayload)
 
         val registrationInfoFilter = RegistrationInfoFilter(
-            ids = setOf(entity.id.toUri()),
+            ids = setOf(entity.id),
             types = entity.types.toSet()
         )
         val nonMatchingEntityInfo = ContextSourceRegistration.EntityInfo(types = listOf(BEEHIVE_TYPE))

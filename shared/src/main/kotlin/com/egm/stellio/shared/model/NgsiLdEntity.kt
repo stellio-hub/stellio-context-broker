@@ -30,7 +30,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
-import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.Locale
@@ -43,12 +42,12 @@ class NgsiLdEntity private constructor(
 ) {
     companion object {
         suspend fun create(
-            parsedKeys: Map<String, Any>
+            expandedEntity: ExpandedEntity
         ): Either<APIException, NgsiLdEntity> = either {
+            val parsedKeys = expandedEntity.members
             ensure(parsedKeys.containsKey(JSONLD_ID)) {
                 BadRequestDataException("The provided NGSI-LD entity does not contain an id property")
             }
-            val id = (parsedKeys[JSONLD_ID]!! as String).toUri()
 
             ensure(parsedKeys.containsKey(JSONLD_TYPE)) {
                 BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
@@ -60,7 +59,7 @@ class NgsiLdEntity private constructor(
             val rawAttributes = getNonCoreMembers(parsedKeys, NGSILD_ENTITY_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
 
-            NgsiLdEntity(id, types, scopes, attributes)
+            NgsiLdEntity(expandedEntity.id, types, scopes, attributes)
         }
     }
 
@@ -588,7 +587,7 @@ suspend fun ExpandedAttributeInstances.toNgsiLdAttribute(
 }
 
 suspend fun ExpandedEntity.toNgsiLdEntity(): Either<APIException, NgsiLdEntity> =
-    NgsiLdEntity.create(this.members)
+    NgsiLdEntity.create(this)
 
 fun List<NgsiLdAttribute>.flatOnInstances(): List<Pair<NgsiLdAttribute, NgsiLdAttributeInstance>> =
     this.flatMap { ngsiLdAttribute ->

@@ -635,7 +635,7 @@ class EntityHandlerTests {
         ).right()
 
         val expectedMessage = entityOrAttrsNotFoundMessage(
-            beehiveId.toString(),
+            beehiveId,
             setOf("https://uri.etsi.org/ngsi-ld/default-context/attr2")
         )
         webClient.get()

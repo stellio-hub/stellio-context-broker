@@ -23,7 +23,6 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
-import com.egm.stellio.shared.util.toUri
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -49,12 +48,12 @@ class DistributedEntityProvisionService(
     ): Pair<BatchOperationResult, ExpandedEntity?> {
         val csrFilters =
             CSRFilters(
-                ids = setOf(entity.id.toUri()),
+                ids = setOf(entity.id),
                 types = entity.types.toSet()
             )
         val result = BatchOperationResult()
         val registrationInfoFilter =
-            RegistrationInfoFilter(ids = setOf(entity.id.toUri()), types = entity.types.toSet())
+            RegistrationInfoFilter(ids = setOf(entity.id), types = entity.types.toSet())
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
             filters = csrFilters,
@@ -115,7 +114,7 @@ class DistributedEntityProvisionService(
                             {
                                 resultToUpdate.errors.add(
                                     BatchEntityError(
-                                        entityId = entity.id.toUri(),
+                                        entityId = entity.id,
                                         registrationId = csr.id,
                                         error = it.toProblemDetail()
                                     )
@@ -126,7 +125,7 @@ class DistributedEntityProvisionService(
                     } else if (csr.mode != Mode.INCLUSIVE) {
                         resultToUpdate.errors.add(
                             BatchEntityError(
-                                entityId = entity.id.toUri(),
+                                entityId = entity.id,
                                 registrationId = csr.id,
                                 error = ConflictException(
                                     "The csr: ${csr.id} does not support the creation of entities"

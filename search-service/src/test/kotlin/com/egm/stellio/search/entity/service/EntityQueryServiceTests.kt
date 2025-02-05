@@ -80,7 +80,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         entityQueryService.queryEntity(beehiveTestCId)
             .shouldSucceedWith {
-                assertEquals(beehiveTestCId.toString(), it.id)
+                assertEquals(beehiveTestCId, it.id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.types)
                 assertEquals(7, it.members.size)
             }
@@ -111,7 +111,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityQueryService.queryEntities(buildDefaultQueryParams().copy(ids = setOf(beehiveTestCId)))
             .shouldSucceedWith {
                 assertEquals(1, it.second)
-                assertEquals(beehiveTestCId.toString(), it.first[0].id)
+                assertEquals(beehiveTestCId, it.first[0].id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.first[0].types)
                 assertEquals(7, it.first[0].members.size)
             }

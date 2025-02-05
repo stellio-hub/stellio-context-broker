@@ -34,7 +34,7 @@ class NgsiLdEntityTests {
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS)
 
-        assertEquals("urn:ngsi-ld:Device:01234", ngsiLdEntity.id)
+        assertEquals("urn:ngsi-ld:Device:01234".toUri(), ngsiLdEntity.id)
         assertEquals(listOf("https://uri.etsi.org/ngsi-ld/default-context/Device"), ngsiLdEntity.types)
     }
 

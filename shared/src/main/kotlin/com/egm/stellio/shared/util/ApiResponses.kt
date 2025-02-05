@@ -21,7 +21,7 @@ fun entityAlreadyExistsMessage(entityId: String) = "Entity $entityId already exi
 fun typeNotFoundMessage(type: String) = "Type $type was not found"
 
 fun entityOrAttrsNotFoundMessage(
-    entityId: String,
+    entityId: URI,
     attrs: Set<String>
 ) = "Entity $entityId does not exist or it has none of the requested attributes : $attrs"
 

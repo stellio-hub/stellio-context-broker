@@ -35,7 +35,7 @@ typealias ExpandedAttributeInstance = Map<String, List<Any>>
 typealias ExpandedNonReifiedPropertyValue = List<Map<String, Any>>
 
 fun ExpandedAttributes.addCoreMembers(
-    entityId: String,
+    entityId: URI,
     entityTypes: List<ExpandedTerm>
 ): Map<String, Any> =
     this.plus(listOf(JSONLD_ID to entityId, JSONLD_TYPE to entityTypes))

@@ -13,6 +13,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
+import com.egm.stellio.shared.util.toUri
+import java.net.URI
 import java.time.ZonedDateTime
 
 data class ExpandedEntity(
@@ -80,7 +82,11 @@ data class ExpandedEntity(
         )
 
     val id by lazy {
-        (members[JSONLD_ID] ?: throw BadRequestDataException("Could not extract id from JSON-LD entity")) as String
+        when (val id = members[JSONLD_ID]) {
+            is URI -> id
+            is String -> id.toUri()
+            else -> throw BadRequestDataException("Could not extract id from JSON-LD entity")
+        }
     }
 
     val types by lazy {

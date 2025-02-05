@@ -59,13 +59,13 @@ class EntityOperationServiceTests {
     @BeforeEach
     fun initNgsiLdEntitiesMocks() {
         firstExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) {
-            every { id } returns firstEntityURI.toString()
+            every { id } returns firstEntityURI
             every { members } returns emptyMap()
         }
         firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns firstEntityURI
         secondExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) {
-            every { id } returns secondEntityURI.toString()
+            every { id } returns secondEntityURI
             every { members } returns emptyMap()
         }
         secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)

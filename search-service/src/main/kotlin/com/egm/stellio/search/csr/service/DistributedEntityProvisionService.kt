@@ -60,7 +60,7 @@ class DistributedEntityProvisionService(
         ).groupBy { it.mode }
 
         val entityAfterExclusive = distributeCreateEntityForContextSources(
-            matchingCSR[Mode.EXCLUSIVE], // could be only one
+            matchingCSR[Mode.EXCLUSIVE], // can only be one
             registrationInfoFilter,
             entity,
             contexts,
@@ -128,7 +128,7 @@ class DistributedEntityProvisionService(
                                 entityId = entity.id.toUri(),
                                 registrationId = csr.id,
                                 error = ConflictException(
-                                    "csr: ${csr.id} does not support creation of entities"
+                                    "The csr: ${csr.id} does not support the creation of entities"
                                 ).toProblemDetail()
                             )
                         )
@@ -165,7 +165,6 @@ class DistributedEntityProvisionService(
                 Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
             }
             if (statusCode.value() == HttpStatus.MULTI_STATUS.value()) {
-                // this part need clarification from the specification
                 ContextSourceException(
                     type = URI("https://uri.etsi.org/ngsi-ld/errors/MultiStatus"),
                     status = HttpStatus.MULTI_STATUS,

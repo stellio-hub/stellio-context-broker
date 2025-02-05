@@ -122,7 +122,7 @@ class DistributedEntityProvisionService(
                             },
                             { resultToUpdate.success.add(BatchEntitySuccess(csr.id)) }
                         )
-                    } else {
+                    } else if (csr.mode != Mode.INCLUSIVE) {
                         resultToUpdate.errors.add(
                             BatchEntityError(
                                 entityId = entity.id.toUri(),

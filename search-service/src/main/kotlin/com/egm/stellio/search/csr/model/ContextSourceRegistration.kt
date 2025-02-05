@@ -56,6 +56,10 @@ data class ContextSourceRegistration(
     @JsonIgnore
     fun isAuxiliary(): Boolean = mode == Mode.AUXILIARY
 
+    @JsonIgnore
+    fun isMatchingOperation(operation: Operation): Boolean =
+        operations.any { it in Operation.matchingOperations[operation]!! }
+
     data class TimeInterval(
         val start: ZonedDateTime,
         val end: ZonedDateTime? = null

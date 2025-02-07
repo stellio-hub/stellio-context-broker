@@ -282,10 +282,10 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         assertTrue(response.isLeft())
         assertInstanceOf(ContextSourceException::class.java, response.leftOrNull())
-        assertEquals(response.leftOrNull()?.type, ErrorType.BAD_REQUEST_DATA.type)
-        assertEquals(response.leftOrNull()?.status, HttpStatus.BAD_REQUEST)
-        assertEquals(response.leftOrNull()?.detail, "The detail of the valid Error")
-        assertEquals(response.leftOrNull()?.message, "A valid error")
+        assertEquals(ErrorType.BAD_REQUEST_DATA.type, response.leftOrNull()?.type)
+        assertEquals(HttpStatus.BAD_REQUEST, response.leftOrNull()?.status)
+        assertEquals("The detail of the valid Error", response.leftOrNull()?.detail)
+        assertEquals("A valid error", response.leftOrNull()?.message)
     }
 
     @Test

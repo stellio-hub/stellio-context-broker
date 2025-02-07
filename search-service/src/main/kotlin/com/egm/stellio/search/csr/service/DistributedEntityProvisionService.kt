@@ -17,6 +17,7 @@ import com.egm.stellio.shared.model.BadGatewayException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ConflictException
 import com.egm.stellio.shared.model.ContextSourceException
+import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
@@ -60,7 +61,7 @@ class DistributedEntityProvisionService(
         ).groupBy { it.mode }
 
         val entityAfterExclusive = distributeCreateEntityForContextSources(
-            matchingCSR[Mode.EXCLUSIVE], // can only be one
+            matchingCSR[Mode.EXCLUSIVE],
             registrationInfoFilter,
             entity,
             contexts,
@@ -166,7 +167,7 @@ class DistributedEntityProvisionService(
             }
             if (statusCode.value() == HttpStatus.MULTI_STATUS.value()) {
                 ContextSourceException(
-                    type = URI("https://uri.etsi.org/ngsi-ld/errors/MultiStatus"),
+                    type = ErrorType.MULTI_STATUS.type,
                     status = HttpStatus.MULTI_STATUS,
                     title = "Context source returned 207",
                     detail = response ?: "no message"

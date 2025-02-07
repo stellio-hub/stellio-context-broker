@@ -94,7 +94,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     private val contexts = listOf(APIC_COMPOUND_CONTEXT)
 
     @Test
-    fun `distributeCreateEntity should return the remainingEntity`() = runTest {
+    fun `distributeCreateEntityForContextSources  should return the remainingEntity`() = runTest {
         val firstExclusiveCsr = gimmeRawCSR(id = "id:exclusive:1".toUri(), mode = Mode.EXCLUSIVE)
         val firstRedirectCsr = gimmeRawCSR(id = "id:redirect:1".toUri(), mode = Mode.REDIRECT)
         val firstInclusiveCsr = gimmeRawCSR(id = "id:inclusive:1".toUri(), mode = Mode.INCLUSIVE)

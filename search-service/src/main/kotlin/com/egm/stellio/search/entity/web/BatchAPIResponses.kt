@@ -35,8 +35,8 @@ data class BatchOperationResult(
             errors.add(BatchEntityError(it.first.toUri(), it.second.toProblemDetail()))
         }
 
-    // the BatchOperationResult is also used for distributed provision operation
-    // for those endpoint you return a single error if the all operation failed at once
+    // the BatchOperationResult is also used for distributed provision operations
+    // for those endpoints, a single error is returned if the all operation failed at once
     fun toNonBatchEndpointResponse(entityId: URI): ResponseEntity<*> {
         val location = URI("/ngsi-ld/v1/entities/$entityId")
         return when {

@@ -289,7 +289,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `postDistributedInformation should return a GateWayTimeOut if it receives no answer`() = runTest {
+    fun `postDistributedInformation should return a GatewayTimeout error if it receives no answer`() = runTest {
         val csr = gimmeRawCSR().copy(endpoint = "http://localhost:invalid".toUri())
         val path = "/ngsi-ld/v1/entities"
         val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))

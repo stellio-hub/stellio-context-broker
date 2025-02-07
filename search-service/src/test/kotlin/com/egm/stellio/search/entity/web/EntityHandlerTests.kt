@@ -419,7 +419,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `create entity should return a 409 if a context source containing all the information return a conflict`() {
+    fun `create entity should return a 409 if a context source containing all the information returned a conflict`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val capturedExpandedEntity = slot<ExpandedEntity>()
 

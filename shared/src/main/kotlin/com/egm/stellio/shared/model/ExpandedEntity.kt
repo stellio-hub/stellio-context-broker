@@ -26,6 +26,11 @@ data class ExpandedEntity(
             Unit.right()
         else ResourceNotFoundException(entityOrAttrsNotFoundMessage(id, expandedAttributes)).left()
 
+    fun hasNonCoreAttributes(): Boolean =
+        members.keys.any {
+            !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it)
+        }
+
     fun getAttributes(): ExpandedAttributes =
         members.filter { !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key) }
             .mapValues { castAttributeValue(it.value) }
@@ -109,6 +114,10 @@ data class ExpandedEntity(
                         includedDatasetIds.contains(expandedAttributeInstance.getDatasetId().toString())
                 }.ifEmpty { null }
             }
+    )
+
+    fun omitAttributes(attributes: Set<String>): ExpandedEntity = ExpandedEntity(
+        members.filterKeys { it !in attributes }
     )
 }
 

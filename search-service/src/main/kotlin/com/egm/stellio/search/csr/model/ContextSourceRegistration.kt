@@ -6,11 +6,15 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CSR_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
@@ -154,6 +158,46 @@ data class ContextSourceRegistration(
         if (!id.isAbsolute)
             BadRequestDataException(invalidUriMessage("$id")).left()
         else Unit.right()
+
+    fun getAssociatedAttributes(
+        registrationInfoFilter: RegistrationInfoFilter,
+        entity: ExpandedEntity,
+    ): Set<ExpandedTerm> {
+        val matchingRegistrationsInfo = getMatchingInformation(registrationInfoFilter)
+
+        val properties =
+            if (matchingRegistrationsInfo.any { it.propertyNames == null }) null
+            else matchingRegistrationsInfo.flatMap { it.propertyNames!! }.toSet()
+
+        val relationships =
+            if (matchingRegistrationsInfo.any { it.relationshipNames == null }) null
+            else matchingRegistrationsInfo.flatMap { it.relationshipNames!! }.toSet()
+
+        return entity.getAttributes().filter { (term, attribute) ->
+            val attributeType = attribute.first()[JSONLD_TYPE]?.first()
+            if (NGSILD_RELATIONSHIP_TYPE.uri == attributeType) {
+                relationships == null || term in relationships
+            } else {
+                properties == null || term in properties
+            }
+        }.keys
+    }
+
+    private fun getMatchingInformation(registrationInfoFilter: RegistrationInfoFilter): List<RegistrationInfo> =
+        information.filter { info ->
+            info.entities?.any { entityInfo ->
+                entityInfo.id?.let { registrationInfoFilter.ids.contains(it) } ?: true &&
+                    entityInfo.types.let { types ->
+                        types.any {
+                            registrationInfoFilter.types?.contains(it) ?: true
+                        }
+                    } &&
+                    entityInfo.idPattern?.let { pattern ->
+                        registrationInfoFilter.ids.any { pattern.toRegex().matches(it.toString()) }
+                    } ?: true
+            } ?: true
+        }
+
     companion object {
 
         fun deserialize(

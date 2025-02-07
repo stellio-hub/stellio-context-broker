@@ -3,6 +3,7 @@ package com.egm.stellio.search.authorization.web
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
+import com.egm.stellio.search.csr.service.DistributedEntityProvisionService
 import com.egm.stellio.search.entity.service.EntityEventService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
@@ -43,6 +44,9 @@ class AnonymousUserHandlerTests {
 
     @MockkBean
     private lateinit var distributedEntityConsumptionService: DistributedEntityConsumptionService
+
+    @MockkBean
+    private lateinit var distributedEntityProvisionService: DistributedEntityProvisionService
 
     @MockkBean(relaxed = true)
     private lateinit var linkedEntityService: LinkedEntityService

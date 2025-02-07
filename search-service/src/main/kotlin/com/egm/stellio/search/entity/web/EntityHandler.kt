@@ -7,6 +7,7 @@ import arrow.core.right
 import com.egm.stellio.search.csr.model.addWarnings
 import com.egm.stellio.search.csr.service.ContextSourceUtils
 import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
+import com.egm.stellio.search.csr.service.DistributedEntityProvisionService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.service.LinkedEntityService
@@ -26,6 +27,7 @@ import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCAL
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
@@ -71,6 +73,7 @@ class EntityHandler(
     private val entityService: EntityService,
     private val entityQueryService: EntityQueryService,
     private val distributedEntityConsumptionService: DistributedEntityConsumptionService,
+    private val distributedEntityProvisionService: DistributedEntityProvisionService,
     private val linkedEntityService: LinkedEntityService
 ) : BaseHandler() {
 
@@ -81,20 +84,34 @@ class EntityHandler(
     suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @AllowedParameters(implemented = [QueryParameter.LOCAL], notImplemented = [QueryParameter.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
+
         val expandedEntity = expandJsonLdEntity(body, contexts)
-        val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
+        expandedEntity.toNgsiLdEntity().bind()
+        val entityId = expandedEntity.id.toUri()
 
-        entityService.createEntity(ngsiLdEntity, expandedEntity, sub.getOrNull()).bind()
+        val (result, remainingEntity) =
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != false) {
+                distributedEntityProvisionService
+                    .distributeCreateEntity(expandedEntity, contexts)
+            } else BatchOperationResult() to expandedEntity
 
-        ResponseEntity.status(HttpStatus.CREATED)
-            .location(URI("/ngsi-ld/v1/entities/${ngsiLdEntity.id}"))
-            .build<String>()
+        if (remainingEntity != null) {
+            either {
+                val ngsiLdEntity = remainingEntity.toNgsiLdEntity().bind()
+                entityService.createEntity(ngsiLdEntity, remainingEntity, sub.getOrNull()).bind()
+            }.fold(
+                { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
+                { result.success.add(BatchEntitySuccess(NGSILD_LOCAL)) }
+            )
+        }
+
+        result.toNonBatchEndpointResponse(entityId)
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -204,35 +221,37 @@ class EntityHandler(
         val entitiesQuery = composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
             .validateMinimalQueryEntitiesParameters().bind()
 
-        val (entities, localCount) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
+        val (expandedEntities, localCount) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
 
-        val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
+        val filteredEntities = expandedEntities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 
         val localEntities =
             compactEntities(filteredEntities, contexts).let {
                 linkedEntityService.processLinkedEntities(it, entitiesQuery, sub.getOrNull()).bind()
             }
 
-        val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
-            distributedEntityConsumptionService.distributeQueryEntitiesOperation(
-                entitiesQuery,
-                httpHeaders,
-                queryParams
-            )
-
-        val maxCount = (remoteCounts + localCount).maxBy { it ?: 0 } ?: 0
-
-        val (warnings, mergedEntities) = ContextSourceUtils.mergeEntitiesLists(
-            localEntities,
-            remoteEntitiesWithCSR
-        ).toPair().let { (mergeWarnings, mergedEntities) ->
-            val warnings = mergeWarnings?.let { queryWarnings + it } ?: queryWarnings
-            warnings to (mergedEntities ?: emptyList())
-        }
+        val (warnings, entities, count) =
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
+                val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
+                    distributedEntityConsumptionService.distributeQueryEntitiesOperation(
+                        entitiesQuery,
+                        httpHeaders,
+                        queryParams
+                    )
+                val maxCount = (remoteCounts + localCount).maxBy { it ?: 0 } ?: 0
+                val (warnings, mergedEntities) = ContextSourceUtils.mergeEntitiesLists(
+                    localEntities,
+                    remoteEntitiesWithCSR
+                ).toPair().let { (mergeWarnings, mergedEntities) ->
+                    val warnings = mergeWarnings?.let { queryWarnings + it } ?: queryWarnings
+                    warnings to (mergedEntities ?: emptyList())
+                }
+                Triple(warnings, mergedEntities, maxCount)
+            } else Triple(emptyList(), localEntities, localCount)
 
         buildQueryResponse(
-            mergedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
-            maxCount,
+            entities.toFinalRepresentation(ngsiLdDataRepresentation),
+            count,
             "/ngsi-ld/v1/entities",
             entitiesQuery.paginationQuery,
             queryParams,
@@ -280,27 +299,30 @@ class EntityHandler(
             compactEntity(filteredExpandedEntity, contexts)
         }
 
-        val (warnings, remoteEntitiesWithCSR) = distributedEntityConsumptionService.distributeRetrieveEntityOperation(
-            entityId,
-            httpHeaders,
-            queryParams
-        ).let { (warnings, it) -> warnings.toMutableList() to it }
+        val (entity, warnings) =
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
+                val (warnings, remoteEntitiesWithCSR) = distributedEntityConsumptionService
+                    .distributeRetrieveEntityOperation(
+                        entityId,
+                        httpHeaders,
+                        queryParams
+                    ).let { (warnings, it) -> warnings.toMutableList() to it }
+                val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeEntities(
+                    localEntity.getOrNull(),
+                    remoteEntitiesWithCSR
+                ).toPair()
 
-        val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeEntities(
-            localEntity.getOrNull(),
-            remoteEntitiesWithCSR
-        ).toPair()
+                mergeWarnings?.let { warnings.addAll(it) }
+                mergedEntity to warnings.toList()
+            } else localEntity.getOrNull() to emptyList()
 
-        mergeWarnings?.let { warnings.addAll(it) }
-
-        if (mergedEntity == null) {
+        if (entity == null) {
             val localError = localEntity.leftOrNull()
             return localError!!.toErrorResponse().addWarnings(warnings)
         }
 
         val mergedEntityWithLinkedEntities =
-            linkedEntityService.processLinkedEntities(mergedEntity, entitiesQuery, sub.getOrNull()).bind()
-
+            linkedEntityService.processLinkedEntities(entity, entitiesQuery, sub.getOrNull()).bind()
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .let {
                 val body = if (mergedEntityWithLinkedEntities.size == 1)

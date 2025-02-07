@@ -8,9 +8,13 @@ import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
+import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.DEVICE_TYPE
 import com.egm.stellio.shared.util.ENTITY_ALREADY_EXISTS_MESSAGE
@@ -151,8 +155,14 @@ class EntityOperationHandlerTests {
     fun `update batch entity should return a 207 if JSON-LD payload contains update errors`() = runTest {
         val jsonLdFile = validJsonFile
         val errors = arrayListOf(
-            BatchEntityError(temperatureSensorUri, arrayListOf("Update unexpectedly failed.")),
-            BatchEntityError(dissolvedOxygenSensorUri, arrayListOf("Update unexpectedly failed."))
+            BatchEntityError(
+                temperatureSensorUri,
+                InternalErrorException("Update unexpectedly failed.").toProblemDetail()
+            ),
+            BatchEntityError(
+                dissolvedOxygenSensorUri,
+                InternalErrorException("Update unexpectedly failed.").toProblemDetail()
+            )
         )
 
         coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
@@ -171,11 +181,17 @@ class EntityOperationHandlerTests {
                     "errors": [
                         { 
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", 
-                            "error": [ "Update unexpectedly failed." ] 
+                            "error": {
+                                "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                                "title":"Update unexpectedly failed."
+                            }
                         }, 
                         { 
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", 
-                            "error": [ "Update unexpectedly failed." ] 
+                            "error": {
+                                "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                                "title":"Update unexpectedly failed."
+                            }
                         }
                     ], 
                     "success": [] 
@@ -204,7 +220,10 @@ class EntityOperationHandlerTests {
                     "errors": [
                         { 
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX2temperature", 
-                            "error": [ "Unable to expand input payload" ] 
+                            "error": {
+                                "type":"${ErrorType.BAD_REQUEST_DATA.type}",
+                                "title":"Unable to expand input payload"
+                            }
                         }
                     ], 
                     "success": [
@@ -265,7 +284,12 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
             createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
-            mutableListOf(BatchEntityError(temperatureSensorUri, mutableListOf(ENTITY_ALREADY_EXISTS_MESSAGE)))
+            mutableListOf(
+                BatchEntityError(
+                    temperatureSensorUri,
+                    AlreadyExistsException(ENTITY_ALREADY_EXISTS_MESSAGE).toProblemDetail()
+                )
+            )
         )
 
         webClient.post()
@@ -279,7 +303,10 @@ class EntityOperationHandlerTests {
                     "errors": [
                         {
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                            "error": [ "Entity already exists" ]
+                            "error": {
+                                "type":"${ErrorType.ALREADY_EXISTS.type}",
+                                "title":"Entity already exists"
+                            }
                         }
                     ],
                     "success": [
@@ -357,9 +384,16 @@ class EntityOperationHandlerTests {
     @Test
     fun `upsert batch entity should return a 207 if JSON-LD payload contains update errors`() = runTest {
         val jsonLdFile = validJsonFile
+        val errorMessage = "Update unexpectedly failed."
         val errors = arrayListOf(
-            BatchEntityError(temperatureSensorUri, arrayListOf("Update unexpectedly failed.")),
-            BatchEntityError(dissolvedOxygenSensorUri, arrayListOf("Update unexpectedly failed."))
+            BatchEntityError(
+                temperatureSensorUri,
+                InternalErrorException(errorMessage).toProblemDetail()
+            ),
+            BatchEntityError(
+                dissolvedOxygenSensorUri,
+                InternalErrorException(errorMessage).toProblemDetail()
+            )
         )
 
         coEvery { entityOperationService.upsert(any(), any(), any(), any()) } returns (
@@ -380,11 +414,17 @@ class EntityOperationHandlerTests {
                     "errors": [
                         { 
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", 
-                            "error": [ "Update unexpectedly failed." ] 
+                            "error": {
+                                "type":"${ErrorType.INTERNAL_ERROR.type}",
+                                "title":"$errorMessage"
+                            }
                         }, 
                         { 
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", 
-                            "error": [ "Update unexpectedly failed." ] 
+                            "error": {
+                                "type":"${ErrorType.INTERNAL_ERROR.type}",
+                                "title":"$errorMessage"
+                            }
                         }
                     ], 
                     "success": [ "urn:ngsi-ld:Device:HCMR-AQUABOX1" ] 
@@ -459,7 +499,10 @@ class EntityOperationHandlerTests {
             BatchOperationResult(
                 mutableListOf(BatchEntitySuccess(temperatureSensorUri), BatchEntitySuccess(dissolvedOxygenSensorUri)),
                 mutableListOf(
-                    BatchEntityError(deviceUri, mutableListOf(ENTITY_DOES_NOT_EXIST_MESSAGE))
+                    BatchEntityError(
+                        deviceUri,
+                        ResourceNotFoundException(ENTITY_DOES_NOT_EXIST_MESSAGE).toProblemDetail()
+                    )
                 )
             )
 
@@ -475,8 +518,13 @@ class EntityOperationHandlerTests {
                 {
                     "success": ["urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature","urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"],
                     "errors": [
-                        {"entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1",
-                            "error":["$ENTITY_DOES_NOT_EXIST_MESSAGE"]}
+                        {
+                            "entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1",
+                            "error": {
+                                "type":"${ErrorType.RESOURCE_NOT_FOUND.type}",
+                                "title":"$ENTITY_DOES_NOT_EXIST_MESSAGE"
+                            }
+                        }
                     ]
                 }
                 """.trimIndent()
@@ -542,9 +590,10 @@ class EntityOperationHandlerTests {
     @Test
     fun `merge batch entity should return a 207 if JSON-LD payload contains update errors`() = runTest {
         val jsonLdFile = validJsonFile
+        val internalError = InternalErrorException("Update unexpectedly failed.").toProblemDetail()
         val errors = arrayListOf(
-            BatchEntityError(temperatureSensorUri, arrayListOf("Update unexpectedly failed.")),
-            BatchEntityError(dissolvedOxygenSensorUri, arrayListOf("Update unexpectedly failed."))
+            BatchEntityError(temperatureSensorUri, internalError),
+            BatchEntityError(dissolvedOxygenSensorUri, internalError)
         )
 
         coEvery { entityOperationService.merge(any(), any()) } returns BatchOperationResult(
@@ -563,11 +612,17 @@ class EntityOperationHandlerTests {
                     "errors": [
                         { 
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", 
-                            "error": [ "Update unexpectedly failed." ] 
+                            "error": {
+                                "type":"${ErrorType.INTERNAL_ERROR.type}",
+                                "title":"Update unexpectedly failed."
+                            }
                         }, 
                         { 
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", 
-                            "error": [ "Update unexpectedly failed." ] 
+                            "error": {
+                                "type":"${ErrorType.INTERNAL_ERROR.type}",
+                                "title":"Update unexpectedly failed."
+                            }
                         }
                     ], 
                     "success": [] 
@@ -596,7 +651,10 @@ class EntityOperationHandlerTests {
                     "errors": [
                         { 
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX2temperature", 
-                            "error": [ "Unable to expand input payload" ] 
+                            "error": {
+                                "type":"${ErrorType.BAD_REQUEST_DATA.type}",
+                                "title":"Unable to expand input payload"
+                            }
                         }
                     ], 
                     "success": [
@@ -618,7 +676,12 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.merge(any(), any()) } returns BatchOperationResult(
             success = mutableListOf(BatchEntitySuccess(temperatureSensorUri, mockkClass(UpdateResult::class))),
-            errors = mutableListOf(BatchEntityError(deviceUri, mutableListOf("Entity does not exist")))
+            errors = mutableListOf(
+                BatchEntityError(
+                    deviceUri,
+                    ResourceNotFoundException("Entity does not exist").toProblemDetail()
+                )
+            )
         )
 
         webClient.post()
@@ -632,7 +695,10 @@ class EntityOperationHandlerTests {
                     "errors": [
                         {
                             "entityId": "urn:ngsi-ld:Device:HCMR-AQUABOX1",
-                            "error": [ "Entity does not exist" ]
+                            "error": {
+                                "type":"${ErrorType.RESOURCE_NOT_FOUND.type}",
+                                "title":"Entity does not exist"
+                            }
                         }
                     ],
                     "success": [ "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature" ]

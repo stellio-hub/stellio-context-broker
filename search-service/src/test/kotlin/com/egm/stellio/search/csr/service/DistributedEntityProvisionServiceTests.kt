@@ -181,7 +181,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources should return null if all the entity have been processed`() = runTest {
+    fun `distributeCreateEntityForContextSources should return null if the whole entity has been processed`() = runTest {
         val csr = spyk(gimmeRawCSR())
         coEvery {
             csr.getAssociatedAttributes(any(), any())

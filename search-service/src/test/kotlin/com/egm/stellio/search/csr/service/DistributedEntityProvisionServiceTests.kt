@@ -64,16 +64,11 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
               "type":"Property",
               "value":"ApiarySophia"
            },
-                      "name": {
-                         "type":"Property",
-                         "value":"ApiarySophia"
-                      },
            "temperature":{
               "type":"Property",
               "value":"19",
               "unitCode":"Cel"
            },
-           
            "@context":[ "$APIC_COMPOUND_CONTEXT" ]
         }
         """.trimIndent()
@@ -108,7 +103,8 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         val entryEntity = expandJsonLdEntity(entity)
         val entityWithIgnoredTemperature = entryEntity.omitAttributes(setOf(TEMPERATURE_PROPERTY))
-        val entityWithIgnoredTemperatureAndName = entryEntity.omitAttributes(setOf(NGSILD_NAME_PROPERTY))
+        val entityWithIgnoredTemperatureAndName = entityWithIgnoredTemperature
+            .omitAttributes(setOf(NGSILD_NAME_PROPERTY))
 
         coEvery {
             distributedEntityProvisionService.distributeCreateEntityForContextSources(any(), any(), any(), any(), any())

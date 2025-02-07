@@ -27,6 +27,7 @@ import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCAL
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
@@ -103,7 +104,7 @@ class EntityHandler(
                 entityService.createEntity(ngsiLdEntity, remainingEntity, sub.getOrNull()).bind()
             }.fold(
                 { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
-                { result.success.add(BatchEntitySuccess(entityId)) } // todo what uri here?
+                { result.success.add(BatchEntitySuccess(NGSILD_LOCAL)) }
             )
         }
 

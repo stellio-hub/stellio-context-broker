@@ -40,7 +40,7 @@ data class BatchOperationResult(
     fun toNonBatchEndpointResponse(entityId: URI): ResponseEntity<*> {
         val location = URI("/ngsi-ld/v1/entities/$entityId")
         return when {
-            this.success.size == 1 && this.errors.isEmpty() ->
+            this.errors.isEmpty() ->
                 ResponseEntity.status(HttpStatus.CREATED)
                     .location(location)
                     .build<String>()

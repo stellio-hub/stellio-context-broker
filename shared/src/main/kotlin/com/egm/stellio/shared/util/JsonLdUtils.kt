@@ -95,6 +95,7 @@ object JsonLdUtils {
     const val NGSILD_DATASET_TERM = "dataset"
     const val NGSILD_ENTITY_TERM = "entity"
     const val NGSILD_NULL = "urn:ngsi-ld:null"
+    val NGSILD_LOCAL = "urn:ngsi-ld:local".toUri()
 
     val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
 

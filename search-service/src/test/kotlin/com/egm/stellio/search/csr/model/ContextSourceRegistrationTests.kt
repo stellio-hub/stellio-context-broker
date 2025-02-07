@@ -20,6 +20,23 @@ class ContextSourceRegistrationTests {
 
     private val endpoint = "http://my.csr.endpoint/"
 
+    private val entityPayload = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "name": {
+                "type": "Property",
+                "value": "An entity"
+            },
+            "managedBy": {
+                 "type": "Relationship",
+                 "datasetId": "urn:ngsi-ld:Dataset:french-name",
+                 "object": "urn:ngsi-ld:Apiculteur:1230"
+            },
+            "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+        }
+    """.trimIndent()
+
     @Test
     fun `it should not allow a CSR with an empty id`() = runTest {
         val payload = mapOf(
@@ -116,23 +133,6 @@ class ContextSourceRegistrationTests {
         contextSourceRegistration.validate()
             .shouldSucceed()
     }
-
-    private val entityPayload = """
-        {
-            "id": "urn:ngsi-ld:Entity:01",
-            "type": "Entity",
-            "name": {
-                "type": "Property",
-                "value": "An entity"
-            },
-            "managedBy": {
-                 "type": "Relationship",
-                 "datasetId": "urn:ngsi-ld:Dataset:french-name",
-                 "object": "urn:ngsi-ld:Apiculteur:1230"
-            },
-            "@context": [ "$APIC_COMPOUND_CONTEXT" ]
-        }
-    """.trimIndent()
 
     @Test
     fun `getAssociatedAttributes should check properties and relationship separately`() = runTest {

@@ -13,6 +13,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.GatewayTimeoutException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
@@ -27,10 +28,12 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.spyk
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
+import org.json.XMLTokener.entity
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -41,6 +44,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.util.LinkedMultiValueMap
 import java.net.URI
 
 @SpringBootTest
@@ -95,12 +99,54 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     private val contexts = listOf(APIC_COMPOUND_CONTEXT)
 
     @Test
+    fun `distributeDeleteEntity  should return the received errors`() = runTest {
+        val firstExclusiveCsr = gimmeRawCSR(mode = Mode.EXCLUSIVE, operations = listOf(Operation.DELETE_ENTITY))
+        val firstRedirectCsr = gimmeRawCSR(mode = Mode.REDIRECT, operations = listOf(Operation.REDIRECTION_OPS))
+        val firstInclusiveCsr = gimmeRawCSR(mode = Mode.INCLUSIVE, operations = listOf(Operation.REDIRECTION_OPS))
+        val secondRedirectCsr = gimmeRawCSR(mode = Mode.REDIRECT, operations = listOf(Operation.REDIRECTION_OPS))
+        val secondInclusiveCsr = gimmeRawCSR(mode = Mode.INCLUSIVE, operations = listOf(Operation.CREATE_ENTITY))
+
+        val requestParams = LinkedMultiValueMap<String, String>()
+
+        val entityId = expandJsonLdEntity(entity).id
+        val errorMessage = "test error"
+        coEvery {
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any(), any())
+        } returns Unit.right() andThen
+            Unit.right() andThen
+            ResourceNotFoundException("first $errorMessage").left() andThen
+            ResourceNotFoundException("second $errorMessage").left()
+
+        coEvery {
+            contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(firstInclusiveCsr, firstExclusiveCsr, firstRedirectCsr, secondInclusiveCsr, secondRedirectCsr)
+
+        val result = distributedEntityProvisionService.distributeDeleteEntity(
+            entityId,
+            requestParams
+        )
+        assertThat(result.success).hasSize(2)
+        assertThat(result.errors).hasSize(2)
+        assertThat(result.errors).anyMatch { it.error.title!!.contains(errorMessage) }
+
+        coVerify(exactly = 4) {
+            distributedEntityProvisionService.sendDistributedInformation(
+                null,
+                any(),
+                any(),
+                HttpMethod.DELETE,
+                requestParams
+            )
+        }
+    }
+
+    @Test
     fun `distributeCreateEntityForContextSources  should return the remainingEntity`() = runTest {
         val firstExclusiveCsr = gimmeRawCSR(id = "id:exclusive:1".toUri(), mode = Mode.EXCLUSIVE)
         val firstRedirectCsr = gimmeRawCSR(id = "id:redirect:1".toUri(), mode = Mode.REDIRECT)
         val firstInclusiveCsr = gimmeRawCSR(id = "id:inclusive:1".toUri(), mode = Mode.INCLUSIVE)
         val secondRedirectCsr = gimmeRawCSR(id = "id:redirect:2".toUri(), mode = Mode.REDIRECT)
-        val secondInclusiveCsr = gimmeRawCSR(id = "id:inclusive:2;".toUri(), mode = Mode.INCLUSIVE)
+        val secondInclusiveCsr = gimmeRawCSR(id = "id:inclusive:2".toUri(), mode = Mode.INCLUSIVE)
 
         val entryEntity = expandJsonLdEntity(entity)
         val entityWithIgnoredTemperature = entryEntity.omitAttributes(setOf(TEMPERATURE_PROPERTY))
@@ -173,6 +219,9 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             contexts,
             result
         )
+        coVerify {
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), HttpMethod.POST)
+        }
 
         assertThat(result.success).hasSize(1)
         assertThat(result.success).contains(BatchEntitySuccess(secondURI))

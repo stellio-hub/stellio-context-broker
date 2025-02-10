@@ -148,7 +148,7 @@ class EntityHandlerTests {
         } answers { BatchOperationResult() to capturedExpandedEntity.captured }
         coEvery {
             distributedEntityProvisionService
-                .distributeDeleteEntity(any())
+                .distributeDeleteEntity(any(), any())
         } answers { BatchOperationResult() }
     }
 
@@ -2447,7 +2447,7 @@ class EntityHandlerTests {
             mutableListOf(error)
         )
         coEvery {
-            distributedEntityProvisionService.distributeDeleteEntity(any())
+            distributedEntityProvisionService.distributeDeleteEntity(any(), any())
         } returns firstResult
 
         coEvery {

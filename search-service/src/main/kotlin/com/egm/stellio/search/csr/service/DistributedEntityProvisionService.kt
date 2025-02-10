@@ -50,22 +50,22 @@ class DistributedEntityProvisionService(
         val result = BatchOperationResult()
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(filters = csrFilters)
 
-        matchingCSR.forEach { csr ->
-            if (csr.isMatchingOperation(Operation.DELETE_ENTITY)
-            ) {
-                result.addEither(
-                    sendDistributedInformation(null, csr, "$entityPath/$entityId", HttpMethod.DELETE),
-                    entityId,
-                    csr.id
-                )
-            } else if (csr.mode != Mode.INCLUSIVE) {
-                result.addEither(
-                    ConflictException("csr: ${csr.id} does not support deletion of entities").left(),
-                    entityId,
-                    csr.id
-                )
+        matchingCSR.filter { it.mode != Mode.AUXILIARY }
+            .forEach { csr ->
+                if (csr.isMatchingOperation(Operation.DELETE_ENTITY)) {
+                    result.addEither(
+                        sendDistributedInformation(null, csr, "$entityPath/$entityId", HttpMethod.DELETE),
+                        entityId,
+                        csr.id
+                    )
+                } else if (csr.mode != Mode.INCLUSIVE) {
+                    result.addEither(
+                        ConflictException("csr: ${csr.id} does not support deletion of entities").left(),
+                        entityId,
+                        csr.id
+                    )
+                }
             }
-        }
 
         return result
     }
@@ -175,6 +175,7 @@ class DistributedEntityProvisionService(
             }.headers { newHeaders ->
                 newHeaders[HttpHeaders.CONTENT_TYPE] = JSON_LD_CONTENT_TYPE
             }
+
         body?.let { request.bodyValue(body) }
 
         return runCatching {

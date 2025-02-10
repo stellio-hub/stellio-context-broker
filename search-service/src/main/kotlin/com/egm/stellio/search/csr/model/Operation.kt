@@ -2,7 +2,7 @@ package com.egm.stellio.search.csr.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-enum class Operation(val key: String, private val matchingGroup: Set<Operation> = emptySet()) {
+enum class Operation(val key: String, private val matchingOperationGroups: Set<Operation> = emptySet()) {
 
     // OPERATION GROUPS
     @JsonProperty("federationOps")
@@ -20,7 +20,7 @@ enum class Operation(val key: String, private val matchingGroup: Set<Operation> 
     @JsonProperty("createEntity")
     CREATE_ENTITY(
         "createEntity",
-        setOf(UPDATE_OPS, REDIRECTION_OPS)
+        setOf(REDIRECTION_OPS)
     ),
 
     // not implemented
@@ -108,7 +108,7 @@ enum class Operation(val key: String, private val matchingGroup: Set<Operation> 
     @JsonProperty("replaceEntity")
     REPLACE_ENTITY(
         "replaceEntity",
-        setOf(REDIRECTION_OPS)
+        setOf(UPDATE_OPS, REDIRECTION_OPS)
     ),
 
     // not implemented
@@ -137,7 +137,7 @@ enum class Operation(val key: String, private val matchingGroup: Set<Operation> 
 
     // not implemented
     @JsonProperty("queryBatch")
-    QUERY_BATCH("queryBatch"),
+    QUERY_BATCH("queryBatch", setOf(FEDERATION_OPS)),
 
     // not implemented
     @JsonProperty("retrieveTemporal")
@@ -225,7 +225,7 @@ enum class Operation(val key: String, private val matchingGroup: Set<Operation> 
         setOf(FEDERATION_OPS)
     );
 
-    fun getMatchingOperations() = matchingGroup + this
+    fun getMatchingOperations() = matchingOperationGroups + this
 
     companion object {
         fun fromString(operation: String): Operation? =

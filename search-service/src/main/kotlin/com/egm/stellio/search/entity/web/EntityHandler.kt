@@ -111,7 +111,7 @@ class EntityHandler(
             )
         }
 
-        result.toNonBatchEndpointResponse(entityId, successStatus = HttpStatus.CREATED, addLocation = true)
+        result.toNonBatchEndpointResponse(entityId, HttpStatus.CREATED, addLocation = true)
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -354,7 +354,7 @@ class EntityHandler(
 
         result.addEither(entityService.deleteEntity(entityId, sub.getOrNull()), entityId, null)
 
-        return result.toNonBatchEndpointResponse(entityId = entityId, successStatus = HttpStatus.NO_CONTENT)
+        return result.toNonBatchEndpointResponse(entityId, HttpStatus.NO_CONTENT)
     }
 
     /**

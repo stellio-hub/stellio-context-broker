@@ -47,6 +47,7 @@ fun ProblemDetail.toErrorResponse(): ResponseEntity<ProblemDetail> {
         .contentType(MediaType.APPLICATION_JSON)
         .body(this)
 }
+
 data class ContextSourceException(
     override val type: URI,
     override val status: HttpStatus,

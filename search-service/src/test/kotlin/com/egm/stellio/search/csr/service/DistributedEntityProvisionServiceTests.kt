@@ -99,7 +99,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     private val contexts = listOf(APIC_COMPOUND_CONTEXT)
 
     @Test
-    fun `distributeDeleteEntity  should return the received errors`() = runTest {
+    fun `distributeDeleteEntity should return the received errors`() = runTest {
         val firstExclusiveCsr = gimmeRawCSR(mode = Mode.EXCLUSIVE, operations = listOf(Operation.DELETE_ENTITY))
         val firstRedirectCsr = gimmeRawCSR(mode = Mode.REDIRECT, operations = listOf(Operation.REDIRECTION_OPS))
         val firstInclusiveCsr = gimmeRawCSR(mode = Mode.INCLUSIVE, operations = listOf(Operation.REDIRECTION_OPS))

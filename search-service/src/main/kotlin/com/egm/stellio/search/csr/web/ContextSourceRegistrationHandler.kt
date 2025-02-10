@@ -6,6 +6,7 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.deserialize
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.unauthorizedMessage
 import com.egm.stellio.search.csr.model.serialize
@@ -102,6 +103,7 @@ class ContextSourceRegistrationHandler(
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val sub = getSubFromSecurityContext()
+        val csrFilters = CSRFilters.fromQueryParameter(queryParams, contexts).bind()
 
         val includeSysAttrs = queryParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
             .contains(OptionsValue.SYS_ATTRS.value)
@@ -111,8 +113,9 @@ class ContextSourceRegistrationHandler(
             applicationProperties.pagination.limitMax
         ).bind()
         val contextSourceRegistrations = contextSourceRegistrationService.getContextSourceRegistrations(
-            limit = paginationQuery.limit,
-            offset = paginationQuery.offset,
+            csrFilters,
+            paginationQuery.limit,
+            paginationQuery.offset,
         ).serialize(contexts, mediaType, includeSysAttrs)
         val contextSourceRegistrationsCount = contextSourceRegistrationService.getContextSourceRegistrationsCount(
             sub

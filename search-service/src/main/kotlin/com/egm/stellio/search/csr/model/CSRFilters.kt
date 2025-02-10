@@ -1,6 +1,14 @@
 package com.egm.stellio.search.csr.model
 
+import arrow.core.Either
+import arrow.core.raise.either
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.EntityTypeSelection
+import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.expandTypeSelection
+import com.egm.stellio.shared.util.toListOfUri
+import com.egm.stellio.shared.util.validateIdPattern
+import org.springframework.util.MultiValueMap
 import java.net.URI
 
 open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQuery (when we implement all operations)
@@ -33,4 +41,17 @@ open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
         idPattern = idPattern,
         operations = operations
     )
+
+    companion object {
+        fun fromQueryParameter(
+            queryParams: MultiValueMap<String, String>,
+            contexts: List<String>
+        ): Either<APIException, CSRFilters> = either {
+            val ids = queryParams.getFirst(QueryParameter.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
+            val typeSelection = expandTypeSelection(queryParams.getFirst(QueryParameter.TYPE.key), contexts)
+            val idPattern = validateIdPattern(queryParams.getFirst(QueryParameter.ID_PATTERN.key)).bind()
+
+            CSRFilters(ids = ids, typeSelection = typeSelection, idPattern = idPattern)
+        }
+    }
 }

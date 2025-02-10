@@ -6,6 +6,7 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.deserialize
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.unauthorizedMessage
 import com.egm.stellio.search.csr.model.serialize
@@ -59,7 +60,7 @@ class ContextSourceRegistrationHandler(
      * Implements 6.8.3.1 - Create ContextSourceRegistration
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun create(
+    suspend fun createContextSourceRegistration(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
@@ -83,12 +84,15 @@ class ContextSourceRegistrationHandler(
      * Implements 6.8.3.2 - Query ContextSourceRegistrations
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun get(
+    suspend fun queryContextSourceRegistrations(
         @RequestHeader httpHeaders: HttpHeaders,
         @AllowedParameters(
-            implemented = [QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT],
+            implemented = [
+                QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
+                QP.ID, QP.TYPE, QP.ID_PATTERN
+            ],
             notImplemented = [
-                QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q, QP.CSF,
+                QP.ATTRS, QP.Q, QP.CSF,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY,
                 QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT,
                 QP.GEOMETRY_PROPERTY, QP.LANG, QP.SCOPEQ,
@@ -98,7 +102,7 @@ class ContextSourceRegistrationHandler(
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val sub = getSubFromSecurityContext()
+        val csrFilters = CSRFilters.fromQueryParameter(queryParams, contexts).bind()
 
         val includeSysAttrs = queryParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
             .contains(OptionsValue.SYS_ATTRS.value)
@@ -108,11 +112,12 @@ class ContextSourceRegistrationHandler(
             applicationProperties.pagination.limitMax
         ).bind()
         val contextSourceRegistrations = contextSourceRegistrationService.getContextSourceRegistrations(
-            limit = paginationQuery.limit,
-            offset = paginationQuery.offset,
+            csrFilters,
+            paginationQuery.limit,
+            paginationQuery.offset,
         ).serialize(contexts, mediaType, includeSysAttrs)
         val contextSourceRegistrationsCount = contextSourceRegistrationService.getContextSourceRegistrationsCount(
-            sub
+            csrFilters
         ).bind()
 
         buildQueryResponse(
@@ -133,7 +138,7 @@ class ContextSourceRegistrationHandler(
      * Implements 6.9.3.1 - Retrieve ContextSourceRegistration
      */
     @GetMapping("/{contextSourceRegistrationId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun getByURI(
+    suspend fun retrieveContextSourceRegistration(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable contextSourceRegistrationId: URI,
         @AllowedParameters(implemented = [QP.OPTIONS])
@@ -159,7 +164,7 @@ class ContextSourceRegistrationHandler(
      * Implements 6.9.3.3 - Delete ContextSourceRegistration
      */
     @DeleteMapping("/{contextSourceRegistrationId}")
-    suspend fun delete(
+    suspend fun deleteContextSourceRegistration(
         @PathVariable contextSourceRegistrationId: URI,
         @AllowedParameters // no query parameter is defined in the specification
         @RequestParam queryParams: MultiValueMap<String, String>

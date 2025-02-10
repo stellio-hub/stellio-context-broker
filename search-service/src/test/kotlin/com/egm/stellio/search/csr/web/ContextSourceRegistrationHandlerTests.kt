@@ -11,6 +11,7 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -106,6 +107,47 @@ class ContextSourceRegistrationHandlerTests {
             .expectStatus().isNotFound
 
         coVerify { contextSourceRegistrationService.getById(contextSourceRegistration.id) }
+    }
+
+    @Test
+    fun `query CSR should return 200 when it exists`() = runTest {
+        val contextSourceRegistration = ContextSourceRegistration(id = id, endpoint = endpoint)
+
+        coEvery { contextSourceRegistrationService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery {
+            contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(contextSourceRegistration)
+
+        coEvery { contextSourceRegistrationService.getContextSourceRegistrationsCount(any()) } returns 1.right()
+
+        webClient.get()
+            .uri("$csrUri?id=$id")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+
+        coVerify { contextSourceRegistrationService.getContextSourceRegistrations(any(), any()) }
+    }
+
+    @Test
+    fun `query CSR should return the count if it was asked`() = runTest {
+        val contextSourceRegistration = ContextSourceRegistration(id = id, endpoint = endpoint)
+
+        coEvery { contextSourceRegistrationService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery {
+            contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(contextSourceRegistration)
+
+        coEvery { contextSourceRegistrationService.getContextSourceRegistrationsCount(any()) } returns 1.right()
+
+        webClient.get()
+            .uri("$csrUri?id=$id&count=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().exists(RESULTS_COUNT_HEADER)
+            .expectBody()
+
+        coVerify { contextSourceRegistrationService.getContextSourceRegistrations(any(), any()) }
     }
 
     @Test

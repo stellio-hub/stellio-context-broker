@@ -86,9 +86,12 @@ class ContextSourceRegistrationHandler(
     suspend fun get(
         @RequestHeader httpHeaders: HttpHeaders,
         @AllowedParameters(
-            implemented = [QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT],
+            implemented = [
+                QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
+                QP.ID, QP.TYPE, QP.ID_PATTERN
+            ],
             notImplemented = [
-                QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q, QP.CSF,
+                QP.ATTRS, QP.Q, QP.CSF,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY,
                 QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT,
                 QP.GEOMETRY_PROPERTY, QP.LANG, QP.SCOPEQ,

@@ -52,7 +52,7 @@ fun composeEntitiesQueryFromGet(
         queryParams.getFirst(QueryParameter.JOIN_LEVEL.key),
         queryParams.getFirst(QueryParameter.CONTAINED_BY.key)
     ).bind()
-
+    val local = queryParams.getFirst(QueryParameter.LOCAL.key)?.toBoolean()
     EntitiesQueryFromGet(
         ids = ids,
         typeSelection = typeSelection,
@@ -64,6 +64,7 @@ fun composeEntitiesQueryFromGet(
         datasetId = datasetId,
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
+        local = local,
         contexts = contexts
     )
 }
@@ -73,10 +74,11 @@ fun EntitiesQueryFromGet.validateMinimalQueryEntitiesParameters(): Either<APIExc
         geoQuery == null &&
         q.isNullOrEmpty() &&
         typeSelection.isNullOrEmpty() &&
-        attrs.isEmpty()
+        attrs.isEmpty() &&
+        local == false
     )
         return@either BadRequestDataException(
-            "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query"
+            "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query unless local is true"
         ).left().bind<EntitiesQueryFromGet>()
 
     this@validateMinimalQueryEntitiesParameters

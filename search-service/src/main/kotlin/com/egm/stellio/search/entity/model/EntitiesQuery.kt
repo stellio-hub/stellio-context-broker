@@ -16,6 +16,7 @@ sealed class EntitiesQuery(
     open val datasetId: Set<String>,
     open val geoQuery: GeoQuery?,
     open val linkedEntityQuery: LinkedEntityQuery?,
+    open val local: Boolean?,
     open val contexts: List<String>
 )
 
@@ -30,8 +31,9 @@ data class EntitiesQueryFromGet(
     override val datasetId: Set<String> = emptySet(),
     override val geoQuery: GeoQuery? = null,
     override val linkedEntityQuery: LinkedEntityQuery? = null,
-    override val contexts: List<String>
-) : EntitiesQuery(q, scopeQ, paginationQuery, attrs, datasetId, geoQuery, linkedEntityQuery, contexts)
+    override val contexts: List<String>,
+    override val local: Boolean? = null,
+) : EntitiesQuery(q, scopeQ, paginationQuery, attrs, datasetId, geoQuery, linkedEntityQuery, local, contexts)
 
 data class EntitiesQueryFromPost(
     val entitySelectors: List<EntitySelector>? = null,
@@ -42,5 +44,6 @@ data class EntitiesQueryFromPost(
     override val datasetId: Set<String> = emptySet(),
     override val geoQuery: GeoQuery? = null,
     override val linkedEntityQuery: LinkedEntityQuery? = null,
+    override val local: Boolean? = null,
     override val contexts: List<String>
-) : EntitiesQuery(q, scopeQ, paginationQuery, attrs, datasetId, geoQuery, linkedEntityQuery, contexts)
+) : EntitiesQuery(q, scopeQ, paginationQuery, attrs, datasetId, geoQuery, linkedEntityQuery, local, contexts)

@@ -51,7 +51,10 @@ class TemporalQueryUtilsTests {
             true
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
-            assertEquals("One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query", it.message)
+            assertEquals(
+                "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query unless local is true",
+                it.message
+            )
         }
     }
 

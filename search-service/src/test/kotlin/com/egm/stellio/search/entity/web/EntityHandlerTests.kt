@@ -1390,7 +1390,7 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query",
+                    "title": "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query unless local is true",
                     "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()

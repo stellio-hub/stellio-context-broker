@@ -231,7 +231,7 @@ class EntityHandler(
             }
 
         val (warnings, entities, count) =
-            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
+            if (entitiesQuery.local != true) {
                 val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
                     distributedEntityConsumptionService.distributeQueryEntitiesOperation(
                         entitiesQuery,

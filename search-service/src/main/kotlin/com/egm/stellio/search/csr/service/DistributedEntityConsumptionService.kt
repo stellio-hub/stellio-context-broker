@@ -51,7 +51,7 @@ class DistributedEntityConsumptionService(
         val csrFilters =
             CSRFilters(
                 ids = setOf(id),
-                operations = Operation.matchingOperations[Operation.RETRIEVE_ENTITY]?.toList()
+                operations = Operation.RETRIEVE_ENTITY.getMatchingOperations().toList()
             )
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
@@ -104,7 +104,7 @@ class DistributedEntityConsumptionService(
                 ids = entitiesQuery.ids,
                 idPattern = entitiesQuery.idPattern,
                 typeSelection = entitiesQuery.typeSelection,
-                operations = Operation.matchingOperations[Operation.QUERY_ENTITY]?.toList()
+                operations = Operation.QUERY_ENTITY.getMatchingOperations().toList()
             )
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)

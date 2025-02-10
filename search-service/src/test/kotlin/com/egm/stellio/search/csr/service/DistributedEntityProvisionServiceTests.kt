@@ -195,7 +195,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
     @Test
     fun `distributeCreateEntityForContextSources should update the result`() = runTest {
-        val csr = spyk(gimmeRawCSR(operations = listOf(Operation.UPDATE_OPS)))
+        val csr = spyk(gimmeRawCSR(operations = listOf(Operation.REDIRECTION_OPS)))
         val firstURI = URI("id:1")
         val secondURI = URI("id:2")
         coEvery {
@@ -218,7 +218,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             contexts,
             result
         )
-        coVerify {
+        coVerify(exactly = 2) {
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), HttpMethod.POST)
         }
 

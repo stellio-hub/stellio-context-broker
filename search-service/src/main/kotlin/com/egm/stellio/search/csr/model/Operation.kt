@@ -225,7 +225,7 @@ enum class Operation(val key: String, private val matchingOperationGroups: Set<O
         setOf(FEDERATION_OPS)
     );
 
-    fun getMatchingOperations() = matchingOperationGroups + this
+    fun getMatchingOperations(): Set<Operation> = matchingOperationGroups + this
 
     companion object {
         fun fromString(operation: String): Operation? =

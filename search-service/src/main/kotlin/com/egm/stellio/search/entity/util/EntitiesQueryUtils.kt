@@ -75,7 +75,7 @@ fun EntitiesQueryFromGet.validateMinimalQueryEntitiesParameters(): Either<APIExc
         q.isNullOrEmpty() &&
         typeSelection.isNullOrEmpty() &&
         attrs.isEmpty() &&
-        local == false
+        local != true
     )
         return@either BadRequestDataException(
             "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query unless local is true"

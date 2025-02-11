@@ -325,6 +325,23 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     }
 
     @Test
+    fun `count should apply the filter`() = runTest {
+        val contextSourceRegistration =
+            loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
+        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+
+        val count = contextSourceRegistrationService.getContextSourceRegistrationsCount(
+            CSRFilters(idPattern = ".*")
+        )
+        assertEquals(1, count.getOrNull())
+
+        val countEmpty = contextSourceRegistrationService.getContextSourceRegistrationsCount(
+            CSRFilters(idPattern = "INVALID")
+        )
+        assertEquals(0, countEmpty.getOrNull())
+    }
+
+    @Test
     fun `delete an existing CSR should succeed`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")

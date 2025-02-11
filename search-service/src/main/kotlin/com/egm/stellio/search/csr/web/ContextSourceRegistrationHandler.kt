@@ -60,7 +60,7 @@ class ContextSourceRegistrationHandler(
      * Implements 6.8.3.1 - Create ContextSourceRegistration
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun create(
+    suspend fun createContextSourceRegistration(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
@@ -84,7 +84,7 @@ class ContextSourceRegistrationHandler(
      * Implements 6.8.3.2 - Query ContextSourceRegistrations
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun get(
+    suspend fun queryContextSourceRegistrations(
         @RequestHeader httpHeaders: HttpHeaders,
         @AllowedParameters(
             implemented = [
@@ -102,7 +102,6 @@ class ContextSourceRegistrationHandler(
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val sub = getSubFromSecurityContext()
         val csrFilters = CSRFilters.fromQueryParameter(queryParams, contexts).bind()
 
         val includeSysAttrs = queryParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
@@ -118,7 +117,7 @@ class ContextSourceRegistrationHandler(
             paginationQuery.offset,
         ).serialize(contexts, mediaType, includeSysAttrs)
         val contextSourceRegistrationsCount = contextSourceRegistrationService.getContextSourceRegistrationsCount(
-            sub
+            csrFilters
         ).bind()
 
         buildQueryResponse(
@@ -139,7 +138,7 @@ class ContextSourceRegistrationHandler(
      * Implements 6.9.3.1 - Retrieve ContextSourceRegistration
      */
     @GetMapping("/{contextSourceRegistrationId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun getByURI(
+    suspend fun retrieveContextSourceRegistration(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable contextSourceRegistrationId: URI,
         @AllowedParameters(implemented = [QP.OPTIONS])
@@ -165,7 +164,7 @@ class ContextSourceRegistrationHandler(
      * Implements 6.9.3.3 - Delete ContextSourceRegistration
      */
     @DeleteMapping("/{contextSourceRegistrationId}")
-    suspend fun delete(
+    suspend fun deleteContextSourceRegistration(
         @PathVariable contextSourceRegistrationId: URI,
         @AllowedParameters // no query parameter is defined in the specification
         @RequestParam queryParams: MultiValueMap<String, String>

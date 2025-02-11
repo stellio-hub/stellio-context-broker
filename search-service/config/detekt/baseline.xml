@@ -5,7 +5,7 @@
     <ID>ClassNaming:V0_29_JsonLd_migrationTests.kt$V0_29_JsonLd_migrationTests</ID>
     <ID>ClassNaming:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration : BaseJavaMigration</ID>
     <ID>ComplexCondition:EntitiesQueryUtils.kt$geoQuery == null &amp;&amp; q.isNullOrEmpty() &amp;&amp;
-      typeSelection.isNullOrEmpty() &amp;&amp; attrs.isEmpty() &amp;&amp; local == false
+      typeSelection.isNullOrEmpty() &amp;&amp; attrs.isEmpty() &amp;&amp; local != true
     </ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
@@ -23,8 +23,8 @@
     <ID>LongParameterList:BusinessObjectsFactory.kt$( attributeUuid: UUID, timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT, measuredValue: Double? = Random.nextDouble(), value: String? = null, time: ZonedDateTime = ngsiLdDateTime(), sub: Sub? = null )</ID>
     <ID>LongParameterList:EntitiesQuery.kt$EntitiesQuery$( open val q: String?, open val scopeQ: String?, open val
       paginationQuery: PaginationQuery, open val attrs: Set&lt;ExpandedTerm&gt;, open val datasetId: Set&lt;String&gt;,
-      open val geoQuery: GeoQuery?, open val linkedEntityQuery: LinkedEntityQuery?, open val local: Boolean?, open
-      val contexts: List&lt;String&gt; )
+      open val geoQuery: GeoQuery?, open val linkedEntityQuery: LinkedEntityQuery?, open val local: Boolean?, open val
+      contexts: List&lt;String&gt; )
     </ID>
     <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( attribute: Attribute, attributeName: ExpandedTerm, attributeMetadata: AttributeMetadata, mergedAt: ZonedDateTime, observedAt: ZonedDateTime?, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
     <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( attribute: Attribute, ngsiLdAttribute: NgsiLdAttribute, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>

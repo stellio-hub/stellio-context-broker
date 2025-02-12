@@ -102,7 +102,7 @@ class ContextSourceRegistrationHandler(
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val csrFilters = CSRFilters.fromQueryParameter(queryParams, contexts).bind()
+        val csrFilters = CSRFilters.fromQueryParameters(queryParams, contexts).bind()
 
         val includeSysAttrs = queryParams.getOrDefault(QueryParameter.OPTIONS.key, emptyList())
             .contains(OptionsValue.SYS_ATTRS.value)

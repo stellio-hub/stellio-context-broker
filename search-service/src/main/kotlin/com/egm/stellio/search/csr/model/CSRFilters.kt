@@ -43,13 +43,13 @@ open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
     )
 
     companion object {
-        fun fromQueryParameter(
-            queryParams: MultiValueMap<String, String>,
+        fun fromQueryParameters(
+            queryParameters: MultiValueMap<String, String>,
             contexts: List<String>
         ): Either<APIException, CSRFilters> = either {
-            val ids = queryParams.getFirst(QueryParameter.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
-            val typeSelection = expandTypeSelection(queryParams.getFirst(QueryParameter.TYPE.key), contexts)
-            val idPattern = validateIdPattern(queryParams.getFirst(QueryParameter.ID_PATTERN.key)).bind()
+            val ids = queryParameters.getFirst(QueryParameter.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
+            val typeSelection = expandTypeSelection(queryParameters.getFirst(QueryParameter.TYPE.key), contexts)
+            val idPattern = validateIdPattern(queryParameters.getFirst(QueryParameter.ID_PATTERN.key)).bind()
 
             CSRFilters(ids = ids, typeSelection = typeSelection, idPattern = idPattern)
         }

@@ -9,8 +9,6 @@ import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RegistrationInfoFilter
-import com.egm.stellio.search.entity.web.BatchEntityError
-import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadGatewayException
@@ -21,6 +19,7 @@ import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
+import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import org.slf4j.Logger
@@ -29,6 +28,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBodyOrNull
 import org.springframework.web.reactive.function.client.awaitExchange
@@ -38,9 +38,37 @@ import java.net.URI
 class DistributedEntityProvisionService(
     private val contextSourceRegistrationService: ContextSourceRegistrationService,
 ) {
-    val createPath = "/ngsi-ld/v1/entities"
+    val entityPath = "/ngsi-ld/v1/entities"
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
+
+    suspend fun distributeDeleteEntity(
+        entityId: URI,
+        queryParams: MultiValueMap<String, String>
+    ): BatchOperationResult {
+        val csrFilters = CSRFilters(ids = setOf(entityId), typeSelection = queryParams.getFirst(QP.TYPE.key))
+        val result = BatchOperationResult()
+        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(filters = csrFilters)
+
+        matchingCSR.filter { it.mode != Mode.AUXILIARY }
+            .forEach { csr ->
+                if (csr.isMatchingOperation(Operation.DELETE_ENTITY)) {
+                    result.addEither(
+                        sendDistributedInformation(null, csr, "$entityPath/$entityId", HttpMethod.DELETE),
+                        entityId,
+                        csr.id
+                    )
+                } else if (csr.mode != Mode.INCLUSIVE) {
+                    result.addEither(
+                        ConflictException("csr: ${csr.id} does not support deletion of entities").left(),
+                        entityId,
+                        csr.id
+                    )
+                }
+            }
+
+        return result
+    }
 
     suspend fun distributeCreateEntity(
         entity: ExpandedEntity,
@@ -100,37 +128,22 @@ class DistributedEntityProvisionService(
                 .let { attrs ->
                     allProcessedAttrs.addAll(attrs)
                     if (attrs.isEmpty()) Unit
-                    else if (csr.operations.any {
-                            it == Operation.CREATE_ENTITY ||
-                                it == Operation.UPDATE_OPS ||
-                                it == Operation.REDIRECTION_OPS
-                        }
-                    ) {
-                        postDistributedInformation(
-                            compactEntity(entity.filterAttributes(attrs, emptySet()), contexts),
-                            csr,
-                            createPath
-                        ).fold(
-                            {
-                                resultToUpdate.errors.add(
-                                    BatchEntityError(
-                                        entityId = entity.id,
-                                        registrationId = csr.id,
-                                        error = it.toProblemDetail()
-                                    )
-                                )
-                            },
-                            { resultToUpdate.success.add(BatchEntitySuccess(csr.id)) }
+                    else if (csr.isMatchingOperation(Operation.CREATE_ENTITY)) {
+                        resultToUpdate.addEither(
+                            sendDistributedInformation(
+                                compactEntity(entity.filterAttributes(attrs, emptySet()), contexts),
+                                csr,
+                                entityPath,
+                                HttpMethod.POST
+                            ),
+                            entity.id,
+                            csr.id
                         )
                     } else if (csr.mode != Mode.INCLUSIVE) {
-                        resultToUpdate.errors.add(
-                            BatchEntityError(
-                                entityId = entity.id,
-                                registrationId = csr.id,
-                                error = ConflictException(
-                                    "The csr: ${csr.id} does not support the creation of entities"
-                                ).toProblemDetail()
-                            )
+                        resultToUpdate.addEither(
+                            ConflictException("The csr: ${csr.id} does not support the creation of entities").left(),
+                            entity.id,
+                            csr.id
                         )
                     }
                 }
@@ -141,24 +154,29 @@ class DistributedEntityProvisionService(
         } else entity
     }
 
-    internal suspend fun postDistributedInformation(
-        entity: CompactedEntity,
+    internal suspend fun sendDistributedInformation(
+        body: CompactedEntity?,
         csr: ContextSourceRegistration,
         path: String,
+        method: HttpMethod,
+        queryParams: MultiValueMap<String, String> = MultiValueMap.fromSingleValue(emptyMap())
     ): Either<APIException, Unit> = either {
         val uri = URI("${csr.endpoint}$path")
 
         val request = WebClient.create()
-            .method(HttpMethod.POST)
+            .method(method)
             .uri { uriBuilder ->
                 uriBuilder.scheme(uri.scheme)
                     .host(uri.host)
                     .port(uri.port)
                     .path(uri.path)
+                    .queryParams(queryParams)
                     .build()
             }.headers { newHeaders ->
                 newHeaders[HttpHeaders.CONTENT_TYPE] = JSON_LD_CONTENT_TYPE
-            }.bodyValue(entity)
+            }
+
+        body?.let { request.bodyValue(body) }
 
         return runCatching {
             val (statusCode, response, _) = request.awaitExchange { response ->

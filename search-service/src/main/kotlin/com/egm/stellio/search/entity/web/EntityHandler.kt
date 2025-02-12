@@ -27,7 +27,6 @@ import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCAL
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
@@ -102,16 +101,17 @@ class EntityHandler(
             } else BatchOperationResult() to expandedEntity
 
         if (remainingEntity != null) {
-            either {
-                val ngsiLdEntity = remainingEntity.toNgsiLdEntity().bind()
-                entityService.createEntity(ngsiLdEntity, remainingEntity, sub.getOrNull()).bind()
-            }.fold(
-                { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
-                { result.success.add(BatchEntitySuccess(NGSILD_LOCAL)) }
+            result.addEither(
+                either {
+                    val ngsiLdEntity = remainingEntity.toNgsiLdEntity().bind()
+                    entityService.createEntity(ngsiLdEntity, remainingEntity, sub.getOrNull()).bind()
+                },
+                entityId,
+                null
             )
         }
 
-        result.toNonBatchEndpointResponse(entityId)
+        result.toNonBatchEndpointResponse(entityId, HttpStatus.CREATED, addLocation = true)
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -343,18 +343,19 @@ class EntityHandler(
     @DeleteMapping("/{entityId}")
     suspend fun delete(
         @PathVariable entityId: URI,
-        @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
+        @AllowedParameters(implemented = [QP.LOCAL, QP.TYPE], notImplemented = [QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
-    ): ResponseEntity<*> = either {
+    ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
 
-        entityService.deleteEntity(entityId, sub.getOrNull()).bind()
+        val result = if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
+            distributedEntityProvisionService.distributeDeleteEntity(entityId, queryParams)
+        } else BatchOperationResult()
 
-        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-    }.fold(
-        { it.toErrorResponse() },
-        { it }
-    )
+        result.addEither(entityService.deleteEntity(entityId, sub.getOrNull()), entityId, null)
+
+        return result.toNonBatchEndpointResponse(entityId, HttpStatus.NO_CONTENT)
+    }
 
     /**
      * Implements 6.6.3.1 - Append Entity Attributes

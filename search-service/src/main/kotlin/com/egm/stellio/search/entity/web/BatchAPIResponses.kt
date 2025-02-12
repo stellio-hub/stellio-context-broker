@@ -1,5 +1,6 @@
 package com.egm.stellio.search.entity.web
 
+import arrow.core.Either
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -35,22 +36,36 @@ data class BatchOperationResult(
             errors.add(BatchEntityError(it.first.toUri(), it.second.toProblemDetail()))
         }
 
+    fun addEither(either: Either<APIException, *>, entityId: URI, csrId: URI? = null) {
+        either.fold(
+            { this.errors.add(BatchEntityError(entityId, it.toProblemDetail(), csrId)) },
+            { this.success.add(BatchEntitySuccess(csrId ?: entityId)) }
+        )
+    }
+
     // the BatchOperationResult is also used for distributed provision operations
     // for those endpoints, a single error is returned if the all operation failed at once
-    fun toNonBatchEndpointResponse(entityId: URI): ResponseEntity<*> {
+    fun toNonBatchEndpointResponse(
+        entityId: URI,
+        successStatus: HttpStatus,
+        addLocation: Boolean = false
+    ): ResponseEntity<*> {
         val location = URI("/ngsi-ld/v1/entities/$entityId")
         return when {
             this.errors.isEmpty() ->
-                ResponseEntity.status(HttpStatus.CREATED)
-                    .location(location)
-                    .build<String>()
+                ResponseEntity.status(successStatus)
+                    .let {
+                        if (addLocation) it.location(location) else it
+                    }.build<String>()
 
             this.success.isEmpty() && this.errors.size == 1 ->
                 this.errors.first().error.toErrorResponse()
 
             else ->
                 ResponseEntity.status(HttpStatus.MULTI_STATUS)
-                    .location(location)
+                    .let {
+                        if (addLocation) it.location(location) else it
+                    }
                     .body(this)
         }
     }

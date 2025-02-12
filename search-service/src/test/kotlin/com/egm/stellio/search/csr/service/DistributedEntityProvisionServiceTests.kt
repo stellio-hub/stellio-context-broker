@@ -13,6 +13,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.GatewayTimeoutException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
@@ -27,6 +28,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.spyk
 import kotlinx.coroutines.test.runTest
@@ -38,8 +40,10 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.util.LinkedMultiValueMap
 import java.net.URI
 
 @SpringBootTest
@@ -94,12 +98,54 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     private val contexts = listOf(APIC_COMPOUND_CONTEXT)
 
     @Test
+    fun `distributeDeleteEntity should return the received errors`() = runTest {
+        val firstExclusiveCsr = gimmeRawCSR(mode = Mode.EXCLUSIVE, operations = listOf(Operation.DELETE_ENTITY))
+        val firstRedirectCsr = gimmeRawCSR(mode = Mode.REDIRECT, operations = listOf(Operation.REDIRECTION_OPS))
+        val firstInclusiveCsr = gimmeRawCSR(mode = Mode.INCLUSIVE, operations = listOf(Operation.REDIRECTION_OPS))
+        val secondRedirectCsr = gimmeRawCSR(mode = Mode.REDIRECT, operations = listOf(Operation.REDIRECTION_OPS))
+        val secondInclusiveCsr = gimmeRawCSR(mode = Mode.INCLUSIVE, operations = listOf(Operation.CREATE_ENTITY))
+
+        val requestParams = LinkedMultiValueMap<String, String>()
+
+        val entityId = expandJsonLdEntity(entity).id
+        val errorMessage = "test error"
+        coEvery {
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any(), any())
+        } returns Unit.right() andThen
+            Unit.right() andThen
+            ResourceNotFoundException("first $errorMessage").left() andThen
+            ResourceNotFoundException("second $errorMessage").left()
+
+        coEvery {
+            contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(firstInclusiveCsr, firstExclusiveCsr, firstRedirectCsr, secondInclusiveCsr, secondRedirectCsr)
+
+        val result = distributedEntityProvisionService.distributeDeleteEntity(
+            entityId,
+            requestParams
+        )
+        assertThat(result.success).hasSize(2)
+        assertThat(result.errors).hasSize(2)
+        assertThat(result.errors).anyMatch { it.error.title!!.contains(errorMessage) }
+
+        coVerify(exactly = 4) {
+            distributedEntityProvisionService.sendDistributedInformation(
+                null,
+                any(),
+                any(),
+                HttpMethod.DELETE,
+                requestParams
+            )
+        }
+    }
+
+    @Test
     fun `distributeCreateEntityForContextSources  should return the remainingEntity`() = runTest {
         val firstExclusiveCsr = gimmeRawCSR(id = "id:exclusive:1".toUri(), mode = Mode.EXCLUSIVE)
         val firstRedirectCsr = gimmeRawCSR(id = "id:redirect:1".toUri(), mode = Mode.REDIRECT)
         val firstInclusiveCsr = gimmeRawCSR(id = "id:inclusive:1".toUri(), mode = Mode.INCLUSIVE)
         val secondRedirectCsr = gimmeRawCSR(id = "id:redirect:2".toUri(), mode = Mode.REDIRECT)
-        val secondInclusiveCsr = gimmeRawCSR(id = "id:inclusive:2;".toUri(), mode = Mode.INCLUSIVE)
+        val secondInclusiveCsr = gimmeRawCSR(id = "id:inclusive:2".toUri(), mode = Mode.INCLUSIVE)
 
         val entryEntity = expandJsonLdEntity(entity)
         val entityWithIgnoredTemperature = entryEntity.omitAttributes(setOf(TEMPERATURE_PROPERTY))
@@ -149,11 +195,11 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
     @Test
     fun `distributeCreateEntityForContextSources should update the result`() = runTest {
-        val csr = spyk(gimmeRawCSR(operations = listOf(Operation.UPDATE_OPS)))
+        val csr = spyk(gimmeRawCSR(operations = listOf(Operation.REDIRECTION_OPS)))
         val firstURI = URI("id:1")
         val secondURI = URI("id:2")
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns contextSourceException.left() andThen Unit.right()
 
         coEvery {
@@ -172,6 +218,9 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             contexts,
             result
         )
+        coVerify(exactly = 2) {
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), HttpMethod.POST)
+        }
 
         assertThat(result.success).hasSize(1)
         assertThat(result.success).contains(BatchEntitySuccess(secondURI))
@@ -188,7 +237,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         } returns setOf(NGSILD_NAME_PROPERTY) andThen setOf(TEMPERATURE_PROPERTY)
 
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns contextSourceException.left() andThen Unit.right()
 
         val entity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
@@ -210,7 +259,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         } returns setOf(NGSILD_NAME_PROPERTY)
 
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns Unit.right()
 
         val successEntity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
@@ -233,7 +282,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             csr.getAssociatedAttributes(any(), any())
         } returns setOf(NGSILD_NAME_PROPERTY)
         coEvery {
-            distributedEntityProvisionService.postDistributedInformation(any(), any(), any())
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns contextSourceException.left()
 
         val errorEntity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
@@ -249,7 +298,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `postDistributedInformation should process badly formed errors`() = runTest {
+    fun `sendDistributedInformation should process badly formed errors`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities"
 
@@ -259,7 +308,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         )
 
         val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
-        val response = distributedEntityProvisionService.postDistributedInformation(entity, csr, path)
+        val response = distributedEntityProvisionService.sendDistributedInformation(entity, csr, path, HttpMethod.POST)
 
         assertTrue(response.isLeft())
         assertEquals(response.leftOrNull()?.type, ErrorType.BAD_GATEWAY.type)
@@ -268,7 +317,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `postDistributedInformation should return the received error`() = runTest {
+    fun `sendDistributedInformation should return the received error`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities"
 
@@ -278,7 +327,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         )
 
         val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
-        val response = distributedEntityProvisionService.postDistributedInformation(entity, csr, path)
+        val response = distributedEntityProvisionService.sendDistributedInformation(entity, csr, path, HttpMethod.POST)
 
         assertTrue(response.isLeft())
         assertInstanceOf(ContextSourceException::class.java, response.leftOrNull())
@@ -289,11 +338,11 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `postDistributedInformation should return a GatewayTimeout error if it receives no answer`() = runTest {
+    fun `sendDistributedInformation should return a GateWayTimeout error if it receives no answer`() = runTest {
         val csr = gimmeRawCSR().copy(endpoint = "http://localhost:invalid".toUri())
         val path = "/ngsi-ld/v1/entities"
         val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
-        val response = distributedEntityProvisionService.postDistributedInformation(entity, csr, path)
+        val response = distributedEntityProvisionService.sendDistributedInformation(entity, csr, path, HttpMethod.POST)
 
         assertTrue(response.isLeft())
         assertInstanceOf(GatewayTimeoutException::class.java, response.leftOrNull())

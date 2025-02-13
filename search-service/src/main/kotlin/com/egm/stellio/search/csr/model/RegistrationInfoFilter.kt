@@ -4,7 +4,7 @@ import java.net.URI
 
 class RegistrationInfoFilter(
     ids: Set<URI> = emptySet(),
-    val types: Set<String>? = null,
+    val types: Set<String>? = null, // todo become TypeSelection
     idPattern: String? = null,
     operations: List<Operation>? = null
 ) : CSRFilters(

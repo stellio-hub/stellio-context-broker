@@ -126,7 +126,7 @@ class EntityHandler(
         @PathVariable entityId: URI,
         @AllowedParameters(
             implemented = [QP.OBSERVED_AT],
-            notImplemented = [QP.FORMAT, QP.OPTIONS, QP.TYPE, QP.LANG, QP.LOCAL, QP.VIA]
+            notImplemented = [QP.FORMAT, QP.OPTIONS, QP.LANG, QP.TYPE, QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>,
         @RequestBody requestBody: Mono<String>
@@ -167,7 +167,7 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>,
-        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @AllowedParameters(implemented = [QP.LOCAL, QP.TYPE], notImplemented = [QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
@@ -180,18 +180,32 @@ class EntityHandler(
             BadRequestDataException("The id contained in the body is not the same as the one provided in the URL")
                 .left().bind<ResponseEntity<*>>()
 
-        entityService.replaceEntity(
-            entityId,
-            ngsiLdEntity,
-            expandedEntity,
-            sub.getOrNull()
-        ).bind()
+        val (result, remainingEntity) =
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != false) {
+                distributedEntityProvisionService
+                    .distributeReplaceEntity(expandedEntity, contexts, queryParams)
+            } else BatchOperationResult() to expandedEntity
 
-        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-    }.fold(
-        { it.toErrorResponse() },
-        { it }
-    )
+        if (remainingEntity != null) {
+            result.addEither(
+                either {
+                    val localNgsiLdEntity = remainingEntity.toNgsiLdEntity().bind()
+                    entityService.replaceEntity(
+                        entityId,
+                        localNgsiLdEntity,
+                        expandedEntity,
+                        sub.getOrNull()
+                    ).bind()
+                },
+                entityId)
+        }
+
+        result.toNonBatchEndpointResponse(entityId, HttpStatus.NO_CONTENT)
+    }
+        .fold(
+            { it.toErrorResponse() },
+            { it }
+        )
 
     @PutMapping("/", "")
     fun handleMissingEntityIdOnReplace(): ResponseEntity<*> =
@@ -208,8 +222,9 @@ class EntityHandler(
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY,
                 QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID,
+                QP.PICK // not implemented but needed for interoperability
             ],
-            notImplemented = [QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
+            notImplemented = [QP.OMIT, QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {

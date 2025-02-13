@@ -153,7 +153,9 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             .omitAttributes(setOf(NGSILD_NAME_PROPERTY))
 
         coEvery {
-            distributedEntityProvisionService.distributeCreateEntityForContextSources(any(), any(), any(), any(), any())
+            distributedEntityProvisionService.distributeEntityProvisionForContextSources(
+                any(), any(), any(), any(), any(), any()
+            )
         } returns
             entityWithIgnoredTemperature andThen entityWithIgnoredTemperatureAndName andThen null
 
@@ -169,26 +171,23 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         assertEquals(entityWithIgnoredTemperatureAndName, remainingEntity)
 
         coVerifyOrder {
-            distributedEntityProvisionService.distributeCreateEntityForContextSources(
+            distributedEntityProvisionService.distributeEntityProvisionForContextSources(
                 listOf(firstExclusiveCsr),
                 any(),
                 entryEntity,
-                any(),
-                any()
+                any(), any(), any()
             )
-            distributedEntityProvisionService.distributeCreateEntityForContextSources(
+            distributedEntityProvisionService.distributeEntityProvisionForContextSources(
                 listOf(firstRedirectCsr, secondRedirectCsr),
                 any(),
                 entityWithIgnoredTemperature,
-                any(),
-                any()
+                any(), any(), any()
             )
-            distributedEntityProvisionService.distributeCreateEntityForContextSources(
+            distributedEntityProvisionService.distributeEntityProvisionForContextSources(
                 listOf(firstInclusiveCsr, secondInclusiveCsr),
                 any(),
                 entityWithIgnoredTemperatureAndName,
-                any(),
-                any()
+                any(), any(), any()
             )
         }
     }
@@ -211,12 +210,13 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         val result = BatchOperationResult()
 
-        distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr, csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
             contexts,
-            result
+            result,
+            Operation.CREATE_ENTITY,
         )
         coVerify(exactly = 2) {
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), HttpMethod.POST)
@@ -240,12 +240,13 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns contextSourceException.left() andThen Unit.right()
 
-        val entity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        val entity = distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr, csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
             contexts,
-            BatchOperationResult()
+            BatchOperationResult(),
+            Operation.CREATE_ENTITY
         )
 
         assertNull(entity)
@@ -262,12 +263,13 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns Unit.right()
 
-        val successEntity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        val successEntity = distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
             contexts,
-            BatchOperationResult()
+            BatchOperationResult(),
+            Operation.CREATE_ENTITY
         )
 
         assertNull(successEntity?.getAttributes()?.get(NGSILD_NAME_PROPERTY))
@@ -285,12 +287,13 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns contextSourceException.left()
 
-        val errorEntity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        val errorEntity = distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr),
             RegistrationInfoFilter(),
             expandJsonLdEntity(entity),
             contexts,
-            BatchOperationResult()
+            BatchOperationResult(),
+            Operation.CREATE_ENTITY
         )
 
         assertNull(errorEntity?.getAttributes()?.get(NGSILD_NAME_PROPERTY))

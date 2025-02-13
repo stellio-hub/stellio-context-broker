@@ -60,7 +60,7 @@ class ContextSourceRegistrationHandler(
      * Implements 6.8.3.1 - Create ContextSourceRegistration
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun createContextSourceRegistration(
+    suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
@@ -84,7 +84,7 @@ class ContextSourceRegistrationHandler(
      * Implements 6.8.3.2 - Query ContextSourceRegistrations
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun queryContextSourceRegistrations(
+    suspend fun query(
         @RequestHeader httpHeaders: HttpHeaders,
         @AllowedParameters(
             implemented = [
@@ -138,7 +138,7 @@ class ContextSourceRegistrationHandler(
      * Implements 6.9.3.1 - Retrieve ContextSourceRegistration
      */
     @GetMapping("/{contextSourceRegistrationId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun retrieveContextSourceRegistration(
+    suspend fun retrieve(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable contextSourceRegistrationId: URI,
         @AllowedParameters(implemented = [QP.OPTIONS])
@@ -164,7 +164,7 @@ class ContextSourceRegistrationHandler(
      * Implements 6.9.3.3 - Delete ContextSourceRegistration
      */
     @DeleteMapping("/{contextSourceRegistrationId}")
-    suspend fun deleteContextSourceRegistration(
+    suspend fun delete(
         @PathVariable contextSourceRegistrationId: URI,
         @AllowedParameters // no query parameter is defined in the specification
         @RequestParam queryParams: MultiValueMap<String, String>

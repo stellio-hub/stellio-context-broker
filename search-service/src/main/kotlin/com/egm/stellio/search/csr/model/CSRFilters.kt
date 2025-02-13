@@ -24,9 +24,9 @@ open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
         operations: List<Operation>?
     ) :
         this(
-            ids = ids,
-            typeSelection = typeSelection,
-            idPattern = idPattern,
+            ids,
+            typeSelection,
+            idPattern,
             csf = operations?.joinToString("|") { "${ContextSourceRegistration::operations.name}==${it.key}" }
         )
 
@@ -36,14 +36,14 @@ open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
         idPattern: String? = null,
         operations: List<Operation>? = null
     ) : this(
-        ids = ids,
-        typeSelection = types.joinToString("|"),
-        idPattern = idPattern,
+        ids,
+        types.joinToString("|"),
+        idPattern,
         operations = operations
     )
 
     companion object {
-        fun fromQueryParameter(
+        fun fromQueryParameters(
             queryParams: MultiValueMap<String, String>,
             contexts: List<String>
         ): Either<APIException, CSRFilters> = either {
@@ -51,7 +51,7 @@ open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
             val typeSelection = expandTypeSelection(queryParams.getFirst(QueryParameter.TYPE.key), contexts)
             val idPattern = validateIdPattern(queryParams.getFirst(QueryParameter.ID_PATTERN.key)).bind()
 
-            CSRFilters(ids = ids, typeSelection = typeSelection, idPattern = idPattern)
+            CSRFilters(ids, typeSelection, idPattern)
         }
     }
 }

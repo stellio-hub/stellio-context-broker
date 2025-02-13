@@ -110,10 +110,9 @@ class ContextSourceRegistrationHandlerTests {
     }
 
     @Test
-    fun `query CSR should return 200 when it exists`() = runTest {
+    fun `query CSR should return 200 whether a CSR exists or not`() = runTest {
         val contextSourceRegistration = ContextSourceRegistration(id = id, endpoint = endpoint)
 
-        coEvery { contextSourceRegistrationService.isCreatorOf(any(), any()) } returns true.right()
         coEvery {
             contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
         } returns listOf(contextSourceRegistration)

@@ -10,15 +10,7 @@ import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RegistrationInfoFilter
 import com.egm.stellio.search.entity.web.BatchOperationResult
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.BadGatewayException
-import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.model.ConflictException
-import com.egm.stellio.shared.model.ContextSourceException
-import com.egm.stellio.shared.model.ErrorType
-import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.GatewayTimeoutException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
@@ -73,54 +65,79 @@ class DistributedEntityProvisionService(
     suspend fun distributeCreateEntity(
         entity: ExpandedEntity,
         contexts: List<String>,
+    ): Pair<BatchOperationResult, ExpandedEntity?> = distributeEntityProvision(
+        entity,
+        contexts,
+        Operation.CREATE_ENTITY,
+        entity.toTypeSelection()
+    )
+
+    suspend fun distributeReplaceEntity(
+        entity: ExpandedEntity,
+        contexts: List<String>,
+        queryParams: MultiValueMap<String, String>
+    ): Pair<BatchOperationResult, ExpandedEntity?> = distributeEntityProvision(
+        entity,
+        contexts,
+        Operation.REPLACE_ENTITY,
+        queryParams.getFirst(QP.TYPE.key) ?: entity.toTypeSelection()
+    )
+
+
+    suspend fun distributeEntityProvision(
+        entity: ExpandedEntity,
+        contexts: List<String>,
+        operation: Operation,
+        typeSelection: EntityTypeSelection
     ): Pair<BatchOperationResult, ExpandedEntity?> {
         val csrFilters =
             CSRFilters(
                 ids = setOf(entity.id),
-                types = entity.types.toSet()
+                typeSelection = typeSelection
             )
         val result = BatchOperationResult()
         val registrationInfoFilter =
-            RegistrationInfoFilter(ids = setOf(entity.id), types = entity.types.toSet())
+            RegistrationInfoFilter(ids = setOf(entity.id), entity.types.toSet())
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
             filters = csrFilters,
         ).groupBy { it.mode }
 
-        val entityAfterExclusive = distributeCreateEntityForContextSources(
+        val entityAfterExclusive = distributeEntityProvisionForContextSources(
             matchingCSR[Mode.EXCLUSIVE],
             registrationInfoFilter,
             entity,
             contexts,
-            result
-        )
+            result,
+            operation)
         if (entityAfterExclusive == null) return result to null
 
-        val entityAfterRedirect = distributeCreateEntityForContextSources(
+        val entityAfterRedirect = distributeEntityProvisionForContextSources(
             matchingCSR[Mode.REDIRECT],
             registrationInfoFilter,
             entityAfterExclusive,
             contexts,
-            result
-        )
+            result,
+            operation)
         if (entityAfterRedirect == null) return result to null
 
-        distributeCreateEntityForContextSources(
+        distributeEntityProvisionForContextSources(
             matchingCSR[Mode.INCLUSIVE],
             registrationInfoFilter,
             entityAfterRedirect,
             contexts,
-            result
-        )
+            result,
+            operation)
         return result to entityAfterRedirect
     }
 
-    internal suspend fun distributeCreateEntityForContextSources(
+    internal suspend fun distributeEntityProvisionForContextSources(
         csrs: List<ContextSourceRegistration>?,
         registrationInfoFilter: RegistrationInfoFilter,
         entity: ExpandedEntity,
         contexts: List<String>,
-        resultToUpdate: BatchOperationResult
+        resultToUpdate: BatchOperationResult,
+        operation: Operation,
     ): ExpandedEntity? {
         val allProcessedAttrs = mutableSetOf<ExpandedTerm>()
         csrs?.forEach { csr ->
@@ -128,13 +145,13 @@ class DistributedEntityProvisionService(
                 .let { attrs ->
                     allProcessedAttrs.addAll(attrs)
                     if (attrs.isEmpty()) Unit
-                    else if (csr.isMatchingOperation(Operation.CREATE_ENTITY)) {
+                    else if (csr.isMatchingOperation(operation)) {
                         resultToUpdate.addEither(
                             sendDistributedInformation(
                                 compactEntity(entity.filterAttributes(attrs, emptySet()), contexts),
                                 csr,
-                                entityPath,
-                                HttpMethod.POST
+                                operation.getPath(entity.id)!!,
+                                operation.method!!
                             ),
                             entity.id,
                             csr.id

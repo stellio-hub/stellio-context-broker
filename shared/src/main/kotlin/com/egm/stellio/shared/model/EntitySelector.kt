@@ -40,7 +40,4 @@ fun areTypesInSelection(types: List<ExpandedTerm>, typeSelection: EntityTypeSele
     }
     processedTypeSelection.toBooleanStrictOrNull()?.let { return it }
     return types.contains(processedTypeSelection)
-
 }
-
-

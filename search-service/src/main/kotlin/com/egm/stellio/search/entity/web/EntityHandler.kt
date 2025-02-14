@@ -197,7 +197,8 @@ class EntityHandler(
                         sub.getOrNull()
                     ).bind()
                 },
-                entityId)
+                entityId
+            )
         }
 
         result.toNonBatchEndpointResponse(entityId, HttpStatus.NO_CONTENT)

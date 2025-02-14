@@ -247,8 +247,6 @@ enum class Operation(
         ?.replace(entityIdPlaceHolder, entityId.toString())
         ?.replace(attributeIdPlaceHolder, attrId)
 
-
-
     companion object {
         fun fromString(operation: String): Operation? =
             Operation.entries.find { it.key == operation }
@@ -258,7 +256,7 @@ enum class Operation(
         const val attributeIdPlaceHolder = ":attrId"
         const val attrsPath = "$entityPath/$entityIdPlaceHolder/attrs"
 
-        enum class NGSILDPath(val pattern: String){
+        enum class NGSILDPath(val pattern: String) {
             ENTITIES(entityPath),
             ENTITY("$entityPath/$entityIdPlaceHolder"),
             ATTRIBUTES(attrsPath),

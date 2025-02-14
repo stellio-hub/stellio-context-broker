@@ -3,9 +3,9 @@ package com.egm.stellio.search.csr.service
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
+import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
-import com.egm.stellio.search.csr.model.RegistrationInfoFilter
 import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -175,19 +175,25 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
                 listOf(firstExclusiveCsr),
                 any(),
                 entryEntity,
-                any(), any(), any()
+                any(),
+                any(),
+                any()
             )
             distributedEntityProvisionService.distributeEntityProvisionForContextSources(
                 listOf(firstRedirectCsr, secondRedirectCsr),
                 any(),
                 entityWithIgnoredTemperature,
-                any(), any(), any()
+                any(),
+                any(),
+                any()
             )
             distributedEntityProvisionService.distributeEntityProvisionForContextSources(
                 listOf(firstInclusiveCsr, secondInclusiveCsr),
                 any(),
                 entityWithIgnoredTemperatureAndName,
-                any(), any(), any()
+                any(),
+                any(),
+                any()
             )
         }
     }
@@ -212,7 +218,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr, csr),
-            RegistrationInfoFilter(),
+            CSRFilters(),
             expandJsonLdEntity(entity),
             contexts,
             result,
@@ -242,7 +248,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         val entity = distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr, csr),
-            RegistrationInfoFilter(),
+            CSRFilters(),
             expandJsonLdEntity(entity),
             contexts,
             BatchOperationResult(),
@@ -265,7 +271,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         val successEntity = distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr),
-            RegistrationInfoFilter(),
+            CSRFilters(),
             expandJsonLdEntity(entity),
             contexts,
             BatchOperationResult(),
@@ -289,7 +295,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         val errorEntity = distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr),
-            RegistrationInfoFilter(),
+            CSRFilters(),
             expandJsonLdEntity(entity),
             contexts,
             BatchOperationResult(),

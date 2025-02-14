@@ -18,16 +18,17 @@ data class EntitySelector(
 
 val orRegex = "^(.*)[|,](.*)\$".toRegex()
 val andRegex = "^(.*);(.*)\$".toRegex()
-val innerParanthesisRegex ="\\(([^()]*)\\)".toRegex()
+val innerParanthesisRegex = "\\(([^()]*)\\)".toRegex()
 
-fun areTypesInSelection(types: List<ExpandedTerm>, typeSelection: EntityTypeSelection) : Boolean {
+fun areTypesInSelection(types: List<ExpandedTerm>, typeSelection: EntityTypeSelection): Boolean {
     var processedTypeSelection = typeSelection
-    while(innerParanthesisRegex.containsMatchIn(processedTypeSelection)) {
+    while (innerParanthesisRegex.containsMatchIn(processedTypeSelection)) {
         innerParanthesisRegex.find(processedTypeSelection)?.let { matches ->
             val groups = matches.groups.drop(1)
             groups.forEach {
                 processedTypeSelection = processedTypeSelection
-                    .replace("(${it!!.value})", areTypesInSelection(types, it.value).toString()) }
+                    .replace("(${it!!.value})", areTypesInSelection(types, it.value).toString())
+            }
         }
     }
 

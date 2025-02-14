@@ -9,7 +9,16 @@ import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.entity.web.BatchOperationResult
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadGatewayException
+import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.ConflictException
+import com.egm.stellio.shared.model.ContextSourceException
+import com.egm.stellio.shared.model.EntityTypeSelection
+import com.egm.stellio.shared.model.ErrorType
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
@@ -82,7 +91,6 @@ class DistributedEntityProvisionService(
         queryParams.getFirst(QP.TYPE.key) ?: entity.toTypeSelection()
     )
 
-
     suspend fun distributeEntityProvision(
         entity: ExpandedEntity,
         contexts: List<String>,
@@ -106,7 +114,8 @@ class DistributedEntityProvisionService(
             entity,
             contexts,
             result,
-            operation)
+            operation
+        )
         if (entityAfterExclusive == null) return result to null
 
         val entityAfterRedirect = distributeEntityProvisionForContextSources(
@@ -115,7 +124,8 @@ class DistributedEntityProvisionService(
             entityAfterExclusive,
             contexts,
             result,
-            operation)
+            operation
+        )
         if (entityAfterRedirect == null) return result to null
 
         distributeEntityProvisionForContextSources(
@@ -124,7 +134,8 @@ class DistributedEntityProvisionService(
             entityAfterRedirect,
             contexts,
             result,
-            operation)
+            operation
+        )
         return result to entityAfterRedirect
     }
 

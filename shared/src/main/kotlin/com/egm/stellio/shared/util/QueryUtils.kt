@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
@@ -92,6 +93,8 @@ fun String.escapeRegexpPattern(): String =
 fun String.unescapeRegexPattern(): String =
     this.replace("##", "(")
         .replace("§§", ")")
+
+
 
 fun buildTypeQuery(rawQuery: String, columnName: String = "types", target: List<ExpandedTerm>? = null): String =
     rawQuery.replace(typeSelectionRegex) { matchResult ->

@@ -8,7 +8,6 @@ import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
-import com.egm.stellio.search.csr.model.RegistrationInfoFilter
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.queryparameter.QP
@@ -96,8 +95,6 @@ class DistributedEntityProvisionService(
                 typeSelection = typeSelection
             )
         val result = BatchOperationResult()
-        val registrationInfoFilter =
-            RegistrationInfoFilter(ids = setOf(entity.id), entity.types.toSet())
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(
             filters = csrFilters,
@@ -105,7 +102,7 @@ class DistributedEntityProvisionService(
 
         val entityAfterExclusive = distributeEntityProvisionForContextSources(
             matchingCSR[Mode.EXCLUSIVE],
-            registrationInfoFilter,
+            csrFilters,
             entity,
             contexts,
             result,
@@ -114,7 +111,7 @@ class DistributedEntityProvisionService(
 
         val entityAfterRedirect = distributeEntityProvisionForContextSources(
             matchingCSR[Mode.REDIRECT],
-            registrationInfoFilter,
+            csrFilters,
             entityAfterExclusive,
             contexts,
             result,
@@ -123,7 +120,7 @@ class DistributedEntityProvisionService(
 
         distributeEntityProvisionForContextSources(
             matchingCSR[Mode.INCLUSIVE],
-            registrationInfoFilter,
+            csrFilters,
             entityAfterRedirect,
             contexts,
             result,
@@ -133,7 +130,7 @@ class DistributedEntityProvisionService(
 
     internal suspend fun distributeEntityProvisionForContextSources(
         csrs: List<ContextSourceRegistration>?,
-        registrationInfoFilter: RegistrationInfoFilter,
+        csrFilters: CSRFilters,
         entity: ExpandedEntity,
         contexts: List<String>,
         resultToUpdate: BatchOperationResult,
@@ -141,7 +138,7 @@ class DistributedEntityProvisionService(
     ): ExpandedEntity? {
         val allProcessedAttrs = mutableSetOf<ExpandedTerm>()
         csrs?.forEach { csr ->
-            csr.getAssociatedAttributes(registrationInfoFilter, entity)
+            csr.getAssociatedAttributes(csrFilters, entity)
                 .let { attrs ->
                     allProcessedAttrs.addAll(attrs)
                     if (attrs.isEmpty()) Unit

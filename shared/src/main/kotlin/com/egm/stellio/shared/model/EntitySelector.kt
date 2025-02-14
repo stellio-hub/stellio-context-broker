@@ -15,3 +15,31 @@ data class EntitySelector(
     @JsonProperty(value = "type")
     val typeSelection: EntityTypeSelection
 )
+
+val orRegex = "^(.*)[|,](.*)\$".toRegex()
+val andRegex = "^(.*);(.*)\$".toRegex()
+val innerParanthesisRegex ="\\(([^()]*)\\)".toRegex()
+
+fun areTypesInSelection(types: List<ExpandedTerm>, typeSelection: EntityTypeSelection) : Boolean {
+    var processedTypeSelection = typeSelection
+    while(innerParanthesisRegex.containsMatchIn(processedTypeSelection)) {
+        innerParanthesisRegex.find(processedTypeSelection)?.let { matches ->
+            val groups = matches.groups.drop(1)
+            groups.forEach {
+                processedTypeSelection = processedTypeSelection
+                    .replace("(${it!!.value})", areTypesInSelection(types, it.value).toString()) }
+        }
+    }
+
+    orRegex.find(processedTypeSelection)?.let {
+        return areTypesInSelection(types, it.groups[1]!!.value) || areTypesInSelection(types, it.groups[2]!!.value)
+    }
+    andRegex.find(processedTypeSelection)?.let {
+        return areTypesInSelection(types, it.groups[1]!!.value) && areTypesInSelection(types, it.groups[2]!!.value)
+    }
+    processedTypeSelection.toBooleanStrictOrNull()?.let { return it }
+    return types.contains(processedTypeSelection)
+
+}
+
+

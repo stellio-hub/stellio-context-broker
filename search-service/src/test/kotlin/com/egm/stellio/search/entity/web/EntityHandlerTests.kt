@@ -150,6 +150,10 @@ class EntityHandlerTests {
             distributedEntityProvisionService
                 .distributeDeleteEntity(any(), any())
         } answers { BatchOperationResult() }
+        coEvery {
+            distributedEntityProvisionService
+                .distributeReplaceEntity(capture(capturedExpandedEntity), any(), any())
+        } answers { BatchOperationResult() to capturedExpandedEntity.captured }
     }
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()

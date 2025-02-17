@@ -126,7 +126,7 @@ class EntityHandler(
         @PathVariable entityId: URI,
         @AllowedParameters(
             implemented = [QP.OBSERVED_AT],
-            notImplemented = [QP.FORMAT, QP.OPTIONS, QP.LANG, QP.TYPE, QP.LOCAL, QP.VIA]
+            notImplemented = [QP.FORMAT, QP.OPTIONS, QP.TYPE, QP.LANG, QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>,
         @RequestBody requestBody: Mono<String>
@@ -174,9 +174,8 @@ class EntityHandler(
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val expandedEntity = expandJsonLdEntity(body, contexts)
-        val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
-        if (ngsiLdEntity.id != entityId)
+        if (expandedEntity.id != entityId)
             BadRequestDataException("The id contained in the body is not the same as the one provided in the URL")
                 .left().bind<ResponseEntity<*>>()
 
@@ -189,10 +188,10 @@ class EntityHandler(
         if (remainingEntity != null) {
             result.addEither(
                 either {
-                    val localNgsiLdEntity = remainingEntity.toNgsiLdEntity().bind()
+                    val ngsiLdEntity = remainingEntity.toNgsiLdEntity().bind()
                     entityService.replaceEntity(
                         entityId,
-                        localNgsiLdEntity,
+                        ngsiLdEntity,
                         expandedEntity,
                         sub.getOrNull()
                     ).bind()
@@ -222,10 +221,9 @@ class EntityHandler(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY,
-                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID,
-                QP.PICK // not implemented but needed for interoperability
+                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID
             ],
-            notImplemented = [QP.OMIT, QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
+            notImplemented = [QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {

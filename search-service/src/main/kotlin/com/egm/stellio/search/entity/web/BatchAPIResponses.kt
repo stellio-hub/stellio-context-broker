@@ -6,7 +6,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toErrorResponse
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCAL
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
@@ -40,7 +40,7 @@ data class BatchOperationResult(
     fun addEither(either: Either<APIException, *>, entityId: URI, csrId: URI? = null) {
         either.fold(
             { this.errors.add(BatchEntityError(entityId, it.toProblemDetail(), csrId)) },
-            { this.success.add(BatchEntitySuccess(csrId ?: NGSILD_NULL.toUri())) }
+            { this.success.add(BatchEntitySuccess(csrId ?: NGSILD_LOCAL)) }
         )
     }
 

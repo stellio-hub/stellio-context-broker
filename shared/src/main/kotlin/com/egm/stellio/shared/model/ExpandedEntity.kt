@@ -67,10 +67,10 @@ data class ExpandedEntity(
      */
     fun populateReplacementTimeDates(createdAt: ZonedDateTime, replacedAt: ZonedDateTime): ExpandedEntity =
         ExpandedEntity(
-            members = members.mapValues { (key, value) ->
-                if (JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(key))
-                    value
-                else castAttributeValue(value).map { expandedAttributeInstance ->
+            members = members.mapValues {
+                if (JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
+                    it.value
+                else castAttributeValue(it.value).map { expandedAttributeInstance ->
                     expandedAttributeInstance.addDateTimeProperty(
                         NGSILD_CREATED_AT_PROPERTY,
                         replacedAt

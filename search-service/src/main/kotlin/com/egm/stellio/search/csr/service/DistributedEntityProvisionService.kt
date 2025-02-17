@@ -215,11 +215,7 @@ class DistributedEntityProvisionService(
                     detail = response ?: "no message"
                 ).left()
             } else if (statusCode.is2xxSuccessful) {
-                logger.info(
-                    "" +
-                        "" +
-                        "Successfully post data to CSR ${csr.id} at $uri"
-                )
+                logger.info("Successfully post data to CSR ${csr.id} at $uri")
                 Unit.right()
             } else if (response == null) {
                 val message = "No error message received from CSR ${csr.id} at $uri"

@@ -242,10 +242,10 @@ enum class Operation(
         setOf(FEDERATION_OPS)
     );
 
-    fun getMatchingOperations() = matchingOperationGroups + this
-    fun getPath(entityId: URI? = null, attrId: String = "") = path?.pattern
-        ?.replace(entityIdPlaceHolder, entityId.toString())
-        ?.replace(attributeIdPlaceHolder, attrId)
+    fun getMatchingOperations(): Set<Operation> = matchingOperationGroups + this
+    fun getPath(entityId: URI? = null, attrId: String? = null): String = path!!.pattern
+        .replace(entityIdPlaceHolder, entityId?.toString() ?: "")
+        .replace(attributeIdPlaceHolder, attrId ?: "")
 
     companion object {
         fun fromString(operation: String): Operation? =

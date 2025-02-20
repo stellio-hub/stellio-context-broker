@@ -117,8 +117,10 @@ class EntityService(
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         databaseClient.sql(
             """
-            INSERT INTO entity_payload (entity_id, types, scopes, created_at, payload, specific_access_policy)
-            VALUES (:entity_id, :types, :scopes, :created_at, :payload, :specific_access_policy)
+            INSERT INTO entity_payload
+                (entity_id, types, scopes, created_at, modified_at, payload, specific_access_policy)
+            VALUES
+                (:entity_id, :types, :scopes, :created_at, :created_at ,:payload, :specific_access_policy)
             ON CONFLICT (entity_id)
                 DO UPDATE SET types = :types,
                     scopes = :scopes,

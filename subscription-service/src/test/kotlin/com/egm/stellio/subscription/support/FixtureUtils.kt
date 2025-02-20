@@ -14,8 +14,6 @@ import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.utils.ParsingUtils
-import java.time.Instant
-import java.time.ZoneOffset
 
 fun loadAndDeserializeSubscription(filename: String, contexts: List<String> = APIC_COMPOUND_CONTEXTS): Subscription {
     val subscriptionPayload = loadSampleData(filename)
@@ -40,7 +38,6 @@ fun gimmeRawSubscription(
     withQueryAndGeoQuery: Pair<Boolean, Boolean> = Pair(true, true),
     withEndpointReceiverInfo: Boolean = true,
     withNotifParams: Pair<FormatType, List<String>> = Pair(FormatType.NORMALIZED, emptyList()),
-    withModifiedAt: Boolean = false,
     georel: String = "within",
     geometry: String = "Polygon",
     coordinates: String = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
@@ -70,11 +67,9 @@ fun gimmeRawSubscription(
         else
             null
 
-    val modifiedAtValue = if (withModifiedAt) Instant.now().atZone(ZoneOffset.UTC) else null
     return Subscription(
         type = NGSILD_SUBSCRIPTION_TERM,
         subscriptionName = "My Subscription",
-        modifiedAt = modifiedAtValue,
         description = "My beautiful subscription",
         q = q,
         timeInterval = timeInterval,

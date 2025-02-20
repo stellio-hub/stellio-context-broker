@@ -158,7 +158,7 @@ class DistributedEntityProvisionService(
                             sendDistributedInformation(
                                 compactEntity(entity.filterAttributes(attrs, emptySet()), contexts),
                                 csr,
-                                operation.getPath(entity.id)!!,
+                                operation.getPath(entity.id),
                                 operation.method!!
                             ),
                             entity.id,

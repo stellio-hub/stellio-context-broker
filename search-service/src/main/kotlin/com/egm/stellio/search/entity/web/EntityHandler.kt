@@ -180,7 +180,7 @@ class EntityHandler(
                 .left().bind<ResponseEntity<*>>()
 
         val (result, remainingEntity) =
-            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != false) {
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
                 distributedEntityProvisionService
                     .distributeReplaceEntity(expandedEntity, contexts, queryParams)
             } else BatchOperationResult() to expandedEntity

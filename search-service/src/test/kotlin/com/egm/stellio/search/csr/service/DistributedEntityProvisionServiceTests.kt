@@ -98,6 +98,59 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     private val contexts = listOf(APIC_COMPOUND_CONTEXT)
 
     @Test
+    fun `distributeCreateEntity should call distributeEntityProvision`() = runTest {
+        val csr = spyk(gimmeRawCSR())
+        val entity = expandJsonLdEntity(entity)
+
+        coEvery {
+            csr.getAssociatedAttributes(any(), any())
+        } returns setOf(NGSILD_NAME_PROPERTY)
+        coEvery {
+            distributedEntityProvisionService.distributeEntityProvision(any(), any(), any(), any())
+        } returns (BatchOperationResult() to entity)
+
+        distributedEntityProvisionService.distributeCreateEntity(
+            entity,
+            contexts
+        )
+
+        coEvery {
+            distributedEntityProvisionService.distributeEntityProvision(
+                entity,
+                contexts,
+                Operation.CREATE_ENTITY,
+                entity.toTypeSelection())
+        } returns (BatchOperationResult() to entity)
+    }
+
+    @Test
+    fun `distributeReplaceEntity should call distributeEntityProvision`() = runTest {
+        val csr = spyk(gimmeRawCSR())
+        val entity = expandJsonLdEntity(entity)
+
+        coEvery {
+            csr.getAssociatedAttributes(any(), any())
+        } returns setOf(NGSILD_NAME_PROPERTY)
+        coEvery {
+            distributedEntityProvisionService.distributeEntityProvision(any(), any(), any(), any())
+        } returns (BatchOperationResult() to entity)
+
+        distributedEntityProvisionService.distributeReplaceEntity(
+            entity,
+            contexts,
+            LinkedMultiValueMap()
+        )
+
+        coEvery {
+            distributedEntityProvisionService.distributeEntityProvision(
+                entity,
+                contexts,
+                Operation.UPDATE_ENTITY,
+                entity.toTypeSelection())
+        } returns (BatchOperationResult() to entity)
+    }
+
+    @Test
     fun `distributeDeleteEntity should return the received errors`() = runTest {
         val firstExclusiveCsr = gimmeRawCSR(mode = Mode.EXCLUSIVE, operations = listOf(Operation.DELETE_ENTITY))
         val firstRedirectCsr = gimmeRawCSR(mode = Mode.REDIRECT, operations = listOf(Operation.REDIRECTION_OPS))
@@ -140,7 +193,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources  should return the remainingEntity`() = runTest {
+    fun `distributeEntityProvisionForContextSources  should return the remainingEntity`() = runTest {
         val firstExclusiveCsr = gimmeRawCSR(id = "id:exclusive:1".toUri(), mode = Mode.EXCLUSIVE)
         val firstRedirectCsr = gimmeRawCSR(id = "id:redirect:1".toUri(), mode = Mode.REDIRECT)
         val firstInclusiveCsr = gimmeRawCSR(id = "id:inclusive:1".toUri(), mode = Mode.INCLUSIVE)
@@ -199,7 +252,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources should update the result`() = runTest {
+    fun `distributeEntityProvisionForContextSources should update the result`() = runTest {
         val csr = spyk(gimmeRawCSR(operations = listOf(Operation.REDIRECTION_OPS)))
         val firstURI = URI("id:1")
         val secondURI = URI("id:2")
@@ -236,7 +289,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources should return null if whole entity has been processed`() = runTest {
+    fun `distributeEntityProvisionForContextSources should return null if whole entity has been processed`() = runTest {
         val csr = spyk(gimmeRawCSR())
         coEvery {
             csr.getAssociatedAttributes(any(), any())
@@ -259,7 +312,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources should return only non processed attributes`() = runTest {
+    fun `distributeEntityProvisionForContextSources should return only non processed attributes`() = runTest {
         val csr = spyk(gimmeRawCSR())
         coEvery {
             csr.getAssociatedAttributes(any(), any())
@@ -283,7 +336,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources should remove the attrs even when the csr is in error`() = runTest {
+    fun `distributeEntityProvisionForContextSources should remove the attrs even when the csr is in error`() = runTest {
         val csr = spyk(gimmeRawCSR())
 
         coEvery {

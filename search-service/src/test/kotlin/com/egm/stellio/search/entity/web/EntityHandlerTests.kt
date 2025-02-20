@@ -82,6 +82,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
@@ -1537,6 +1538,57 @@ class EntityHandlerTests {
                 }
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `replace entity should return the result from the BatchApiResponse`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+        val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
+        val capturedExpandedEntity = slot<ExpandedEntity>()
+        val result = mockkClass(BatchOperationResult::class, relaxed = true)
+        val response = "test response"
+        coEvery {
+            entityService.replaceEntity(breedingServiceId, any(), any(), sub.getOrNull())
+        } returns Unit.right()
+
+        every { result.addEither(any(), any(), any()) } returns  Unit
+
+        every {
+            result.toNonBatchEndpointResponse(any(), any())
+        } returns ResponseEntity.status(HttpStatus.MULTI_STATUS).body(response)
+
+        coEvery {
+            distributedEntityProvisionService
+                .distributeReplaceEntity(capture(capturedExpandedEntity), any(), any())
+        } answers { result to capturedExpandedEntity.captured }
+
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$breedingServiceId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(207)
+            .expectBody().equals(response)
+
+        coVerify { result.addEither(any(), any()) }
+        coVerify { result.toNonBatchEndpointResponse(any(), any()) }
+    }
+
+    @Test
+    fun `replace entity should not call distribution if local is true`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+        val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
+
+        coEvery {
+            entityService.replaceEntity(breedingServiceId, any(), any(), sub.getOrNull())
+        } returns Unit.right()
+
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$breedingServiceId?local=true")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify(exactly = 0) {  distributedEntityProvisionService.distributeReplaceEntity(any(), any(), any())}
     }
 
     @Test

@@ -94,7 +94,7 @@ data class ExpandedEntity(
             as List<ExpandedTerm>
     }
 
-    fun toTypeSelection() = types.joinToString { "|" }
+    fun toTypeSelection() = types.joinToString("|")
 
     private fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =
         if (dateTime != null)

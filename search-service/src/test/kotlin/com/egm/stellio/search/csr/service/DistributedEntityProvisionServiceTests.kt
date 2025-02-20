@@ -119,7 +119,8 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
                 entity,
                 contexts,
                 Operation.CREATE_ENTITY,
-                entity.toTypeSelection())
+                entity.toTypeSelection()
+            )
         } returns (BatchOperationResult() to entity)
     }
 
@@ -146,7 +147,8 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
                 entity,
                 contexts,
                 Operation.UPDATE_ENTITY,
-                entity.toTypeSelection())
+                entity.toTypeSelection()
+            )
         } returns (BatchOperationResult() to entity)
     }
 

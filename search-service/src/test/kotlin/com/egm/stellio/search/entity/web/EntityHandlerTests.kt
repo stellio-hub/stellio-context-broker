@@ -1551,7 +1551,7 @@ class EntityHandlerTests {
             entityService.replaceEntity(breedingServiceId, any(), any(), sub.getOrNull())
         } returns Unit.right()
 
-        every { result.addEither(any(), any(), any()) } returns  Unit
+        every { result.addEither(any(), any(), any()) } returns Unit
 
         every {
             result.toNonBatchEndpointResponse(any(), any())
@@ -1588,7 +1588,7 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        coVerify(exactly = 0) {  distributedEntityProvisionService.distributeReplaceEntity(any(), any(), any())}
+        coVerify(exactly = 0) { distributedEntityProvisionService.distributeReplaceEntity(any(), any(), any()) }
     }
 
     @Test

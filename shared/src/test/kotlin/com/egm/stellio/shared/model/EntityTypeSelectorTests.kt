@@ -24,7 +24,7 @@ class EntityTypeSelectorTests {
         "'type2,type5', 'type1,(type2;(type3|(type4;type5)))', false",
         "'type4,type5', 'type1,(type2;(type3|(type4;type5)))', false",
     )
-    fun `it should process entityTypesSelection correctly`(
+    fun `it should correctly find if a list of types matches an Entity Type Selection`(
         typeString: String,
         entityTypeSelection: EntityTypeSelection,
         result: String

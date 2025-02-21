@@ -20,6 +20,12 @@
             "@value": "2023-08-20T15:44:10.381090Z"
           }
         ],
+        "https://uri.etsi.org/ngsi-ld/modifiedAt": [
+          {
+            "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+            "@value": "2023-08-20T15:44:10.381090Z"
+          }
+        ],
       "https://uri.etsi.org/ngsi-ld/hasValue": [
         {
           "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
@@ -61,6 +67,12 @@
           "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
           "@value": "2020-01-24T14:01:22.066Z"
         }
+      ],
+      "https://uri.etsi.org/ngsi-ld/modifiedAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2023-08-20T15:44:10.381090Z"
+        }
       ]
     }
   ],
@@ -75,6 +87,12 @@
           "@value": "2023-08-20T15:44:10.381090Z"
         }
       ],
+    "https://uri.etsi.org/ngsi-ld/modifiedAt": [
+      {
+        "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+        "@value": "2023-08-20T15:44:10.381090Z"
+      }
+    ],
       "https://uri.etsi.org/ngsi-ld/hasObject": [
         {
           "@id": "urn:ngsi-ld:Beekeeper:Pascal"
@@ -88,6 +106,12 @@
         "https://uri.etsi.org/ngsi-ld/Property"
       ],
       "https://uri.etsi.org/ngsi-ld/createdAt": [
+        {
+          "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+          "@value": "2023-08-20T15:44:10.381090Z"
+        }
+      ],
+      "https://uri.etsi.org/ngsi-ld/modifiedAt": [
         {
           "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
           "@value": "2023-08-20T15:44:10.381090Z"

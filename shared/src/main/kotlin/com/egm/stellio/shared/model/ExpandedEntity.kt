@@ -55,7 +55,7 @@ data class ExpandedEntity(
                 else castAttributeValue(it.value).map { expandedAttributeInstance ->
                     expandedAttributeInstance
                         .addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)
-                        .addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)
+                        .addDateTimeProperty(NGSILD_MODIFIED_AT_PROPERTY, createdAt)
                         as ExpandedAttributeInstance
                 }
             }.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)

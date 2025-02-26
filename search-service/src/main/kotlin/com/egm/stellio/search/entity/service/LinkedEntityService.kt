@@ -46,7 +46,7 @@ class LinkedEntityService(
         sub: Sub?
     ): Either<APIException, List<CompactedEntity>> = either {
         val linkedEntityQuery = entitiesQuery.linkedEntityQuery
-        if (linkedEntityQuery == null || linkedEntityQuery.join == JoinType.NONE)
+        if (linkedEntityQuery == null || linkedEntityQuery.join == JoinType.NONE || compactedEntities.isEmpty())
             return compactedEntities.right()
 
         enrichWithLinkedEntities(compactedEntities, linkedEntityQuery, entitiesQuery.contexts, 1.toUInt(), sub).bind()

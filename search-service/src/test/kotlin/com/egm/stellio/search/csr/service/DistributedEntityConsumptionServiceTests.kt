@@ -2,6 +2,7 @@ package com.egm.stellio.search.csr.service
 
 import arrow.core.left
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
+import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
@@ -115,6 +116,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         val response = distributedEntityConsumptionService.queryEntitiesFromContextSource(
             HttpHeaders.EMPTY,
             csr,
+            CSRFilters(),
             emptyParams
         ).getOrNull()
         assertNotNull(response)
@@ -137,6 +139,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         val response = distributedEntityConsumptionService.queryEntitiesFromContextSource(
             HttpHeaders.EMPTY,
             csr,
+            CSRFilters(),
             emptyParams
         )
 
@@ -155,7 +158,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
             } returns listOf(csr, csr)
 
             coEvery {
-                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any())
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), any())
             } returns MiscellaneousWarning(
                 "message with\nline\nbreaks",
                 csr
@@ -191,6 +194,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         val response = distributedEntityConsumptionService.retrieveEntityFromContextSource(
             HttpHeaders.EMPTY,
             csr,
+            CSRFilters(),
             apiaryId.toUri(),
             emptyParams
         )
@@ -212,6 +216,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         val response = distributedEntityConsumptionService.retrieveEntityFromContextSource(
             HttpHeaders.EMPTY,
             csr,
+            CSRFilters(),
             apiaryId.toUri(),
             emptyParams
         )
@@ -231,7 +236,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
             } returns listOf(csr, csr)
 
             coEvery {
-                distributedEntityConsumptionService.retrieveEntityFromContextSource(any(), any(), any(), any())
+                distributedEntityConsumptionService.retrieveEntityFromContextSource(any(), any(), any(), any(), any())
             } returns MiscellaneousWarning(
                 "message with\nline\nbreaks",
                 csr
@@ -253,8 +258,8 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
     fun `getDistributedInformation should return a MiscellaneousWarning if it receives no answer`() = runTest {
         val csr = gimmeRawCSR().copy(endpoint = "http://localhost:invalid".toUri())
         val path = "/ngsi-ld/v1/entities/$apiaryId"
-        val response =
-            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response = distributedEntityConsumptionService
+            .getDistributedInformation(HttpHeaders.EMPTY, csr, CSRFilters(), path, emptyParams)
 
         assertTrue(response.isLeft())
         assertInstanceOf(MiscellaneousWarning::class.java, response.leftOrNull())
@@ -269,8 +274,8 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 .willReturn(unauthorized())
         )
 
-        val response =
-            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response = distributedEntityConsumptionService
+            .getDistributedInformation(HttpHeaders.EMPTY, csr, CSRFilters(), path, emptyParams)
 
         assertTrue(response.isLeft())
         assertInstanceOf(MiscellaneousPersistentWarning::class.java, response.leftOrNull())
@@ -286,7 +291,13 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         )
 
         val response =
-            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+            distributedEntityConsumptionService.getDistributedInformation(
+                HttpHeaders.EMPTY,
+                csr,
+                CSRFilters(),
+                path,
+                emptyParams
+            )
 
         assertTrue(response.isRight())
         assertNull(response.getOrNull()!!.first)
@@ -305,6 +316,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         distributedEntityConsumptionService.getDistributedInformation(
             header,
             csr,
+            CSRFilters(),
             path,
             emptyParams
         )
@@ -326,6 +338,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         distributedEntityConsumptionService.getDistributedInformation(
             HttpHeaders.EMPTY,
             csr,
+            CSRFilters(),
             path,
             params
         )

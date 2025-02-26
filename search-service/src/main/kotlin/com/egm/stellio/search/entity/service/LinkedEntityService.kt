@@ -46,7 +46,7 @@ class LinkedEntityService(
         sub: Sub?
     ): Either<APIException, List<CompactedEntity>> = either {
         val linkedEntityQuery = entitiesQuery.linkedEntityQuery
-        if (linkedEntityQuery == null || linkedEntityQuery.join == JoinType.NONE || compactedEntities.isEmpty())
+        if (linkedEntityQuery == null || linkedEntityQuery.join == JoinType.NONE)
             return compactedEntities.right()
 
         enrichWithLinkedEntities(compactedEntities, linkedEntityQuery, entitiesQuery.contexts, 1.toUInt(), sub).bind()
@@ -59,7 +59,7 @@ class LinkedEntityService(
         currentLevel: UInt,
         sub: Sub?
     ): Either<APIException, List<CompactedEntity>> = either {
-        if (currentLevel > linkedEntityQuery.joinLevel)
+        if (currentLevel > linkedEntityQuery.joinLevel || compactedEntities.isEmpty())
             return compactedEntities.right()
 
         val linkedUris = compactedEntities.getRelationshipsObjects()

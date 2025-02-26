@@ -13,6 +13,7 @@ import com.egm.stellio.search.entity.web.JsonLdNgsiLdEntity
 import com.egm.stellio.search.entity.web.entityId
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.Sub
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -90,7 +91,7 @@ class EntityOperationService(
                 entityService.createEntity(jsonLdNgsiLdEntity.second, jsonLdNgsiLdEntity.first, sub).map {
                     BatchEntitySuccess(jsonLdNgsiLdEntity.entityId())
                 }.mapLeft { apiException ->
-                    BatchEntityError(jsonLdNgsiLdEntity.entityId(), arrayListOf(apiException.message))
+                    BatchEntityError(jsonLdNgsiLdEntity.entityId(), apiException.toProblemDetail())
                 }.bind()
             }
         }.fold(
@@ -114,7 +115,7 @@ class EntityOperationService(
                         BatchEntitySuccess(id)
                     }
                     .mapLeft { apiException ->
-                        BatchEntityError(id, arrayListOf(apiException.message))
+                        BatchEntityError(id, apiException.toProblemDetail())
                     }.bind()
             }
         }.fold(
@@ -242,10 +243,10 @@ class EntityOperationService(
             }.map {
                 BatchEntitySuccess(entity.entityId(), it)
             }.mapLeft {
-                BatchEntityError(entity.entityId(), arrayListOf(it.message))
+                BatchEntityError(entity.entityId(), it.toProblemDetail())
             }
         }.fold(
-            onFailure = { BatchEntityError(entity.entityId(), arrayListOf(it.message!!)).left() },
+            onFailure = { BatchEntityError(entity.entityId(), it.toAPIException().toProblemDetail()).left() },
             onSuccess = { it }
         )
 

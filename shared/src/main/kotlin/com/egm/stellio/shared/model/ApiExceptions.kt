@@ -2,6 +2,9 @@ package com.egm.stellio.shared.model
 
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.toUri
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -13,26 +16,95 @@ const val DEFAULT_DETAIL = "If you have difficulty identifying the exact cause o
     "please check the list of some usual causes on https://stellio.readthedocs.io/en/latest/TROUBLESHOOT.html . " +
     "If the error is still not clear or if you think it is a bug, feel free to open an issue on " +
     "https://github.com/stellio-hub/stellio-context-broker"
+const val TYPE_PROPERTY = "type"
+const val TITLE_PROPERTY = "title"
+const val STATUS_PROPERTY = "status"
+const val DETAIL_PROPERTY = "detail"
 
 sealed class APIException(
-    val type: URI,
-    val status: HttpStatus,
+    open val type: URI,
+    open val status: HttpStatus,
     override val message: String,
     open val detail: String = DEFAULT_DETAIL
 ) : Exception(message) {
-    private val logger = LoggerFactory.getLogger(javaClass)
 
     fun toProblemDetail(): ProblemDetail = ProblemDetail.forStatusAndDetail(status, this.detail).also {
         it.title = this.message
         it.type = this.type
     }
     fun toErrorResponse(): ResponseEntity<ProblemDetail> {
-        logger.info("Returning error ${this.type} (${this.message})")
-        return ResponseEntity.status(status)
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(toProblemDetail())
+        return toProblemDetail().toErrorResponse()
+    }
+
+    companion object {
+        val logger: Logger = LoggerFactory.getLogger(APIException::class.java)
     }
 }
+
+fun ProblemDetail.toErrorResponse(): ResponseEntity<ProblemDetail> {
+    APIException.logger.info("Returning error ${this.type} (${this.title})")
+    return ResponseEntity.status(this.status)
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(this)
+}
+
+data class ContextSourceException(
+    override val type: URI,
+    override val status: HttpStatus,
+    val title: String,
+    override val detail: String
+) : APIException(
+    type = type,
+    status = status,
+    message = title,
+    detail = detail,
+) {
+    companion object {
+        fun fromResponse(response: String): ContextSourceException =
+            kotlin.runCatching {
+                val responseMap = response.deserializeAsMap()
+                // mandatory
+                val type = responseMap[TYPE_PROPERTY].toString().toUri()
+                val title = responseMap[TITLE_PROPERTY]!!.toString()
+
+                // optional
+                val status = responseMap[STATUS_PROPERTY]?.let { HttpStatus.valueOf(it as Int) }
+                val detail = responseMap[DETAIL_PROPERTY]?.toString()
+
+                ContextSourceException(
+                    type = type,
+                    status = status ?: HttpStatus.BAD_GATEWAY,
+                    title = title,
+                    detail = detail ?: "The context source provided no additional detail about the error"
+                )
+            }.fold({ it }, {
+                ContextSourceException(
+                    ErrorType.BAD_GATEWAY.type,
+                    HttpStatus.BAD_GATEWAY,
+                    "The context source sent a badly formed error",
+                    response
+                )
+            })
+    }
+}
+
+data class ConflictException(override val message: String) : APIException(
+    ErrorType.CONFLICT.type,
+    HttpStatus.CONFLICT,
+    message
+)
+
+data class GatewayTimeoutException(override val message: String) : APIException(
+    ErrorType.GATEWAY_TIMEOUT.type,
+    HttpStatus.GATEWAY_TIMEOUT,
+    message
+)
+
+data class BadGatewayException(override val message: String) : APIException(
+    ErrorType.BAD_GATEWAY.type,
+    HttpStatus.BAD_GATEWAY,
+    message
+)
 
 data class AlreadyExistsException(override val message: String) : APIException(
     ErrorType.ALREADY_EXISTS.type,
@@ -138,6 +210,10 @@ enum class ErrorType(val type: URI) {
     INVALID_REQUEST(URI("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest")),
     BAD_REQUEST_DATA(URI("https://uri.etsi.org/ngsi-ld/errors/BadRequestData")),
     ALREADY_EXISTS(URI("https://uri.etsi.org/ngsi-ld/errors/AlreadyExists")),
+    CONFLICT(URI("https://uri.etsi.org/ngsi-ld/errors/Conflict")),
+    MULTI_STATUS(URI("https://uri.etsi.org/ngsi-ld/errors/MultiStatus")),
+    BAD_GATEWAY(URI("https://uri.etsi.org/ngsi-ld/errors/BadGateway")), // defined only in 6.3.17
+    GATEWAY_TIMEOUT(URI("https://uri.etsi.org/ngsi-ld/errors/GatewayTimeout")), // defined only in 6.3.17
     OPERATION_NOT_SUPPORTED(URI("https://uri.etsi.org/ngsi-ld/errors/OperationNotSupported")),
     RESOURCE_NOT_FOUND(URI("https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound")),
     INTERNAL_ERROR(URI("https://uri.etsi.org/ngsi-ld/errors/InternalError")),

@@ -215,15 +215,22 @@ class ContextSourceRegistrationService(
             .allToMappedList { rowToContextSourceRegistration(it) }
     }
 
-    suspend fun getContextSourceRegistrationsCount(sub: Option<Sub>): Either<APIException, Int> {
+    suspend fun getContextSourceRegistrationsCount(
+        filters: CSRFilters = CSRFilters(),
+    ): Either<APIException, Int> {
+        val filterQuery = buildWhereStatement(filters)
+
         val selectStatement =
             """
-            SELECT count(*)
-            FROM context_source_registration
-            WHERE sub = :sub
+            SELECT count(distinct csr.id)
+            FROM context_source_registration as csr
+            LEFT JOIN jsonb_to_recordset(information)
+                as information(entities jsonb, propertyNames text[], relationshipNames text[]) on true
+            LEFT JOIN jsonb_to_recordset(entities)
+                as entity_info(id text, idPattern text, type text[]) on true
+            WHERE $filterQuery
             """.trimIndent()
         return databaseClient.sql(selectStatement)
-            .bind("sub", sub.toStringValue())
             .oneToResult { toInt(it["count"]) }
     }
 

@@ -7,6 +7,7 @@ import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
+import com.egm.stellio.search.csr.service.DistributedEntityProvisionService
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateResult
@@ -18,7 +19,9 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.ConflictException
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
+import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NgsiLdEntity
@@ -110,6 +113,9 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var distributedEntityConsumptionService: DistributedEntityConsumptionService
 
+    @MockkBean
+    private lateinit var distributedEntityProvisionService: DistributedEntityProvisionService
+
     @MockkBean(relaxed = true)
     private lateinit var linkedEntityService: LinkedEntityService
 
@@ -126,7 +132,7 @@ class EntityHandlerTests {
     }
 
     @BeforeEach
-    fun mockCSR() {
+    fun mockNoCSR() {
         coEvery {
             distributedEntityConsumptionService
                 .distributeRetrieveEntityOperation(any(), any(), any())
@@ -135,6 +141,15 @@ class EntityHandlerTests {
             distributedEntityConsumptionService
                 .distributeQueryEntitiesOperation(any(), any(), any())
         } returns Triple(emptyList(), emptyList(), emptyList())
+        val capturedExpandedEntity = slot<ExpandedEntity>()
+        coEvery {
+            distributedEntityProvisionService
+                .distributeCreateEntity(capture(capturedExpandedEntity), any())
+        } answers { BatchOperationResult() to capturedExpandedEntity.captured }
+        coEvery {
+            distributedEntityProvisionService
+                .distributeDeleteEntity(any(), any())
+        } answers { BatchOperationResult() }
     }
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
@@ -324,7 +339,7 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
-                    "title": "The ['invalid'] parameters are not allowed on this endpoint. This endpoint does not accept any query parameters. ",
+                    "title": "The ['invalid'] parameters are not allowed on this endpoint. Accepted query parameters are 'local'. ",
                     "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
@@ -336,7 +351,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entities?local=true")
+            .uri("/ngsi-ld/v1/entities?Via=true")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(501)
@@ -344,7 +359,99 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
-                    "title": "The ['local'] parameters have not been implemented yet. This endpoint does not accept any query parameters. ",
+                    "title": "The ['Via'] parameters have not been implemented yet. Accepted query parameters are 'local'. ",
+                    "detail": "$DEFAULT_DETAIL"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `create entity should return a 207 if some contextSources failed`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+        val capturedExpandedEntity = slot<ExpandedEntity>()
+
+        val error = BatchEntityError(
+            entityId = "urn:ngsi-ld:BreedingService:0214".toUri(),
+            error = ConflictException("error").toProblemDetail(),
+            registrationId = "id:2".toUri()
+        )
+        val firstResult = BatchOperationResult(
+            mutableListOf(BatchEntitySuccess("id:1".toUri())),
+            mutableListOf(error)
+        )
+        coEvery {
+            distributedEntityProvisionService
+                .distributeCreateEntity(capture(capturedExpandedEntity), any())
+        } answers {
+            firstResult to capturedExpandedEntity.captured
+        }
+        coEvery {
+            entityService.createEntity(any(), any(), sub.getOrNull())
+        } returns AccessDeniedException("User forbidden to create entities").left()
+
+        val expectedJson = """
+                {
+                    "success": ["id:1"],
+                    "errors":[
+                        {
+                            "entityId":"urn:ngsi-ld:BreedingService:0214",
+                            "error":{
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/Conflict",
+                                "title": "error"
+                            },
+                            "registrationId": "id:2"
+                        },
+                        {
+                            "entityId":"urn:ngsi-ld:BreedingService:0214",
+                            "error":{
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                                "title": "User forbidden to create entities"
+                            },
+                            "registrationId":null
+                        }
+                    ]
+                }
+        """.trimIndent()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(207)
+            .expectBody().json(expectedJson)
+    }
+
+    @Test
+    fun `create entity should return a 409 if a context source containing all the information returned a conflict`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
+        val capturedExpandedEntity = slot<ExpandedEntity>()
+
+        val error = BatchEntityError(
+            entityId = "entity:1".toUri(),
+            error = ConflictException("my test message").toProblemDetail(),
+            registrationId = "i:2".toUri()
+        )
+        val result = BatchOperationResult(
+            mutableListOf(),
+            mutableListOf(error)
+        )
+        coEvery {
+            distributedEntityProvisionService
+                .distributeCreateEntity(capture(capturedExpandedEntity), any())
+        } answers {
+            result to null
+        }
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(409)
+            .expectBody().json(
+                """
+                {
+                    "type": "${ErrorType.CONFLICT.type}",
+                    "title": "my test message",
                     "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
@@ -532,7 +639,7 @@ class EntityHandlerTests {
         ).right()
 
         val expectedMessage = entityOrAttrsNotFoundMessage(
-            beehiveId.toString(),
+            beehiveId,
             setOf("https://uri.etsi.org/ngsi-ld/default-context/attr2")
         )
         webClient.get()
@@ -1283,7 +1390,7 @@ class EntityHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query",
+                    "title": "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query unless local is true",
                     "detail": "$DEFAULT_DETAIL"
                 }
                 """.trimIndent()
@@ -2326,6 +2433,56 @@ class EntityHandlerTests {
                 }
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `delete entity should return a 207 if some contextSources failed`() {
+        val error = BatchEntityError(
+            entityId = "urn:ngsi-ld:BreedingService:0214".toUri(),
+            error = ConflictException("error").toProblemDetail(),
+            registrationId = "id:2".toUri()
+        )
+        val firstResult = BatchOperationResult(
+            mutableListOf(BatchEntitySuccess("id:1".toUri())),
+            mutableListOf(error)
+        )
+        coEvery {
+            distributedEntityProvisionService.distributeDeleteEntity(any(), any())
+        } returns firstResult
+
+        coEvery {
+            entityService.deleteEntity(any(), sub.getOrNull())
+        } returns AccessDeniedException("User forbidden to delete entities").left()
+
+        val expectedJson = """
+                {
+                    "success": ["id:1"],
+                    "errors":[
+                        {
+                            "entityId":"urn:ngsi-ld:BreedingService:0214",
+                            "error":{
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/Conflict",
+                                "title": "error"
+                            },
+                            "registrationId": "id:2"
+                        },
+                        {
+                            "entityId":"urn:ngsi-ld:BreedingService:0214",
+                            "error":{
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                                "title": "User forbidden to delete entities"
+                            },
+                            "registrationId":null
+                        }
+                    ]
+                }
+        """.trimIndent()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BreedingService:0214")
+            .exchange()
+            .expectStatus().isEqualTo(207)
+            .expectBody().json(expectedJson)
     }
 
     @Test

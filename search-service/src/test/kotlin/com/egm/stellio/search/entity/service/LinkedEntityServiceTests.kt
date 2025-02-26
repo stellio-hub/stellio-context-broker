@@ -136,6 +136,24 @@ class LinkedEntityServiceTests {
     }
 
     @Test
+    fun `it should return an empty list if no entities are provided in the input`() = runTest {
+        val compactedEntities = linkedEntityService.processLinkedEntities(
+            emptyList(),
+            EntitiesQueryFromGet(
+                paginationQuery = PaginationQuery(0, 100),
+                contexts = NGSILD_TEST_CORE_CONTEXTS
+            ),
+            null
+        ).shouldSucceedAndResult()
+
+        assertEquals(0, compactedEntities.size)
+
+        coVerify {
+            entityQueryService.queryEntities(any(), any<Sub>()) wasNot Called
+        }
+    }
+
+    @Test
     fun `it should flatten lists of linking and linked entities`() = runTest {
         val linkedEntity01 = """
             {

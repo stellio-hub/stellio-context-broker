@@ -52,7 +52,7 @@ class TemporalQueryService(
         val attributes = entityAttributeService.getForEntity(entityId, attrs, datasetIds, false).let {
             if (it.isEmpty())
                 ResourceNotFoundException(
-                    entityOrAttrsNotFoundMessage(entityId.toString(), temporalEntitiesQuery.entitiesQuery.attrs)
+                    entityOrAttrsNotFoundMessage(entityId, temporalEntitiesQuery.entitiesQuery.attrs)
                 ).left()
             else it.right()
         }.bind()

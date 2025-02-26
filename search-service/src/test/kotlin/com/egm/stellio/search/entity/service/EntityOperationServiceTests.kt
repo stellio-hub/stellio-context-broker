@@ -9,6 +9,7 @@ import com.egm.stellio.search.entity.web.BatchEntityError
 import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.entity.web.JsonLdNgsiLdEntity
+import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
@@ -58,13 +59,13 @@ class EntityOperationServiceTests {
     @BeforeEach
     fun initNgsiLdEntitiesMocks() {
         firstExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) {
-            every { id } returns firstEntityURI.toString()
+            every { id } returns firstEntityURI
             every { members } returns emptyMap()
         }
         firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns firstEntityURI
         secondExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) {
-            every { id } returns secondEntityURI.toString()
+            every { id } returns secondEntityURI
             every { members } returns emptyMap()
         }
         secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
@@ -126,12 +127,14 @@ class EntityOperationServiceTests {
 
     @Test
     fun `processEntities should count as error a process which raises a BadRequestDataException`() = runTest {
+        val error = BadRequestDataException("error")
+
         coEvery {
             entityService.appendAttributes(firstEntityURI, any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
         coEvery {
             entityService.appendAttributes(secondEntityURI, any(), any(), any())
-        } returns BadRequestDataException("error").left()
+        } returns error.left()
 
         val batchOperationResult =
             entityOperationService.processEntities(
@@ -149,7 +152,7 @@ class EntityOperationServiceTests {
             batchOperationResult.success
         )
         assertEquals(
-            listOf(BatchEntityError(secondEntityURI, arrayListOf("error"))),
+            listOf(BatchEntityError(secondEntityURI, error.toProblemDetail())),
             batchOperationResult.errors
         )
     }
@@ -188,7 +191,7 @@ class EntityOperationServiceTests {
             listOf(
                 BatchEntityError(
                     secondEntityURI,
-                    arrayListOf("attribute#1 : reason, attribute#2 : reason")
+                    BadRequestDataException("attribute#1 : reason, attribute#2 : reason").toProblemDetail()
                 )
             ),
             batchOperationResult.errors
@@ -223,10 +226,11 @@ class EntityOperationServiceTests {
 
     @Test
     fun `batch create should ask to create entities and transmit back any error`() = runTest {
+        val badRequestException = BadRequestDataException("Invalid entity")
         coEvery { entityService.createEntity(firstEntity, any(), any()) } returns Unit.right()
         coEvery {
             entityService.createEntity(secondEntity, any(), any())
-        } returns BadRequestDataException("Invalid entity").left()
+        } returns badRequestException.left()
 
         val batchOperationResult = entityOperationService.create(
             listOf(
@@ -239,7 +243,7 @@ class EntityOperationServiceTests {
         assertEquals(arrayListOf(BatchEntitySuccess(firstEntityURI)), batchOperationResult.success)
         assertEquals(
             arrayListOf(
-                BatchEntityError(secondEntityURI, arrayListOf("Invalid entity"))
+                BatchEntityError(secondEntityURI, badRequestException.toProblemDetail())
             ),
             batchOperationResult.errors
         )
@@ -329,10 +333,11 @@ class EntityOperationServiceTests {
     @Test
     fun `batch delete should return deleted entity ids and in errors when deletion is partially successful`() =
         runTest {
+            val internalError = InternalErrorException("Something went wrong during deletion")
             coEvery { entityService.deleteEntity(firstEntityURI, sub) } returns Unit.right()
             coEvery {
                 entityService.deleteEntity(secondEntityURI, sub)
-            } returns InternalErrorException("Something went wrong during deletion").left()
+            } returns internalError.left()
 
             val batchOperationResult = entityOperationService.delete(
                 listOf(
@@ -350,7 +355,7 @@ class EntityOperationServiceTests {
                 listOf(
                     BatchEntityError(
                         secondEntityURI,
-                        mutableListOf("Something went wrong during deletion")
+                        internalError.toProblemDetail()
                     )
                 ),
                 batchOperationResult.errors
@@ -359,11 +364,11 @@ class EntityOperationServiceTests {
 
     @Test
     fun `batch delete should return error messages when deletion in DB has failed`() = runTest {
-        val deleteEntityErrorMessage = "Something went wrong with deletion request"
+        val deleteEntityError = InternalErrorException("Something went wrong with deletion request")
 
         coEvery {
             entityService.deleteEntity(any(), any())
-        } returns InternalErrorException(deleteEntityErrorMessage).left()
+        } returns deleteEntityError.left()
 
         val batchOperationResult = entityOperationService.delete(
             listOf(
@@ -378,11 +383,11 @@ class EntityOperationServiceTests {
             listOf(
                 BatchEntityError(
                     firstEntityURI,
-                    mutableListOf(deleteEntityErrorMessage)
+                    deleteEntityError.toProblemDetail()
                 ),
                 BatchEntityError(
                     secondEntityURI,
-                    mutableListOf(deleteEntityErrorMessage)
+                    deleteEntityError.toProblemDetail()
                 )
             ),
             batchOperationResult.errors
@@ -548,11 +553,21 @@ class EntityOperationServiceTests {
 
         coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
             emptyList<BatchEntitySuccess>().toMutableList(),
-            arrayListOf(BatchEntityError(firstEntity.id, mutableListOf(ENTITIY_CREATION_FORBIDDEN_MESSAGE)))
+            arrayListOf(
+                BatchEntityError(
+                    firstEntity.id,
+                    AccessDeniedException(ENTITIY_CREATION_FORBIDDEN_MESSAGE).toProblemDetail()
+                )
+            )
         )
         coEvery { entityOperationService.replace(any(), any()) } returns BatchOperationResult(
             emptyList<BatchEntitySuccess>().toMutableList(),
-            arrayListOf(BatchEntityError(secondEntity.id, mutableListOf(ENTITY_ADMIN_FORBIDDEN_MESSAGE)))
+            arrayListOf(
+                BatchEntityError(
+                    secondEntity.id,
+                    AccessDeniedException(ENTITY_ADMIN_FORBIDDEN_MESSAGE).toProblemDetail()
+                )
+            )
         )
 
         val (batchOperationResult, createdIds) = entityOperationService.upsert(

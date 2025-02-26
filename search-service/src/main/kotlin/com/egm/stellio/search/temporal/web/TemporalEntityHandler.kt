@@ -81,7 +81,7 @@ class TemporalEntityHandler(
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
         val jsonLdTemporalEntity = expandJsonLdEntity(body, contexts)
-        val entityUri = jsonLdTemporalEntity.id.toUri()
+        val entityUri = jsonLdTemporalEntity.id
 
         val jsonLdInstances = jsonLdTemporalEntity.getAttributes()
         jsonLdInstances.checkTemporalAttributeInstance().bind()

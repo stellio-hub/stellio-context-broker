@@ -136,7 +136,7 @@ class EntityHandlerTests {
     fun mockNoCSR() {
         coEvery {
             distributedEntityConsumptionService
-                .distributeRetrieveEntityOperation(any(), any(), any())
+                .distributeRetrieveEntityOperation(any(), any(), any(), any())
         } returns (emptyList<NGSILDWarning>() to emptyList())
         coEvery {
             distributedEntityConsumptionService
@@ -1092,7 +1092,7 @@ class EntityHandlerTests {
 
         coEvery {
             distributedEntityConsumptionService
-                .distributeRetrieveEntityOperation(any(), any(), any())
+                .distributeRetrieveEntityOperation(any(), any(), any(), any())
         } returns (
             listOf(
                 MiscellaneousWarning("message with\nline\nbreaks", csr),

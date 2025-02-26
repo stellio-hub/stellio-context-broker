@@ -78,7 +78,12 @@ class DatabaseTenantConfig(
     fun createTenantConnectionFactory(name: String, dbSchema: String) {
         val tenantConnectionFactory = ConnectionFactories.get(
             ConnectionFactoryOptions.builder()
-                .from(ConnectionFactoryOptions.parse(r2dbcProperties.url + "?schema=" + dbSchema))
+                .let {
+                    if (r2dbcProperties.url.contains("?"))
+                        it.from(ConnectionFactoryOptions.parse(r2dbcProperties.url + "&schema=" + dbSchema))
+                    else
+                        it.from(ConnectionFactoryOptions.parse(r2dbcProperties.url + "?schema=" + dbSchema))
+                }
                 .option(ConnectionFactoryOptions.USER, r2dbcProperties.username)
                 .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password)
                 .build()

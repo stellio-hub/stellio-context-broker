@@ -10,6 +10,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.areTypesInSelection
 import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
@@ -22,6 +23,7 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -29,6 +31,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.convertValue
 import org.springframework.http.MediaType
+import org.springframework.util.MultiValueMap
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -93,6 +96,11 @@ data class ContextSourceRegistration(
                 BadRequestDataException("RegistrationInfo should have at least one element").left()
             }
         }
+
+        @JsonIgnore
+        fun getAttributeNames(): Set<String>? = this.propertyNames?.toMutableSet()
+            ?.plus(this.relationshipNames?.toSet() ?: emptySet())
+            ?: this.relationshipNames?.toSet()
     }
 
     data class EntityInfo(
@@ -164,6 +172,7 @@ data class ContextSourceRegistration(
             BadRequestDataException(invalidUriMessage("$id")).left()
         else Unit.right()
 
+    @JsonIgnore
     fun getAssociatedAttributes(
         csrFilters: CSRFilters,
         entity: ExpandedEntity,
@@ -186,6 +195,24 @@ data class ContextSourceRegistration(
                 properties == null || term in properties
             }
         }.keys
+    }
+
+    @JsonIgnore
+    fun getQueryParamAttributes(
+        queryParams: MultiValueMap<String, String>,
+        csrFilters: CSRFilters,
+        contexts: List<String>
+    ): String? {
+        val previousAttrsQueryParameter = queryParams.getFirst(QueryParameter.ATTRS.key)
+        val matchingAttrs = getMatchingInformation(csrFilters)
+            .flatMap { it.getAttributeNames() ?: emptySet() }.toSet()
+        val previousAttrs = parseAndExpandQueryParameter(previousAttrsQueryParameter, contexts)
+        val newAttrs = when {
+            previousAttrs.isEmpty() -> matchingAttrs
+            matchingAttrs.isEmpty() -> previousAttrs
+            else -> matchingAttrs.intersect(previousAttrs)
+        }
+        return if (newAttrs.isNotEmpty()) newAttrs.joinToString(",") { compactTerm(it, contexts) } else null
     }
 
     private fun getMatchingInformation(csrFilters: CSRFilters): List<RegistrationInfo> =

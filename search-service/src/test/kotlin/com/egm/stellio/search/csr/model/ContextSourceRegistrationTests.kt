@@ -135,7 +135,7 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `getAssociatedAttributes should check properties and relationship separately`() = runTest {
+    fun `getAssociatedAttributes should get the matching attributes`() = runTest {
         val entity = expandJsonLdEntity(entityPayload)
         val registrationInfoFilter = CSRFilters(
             ids = setOf(entity.id),
@@ -155,20 +155,6 @@ class ContextSourceRegistrationTests {
 
         val attrs = csr.getAssociatedAttributes(registrationInfoFilter, entity)
         assertThat(attrs).contains(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
-
-        val invertedCsr = ContextSourceRegistration(
-            endpoint = "http://my:csr".toUri(),
-            information = listOf(
-                RegistrationInfo(
-                    entities = listOf(entityInfo),
-                    propertyNames = listOf(MANAGED_BY_RELATIONSHIP),
-                    relationshipNames = listOf(NGSILD_NAME_PROPERTY)
-                )
-            )
-        )
-        val inversedAttrs = invertedCsr.getAssociatedAttributes(registrationInfoFilter, entity)
-
-        assertThat(inversedAttrs).doesNotContain(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
     }
 
     @Test

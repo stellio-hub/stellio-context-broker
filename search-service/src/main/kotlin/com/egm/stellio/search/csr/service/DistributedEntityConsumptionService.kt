@@ -48,13 +48,15 @@ class DistributedEntityConsumptionService(
 
     suspend fun distributeRetrieveEntityOperation(
         id: URI,
+        entitiesQuery: EntitiesQueryFromGet,
         httpHeaders: HttpHeaders,
         queryParams: MultiValueMap<String, String>
     ): Pair<List<NGSILDWarning>, List<CompactedEntityWithCSR>> {
         val csrFilters =
             CSRFilters(
                 ids = setOf(id),
-                operations = Operation.RETRIEVE_ENTITY.getMatchingOperations().toList()
+                operations = Operation.RETRIEVE_ENTITY.getMatchingOperations().toList(),
+                attrs = entitiesQuery.attrs
             )
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
@@ -110,7 +112,8 @@ class DistributedEntityConsumptionService(
                 ids = entitiesQuery.ids,
                 idPattern = entitiesQuery.idPattern,
                 typeSelection = entitiesQuery.typeSelection,
-                operations = Operation.QUERY_ENTITY.getMatchingOperations().toList()
+                operations = Operation.QUERY_ENTITY.getMatchingOperations().toList(),
+                attrs = entitiesQuery.attrs
             )
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
@@ -175,7 +178,10 @@ class DistributedEntityConsumptionService(
         queryParams.remove(QueryParameter.GEOMETRY_PROPERTY.key)
         queryParams.remove(QueryParameter.OPTIONS.key) // only normalized request
         queryParams.remove(QueryParameter.LANG.key)
-        csr.getQueryParamAttributes(params, filter, contexts)?.let { queryParams.set(QueryParameter.ATTRS.key, it) }
+        csr.getQueryParamAttributes(filter, contexts)?.let {
+            logger.info("new calculated attrs for ${csr.id} are : $it")
+            queryParams.set(QueryParameter.ATTRS.key, it)
+        }
         val request = WebClient.create()
             .method(HttpMethod.GET)
             .uri { uriBuilder ->

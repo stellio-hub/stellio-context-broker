@@ -318,6 +318,7 @@ class EntityHandler(
                 val (warnings, remoteEntitiesWithCSR) = distributedEntityConsumptionService
                     .distributeRetrieveEntityOperation(
                         entityId,
+                        entitiesQuery,
                         httpHeaders,
                         queryParams
                     ).let { (warnings, it) -> warnings.toMutableList() to it }

@@ -10,20 +10,16 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.areTypesInSelection
 import com.egm.stellio.shared.model.toAPIException
-import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CSR_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -31,7 +27,6 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.convertValue
 import org.springframework.http.MediaType
-import org.springframework.util.MultiValueMap
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -98,9 +93,12 @@ data class ContextSourceRegistration(
         }
 
         @JsonIgnore
-        fun getAttributeNames(): Set<String>? = this.propertyNames?.toMutableSet()
-            ?.plus(this.relationshipNames?.toSet() ?: emptySet())
-            ?: this.relationshipNames?.toSet()
+        fun getAttributeNames(): Set<String>? = when {
+            this.propertyNames == null && this.relationshipNames == null -> null
+            this.propertyNames == null -> this.relationshipNames?.toSet()
+            this.relationshipNames == null -> this.propertyNames.toSet()
+            else -> this.propertyNames.toMutableSet().plus(this.relationshipNames.toSet())
+        }
     }
 
     data class EntityInfo(
@@ -132,6 +130,7 @@ data class ContextSourceRegistration(
             else BadRequestDataException("Invalid idPattern found in contextSourceRegistration").left()
         }
     }
+
     fun expand(contexts: List<String>): ContextSourceRegistration =
         this.copy(
             information = information.map { it.expand(contexts) }
@@ -179,34 +178,23 @@ data class ContextSourceRegistration(
     ): Set<ExpandedTerm> {
         val matchingRegistrationsInfo = getMatchingInformation(csrFilters)
 
-        val properties =
-            if (matchingRegistrationsInfo.any { it.propertyNames == null }) null
-            else matchingRegistrationsInfo.flatMap { it.propertyNames!! }.toSet()
+        val attributes =
+            if (matchingRegistrationsInfo.any { it.getAttributeNames() == null }) null
+            else matchingRegistrationsInfo.flatMap { it.getAttributeNames()!! }.toSet()
 
-        val relationships =
-            if (matchingRegistrationsInfo.any { it.relationshipNames == null }) null
-            else matchingRegistrationsInfo.flatMap { it.relationshipNames!! }.toSet()
-
-        return entity.getAttributes().filter { (term, attribute) ->
-            val attributeType = attribute.first()[JSONLD_TYPE]?.first()
-            if (NGSILD_RELATIONSHIP_TYPE.uri == attributeType) {
-                relationships == null || term in relationships
-            } else {
-                properties == null || term in properties
-            }
+        return entity.getAttributes().filter { (term, _) ->
+            attributes == null || term in attributes
         }.keys
     }
 
     @JsonIgnore
     fun getQueryParamAttributes(
-        queryParams: MultiValueMap<String, String>,
         csrFilters: CSRFilters,
         contexts: List<String>
     ): String? {
-        val previousAttrsQueryParameter = queryParams.getFirst(QueryParameter.ATTRS.key)
         val matchingAttrs = getMatchingInformation(csrFilters)
             .flatMap { it.getAttributeNames() ?: emptySet() }.toSet()
-        val previousAttrs = parseAndExpandQueryParameter(previousAttrsQueryParameter, contexts)
+        val previousAttrs = csrFilters.attrs
         val newAttrs = when {
             previousAttrs.isEmpty() -> matchingAttrs
             matchingAttrs.isEmpty() -> previousAttrs
@@ -225,7 +213,9 @@ data class ContextSourceRegistration(
                     entityInfo.idPattern?.let { pattern ->
                         csrFilters.ids.any { pattern.toRegex().matches(it.toString()) }
                     } ?: true
-            } ?: true
+            } ?: true &&
+                csrFilters.attrs.isEmpty() ||
+                info.getAttributeNames()?.any { it in csrFilters.attrs } ?: true
         }
 
     companion object {

@@ -3,21 +3,28 @@ package com.egm.stellio.search.csr.service
 import arrow.core.left
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.CSRFilters
+import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
+import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.toUri
+import com.github.tomakehurst.wiremock.client.WireMock.containing
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.notContaining
@@ -247,6 +254,10 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
 
             val (warnings, _) = distributedEntityConsumptionService.distributeRetrieveEntityOperation(
                 apiaryId.toUri(),
+                EntitiesQueryFromGet(
+                    paginationQuery = PaginationQuery(limit = 10, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
                 HttpHeaders(),
                 MultiValueMap.fromSingleValue(emptyMap())
             )
@@ -345,6 +356,37 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         verify(
             getRequestedFor(urlPathEqualTo(path))
                 .withQueryParam(QueryParameter.OPTIONS.key, notContaining("simplified"))
+        )
+    }
+
+    @Test
+    fun `getDistributedInformation should filter the attributes based on the csr and the received request`() = runTest {
+        val csr = gimmeRawCSR().copy(
+            information = listOf(
+                ContextSourceRegistration.RegistrationInfo(null, listOf("a", "b", "c"), null)
+            )
+        ).expand(contexts = APIC_COMPOUND_CONTEXTS)
+        val path = "/ngsi-ld/v1/entities/$apiaryId"
+
+        stubFor(get(urlMatching(path)).willReturn(ok()))
+
+        val header = HttpHeaders().apply {
+            set(HttpHeaders.LINK, APIC_HEADER_LINK)
+        }
+        val params = LinkedMultiValueMap(mapOf(QueryParameter.ATTRS.key to listOf("c,d,e")))
+
+        distributedEntityConsumptionService.getDistributedInformation(
+            header,
+            csr,
+            CSRFilters(attrs = parseAndExpandQueryParameter("c,d,e", APIC_COMPOUND_CONTEXTS)),
+            path,
+            params
+        )
+        verify(
+            getRequestedFor(urlPathEqualTo(path)).withQueryParam(
+                QueryParameter.ATTRS.key,
+                containing("c")
+            )
         )
     }
 }

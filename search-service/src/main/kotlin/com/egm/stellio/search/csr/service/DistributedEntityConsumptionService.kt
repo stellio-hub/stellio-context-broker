@@ -184,7 +184,7 @@ class DistributedEntityConsumptionService(
         queryParams.remove(QueryParameter.LANG.key)
         csr.information.first().getQueryParamAttributes(filter, contexts)?.let {
             logger.info("new calculated attrs for ${csr.id} are : $it")
-            queryParams.set(QueryParameter.ATTRS.key, it)
+            queryParams[QueryParameter.ATTRS.key] = it
         }
         val request = WebClient.create()
             .method(HttpMethod.GET)

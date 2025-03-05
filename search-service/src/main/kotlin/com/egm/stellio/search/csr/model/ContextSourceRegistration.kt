@@ -165,12 +165,10 @@ data class ContextSourceRegistration(
             queryParams: MultiValueMap<String, String>
         ): MultiValueMap<String, String> {
             val newParams = CollectionUtils.toMultiValueMap(queryParams.toMutableMap())
-            newParams.set(QP.TYPE.key, this.types.toTypeSelection())
-            this.id?.let { id -> newParams.set(QP.ID.key, id.toString()) }
-            if (queryParams.getFirst(QP.ID_PATTERN.key) == null && this.idPattern != null) newParams.set(
-                QP.ID_PATTERN.key,
-                this.idPattern
-            )
+            newParams[QP.TYPE.key] = this.types.toTypeSelection()
+            this.id?.let { id -> newParams[QP.ID.key] = id.toString() }
+            if (queryParams.getFirst(QP.ID_PATTERN.key) == null && this.idPattern != null)
+                newParams[QP.ID_PATTERN.key] = this.idPattern
             return newParams
         }
     }

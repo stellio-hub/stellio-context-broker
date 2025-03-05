@@ -93,6 +93,8 @@ fun String.unescapeRegexPattern(): String =
     this.replace("##", "(")
         .replace("§§", ")")
 
+fun Iterable<String>.toTypeSelection() = this.joinToString(",")
+
 fun buildTypeQuery(rawQuery: String, columnName: String = "types", target: List<ExpandedTerm>? = null): String =
     rawQuery.replace(typeSelectionRegex) { matchResult ->
         """

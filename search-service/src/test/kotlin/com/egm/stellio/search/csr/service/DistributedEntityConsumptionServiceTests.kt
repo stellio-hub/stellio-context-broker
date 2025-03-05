@@ -1,6 +1,7 @@
 package com.egm.stellio.search.csr.service
 
 import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
@@ -12,8 +13,11 @@ import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.queryparameter.PaginationQuery
+import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
@@ -21,6 +25,7 @@ import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
+import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.toUri
@@ -184,6 +189,73 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
             )
             assertThat(warnings).hasSize(2)
             coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
+        }
+
+    @Test
+    fun `distributeQueryEntitiesOperation should ask for different filter based on the different EntityInfo`() =
+        runTest {
+            val idPattern = "test:.*"
+            val id = "test:1".toUri()
+            val firstCSR = gimmeRawCSR(
+                information = listOf(
+                    ContextSourceRegistration.RegistrationInfo(
+                        listOf(
+                            ContextSourceRegistration.EntityInfo(types = listOf(APIARY_TYPE)),
+                            ContextSourceRegistration.EntityInfo(id = id, types = listOf(APIARY_TYPE)),
+                        )
+                    )
+                )
+            )
+            val secondCSR = gimmeRawCSR(
+                information = listOf(
+                    ContextSourceRegistration.RegistrationInfo(
+                        listOf(ContextSourceRegistration.EntityInfo(idPattern = idPattern, types = listOf(APIARY_TYPE)))
+                    ),
+                    ContextSourceRegistration.RegistrationInfo(
+                        listOf(ContextSourceRegistration.EntityInfo(id = id, types = listOf(APIARY_TYPE)))
+                    )
+                )
+            )
+            val thirdCSR = gimmeRawCSR(
+                information = listOf(
+                    ContextSourceRegistration.RegistrationInfo(propertyNames = listOf(TEMPERATURE_PROPERTY)),
+                )
+            )
+
+            coEvery {
+                contextSourceRegistrationService
+                    .getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(firstCSR, secondCSR, thirdCSR)
+
+            coEvery {
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), any())
+            } returns (emptyList<CompactedEntity>() to 0).right()
+
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+
+            val queryParams = MultiValueMap.fromSingleValue<String, String>(emptyMap())
+            val headers = HttpHeaders()
+
+            distributedEntityConsumptionService.distributeQueryEntitiesOperation(
+                composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, emptyList()).getOrNull()!!,
+                headers,
+                queryParams
+            )
+            val typeParams = MultiValueMap.fromSingleValue(mapOf(QP.TYPE.key to APIARY_TYPE))
+            val idParams = MultiValueMap.fromSingleValue(mapOf(QP.TYPE.key to APIARY_TYPE, QP.ID.key to id.toString()))
+            val idPatternParams = MultiValueMap.fromSingleValue(
+                mapOf(
+                    QP.TYPE.key to APIARY_TYPE,
+                    QP.ID_PATTERN.key to idPattern
+                )
+            )
+            coVerify {
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), typeParams)
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), idParams)
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), idPatternParams)
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), idParams)
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), queryParams)
+            }
         }
 
     @Test

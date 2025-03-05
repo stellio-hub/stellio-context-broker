@@ -59,10 +59,10 @@ class LinkedEntityService(
         currentLevel: UInt,
         sub: Sub?
     ): Either<APIException, List<CompactedEntity>> = either {
-        if (currentLevel > linkedEntityQuery.joinLevel || compactedEntities.isEmpty())
+        val linkedUris = compactedEntities.getRelationshipsObjects()
+        if (currentLevel > linkedEntityQuery.joinLevel || linkedUris.isEmpty())
             return compactedEntities.right()
 
-        val linkedUris = compactedEntities.getRelationshipsObjects()
         val relationshipsQuery = EntitiesQueryFromGet(
             ids = linkedUris,
             paginationQuery = PaginationQuery(0, Int.MAX_VALUE),

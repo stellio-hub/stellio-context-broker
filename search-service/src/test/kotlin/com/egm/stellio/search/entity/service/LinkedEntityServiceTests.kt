@@ -68,6 +68,17 @@ class LinkedEntityServiceTests {
         }
     """.trimIndent().deserializeAsMap()
 
+    private val linkingEntityWithoutRelationships: CompactedEntity = """
+        {
+            "id": "urn:ngsi-ld:LinkingEntity:01",
+            "type": "LinkingEntity",
+            "prop1": {
+                "type": "Property",
+                "value": "Prop 1"
+            }
+        }
+    """.trimIndent().deserializeAsMap()
+
     @Test
     fun `it should return the input entity if no join is specified`() = runTest {
         val compactedEntities = linkedEntityService.processLinkedEntities(
@@ -127,6 +138,29 @@ class LinkedEntityServiceTests {
         assertEquals(2, compactedEntities.size)
         assertJsonPayloadsAreEqual(
             serializeObject(listOf(linkingEntityWithTwoRelationships, otherLinkingEntityWithTwoRelationships)),
+            serializeObject(compactedEntities)
+        )
+
+        coVerify {
+            entityQueryService.queryEntities(any(), any<Sub>()) wasNot Called
+        }
+    }
+
+    @Test
+    fun `it should return only the input entity if it has no relationships`() = runTest {
+        val compactedEntities = linkedEntityService.processLinkedEntities(
+            linkingEntityWithoutRelationships,
+            EntitiesQueryFromGet(
+                linkedEntityQuery = LinkedEntityQuery(JoinType.FLAT, 1.toUInt()),
+                paginationQuery = PaginationQuery(0, 100),
+                contexts = NGSILD_TEST_CORE_CONTEXTS
+            ),
+            null
+        ).shouldSucceedAndResult()
+
+        assertEquals(1, compactedEntities.size)
+        assertJsonPayloadsAreEqual(
+            serializeObject(listOf(linkingEntityWithoutRelationships)),
             serializeObject(compactedEntities)
         )
 

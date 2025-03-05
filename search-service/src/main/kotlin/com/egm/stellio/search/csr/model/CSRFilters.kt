@@ -8,6 +8,7 @@ import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.toListOfUri
+import com.egm.stellio.shared.util.toTypeSelection
 import com.egm.stellio.shared.util.validateIdPattern
 import org.springframework.util.MultiValueMap
 import java.net.URI
@@ -42,7 +43,7 @@ open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
         attrs: Set<String> = emptySet()
     ) : this(
         ids,
-        types.joinToString(","),
+        types.toTypeSelection(),
         idPattern,
         operations = operations,
         attrs

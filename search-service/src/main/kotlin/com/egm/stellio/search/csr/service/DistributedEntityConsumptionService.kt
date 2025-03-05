@@ -8,12 +8,12 @@ import arrow.core.right
 import arrow.core.separateEither
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.csr.model.CSRFilters
-import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
+import com.egm.stellio.search.csr.model.SingleEntityInfoCSR
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
@@ -60,6 +60,7 @@ class DistributedEntityConsumptionService(
             )
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
+            .flatMap { it.toSingleEntityInfoCSRList(csrFilters) }
 
         // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
         return matchingCSR.parMap { csr ->
@@ -80,7 +81,7 @@ class DistributedEntityConsumptionService(
 
     suspend fun retrieveEntityFromContextSource(
         httpHeaders: HttpHeaders,
-        csr: ContextSourceRegistration,
+        csr: SingleEntityInfoCSR,
         csrFilters: CSRFilters,
         id: URI,
         params: MultiValueMap<String, String>
@@ -117,13 +118,16 @@ class DistributedEntityConsumptionService(
             )
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
+            .flatMap { it.toSingleEntityInfoCSRList(csrFilters) }
 
         return matchingCSR.parMap { csr ->
+            val newParams = csr.information.first().entities?.first()?.getNewQueryParametersWithFilters(queryParams)
+                ?: queryParams
             val response = queryEntitiesFromContextSource(
                 httpHeaders,
                 csr,
                 csrFilters,
-                queryParams
+                newParams
             )
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
             response.map { (entities, count) -> Triple(entities, csr, count) }
@@ -139,7 +143,7 @@ class DistributedEntityConsumptionService(
 
     suspend fun queryEntitiesFromContextSource(
         httpHeaders: HttpHeaders,
-        csr: ContextSourceRegistration,
+        csr: SingleEntityInfoCSR,
         csrFilters: CSRFilters,
         params: MultiValueMap<String, String>
     ): Either<NGSILDWarning, QueryEntitiesResponse> = either {
@@ -166,7 +170,7 @@ class DistributedEntityConsumptionService(
 
     suspend fun getDistributedInformation(
         httpHeaders: HttpHeaders,
-        csr: ContextSourceRegistration,
+        csr: SingleEntityInfoCSR,
         filter: CSRFilters,
         path: String,
         params: MultiValueMap<String, String>
@@ -178,7 +182,7 @@ class DistributedEntityConsumptionService(
         queryParams.remove(QueryParameter.GEOMETRY_PROPERTY.key)
         queryParams.remove(QueryParameter.OPTIONS.key) // only normalized request
         queryParams.remove(QueryParameter.LANG.key)
-        csr.getQueryParamAttributes(filter, contexts)?.let {
+        csr.information.first().getQueryParamAttributes(filter, contexts)?.let {
             logger.info("new calculated attrs for ${csr.id} are : $it")
             queryParams.set(QueryParameter.ATTRS.key, it)
         }

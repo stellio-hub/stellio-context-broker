@@ -68,7 +68,8 @@ class ContextSourceRegistrationService(
                 management_interval_start,
                 management_interval_end,
                 sub,
-                created_at
+                created_at,
+                modified_at
             )
             VALUES(
                 :id,
@@ -82,7 +83,8 @@ class ContextSourceRegistrationService(
                 :management_interval_start,
                 :management_interval_end,
                 :sub,
-                :created_at
+                :created_at,
+                :modified_at
             )
             """.trimIndent()
         databaseClient.sql(insertStatement)
@@ -101,6 +103,7 @@ class ContextSourceRegistrationService(
             .bind("management_interval_end", contextSourceRegistration.managementInterval?.end)
             .bind("sub", sub.toStringValue())
             .bind("created_at", contextSourceRegistration.createdAt)
+            .bind("modified_at", contextSourceRegistration.modifiedAt)
             .execute().bind()
     }
 

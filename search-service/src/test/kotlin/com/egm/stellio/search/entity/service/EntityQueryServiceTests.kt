@@ -146,7 +146,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     .hasFieldOrPropertyWithValue("entityId", entity01Uri)
                     .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
                     .hasFieldOrPropertyWithValue("createdAt", now)
-                    .hasFieldOrPropertyWithValue("modifiedAt", null)
+                    .hasFieldOrPropertyWithValue("modifiedAt", now)
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", null)
             }
     }

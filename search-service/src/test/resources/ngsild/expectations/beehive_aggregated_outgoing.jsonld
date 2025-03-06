@@ -9,6 +9,12 @@
       "@value": "$now"
     }
   ],
+  "https://uri.etsi.org/ngsi-ld/modifiedAt": [
+    {
+      "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
+      "@value": "$now"
+    }
+  ],
   "https://ontology.eglobalmark.com/apic#outgoing": [
     {
       "@type": [

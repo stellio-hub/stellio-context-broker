@@ -67,6 +67,7 @@ data class AttributeInstance private constructor(
             sub = sub
         )
 
+        // todo can i delete this function ?
         private fun ExpandedAttributeInstance.composePayload(
             instanceId: URI,
             modifiedAt: ZonedDateTime? = null

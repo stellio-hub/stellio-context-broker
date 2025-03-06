@@ -312,7 +312,7 @@ class ContextSourceRegistrationService(
                 operations = (row["operations"] as Array<String>).mapNotNull { Operation.fromString(it) },
                 registrationName = row["registration_name"] as? String,
                 createdAt = toZonedDateTime(row["created_at"]),
-                modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
+                modifiedAt = toZonedDateTime(row["modified_at"]),
                 observationInterval = row["observation_interval_start"]?.let {
                     TimeInterval(
                         toZonedDateTime(it),

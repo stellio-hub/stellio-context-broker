@@ -45,7 +45,7 @@ data class Attribute(
     val attributeValueType: AttributeValueType,
     val datasetId: URI? = null,
     val createdAt: ZonedDateTime,
-    val modifiedAt: ZonedDateTime? = createdAt, // todo could be non nullable
+    val modifiedAt: ZonedDateTime = createdAt,
     val deletedAt: ZonedDateTime? = null,
     val payload: Json
 ) {

@@ -1,15 +1,15 @@
 # You can build a Docker image of the module with the following command:
 # docker build --build-arg JAR_FILE=build/libs/search-service-{version}.jar -t stellio-search-service:{version} .
-FROM eclipse-temurin:21-jre as builder
-WORKDIR application
+FROM eclipse-temurin:21-jre AS builder
+WORKDIR /builder
 ARG JAR_FILE=build/libs/*.jar
 COPY ${JAR_FILE} application.jar
-RUN java -Djarmode=layertools -jar application.jar extract
+RUN java -Djarmode=tools -jar application.jar extract --layers --destination extracted
 
 FROM eclipse-temurin:21-jre
-WORKDIR application
-COPY --from=builder application/dependencies/ ./
-COPY --from=builder application/spring-boot-loader/ ./
-COPY --from=builder application/snapshot-dependencies/ ./
-COPY --from=builder application/application/ ./
-ENTRYPOINT ["java", "org.springframework.boot.loader.JarLauncher"]
+WORKDIR /application
+COPY --from=builder /builder/extracted/dependencies/ ./
+COPY --from=builder /builder/extracted/spring-boot-loader/ ./
+COPY --from=builder /builder/extracted/snapshot-dependencies/ ./
+COPY --from=builder /builder/extracted/application/ ./
+ENTRYPOINT ["java", "-jar", "application.jar"]

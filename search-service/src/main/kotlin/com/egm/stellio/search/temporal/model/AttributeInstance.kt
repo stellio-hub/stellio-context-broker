@@ -8,6 +8,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
@@ -31,7 +32,7 @@ data class AttributeInstance private constructor(
             attributeUuid: UUID,
             instanceId: URI = generateRandomInstanceId(),
             timeProperty: TemporalProperty? = TemporalProperty.OBSERVED_AT,
-            modifiedAt: ZonedDateTime? = null,
+            modifiedAt: ZonedDateTime = ngsiLdDateTime(),
             attributeMetadata: AttributeMetadata,
             payload: ExpandedAttributeInstance,
             time: ZonedDateTime,
@@ -44,7 +45,7 @@ data class AttributeInstance private constructor(
             value = attributeMetadata.value,
             measuredValue = attributeMetadata.measuredValue,
             geoValue = attributeMetadata.geoValue,
-            payload = payload.composePayload(instanceId, modifiedAt).toJson(),
+            payload = payload.addInstanceId(instanceId).addModifiedAt(modifiedAt).toJson(),
             sub = sub
         )
 
@@ -63,21 +64,15 @@ data class AttributeInstance private constructor(
             value = value.first,
             measuredValue = value.second,
             geoValue = value.third,
-            payload = payload.composePayload(instanceId).toJson(),
+            payload = payload.addInstanceId(instanceId).toJson(),
             sub = sub
         )
 
-        // todo can i delete this function ?
-        private fun ExpandedAttributeInstance.composePayload(
-            instanceId: URI,
-            modifiedAt: ZonedDateTime? = null
-        ): ExpandedAttributeInstance =
+        private fun ExpandedAttributeInstance.addInstanceId(instanceId: URI): ExpandedAttributeInstance =
             this.plus(NGSILD_INSTANCE_ID_PROPERTY to buildNonReifiedPropertyValue(instanceId.toString()))
-                .let {
-                    if (modifiedAt != null)
-                        it.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
-                    else it
-                }
+
+        private fun ExpandedAttributeInstance.addModifiedAt(modifiedAt: ZonedDateTime): ExpandedAttributeInstance =
+            this.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
 
         private fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
     }

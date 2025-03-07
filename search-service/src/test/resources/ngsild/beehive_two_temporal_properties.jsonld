@@ -33,7 +33,7 @@
   "connectsTo": {
     "type": "Relationship",
     "createdAt": "2010-10-26T21:32:52.98601Z",
-    "modifiedAt": "2020-01-24T13:01:21.938Z",
+    "modifiedAt": "2010-10-26T21:32:52.98601Z",
     "object": "urn:ngsi-ld:Beekeeper:Pascal"
   },
   "@context": [

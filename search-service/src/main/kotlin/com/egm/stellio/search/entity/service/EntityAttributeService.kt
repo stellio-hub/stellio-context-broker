@@ -220,7 +220,7 @@ class EntityAttributeService(
 
         // if the temporal property existed before, the create operation returned a different id than the one
         // in the attribute object
-        val timeProperty = // todo what is the point of choosing this?
+        val timeProperty =
             if (attributeUuid != attribute.id) AttributeInstance.TemporalProperty.MODIFIED_AT
             else AttributeInstance.TemporalProperty.CREATED_AT
 

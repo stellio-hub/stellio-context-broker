@@ -8,7 +8,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
@@ -32,7 +31,7 @@ data class AttributeInstance private constructor(
             attributeUuid: UUID,
             instanceId: URI = generateRandomInstanceId(),
             timeProperty: TemporalProperty? = TemporalProperty.OBSERVED_AT,
-            modifiedAt: ZonedDateTime = ngsiLdDateTime(),
+            modifiedAt: ZonedDateTime? = null,
             attributeMetadata: AttributeMetadata,
             payload: ExpandedAttributeInstance,
             time: ZonedDateTime,
@@ -71,8 +70,10 @@ data class AttributeInstance private constructor(
         private fun ExpandedAttributeInstance.addInstanceId(instanceId: URI): ExpandedAttributeInstance =
             this.plus(NGSILD_INSTANCE_ID_PROPERTY to buildNonReifiedPropertyValue(instanceId.toString()))
 
-        private fun ExpandedAttributeInstance.addModifiedAt(modifiedAt: ZonedDateTime): ExpandedAttributeInstance =
-            this.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
+        private fun ExpandedAttributeInstance.addModifiedAt(modifiedAt: ZonedDateTime?): ExpandedAttributeInstance =
+            modifiedAt?.let {
+                this.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
+            } ?: this
 
         private fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
     }

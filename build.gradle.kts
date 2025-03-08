@@ -82,6 +82,7 @@ subprojects {
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("com.ninja-squad:springmockk:4.0.2")
+        testImplementation("io.mockk:mockk:1.13.17")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
@@ -101,6 +102,7 @@ subprojects {
         testLogging {
             events("passed", "skipped", "failed")
         }
+        jvmArgs("-Dmockk.junit.extension.checkUnnecessaryStub=true")
     }
 
     // see https://github.com/detekt/detekt/issues/6198

@@ -20,7 +20,6 @@ import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
-import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -29,7 +28,7 @@ import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -56,18 +55,12 @@ class EntityOperationServiceTests {
 
     val sub: Sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"
 
-    @BeforeEach
+    @BeforeAll
     fun initNgsiLdEntitiesMocks() {
-        firstExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) {
-            every { id } returns firstEntityURI
-            every { members } returns emptyMap()
-        }
+        firstExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns firstEntityURI
-        secondExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true) {
-            every { id } returns secondEntityURI
-            every { members } returns emptyMap()
-        }
+        secondExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { secondEntity.id } returns secondEntityURI
     }
@@ -461,9 +454,11 @@ class EntityOperationServiceTests {
         assertEquals(2, batchOperationResult.success.size)
         assertEquals(0, batchOperationResult.errors.size)
 
-        coVerify { entityOperationService.create(any(), any()) wasNot Called }
         coVerify { entityOperationService.replace(any(), com.egm.stellio.shared.util.sub.getOrNull()) }
-        coVerify { entityOperationService.update(any(), any(), any()) wasNot Called }
+        coVerify(exactly = 0) {
+            entityOperationService.create(any(), any())
+            entityOperationService.update(any(), any(), any())
+        }
     }
 
     @Test
@@ -489,9 +484,11 @@ class EntityOperationServiceTests {
         assertEquals(2, batchOperationResult.success.size)
         assertEquals(0, batchOperationResult.errors.size)
 
-        coVerify { entityOperationService.create(any(), any()) wasNot Called }
         coVerify { entityOperationService.update(any(), false, com.egm.stellio.shared.util.sub.getOrNull()) }
-        coVerify { entityOperationService.replace(any(), any()) wasNot Called }
+        coVerify(exactly = 0) {
+            entityOperationService.create(any(), any())
+            entityOperationService.replace(any(), any())
+        }
     }
 
     @Test
@@ -530,8 +527,10 @@ class EntityOperationServiceTests {
         assertEquals(0, batchOperationResult.errors.size)
 
         coVerify { entityOperationService.create(any(), any()) }
-        coVerify { entityOperationService.update(any(), any(), any()) wasNot Called }
-        coVerify { entityOperationService.replace(any(), any()) wasNot Called }
+        coVerify(exactly = 0) {
+            entityOperationService.update(any(), any(), any())
+            entityOperationService.replace(any(), any())
+        }
     }
 
     @Test

@@ -18,7 +18,6 @@ import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.support.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.confirmVerified
@@ -275,7 +274,7 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
 
-        coVerify { subscriptionService.validateNewSubscription(any()) wasNot Called }
+        coVerify(exactly = 0) { subscriptionService.validateNewSubscription(any()) }
     }
 
     @Test

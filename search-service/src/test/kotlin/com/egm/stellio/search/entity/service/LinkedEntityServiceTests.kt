@@ -17,7 +17,6 @@ import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadAndExpandMinimalEntity
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
@@ -96,8 +95,8 @@ class LinkedEntityServiceTests {
             serializeObject(compactedEntities[0])
         )
 
-        coVerify {
-            entityQueryService.queryEntities(any(), any<Sub>()) wasNot Called
+        coVerify(exactly = 0) {
+            entityQueryService.queryEntities(any(), any<Sub>())
         }
     }
 
@@ -119,8 +118,8 @@ class LinkedEntityServiceTests {
             serializeObject(compactedEntities[0])
         )
 
-        coVerify {
-            entityQueryService.queryEntities(any(), any<Sub>()) wasNot Called
+        coVerify(exactly = 0) {
+            entityQueryService.queryEntities(any(), any<Sub>())
         }
     }
 
@@ -141,8 +140,8 @@ class LinkedEntityServiceTests {
             serializeObject(compactedEntities)
         )
 
-        coVerify {
-            entityQueryService.queryEntities(any(), any<Sub>()) wasNot Called
+        coVerify(exactly = 0) {
+            entityQueryService.queryEntities(any(), any<Sub>())
         }
     }
 
@@ -164,8 +163,8 @@ class LinkedEntityServiceTests {
             serializeObject(compactedEntities)
         )
 
-        coVerify {
-            entityQueryService.queryEntities(any(), any<Sub>()) wasNot Called
+        coVerify(exactly = 0) {
+            entityQueryService.queryEntities(any(), any<Sub>())
         }
     }
 
@@ -182,8 +181,8 @@ class LinkedEntityServiceTests {
 
         assertEquals(0, compactedEntities.size)
 
-        coVerify {
-            entityQueryService.queryEntities(any(), any<Sub>()) wasNot Called
+        coVerify(exactly = 0) {
+            entityQueryService.queryEntities(any(), any<Sub>())
         }
     }
 

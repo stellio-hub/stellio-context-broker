@@ -95,7 +95,7 @@ class EntityAttributeService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    suspend fun create(attribute: Attribute): Either<APIException, UUID> =
+    suspend fun upsert(attribute: Attribute): Either<APIException, UUID> =
         databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
@@ -124,7 +124,7 @@ class EntityAttributeService(
             .oneToResult { row -> toUuid(row["id"]) }
 
     @Transactional
-    suspend fun updateOnUpdate(
+    suspend fun update(
         attributeUUID: UUID,
         valueType: Attribute.AttributeValueType,
         modifiedAt: ZonedDateTime,
@@ -216,7 +216,7 @@ class EntityAttributeService(
             createdAt = createdAt,
             payload = Json.of(serializeObject(attributePayload))
         )
-        val attributeUuid = create(attribute).bind()
+        val attributeUuid = upsert(attribute).bind()
 
         // if the temporal property existed before, the create operation returned a different id than the one
         // in the attribute object
@@ -295,7 +295,7 @@ class EntityAttributeService(
         val (jsonTargetObject, updatedAttributeInstance) =
             mergePatch(attribute.payload.toExpandedAttributeInstance(), processedAttributePayload)
         val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance)
-        updateOnUpdate(attribute.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject).bind()
+        update(attribute.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject).bind()
 
         val attributeInstance =
             createContextualAttributeInstance(attribute, updatedAttributeInstance, value, mergedAt, sub)
@@ -621,7 +621,7 @@ class EntityAttributeService(
                 ngsiLdAttribute.name,
                 ngsiLdAttributeInstance.datasetId
             )!!
-            if (currentAttribute == null) {
+            if (currentAttribute == null || currentAttribute.deletedAt != null) {
                 addAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -685,7 +685,7 @@ class EntityAttributeService(
                 ngsiLdAttributeInstance.datasetId
             )!!
 
-            if (currentAttribute == null) {
+            if (currentAttribute == null || currentAttribute.deletedAt != null) {
                 addAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -743,7 +743,7 @@ class EntityAttributeService(
         val datasetId = attributeValues.getDatasetId()
         val currentAttribute = getForEntityAndAttribute(entityId, attributeName, datasetId).fold({ null }, { it })
         val attributeOperationResult =
-            if (currentAttribute == null) {
+            if (currentAttribute == null || currentAttribute.deletedAt != null) {
                 FailedAttributeOperationResult(
                     attributeName,
                     datasetId,
@@ -787,7 +787,7 @@ class EntityAttributeService(
             partialUpdatePatch(attribute.payload.toExpandedAttributeInstance(), attributeValues)
         val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance)
         val attributeValueType = guessAttributeValueType(attribute.attributeType, attributeValues)
-        updateOnUpdate(attribute.id, attributeValueType, modifiedAt, jsonTargetObject).bind()
+        update(attribute.id, attributeValueType, modifiedAt, jsonTargetObject).bind()
 
         // then update attribute instance
         val attributeInstance = createContextualAttributeInstance(
@@ -871,7 +871,7 @@ class EntityAttributeService(
                 ngsiLdAttributeInstance.datasetId
             )!!
 
-            if (currentAttribute == null)
+            if (currentAttribute == null || currentAttribute.deletedAt != null)
                 addAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -926,11 +926,10 @@ class EntityAttributeService(
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         val attributeName = ngsiLdAttribute.name
         val datasetId = ngsiLdAttributeInstance.datasetId
-        val currentTea =
-            getForEntityAndAttribute(entityId, attributeName, datasetId).fold({ null }, { it })
+        val currentAttribute = getForEntityAndAttribute(entityId, attributeName, datasetId).fold({ null }, { it })
         val attributeMetadata = ngsiLdAttributeInstance.toAttributeMetadata().bind()
         val attributeOperationResult =
-            if (currentTea == null) {
+            if (currentAttribute == null || currentAttribute.deletedAt != null) {
                 FailedAttributeOperationResult(
                     attributeName,
                     datasetId,
@@ -939,7 +938,7 @@ class EntityAttributeService(
                 )
             } else {
                 replaceAttribute(
-                    currentTea,
+                    currentAttribute,
                     ngsiLdAttribute,
                     attributeMetadata,
                     replacedAt,

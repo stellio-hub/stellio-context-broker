@@ -494,7 +494,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
         )
-        entityAttributeService.create(attribute)
+        entityAttributeService.upsert(attribute)
         return attribute
     }
 

@@ -122,7 +122,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         )
 
         runBlocking {
-            entityAttributeService.create(incomingAttribute)
+            entityAttributeService.upsert(incomingAttribute)
         }
 
         outgoingAttribute = Attribute(
@@ -134,7 +134,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         )
 
         runBlocking {
-            entityAttributeService.create(outgoingAttribute)
+            entityAttributeService.upsert(outgoingAttribute)
         }
 
         jsonAttribute = Attribute(
@@ -146,7 +146,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         )
 
         runBlocking {
-            entityAttributeService.create(jsonAttribute)
+            entityAttributeService.upsert(jsonAttribute)
         }
 
         languageAttribute = Attribute(
@@ -158,7 +158,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         )
 
         runBlocking {
-            entityAttributeService.create(languageAttribute)
+            entityAttributeService.upsert(languageAttribute)
         }
 
         vocabAttribute = Attribute(
@@ -170,7 +170,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         )
 
         runBlocking {
-            entityAttributeService.create(vocabAttribute)
+            entityAttributeService.upsert(vocabAttribute)
         }
     }
 
@@ -329,7 +329,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        entityAttributeService.create(attribute2)
+        entityAttributeService.upsert(attribute2)
 
         (1..10).forEach { _ ->
             val observedAt = ngsiLdDateTime()
@@ -512,7 +512,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        entityAttributeService.create(attribute2)
+        entityAttributeService.upsert(attribute2)
 
         (1..10).forEach { _ ->
             attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(incomingAttribute.id))

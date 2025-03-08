@@ -21,8 +21,6 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Transient
 import org.springframework.http.MediaType
 import java.net.URI
-import java.time.Instant
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -35,8 +33,8 @@ data class Subscription(
     @Id val id: URI = "urn:ngsi-ld:Subscription:${UUID.randomUUID()}".toUri(),
     val type: String,
     val subscriptionName: String? = null,
-    val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
-    val modifiedAt: ZonedDateTime? = null,
+    val createdAt: ZonedDateTime = ngsiLdDateTime(),
+    val modifiedAt: ZonedDateTime = createdAt,
     val description: String? = null,
     val entities: Set<EntitySelector>?,
     val watchedAttributes: List<ExpandedTerm>? = null,

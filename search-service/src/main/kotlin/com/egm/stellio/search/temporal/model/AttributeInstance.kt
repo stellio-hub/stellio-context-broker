@@ -44,7 +44,7 @@ data class AttributeInstance private constructor(
             value = attributeMetadata.value,
             measuredValue = attributeMetadata.measuredValue,
             geoValue = attributeMetadata.geoValue,
-            payload = payload.composePayload(instanceId, modifiedAt).toJson(),
+            payload = payload.addInstanceId(instanceId).addModifiedAt(modifiedAt).toJson(),
             sub = sub
         )
 
@@ -63,20 +63,17 @@ data class AttributeInstance private constructor(
             value = value.first,
             measuredValue = value.second,
             geoValue = value.third,
-            payload = payload.composePayload(instanceId).toJson(),
+            payload = payload.addInstanceId(instanceId).toJson(),
             sub = sub
         )
 
-        private fun ExpandedAttributeInstance.composePayload(
-            instanceId: URI,
-            modifiedAt: ZonedDateTime? = null
-        ): ExpandedAttributeInstance =
+        private fun ExpandedAttributeInstance.addInstanceId(instanceId: URI): ExpandedAttributeInstance =
             this.plus(NGSILD_INSTANCE_ID_PROPERTY to buildNonReifiedPropertyValue(instanceId.toString()))
-                .let {
-                    if (modifiedAt != null)
-                        it.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
-                    else it
-                }
+
+        private fun ExpandedAttributeInstance.addModifiedAt(modifiedAt: ZonedDateTime?): ExpandedAttributeInstance =
+            modifiedAt?.let {
+                this.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
+            } ?: this
 
         private fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
     }

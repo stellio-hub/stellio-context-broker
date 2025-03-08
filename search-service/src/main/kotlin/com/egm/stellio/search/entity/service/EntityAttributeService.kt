@@ -99,11 +99,11 @@ class EntityAttributeService(
         databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
-                (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, dataset_id, 
-                    payload)
+                (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
+                    dataset_id, payload)
             VALUES 
-                (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at, :dataset_id, 
-                    :payload)
+                (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at, :created_at,
+                    :dataset_id, :payload)
             ON CONFLICT (entity_id, attribute_name, dataset_id)
                 DO UPDATE SET deleted_at = null,
                     attribute_type = :attribute_type,
@@ -551,7 +551,7 @@ class EntityAttributeService(
             ),
             datasetId = toOptionalUri(row["dataset_id"]),
             createdAt = toZonedDateTime(row["created_at"]),
-            modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
+            modifiedAt = toZonedDateTime(row["modified_at"]),
             deletedAt = toOptionalZonedDateTime(row["deleted_at"]),
             payload = toJson(row["payload"])
         )

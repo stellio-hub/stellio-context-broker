@@ -34,7 +34,7 @@ data class Subscription(
     val type: String,
     val subscriptionName: String? = null,
     val createdAt: ZonedDateTime = ngsiLdDateTime(),
-    val modifiedAt: ZonedDateTime = ngsiLdDateTime(),
+    val modifiedAt: ZonedDateTime = createdAt,
     val description: String? = null,
     val entities: Set<EntitySelector>?,
     val watchedAttributes: List<ExpandedTerm>? = null,

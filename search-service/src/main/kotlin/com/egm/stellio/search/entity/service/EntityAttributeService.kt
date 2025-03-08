@@ -99,11 +99,11 @@ class EntityAttributeService(
         databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
-                (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, dataset_id, 
-                    payload)
+                (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
+                    dataset_id, payload)
             VALUES 
                 (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at, :created_at,
-                 :dataset_id, :payload)
+                    :dataset_id, :payload)
             ON CONFLICT (entity_id, attribute_name, dataset_id)
                 DO UPDATE SET deleted_at = null,
                     attribute_type = :attribute_type,

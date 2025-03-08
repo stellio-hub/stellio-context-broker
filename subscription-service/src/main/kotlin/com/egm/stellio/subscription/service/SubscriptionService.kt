@@ -192,14 +192,16 @@ class SubscriptionService(
 
         val insertStatement =
             """
-            INSERT INTO subscription(id, type, subscription_name, created_at, modified_at, description, watched_attributes,
-                notification_trigger, time_interval, q, scope_q, notif_attributes, notif_format, endpoint_uri, 
-                endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, times_sent, is_active, 
-                expires_at, sub, contexts, throttling, sys_attrs, lang, datasetId, jsonld_context)
-            VALUES(:id, :type, :subscription_name, :created_at, :modified_at, :description, :watched_attributes, 
-                :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes, :notif_format, :endpoint_uri, 
-                :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info, :times_sent, :is_active, 
-                :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId, :jsonld_context)
+            INSERT INTO subscription(id, type, subscription_name, created_at, modified_at, description,
+                watched_attributes, notification_trigger, time_interval, q, scope_q, notif_attributes,
+                notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info,
+                times_sent, is_active, expires_at, sub, contexts, throttling, sys_attrs, lang, datasetId,
+                jsonld_context)
+            VALUES(:id, :type, :subscription_name, :created_at, :modified_at, :description,
+                :watched_attributes, :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes,
+                :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info,
+                :times_sent, :is_active, :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId,
+                :jsonld_context)
             """.trimIndent()
 
         databaseClient.sql(insertStatement)

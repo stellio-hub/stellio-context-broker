@@ -53,8 +53,8 @@ data class Entity(
             members = mapOf(
                 JSONLD_ID to entityId,
                 JSONLD_TYPE to types,
-                NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt),
                 NGSILD_CREATED_AT_PROPERTY to buildNonReifiedTemporalValue(createdAt),
+                NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt),
                 NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt),
             )
         )

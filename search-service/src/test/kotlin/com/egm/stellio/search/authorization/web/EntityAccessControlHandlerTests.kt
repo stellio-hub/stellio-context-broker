@@ -46,7 +46,6 @@ import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.sub
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
@@ -288,7 +287,7 @@ class EntityAccessControlHandlerTests {
                 """
             )
 
-        coVerify { entityAccessRightsService.setRoleOnEntity(any(), any(), any()) wasNot Called }
+        coVerify(exactly = 0) { entityAccessRightsService.setRoleOnEntity(any(), any(), any()) }
     }
 
     @Test
@@ -322,9 +321,7 @@ class EntityAccessControlHandlerTests {
                 """
             )
 
-        coVerify {
-            entityAccessRightsService.setRoleOnEntity(any(), any(), any()) wasNot Called
-        }
+        coVerify(exactly = 0) { entityAccessRightsService.setRoleOnEntity(any(), any(), any()) }
     }
 
     @Test
@@ -370,7 +367,7 @@ class EntityAccessControlHandlerTests {
             authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
             entityAccessRightsService.isOwnerOfEntity(eq(otherUserSub), eq(entityUri1))
         }
-        coVerify { entityAccessRightsService.removeRoleOnEntity(eq(otherUserSub), eq(entityUri1)) wasNot Called }
+        coVerify(exactly = 0) { entityAccessRightsService.removeRoleOnEntity(eq(otherUserSub), eq(entityUri1)) }
     }
 
     @Test

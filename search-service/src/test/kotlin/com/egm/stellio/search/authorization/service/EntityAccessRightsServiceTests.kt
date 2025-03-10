@@ -37,7 +37,7 @@ import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.SpykBean
-import io.mockk.Called
+import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.r2dbc.postgresql.codec.Json
@@ -92,6 +92,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     fun clearEntityAccessRightsTable() {
         r2dbcEntityTemplate.delete<SubjectAccessRight>().from("entity_access_rights").all().block()
         r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
+        clearAllMocks()
     }
 
     @Test
@@ -209,7 +210,9 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         coVerify {
             subjectReferentialService.hasStellioAdminRole(listOf(userUuid))
-            subjectReferentialService.retrieve(eq(userUuid)) wasNot Called
+        }
+        coVerify(exactly = 0) {
+            subjectReferentialService.retrieve(eq(userUuid))
         }
     }
 

@@ -13,22 +13,18 @@ import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
-import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.DEVICE_TYPE
 import com.egm.stellio.shared.util.ENTITY_ALREADY_EXISTS_MESSAGE
 import com.egm.stellio.shared.util.ENTITY_DOES_NOT_EXIST_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.MOCK_USER_SUB
-import com.egm.stellio.shared.util.SENSOR_TYPE
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockkClass
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
@@ -62,13 +58,6 @@ class EntityOperationHandlerTests {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    private lateinit var mockedTemperatureSensorEntity: NgsiLdEntity
-    private lateinit var mockedDissolvedOxygenSensorEntity: NgsiLdEntity
-    private lateinit var mockedDeviceEntity: NgsiLdEntity
-    private lateinit var mockedTemperatureSensorExpandedEntity: ExpandedEntity
-    private lateinit var mockedDissolvedOxygenSensorExpandedEntity: ExpandedEntity
-    private lateinit var mockedDeviceExpandedEntity: ExpandedEntity
-
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
@@ -82,31 +71,6 @@ class EntityOperationHandlerTests {
                 logger.warn(String(it.responseBody as? ByteArray ?: "Empty response body".toByteArray()))
             }
             .build()
-
-        mockedTemperatureSensorEntity = mockkClass(NgsiLdEntity::class) {
-            every { id } returns temperatureSensorUri
-            every { types } returns listOf(SENSOR_TYPE)
-        }
-        mockedTemperatureSensorExpandedEntity = mockkClass(ExpandedEntity::class) {
-            every { id } returns temperatureSensorUri
-            every { members } returns emptyMap()
-        }
-        mockedDissolvedOxygenSensorEntity = mockkClass(NgsiLdEntity::class) {
-            every { id } returns dissolvedOxygenSensorUri
-            every { types } returns listOf(SENSOR_TYPE)
-        }
-        mockedDissolvedOxygenSensorExpandedEntity = mockkClass(ExpandedEntity::class) {
-            every { id } returns dissolvedOxygenSensorUri
-            every { members } returns emptyMap()
-        }
-        mockedDeviceEntity = mockkClass(NgsiLdEntity::class) {
-            every { id } returns deviceUri
-            every { types } returns listOf(DEVICE_TYPE)
-        }
-        mockedDeviceExpandedEntity = mockkClass(ExpandedEntity::class) {
-            every { id } returns deviceUri
-            every { members } returns emptyMap()
-        }
     }
 
     private val temperatureSensorUri = "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()

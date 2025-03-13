@@ -17,7 +17,6 @@ import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadAndExpandMinimalEntity
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
@@ -68,6 +67,17 @@ class LinkedEntityServiceTests {
         }
     """.trimIndent().deserializeAsMap()
 
+    private val linkingEntityWithoutRelationships: CompactedEntity = """
+        {
+            "id": "urn:ngsi-ld:LinkingEntity:01",
+            "type": "LinkingEntity",
+            "prop1": {
+                "type": "Property",
+                "value": "Prop 1"
+            }
+        }
+    """.trimIndent().deserializeAsMap()
+
     @Test
     fun `it should return the input entity if no join is specified`() = runTest {
         val compactedEntities = linkedEntityService.processLinkedEntities(
@@ -85,8 +95,8 @@ class LinkedEntityServiceTests {
             serializeObject(compactedEntities[0])
         )
 
-        coVerify {
-            entityQueryService.queryEntities(any(), any<Sub>()) wasNot Called
+        coVerify(exactly = 0) {
+            entityQueryService.queryEntities(any(), any<Sub>())
         }
     }
 
@@ -108,8 +118,8 @@ class LinkedEntityServiceTests {
             serializeObject(compactedEntities[0])
         )
 
-        coVerify {
-            entityQueryService.queryEntities(any(), any<Sub>()) wasNot Called
+        coVerify(exactly = 0) {
+            entityQueryService.queryEntities(any(), any<Sub>())
         }
     }
 
@@ -130,8 +140,31 @@ class LinkedEntityServiceTests {
             serializeObject(compactedEntities)
         )
 
-        coVerify {
-            entityQueryService.queryEntities(any(), any<Sub>()) wasNot Called
+        coVerify(exactly = 0) {
+            entityQueryService.queryEntities(any(), any<Sub>())
+        }
+    }
+
+    @Test
+    fun `it should return only the input entity if it has no relationships`() = runTest {
+        val compactedEntities = linkedEntityService.processLinkedEntities(
+            linkingEntityWithoutRelationships,
+            EntitiesQueryFromGet(
+                linkedEntityQuery = LinkedEntityQuery(JoinType.FLAT, 1.toUInt()),
+                paginationQuery = PaginationQuery(0, 100),
+                contexts = NGSILD_TEST_CORE_CONTEXTS
+            ),
+            null
+        ).shouldSucceedAndResult()
+
+        assertEquals(1, compactedEntities.size)
+        assertJsonPayloadsAreEqual(
+            serializeObject(listOf(linkingEntityWithoutRelationships)),
+            serializeObject(compactedEntities)
+        )
+
+        coVerify(exactly = 0) {
+            entityQueryService.queryEntities(any(), any<Sub>())
         }
     }
 
@@ -148,8 +181,8 @@ class LinkedEntityServiceTests {
 
         assertEquals(0, compactedEntities.size)
 
-        coVerify {
-            entityQueryService.queryEntities(any(), any<Sub>()) wasNot Called
+        coVerify(exactly = 0) {
+            entityQueryService.queryEntities(any(), any<Sub>())
         }
     }
 

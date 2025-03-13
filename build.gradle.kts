@@ -21,7 +21,7 @@ plugins {
     // and the shared lib is obviously not one
     id("org.springframework.boot") version "3.4.3" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
-    id("org.graalvm.buildtools.native") version "0.10.5"
+    id("org.graalvm.buildtools.native") version "0.10.6"
     kotlin("jvm") version "2.1.10" apply false
     kotlin("plugin.spring") version "2.1.10" apply false
     id("com.google.cloud.tools.jib") version "3.4.4" apply false
@@ -66,7 +66,7 @@ subprojects {
 
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
-        implementation("com.apicatalog:titanium-json-ld:1.5.0")
+        implementation("com.apicatalog:titanium-json-ld:1.6.0")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
         implementation("io.arrow-kt:arrow-fx-coroutines:2.0.1")
@@ -82,6 +82,7 @@ subprojects {
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("com.ninja-squad:springmockk:4.0.2")
+        testImplementation("io.mockk:mockk:1.13.17")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
@@ -101,6 +102,7 @@ subprojects {
         testLogging {
             events("passed", "skipped", "failed")
         }
+        jvmArgs("-Dmockk.junit.extension.checkUnnecessaryStub=true")
     }
 
     // see https://github.com/detekt/detekt/issues/6198

@@ -105,7 +105,6 @@ class TemporalQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
-        every { pagination.temporalLimit } returns 100
 
         composeTemporalEntitiesQueryFromGet(
             pagination,
@@ -128,7 +127,6 @@ class TemporalQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
-        every { pagination.temporalLimit } returns 100
 
         composeTemporalEntitiesQueryFromGet(
             pagination,
@@ -148,7 +146,6 @@ class TemporalQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
-        every { pagination.temporalLimit } returns 100
 
         composeTemporalEntitiesQueryFromGet(
             pagination,

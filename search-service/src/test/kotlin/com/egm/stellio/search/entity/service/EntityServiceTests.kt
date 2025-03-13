@@ -38,7 +38,6 @@ import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.Job
@@ -636,10 +635,10 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         coVerify {
             entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, OUTGOING_PROPERTY, null)
-            listOf(
-                entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_PROPERTY, null, false),
-                entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
-            ) wasNot Called
+        }
+        coVerify(exactly = 0) {
+            entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_PROPERTY, null, false)
+            entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
         }
     }
 }

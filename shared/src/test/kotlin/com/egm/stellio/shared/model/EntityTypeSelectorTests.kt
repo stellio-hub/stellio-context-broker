@@ -9,12 +9,16 @@ class EntityTypeSelectorTests {
 
     @ParameterizedTest
     @CsvSource(
+        "'type1', 'type1', true",
+        "'type1', 'type2', false",
+        "'type1,type2', 'type1', true",
         "'type1', 'type1;type2', false",
         "'type1', 'type1,type2', true",
         "'type1', 'type1|type2', true",
         "'type1,type2', 'type1;type2', true",
         "'type1,type2', 'type1,type2', true",
         "'type1,type2', 'type1,(type2;type3)', true",
+        "'type1,type2', 'type1;(type2,type3)', true",
         "'type1', 'type1,(type2;type3)', true",
         "'type2', 'type1,(type2;type3)', false",
         "'type2', 'type1,(type2;type3)', false",

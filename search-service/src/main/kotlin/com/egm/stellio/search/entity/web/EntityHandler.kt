@@ -167,31 +167,45 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: URI,
         @RequestBody requestBody: Mono<String>,
-        @AllowedParameters(implemented = [], notImplemented = [QueryParameter.LOCAL, QueryParameter.VIA])
+        @AllowedParameters(implemented = [QP.LOCAL, QP.TYPE], notImplemented = [QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val expandedEntity = expandJsonLdEntity(body, contexts)
-        val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
 
-        if (ngsiLdEntity.id != entityId)
+        if (expandedEntity.id != entityId)
             BadRequestDataException("The id contained in the body is not the same as the one provided in the URL")
                 .left().bind<ResponseEntity<*>>()
 
-        entityService.replaceEntity(
-            entityId,
-            ngsiLdEntity,
-            expandedEntity,
-            sub.getOrNull()
-        ).bind()
+        val (result, remainingEntity) =
+            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
+                distributedEntityProvisionService
+                    .distributeReplaceEntity(expandedEntity, contexts, queryParams)
+            } else BatchOperationResult() to expandedEntity
 
-        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-    }.fold(
-        { it.toErrorResponse() },
-        { it }
-    )
+        if (remainingEntity != null) {
+            result.addEither(
+                either {
+                    val ngsiLdEntity = remainingEntity.toNgsiLdEntity().bind()
+                    entityService.replaceEntity(
+                        entityId,
+                        ngsiLdEntity,
+                        expandedEntity,
+                        sub.getOrNull()
+                    ).bind()
+                },
+                entityId
+            )
+        }
+
+        result.toNonBatchEndpointResponse(entityId, HttpStatus.NO_CONTENT)
+    }
+        .fold(
+            { it.toErrorResponse() },
+            { it }
+        )
 
     @PutMapping("/", "")
     fun handleMissingEntityIdOnReplace(): ResponseEntity<*> =
@@ -207,7 +221,7 @@ class EntityHandler(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY,
-                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID,
+                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID
             ],
             notImplemented = [QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
         )

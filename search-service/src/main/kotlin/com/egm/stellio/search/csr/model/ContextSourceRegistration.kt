@@ -113,19 +113,19 @@ data class ContextSourceRegistration(
         }
 
         @JsonIgnore
-        fun getQueryParamAttributes(
+        fun computeAttrsQueryParam(
             csrFilters: CSRFilters,
             contexts: List<String>
         ): String? {
-            val matchingAttrs = getAttributeNames()
-            val previousAttrs = csrFilters.attrs
-            val newAttrs = when {
-                previousAttrs.isEmpty() -> matchingAttrs
-                matchingAttrs.isNullOrEmpty() -> previousAttrs
-                else -> matchingAttrs.intersect(previousAttrs)
+            val csrAttrs = getAttributeNames()
+            val queryAttrs = csrFilters.attrs
+            val matchingAttrs = when {
+                queryAttrs.isEmpty() -> csrAttrs
+                csrAttrs.isNullOrEmpty() -> queryAttrs
+                else -> csrAttrs.intersect(queryAttrs)
             }
-            return if (newAttrs.isNullOrEmpty()) null
-            else newAttrs.joinToString(",") { compactTerm(it, contexts) }
+            return if (matchingAttrs.isNullOrEmpty()) null
+            else matchingAttrs.joinToString(",") { compactTerm(it, contexts) }
         }
     }
 
@@ -226,14 +226,15 @@ data class ContextSourceRegistration(
     }
 
     fun toSingleEntityInfoCSRList(csrFilters: CSRFilters): List<SingleEntityInfoCSR> =
-        getMatchingInformation(csrFilters).flatMap { information ->
-            information.entities?.map { this.copy(information = listOf(information.copy(entities = listOf(it)))) }
-                ?: listOf(this.copy(information = listOf(information)))
+        getMatchingInformation(csrFilters).flatMap { registrationInfo ->
+            registrationInfo.entities?.map {
+                this.copy(information = listOf(registrationInfo.copy(entities = listOf(it))))
+            } ?: listOf(this.copy(information = listOf(registrationInfo)))
         }
 
     private fun getMatchingInformation(csrFilters: CSRFilters): List<RegistrationInfo> =
-        information.filter { info ->
-            info.entities?.any { entityInfo ->
+        information.filter { registrationInfo ->
+            registrationInfo.entities?.any { entityInfo ->
                 entityInfo.id?.let { csrFilters.ids.contains(it) } ?: true &&
                     csrFilters.typeSelection?.let { typeSelection ->
                         areTypesInSelection(entityInfo.types, typeSelection)
@@ -243,7 +244,7 @@ data class ContextSourceRegistration(
                     } ?: true
             } ?: true &&
                 csrFilters.attrs.isEmpty() ||
-                info.getAttributeNames()?.any { it in csrFilters.attrs } ?: true
+                registrationInfo.getAttributeNames()?.any { it in csrFilters.attrs } ?: true
         }
 
     companion object {

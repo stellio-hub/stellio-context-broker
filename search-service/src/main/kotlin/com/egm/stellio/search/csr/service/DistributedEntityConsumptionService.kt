@@ -182,7 +182,7 @@ class DistributedEntityConsumptionService(
         queryParams.remove(QueryParameter.GEOMETRY_PROPERTY.key)
         queryParams.remove(QueryParameter.OPTIONS.key) // only normalized request
         queryParams.remove(QueryParameter.LANG.key)
-        csr.information.first().getQueryParamAttributes(filter, contexts)?.let {
+        csr.information.first().computeAttrsQueryParam(filter, contexts)?.let {
             logger.info("new calculated attrs for ${csr.id} are : $it")
             queryParams[QueryParameter.ATTRS.key] = it
         }

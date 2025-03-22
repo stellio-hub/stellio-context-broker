@@ -143,7 +143,8 @@ fun buildQQuery(rawQuery: String, contexts: List<String>, target: ExpandedEntity
             if (target == null)
                 it.replace("#{TARGET}#", "entity_payload.payload")
             else
-                it.replace("#{TARGET}#", "'" + serializeObject(target.members) + "'")
+                // escape single quotes in the serialized entity to not crash the SQL query
+                it.replace("#{TARGET}#", "'" + serializeObject(target.members).replace("'", "''") + "'")
         }
 }
 

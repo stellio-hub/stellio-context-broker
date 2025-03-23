@@ -560,10 +560,7 @@ class EntityService(
             update_entity AS (
                 UPDATE entity_payload
                 SET deleted_at = :deleted_at,
-                    payload = :payload,
-                    scopes = null,
-                    specific_access_policy = null,
-                    types = '{}'
+                    payload = :payload
                 WHERE entity_id = :entity_id
             )
             SELECT * FROM entity_before_delete
@@ -580,7 +577,7 @@ class EntityService(
 
     @Transactional
     suspend fun permanentlyDeleteEntity(entityId: URI, sub: Sub? = null): Either<APIException, Unit> = either {
-        val currentEntity = entityQueryService.retrieve(entityId, true).bind()
+        val currentEntity = entityQueryService.retrieve(entityId, false).bind()
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
         val previousEntity = permanentyDeleteEntityPayload(entityId).bind()

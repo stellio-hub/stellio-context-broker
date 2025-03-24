@@ -21,7 +21,6 @@ class EntityTypeSelectorTests {
         "'type1,type2', 'type1;(type2,type3)', true",
         "'type1', 'type1,(type2;type3)', true",
         "'type2', 'type1,(type2;type3)', false",
-        "'type2', 'type1,(type2;type3)', false",
         "'type4,type5,type2', 'type1,(type2;(type3|(type4;type5)))', true",
         "'type3,type2', 'type1,(type2;(type3|(type4;type5)))', true",
         "'type1', 'type1,(type2;(type3|(type4;type5)))', true",

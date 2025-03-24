@@ -22,6 +22,8 @@ val innerParanthesisRegex = "\\(([^()]*)\\)".toRegex()
 
 fun areTypesInSelection(types: List<ExpandedTerm>, typeSelection: EntityTypeSelection): Boolean {
     var processedTypeSelection = typeSelection
+
+    // calculate all parenthesis before any other operation
     while (innerParanthesisRegex.containsMatchIn(processedTypeSelection)) {
         innerParanthesisRegex.find(processedTypeSelection)?.let { matches ->
             val groups = matches.groups.drop(1)
@@ -32,12 +34,18 @@ fun areTypesInSelection(types: List<ExpandedTerm>, typeSelection: EntityTypeSele
         }
     }
 
+    // treat OR operation
     orRegex.find(processedTypeSelection)?.let {
         return areTypesInSelection(types, it.groups[1]!!.value) || areTypesInSelection(types, it.groups[2]!!.value)
     }
+
+    // treat AND operation
     andRegex.find(processedTypeSelection)?.let {
         return areTypesInSelection(types, it.groups[1]!!.value) && areTypesInSelection(types, it.groups[2]!!.value)
     }
+
+    // treat already calculated value
     processedTypeSelection.toBooleanStrictOrNull()?.let { return it }
+
     return types.contains(processedTypeSelection)
 }

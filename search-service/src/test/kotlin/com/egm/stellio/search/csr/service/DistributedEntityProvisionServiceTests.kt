@@ -99,12 +99,8 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
     @Test
     fun `distributeCreateEntity should call distributeEntityProvision`() = runTest {
-        val csr = spyk(gimmeRawCSR())
         val entity = expandJsonLdEntity(entity)
 
-        coEvery {
-            csr.getAssociatedAttributes(any(), any())
-        } returns setOf(NGSILD_NAME_PROPERTY)
         coEvery {
             distributedEntityProvisionService.distributeEntityProvision(any(), any(), any(), any())
         } returns (BatchOperationResult() to entity)
@@ -126,12 +122,8 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
     @Test
     fun `distributeReplaceEntity should call distributeEntityProvision`() = runTest {
-        val csr = spyk(gimmeRawCSR())
         val entity = expandJsonLdEntity(entity)
 
-        coEvery {
-            csr.getAssociatedAttributes(any(), any())
-        } returns setOf(NGSILD_NAME_PROPERTY)
         coEvery {
             distributedEntityProvisionService.distributeEntityProvision(any(), any(), any(), any())
         } returns (BatchOperationResult() to entity)

@@ -244,23 +244,23 @@ enum class Operation(
 
     fun getMatchingOperations(): Set<Operation> = matchingOperationGroups + this
     fun getPath(entityId: URI? = null, attrId: String? = null): String = path!!.pattern
-        .replace(entityIdPlaceHolder, entityId?.toString() ?: "")
-        .replace(attributeIdPlaceHolder, attrId ?: "")
+        .replace(ENTITY_ID_PLACEHOLDER, entityId?.toString() ?: "")
+        .replace(ATTRIBUTE_ID_PLACEHOLDER, attrId ?: "")
 
     companion object {
         fun fromString(operation: String): Operation? =
             Operation.entries.find { it.key == operation }
 
-        const val entityPath = "/ngsi-ld/v1/entities"
-        const val entityIdPlaceHolder = ":entityId"
-        const val attributeIdPlaceHolder = ":attrId"
-        const val attrsPath = "$entityPath/$entityIdPlaceHolder/attrs"
+        const val ENTITY_PATH = "/ngsi-ld/v1/entities"
+        const val ENTITY_ID_PLACEHOLDER = ":entityId"
+        const val ATTRIBUTE_ID_PLACEHOLDER = ":attrId"
+        const val ATTRS_PATH = "$ENTITY_PATH/$ENTITY_ID_PLACEHOLDER/attrs"
 
         enum class NGSILDPath(val pattern: String) {
-            ENTITIES(entityPath),
-            ENTITY("$entityPath/$entityIdPlaceHolder"),
-            ATTRIBUTES(attrsPath),
-            ATTRIBUTE("$attrsPath/$attributeIdPlaceHolder")
+            ENTITIES(ENTITY_PATH),
+            ENTITY("$ENTITY_PATH/$ENTITY_ID_PLACEHOLDER"),
+            ATTRIBUTES(ATTRS_PATH),
+            ATTRIBUTE("$ATTRS_PATH/$ATTRIBUTE_ID_PLACEHOLDER")
         }
     }
 }

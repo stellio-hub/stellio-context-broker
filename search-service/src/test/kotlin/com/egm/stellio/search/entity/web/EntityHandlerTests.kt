@@ -1547,6 +1547,12 @@ class EntityHandlerTests {
         val capturedExpandedEntity = slot<ExpandedEntity>()
         val result = mockkClass(BatchOperationResult::class, relaxed = true)
         val response = "test response"
+
+        coEvery {
+            distributedEntityProvisionService
+                .distributeReplaceEntity(capture(capturedExpandedEntity), any(), any())
+        } answers { result to capturedExpandedEntity.captured }
+
         coEvery {
             entityService.replaceEntity(breedingServiceId, any(), any(), sub.getOrNull())
         } returns Unit.right()
@@ -1556,11 +1562,6 @@ class EntityHandlerTests {
         every {
             result.toNonBatchEndpointResponse(any(), any())
         } returns ResponseEntity.status(HttpStatus.MULTI_STATUS).body(response)
-
-        coEvery {
-            distributedEntityProvisionService
-                .distributeReplaceEntity(capture(capturedExpandedEntity), any(), any())
-        } answers { result to capturedExpandedEntity.captured }
 
         webClient.put()
             .uri("/ngsi-ld/v1/entities/$breedingServiceId")
@@ -1574,7 +1575,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `replace entity should not call distribution if local is true`() {
+    fun `replace entity should not try to call the context sources if local is true`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/breedingService.jsonld")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 

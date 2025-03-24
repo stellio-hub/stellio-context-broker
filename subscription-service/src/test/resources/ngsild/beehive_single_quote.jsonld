@@ -1,0 +1,11 @@
+{
+  "id": "urn:ngsi-ld:BeeHive:TESTC",
+  "type": "BeeHive",
+  "name": {
+    "type": "Property",
+    "value": "C'est une belle ruche"
+  },
+  "@context": [
+    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+  ]
+}

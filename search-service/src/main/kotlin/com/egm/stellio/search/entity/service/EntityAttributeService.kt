@@ -478,7 +478,7 @@ class EntityAttributeService(
         id: URI,
         attrs: Set<String>,
         datasetIds: Set<String>,
-        excludedDeleted: Boolean = true
+        excludeDeleted: Boolean = true
     ): List<Attribute> {
         val filterOnAttributes =
             if (attrs.isNotEmpty())
@@ -502,7 +502,7 @@ class EntityAttributeService(
                 dataset_id, payload
             FROM temporal_entity_attribute            
             WHERE entity_id = :entity_id
-            ${if (excludedDeleted) " and deleted_at is null " else ""}
+            ${if (excludeDeleted) " and deleted_at is null " else ""}
             $filterOnAttributes
             $filterOnDatasetId
             """.trimIndent()

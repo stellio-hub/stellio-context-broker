@@ -1,5 +1,5 @@
 {
-   "operationType":"ATTRIBUTE_APPEND",
+   "operationType":"ATTRIBUTE_CREATE",
    "tenantName": "urn:ngsi-ld:tenant:default",
    "entityId":"urn:ngsi-ld:BeeHive:TESTC",
    "entityTypes": ["https://ontology.eglobalmark.com/apic#BeeHive"],

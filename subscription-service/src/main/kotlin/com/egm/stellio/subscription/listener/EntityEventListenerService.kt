@@ -3,9 +3,8 @@ package com.egm.stellio.subscription.listener
 import arrow.core.Either
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeCreateEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
-import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
@@ -78,17 +77,11 @@ class EntityEventListenerService(
                     Pair(entityEvent.getEntity()!!, entityEvent.updatedEntity),
                     NotificationTrigger.ENTITY_DELETED
                 )
-                is AttributeAppendEvent -> handleEntityEvent(
+                is AttributeCreateEvent -> handleEntityEvent(
                     tenantName,
                     setOf(entityEvent.attributeName),
                     Pair(entityEvent.getEntity(), entityEvent.getEntity()),
                     NotificationTrigger.ATTRIBUTE_CREATED
-                )
-                is AttributeReplaceEvent -> handleEntityEvent(
-                    tenantName,
-                    setOf(entityEvent.attributeName),
-                    Pair(entityEvent.getEntity(), entityEvent.getEntity()),
-                    NotificationTrigger.ATTRIBUTE_UPDATED
                 )
                 is AttributeUpdateEvent -> handleEntityEvent(
                     tenantName,

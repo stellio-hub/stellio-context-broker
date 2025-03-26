@@ -272,7 +272,7 @@ class EntityAccessControlHandler(
                     SucceededAttributeOperationResult(
                         ngsiLdRel.name,
                         ngsiLdRelInstance.datasetId,
-                        OperationStatus.APPENDED,
+                        OperationStatus.CREATED,
                         emptyMap()
                     )
                 }

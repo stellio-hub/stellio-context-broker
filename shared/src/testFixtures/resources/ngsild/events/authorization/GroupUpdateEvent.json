@@ -1,5 +1,5 @@
 {
-  "operationType": "ATTRIBUTE_REPLACE",
+  "operationType": "ATTRIBUTE_UPDATE",
   "tenantName": "urn:ngsi-ld:tenant:default",
   "entityId": "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
   "entityTypes": ["Group"],

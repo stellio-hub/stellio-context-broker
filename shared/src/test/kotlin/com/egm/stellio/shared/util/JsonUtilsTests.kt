@@ -1,7 +1,6 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.AttributeDeleteEvent
-import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
@@ -98,14 +97,6 @@ class JsonUtilsTests {
             loadSampleData("events/entity/attributeUpdateTextPropEvent.json")
         )
         Assertions.assertTrue(parsedEvent is AttributeUpdateEvent)
-    }
-
-    @Test
-    fun `it should parse an event of type ATTRIBUTE_REPLACE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(
-            loadSampleData("events/entity/attributeReplaceTextPropEvent.json")
-        )
-        Assertions.assertTrue(parsedEvent is AttributeReplaceEvent)
     }
 
     @Test

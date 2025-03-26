@@ -67,8 +67,7 @@ data class FailedAttributeOperationResult(
 ) : AttributeOperationResult(attributeName, datasetId, operationStatus)
 
 enum class OperationStatus {
-    APPENDED,
-    REPLACED,
+    CREATED,
     UPDATED,
     DELETED,
     IGNORED,
@@ -77,7 +76,7 @@ enum class OperationStatus {
     fun isSuccessResult(): Boolean = getSuccessStatuses().contains(this)
 
     companion object {
-        fun getSuccessStatuses(): List<OperationStatus> = listOf(APPENDED, REPLACED, UPDATED, DELETED, IGNORED)
+        fun getSuccessStatuses(): List<OperationStatus> = listOf(CREATED, UPDATED, DELETED, IGNORED)
     }
 }
 

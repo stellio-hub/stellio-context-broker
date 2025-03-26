@@ -5,9 +5,8 @@ import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
-import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeCreateEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
-import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityEvent
@@ -139,7 +138,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish a single ATTRIBUTE_APPEND event if an attribute was appended`() = runTest {
+    fun `it should publish a single ATTRIBUTE_CREATE event if an attribute was appended`() = runTest {
         val entity = mockk<Entity>(relaxed = true)
         coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
         every { entity.types } returns listOf(breedingServiceType)
@@ -152,7 +151,7 @@ class EntityEventServiceTests {
             listOf(
                 SucceededAttributeOperationResult(
                     attributeName = fishNumberProperty,
-                    operationStatus = OperationStatus.APPENDED,
+                    operationStatus = OperationStatus.CREATED,
                     newExpandedValue = expandedAttribute.second[0]
                 )
             )
@@ -160,8 +159,8 @@ class EntityEventServiceTests {
 
         verify {
             entityEventService["publishEntityEvent"](
-                match<AttributeAppendEvent> {
-                    it.operationType == EventsType.ATTRIBUTE_APPEND &&
+                match<AttributeCreateEvent> {
+                    it.operationType == EventsType.ATTRIBUTE_CREATE &&
                         it.sub == "sub" &&
                         it.entityId == breedingServiceUri &&
                         it.entityTypes == listOf(breedingServiceType) &&
@@ -174,42 +173,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish a single ATTRIBUTE_REPLACE event if an attribute was replaced`() = runTest {
-        val entity = mockk<Entity>(relaxed = true)
-        coEvery { entityQueryService.retrieve(breedingServiceUri) } returns entity.right()
-        every { entity.types } returns listOf(breedingServiceType)
-
-        val expandedAttribute =
-            expandAttribute(fishNumberTerm, fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
-        entityEventService.publishAttributeChangeEvents(
-            null,
-            breedingServiceUri,
-            listOf(
-                SucceededAttributeOperationResult(
-                    attributeName = fishNumberProperty,
-                    operationStatus = OperationStatus.REPLACED,
-                    newExpandedValue = expandedAttribute.second[0]
-                )
-            )
-        ).join()
-
-        verify {
-            entityEventService["publishEntityEvent"](
-                match<AttributeReplaceEvent> {
-                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
-                        it.sub == null &&
-                        it.entityId == breedingServiceUri &&
-                        it.entityTypes == listOf(breedingServiceType) &&
-                        it.attributeName == fishNumberProperty &&
-                        it.datasetId == null &&
-                        it.operationPayload.matchContent(serializedAttributePayload(expandedAttribute))
-                }
-            )
-        }
-    }
-
-    @Test
-    fun `it should publish ATTRIBUTE_APPEND and ATTRIBUTE_REPLACE events if attributes were appended and replaced`() =
+    fun `it should publish ATTRIBUTE_CREATE and ATTRIBUTE_UPDATE events if attributes were appended and replaced`() =
         runTest {
             val entity = mockk<Entity>(relaxed = true)
             val attributesPayload =
@@ -223,13 +187,13 @@ class EntityEventServiceTests {
             val operationResult = listOf(
                 SucceededAttributeOperationResult(
                     attributeName = fishNumberProperty,
-                    operationStatus = OperationStatus.APPENDED,
+                    operationStatus = OperationStatus.CREATED,
                     newExpandedValue = jsonLdAttributes[fishNumberProperty]!![0]
                 ),
                 SucceededAttributeOperationResult(
                     attributeName = fishNameProperty,
                     datasetId = fishName1DatasetUri,
-                    operationStatus = OperationStatus.REPLACED,
+                    operationStatus = OperationStatus.UPDATED,
                     newExpandedValue = jsonLdAttributes[fishNameProperty]!![0]
                 )
             )
@@ -243,7 +207,7 @@ class EntityEventServiceTests {
                 entityEventService["publishEntityEvent"](
                     match<EntityEvent> { entityEvent ->
                         when (entityEvent) {
-                            is AttributeAppendEvent ->
+                            is AttributeCreateEvent ->
                                 listOf(entityEvent).any {
                                     it.entityId == breedingServiceUri &&
                                         it.entityTypes == listOf(breedingServiceType) &&
@@ -254,7 +218,7 @@ class EntityEventServiceTests {
                                         )
                                 }
 
-                            is AttributeReplaceEvent ->
+                            is AttributeUpdateEvent ->
                                 listOf(entityEvent).any {
                                     it.entityId == breedingServiceUri &&
                                         it.entityTypes == listOf(breedingServiceType) &&
@@ -273,7 +237,7 @@ class EntityEventServiceTests {
         }
 
     @Test
-    fun `it should publish ATTRIBUTE_REPLACE events if two attributes are replaced`() = runTest {
+    fun `it should publish ATTRIBUTE_UPDATE events if two attributes are replaced`() = runTest {
         val entity = mockk<Entity>(relaxed = true)
         val attributesPayload =
             """
@@ -286,13 +250,13 @@ class EntityEventServiceTests {
         val operationResult = listOf(
             SucceededAttributeOperationResult(
                 attributeName = fishNumberProperty,
-                operationStatus = OperationStatus.REPLACED,
+                operationStatus = OperationStatus.UPDATED,
                 newExpandedValue = jsonLdAttributes[fishNumberProperty]!![0]
             ),
             SucceededAttributeOperationResult(
                 attributeName = fishNameProperty,
                 datasetId = fishName1DatasetUri,
-                operationStatus = OperationStatus.REPLACED,
+                operationStatus = OperationStatus.UPDATED,
                 newExpandedValue = jsonLdAttributes[fishNameProperty]!![0]
             )
         )
@@ -308,9 +272,9 @@ class EntityEventServiceTests {
 
         verify {
             entityEventService["publishEntityEvent"](
-                match<AttributeReplaceEvent> { entityEvent ->
+                match<AttributeUpdateEvent> { entityEvent ->
                     listOf(entityEvent).all {
-                        it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                        it.operationType == EventsType.ATTRIBUTE_UPDATE &&
                             it.entityId == breedingServiceUri &&
                             it.entityTypes == listOf(breedingServiceType) &&
                             (it.attributeName == fishNameProperty || it.attributeName == fishNumberProperty) &&
@@ -328,7 +292,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish ATTRIBUTE_REPLACE events if a multi-attribute is replaced`() = runTest {
+    fun `it should publish ATTRIBUTE_UPDATE events if a multi-attribute is replaced`() = runTest {
         val entity = mockk<Entity>(relaxed = true)
         val fishNameAttributeFragment2 =
             """
@@ -349,13 +313,13 @@ class EntityEventServiceTests {
             SucceededAttributeOperationResult(
                 attributeName = fishNameProperty,
                 datasetId = fishName1DatasetUri,
-                operationStatus = OperationStatus.REPLACED,
+                operationStatus = OperationStatus.UPDATED,
                 newExpandedValue = jsonLdAttributes[fishNameProperty]!![0]
             ),
             SucceededAttributeOperationResult(
                 attributeName = fishNameProperty,
                 datasetId = fishName2DatasetUri,
-                operationStatus = OperationStatus.REPLACED,
+                operationStatus = OperationStatus.UPDATED,
                 newExpandedValue = jsonLdAttributes[fishNameProperty]!![1]
             )
         )
@@ -367,9 +331,9 @@ class EntityEventServiceTests {
 
         verify {
             entityEventService["publishEntityEvent"](
-                match<AttributeReplaceEvent> { entityEvent ->
+                match<AttributeUpdateEvent> { entityEvent ->
                     listOf(entityEvent).all {
-                        it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                        it.operationType == EventsType.ATTRIBUTE_UPDATE &&
                             it.entityId == breedingServiceUri &&
                             it.entityTypes == listOf(breedingServiceType) &&
                             it.attributeName == fishNameProperty &&

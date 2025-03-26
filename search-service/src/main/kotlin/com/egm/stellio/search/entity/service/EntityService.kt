@@ -295,7 +295,7 @@ class EntityService(
         if (currentTypes.sorted() == newTypes.sorted() || newTypes.isEmpty() && allowEmptyListOfTypes)
             return@either SucceededAttributeOperationResult(
                 attributeName = JSONLD_TYPE,
-                operationStatus = OperationStatus.APPENDED,
+                operationStatus = OperationStatus.CREATED,
                 newExpandedValue = mapOf(JSONLD_TYPE to currentTypes.toList())
             )
 
@@ -324,7 +324,7 @@ class EntityService(
             .map {
                 SucceededAttributeOperationResult(
                     attributeName = JSONLD_TYPE,
-                    operationStatus = OperationStatus.APPENDED,
+                    operationStatus = OperationStatus.CREATED,
                     newExpandedValue = mapOf(JSONLD_TYPE to updatedTypes.toList())
                 )
             }.bind()

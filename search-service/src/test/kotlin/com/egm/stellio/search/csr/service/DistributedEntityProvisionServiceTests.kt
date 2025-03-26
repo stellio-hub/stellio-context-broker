@@ -3,9 +3,9 @@ package com.egm.stellio.search.csr.service
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
+import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
-import com.egm.stellio.search.csr.model.RegistrationInfoFilter
 import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -98,6 +98,53 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     private val contexts = listOf(APIC_COMPOUND_CONTEXT)
 
     @Test
+    fun `distributeCreateEntity should call distributeEntityProvision`() = runTest {
+        val entity = expandJsonLdEntity(entity)
+
+        coEvery {
+            distributedEntityProvisionService.distributeEntityProvision(any(), any(), any(), any())
+        } returns (BatchOperationResult() to entity)
+
+        distributedEntityProvisionService.distributeCreateEntity(
+            entity,
+            contexts
+        )
+
+        coEvery {
+            distributedEntityProvisionService.distributeEntityProvision(
+                entity,
+                contexts,
+                Operation.CREATE_ENTITY,
+                entity.toTypeSelection()
+            )
+        } returns (BatchOperationResult() to entity)
+    }
+
+    @Test
+    fun `distributeReplaceEntity should call distributeEntityProvision`() = runTest {
+        val entity = expandJsonLdEntity(entity)
+
+        coEvery {
+            distributedEntityProvisionService.distributeEntityProvision(any(), any(), any(), any())
+        } returns (BatchOperationResult() to entity)
+
+        distributedEntityProvisionService.distributeReplaceEntity(
+            entity,
+            contexts,
+            LinkedMultiValueMap()
+        )
+
+        coEvery {
+            distributedEntityProvisionService.distributeEntityProvision(
+                entity,
+                contexts,
+                Operation.UPDATE_ENTITY,
+                entity.toTypeSelection()
+            )
+        } returns (BatchOperationResult() to entity)
+    }
+
+    @Test
     fun `distributeDeleteEntity should return the received errors`() = runTest {
         val firstExclusiveCsr = gimmeRawCSR(mode = Mode.EXCLUSIVE, operations = listOf(Operation.DELETE_ENTITY))
         val firstRedirectCsr = gimmeRawCSR(mode = Mode.REDIRECT, operations = listOf(Operation.REDIRECTION_OPS))
@@ -140,7 +187,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources  should return the remainingEntity`() = runTest {
+    fun `distributeEntityProvisionForContextSources  should return the remainingEntity`() = runTest {
         val firstExclusiveCsr = gimmeRawCSR(id = "id:exclusive:1".toUri(), mode = Mode.EXCLUSIVE)
         val firstRedirectCsr = gimmeRawCSR(id = "id:redirect:1".toUri(), mode = Mode.REDIRECT)
         val firstInclusiveCsr = gimmeRawCSR(id = "id:inclusive:1".toUri(), mode = Mode.INCLUSIVE)
@@ -153,7 +200,9 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             .omitAttributes(setOf(NGSILD_NAME_PROPERTY))
 
         coEvery {
-            distributedEntityProvisionService.distributeCreateEntityForContextSources(any(), any(), any(), any(), any())
+            distributedEntityProvisionService.distributeEntityProvisionForContextSources(
+                any(), any(), any(), any(), any(), any()
+            )
         } returns
             entityWithIgnoredTemperature andThen entityWithIgnoredTemperatureAndName andThen null
 
@@ -169,24 +218,27 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         assertEquals(entityWithIgnoredTemperatureAndName, remainingEntity)
 
         coVerifyOrder {
-            distributedEntityProvisionService.distributeCreateEntityForContextSources(
+            distributedEntityProvisionService.distributeEntityProvisionForContextSources(
                 listOf(firstExclusiveCsr),
                 any(),
                 entryEntity,
                 any(),
+                any(),
                 any()
             )
-            distributedEntityProvisionService.distributeCreateEntityForContextSources(
+            distributedEntityProvisionService.distributeEntityProvisionForContextSources(
                 listOf(firstRedirectCsr, secondRedirectCsr),
                 any(),
                 entityWithIgnoredTemperature,
                 any(),
+                any(),
                 any()
             )
-            distributedEntityProvisionService.distributeCreateEntityForContextSources(
+            distributedEntityProvisionService.distributeEntityProvisionForContextSources(
                 listOf(firstInclusiveCsr, secondInclusiveCsr),
                 any(),
                 entityWithIgnoredTemperatureAndName,
+                any(),
                 any(),
                 any()
             )
@@ -194,7 +246,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources should update the result`() = runTest {
+    fun `distributeEntityProvisionForContextSources should update the result`() = runTest {
         val csr = spyk(gimmeRawCSR(operations = listOf(Operation.REDIRECTION_OPS)))
         val firstURI = URI("id:1")
         val secondURI = URI("id:2")
@@ -211,12 +263,13 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         val result = BatchOperationResult()
 
-        distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr, csr),
-            RegistrationInfoFilter(),
+            CSRFilters(),
             expandJsonLdEntity(entity),
             contexts,
-            result
+            result,
+            Operation.CREATE_ENTITY,
         )
         coVerify(exactly = 2) {
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), HttpMethod.POST)
@@ -230,7 +283,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources should return null if whole entity has been processed`() = runTest {
+    fun `distributeEntityProvisionForContextSources should return null if whole entity has been processed`() = runTest {
         val csr = spyk(gimmeRawCSR())
         coEvery {
             csr.getAssociatedAttributes(any(), any())
@@ -240,19 +293,20 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns contextSourceException.left() andThen Unit.right()
 
-        val entity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        val entity = distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr, csr),
-            RegistrationInfoFilter(),
+            CSRFilters(),
             expandJsonLdEntity(entity),
             contexts,
-            BatchOperationResult()
+            BatchOperationResult(),
+            Operation.CREATE_ENTITY
         )
 
         assertNull(entity)
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources should return only non processed attributes`() = runTest {
+    fun `distributeEntityProvisionForContextSources should return only non processed attributes`() = runTest {
         val csr = spyk(gimmeRawCSR())
         coEvery {
             csr.getAssociatedAttributes(any(), any())
@@ -262,12 +316,13 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns Unit.right()
 
-        val successEntity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        val successEntity = distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr),
-            RegistrationInfoFilter(),
+            CSRFilters(),
             expandJsonLdEntity(entity),
             contexts,
-            BatchOperationResult()
+            BatchOperationResult(),
+            Operation.CREATE_ENTITY
         )
 
         assertNull(successEntity?.getAttributes()?.get(NGSILD_NAME_PROPERTY))
@@ -275,7 +330,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeCreateEntityForContextSources should remove the attrs even when the csr is in error`() = runTest {
+    fun `distributeEntityProvisionForContextSources should remove the attrs even when the csr is in error`() = runTest {
         val csr = spyk(gimmeRawCSR())
 
         coEvery {
@@ -285,12 +340,13 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns contextSourceException.left()
 
-        val errorEntity = distributedEntityProvisionService.distributeCreateEntityForContextSources(
+        val errorEntity = distributedEntityProvisionService.distributeEntityProvisionForContextSources(
             listOf(csr),
-            RegistrationInfoFilter(),
+            CSRFilters(),
             expandJsonLdEntity(entity),
             contexts,
-            BatchOperationResult()
+            BatchOperationResult(),
+            Operation.CREATE_ENTITY
         )
 
         assertNull(errorEntity?.getAttributes()?.get(NGSILD_NAME_PROPERTY))

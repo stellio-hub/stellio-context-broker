@@ -1,8 +1,15 @@
 package com.egm.stellio.search.csr.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import org.springframework.http.HttpMethod
+import java.net.URI
 
-enum class Operation(val key: String, private val matchingOperationGroups: Set<Operation> = emptySet()) {
+enum class Operation(
+    val key: String,
+    private val matchingOperationGroups: Set<Operation> = emptySet(),
+    val method: HttpMethod? = null,
+    private val path: NGSILDPath? = null
+) {
 
     // OPERATION GROUPS
     @JsonProperty("federationOps")
@@ -20,14 +27,18 @@ enum class Operation(val key: String, private val matchingOperationGroups: Set<O
     @JsonProperty("createEntity")
     CREATE_ENTITY(
         "createEntity",
-        setOf(REDIRECTION_OPS)
+        setOf(REDIRECTION_OPS),
+        HttpMethod.POST,
+        NGSILDPath.ENTITIES
     ),
 
     // not implemented
     @JsonProperty("updateEntity")
-    UPDATE_ENTITY(
+    UPDATE_ENTITY( // update attributes
         "updateEntity",
-        setOf(UPDATE_OPS, REDIRECTION_OPS)
+        setOf(UPDATE_OPS, REDIRECTION_OPS),
+        HttpMethod.PATCH,
+        NGSILDPath.ATTRIBUTES
     ),
 
     // not implemented
@@ -54,7 +65,9 @@ enum class Operation(val key: String, private val matchingOperationGroups: Set<O
     @JsonProperty("deleteEntity")
     DELETE_ENTITY(
         "deleteEntity",
-        setOf(REDIRECTION_OPS)
+        setOf(REDIRECTION_OPS),
+        HttpMethod.DELETE,
+        NGSILDPath.ENTITIES
     ),
 
     // not implemented
@@ -101,14 +114,18 @@ enum class Operation(val key: String, private val matchingOperationGroups: Set<O
     @JsonProperty("mergeEntity")
     MERGE_ENTITY(
         "mergeEntity",
-        setOf(REDIRECTION_OPS)
+        setOf(REDIRECTION_OPS),
+        HttpMethod.PATCH,
+        NGSILDPath.ENTITY
     ),
 
     // not implemented
     @JsonProperty("replaceEntity")
     REPLACE_ENTITY(
         "replaceEntity",
-        setOf(UPDATE_OPS, REDIRECTION_OPS)
+        setOf(UPDATE_OPS, REDIRECTION_OPS),
+        HttpMethod.PUT,
+        NGSILDPath.ENTITY
     ),
 
     // not implemented
@@ -226,9 +243,24 @@ enum class Operation(val key: String, private val matchingOperationGroups: Set<O
     );
 
     fun getMatchingOperations(): Set<Operation> = matchingOperationGroups + this
+    fun getPath(entityId: URI? = null, attrId: String? = null): String = path!!.pattern
+        .replace(ENTITY_ID_PLACEHOLDER, entityId?.toString() ?: "")
+        .replace(ATTRIBUTE_ID_PLACEHOLDER, attrId ?: "")
 
     companion object {
         fun fromString(operation: String): Operation? =
             Operation.entries.find { it.key == operation }
+
+        const val ENTITY_PATH = "/ngsi-ld/v1/entities"
+        const val ENTITY_ID_PLACEHOLDER = ":entityId"
+        const val ATTRIBUTE_ID_PLACEHOLDER = ":attrId"
+        const val ATTRS_PATH = "$ENTITY_PATH/$ENTITY_ID_PLACEHOLDER/attrs"
+
+        enum class NGSILDPath(val pattern: String) {
+            ENTITIES(ENTITY_PATH),
+            ENTITY("$ENTITY_PATH/$ENTITY_ID_PLACEHOLDER"),
+            ATTRIBUTES(ATTRS_PATH),
+            ATTRIBUTE("$ATTRS_PATH/$ATTRIBUTE_ID_PLACEHOLDER")
+        }
     }
 }

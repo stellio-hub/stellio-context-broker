@@ -94,6 +94,8 @@ data class ExpandedEntity(
             as List<ExpandedTerm>
     }
 
+    fun toTypeSelection() = types.joinToString { "|" }
+
     private fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =
         if (dateTime != null)
             this.plus(propertyKey to JsonLdUtils.buildNonReifiedTemporalValue(dateTime))

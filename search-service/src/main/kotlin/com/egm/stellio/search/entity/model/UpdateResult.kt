@@ -70,13 +70,12 @@ enum class OperationStatus {
     CREATED,
     UPDATED,
     DELETED,
-    IGNORED,
     FAILED;
 
     fun isSuccessResult(): Boolean = getSuccessStatuses().contains(this)
 
     companion object {
-        fun getSuccessStatuses(): List<OperationStatus> = listOf(CREATED, UPDATED, DELETED, IGNORED)
+        fun getSuccessStatuses(): List<OperationStatus> = listOf(CREATED, UPDATED, DELETED)
     }
 }
 

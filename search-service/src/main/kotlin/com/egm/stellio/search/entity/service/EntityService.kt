@@ -274,7 +274,7 @@ class EntityService(
                     logger.warn("Ignoring unhandled core property: {}", expandedTerm)
                     FailedAttributeOperationResult(
                         attributeName = expandedTerm,
-                        operationStatus = OperationStatus.IGNORED,
+                        operationStatus = OperationStatus.FAILED,
                         errorMessage = "Ignoring unhandled core property: $expandedTerm"
                     ).right().bind()
                 }

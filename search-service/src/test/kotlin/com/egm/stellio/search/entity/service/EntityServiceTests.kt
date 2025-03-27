@@ -106,6 +106,13 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityService.createEntityPayload(ngsiLdEntity, jsonLdEntity, now)
             .shouldSucceed()
+
+        entityQueryService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertNotNull(it.createdAt)
+                assertNotNull(it.modifiedAt)
+                assertEquals(it.createdAt, it.modifiedAt)
+            }
     }
 
     @Test
@@ -283,7 +290,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertTrue(it.modifiedAt != null)
+                assertTrue(it.modifiedAt > it.createdAt)
             }
 
         coVerify {
@@ -436,7 +443,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertTrue(it.modifiedAt != null)
+                assertTrue(it.modifiedAt > it.createdAt)
                 assertEquals(8, it.payload.deserializeAsMap().size)
             }
 

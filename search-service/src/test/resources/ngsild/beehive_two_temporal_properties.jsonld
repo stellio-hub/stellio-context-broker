@@ -5,12 +5,14 @@
   "name": {
     "type": "Property",
     "value": "LondonBeehive12",
-    "createdAt": "2020-01-24T13:01:21.938Z"
+    "createdAt": "2020-01-24T13:01:21.938Z",
+    "modifiedAt": "2020-01-24T13:01:21.938Z"
   },
   "incoming": {
     "type": "Property",
     "value": 1543,
     "createdAt": "2020-01-24T13:01:21.938Z",
+    "modifiedAt": "2020-01-24T13:01:21.938Z",
     "observedAt": "2020-01-24T13:01:22.066Z",
     "observedBy": {
       "type": "Relationship",
@@ -21,6 +23,7 @@
     "type": "Property",
     "value": 666,
     "createdAt": "2020-01-24T13:01:21.938Z",
+    "modifiedAt": "2020-01-24T13:01:21.938Z",
     "observedAt": "2020-01-25T17:01:22.066Z",
     "observedBy": {
       "type": "Relationship",
@@ -30,6 +33,7 @@
   "connectsTo": {
     "type": "Relationship",
     "createdAt": "2010-10-26T21:32:52.98601Z",
+    "modifiedAt": "2010-10-26T21:32:52.98601Z",
     "object": "urn:ngsi-ld:Beekeeper:Pascal"
   },
   "@context": [

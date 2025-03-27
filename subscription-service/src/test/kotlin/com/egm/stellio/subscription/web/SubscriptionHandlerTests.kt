@@ -86,7 +86,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `get subscription by id should return 200 with sysAttrs when options query param specify it`() = runTest {
-        val subscription = gimmeRawSubscription(withModifiedAt = true)
+        val subscription = gimmeRawSubscription()
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
         coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
@@ -323,7 +323,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `query subscriptions should return 200 with sysAttrs when options query param specify it`() = runTest {
-        val subscription = gimmeRawSubscription(withModifiedAt = true)
+        val subscription = gimmeRawSubscription()
 
         coEvery { subscriptionService.getSubscriptionsCount(any()) } returns Either.Right(1)
         coEvery { subscriptionService.getSubscriptions(any(), any(), any()) } returns listOf(subscription)

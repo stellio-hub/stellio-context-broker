@@ -609,7 +609,7 @@ class EntityAttributeService(
         disallowOverwrite: Boolean,
         createdAt: ZonedDateTime,
         sub: Sub?
-    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
+    ): Either<APIException, List<AttributeOperationResult>> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
             logger.debug("Appending attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
@@ -638,12 +638,11 @@ class EntityAttributeService(
                     )
                 }.bind()
             } else if (disallowOverwrite) {
-                logger.info("Attribute already exists on $entityUri and overwrite is not allowed, ignoring")
-                SucceededAttributeOperationResult(
+                FailedAttributeOperationResult(
                     ngsiLdAttribute.name,
                     ngsiLdAttributeInstance.datasetId,
-                    OperationStatus.IGNORED,
-                    attributePayload
+                    OperationStatus.FAILED,
+                    "Attribute already exists on $entityUri and overwrite is not allowed, ignoring"
                 ).right().bind()
             } else {
                 replaceAttribute(

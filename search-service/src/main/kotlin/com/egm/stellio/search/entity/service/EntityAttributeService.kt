@@ -551,7 +551,7 @@ class EntityAttributeService(
             ),
             datasetId = toOptionalUri(row["dataset_id"]),
             createdAt = toZonedDateTime(row["created_at"]),
-            modifiedAt = toZonedDateTime(row["modified_at"]),
+            modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
             deletedAt = toOptionalZonedDateTime(row["deleted_at"]),
             payload = toJson(row["payload"])
         )

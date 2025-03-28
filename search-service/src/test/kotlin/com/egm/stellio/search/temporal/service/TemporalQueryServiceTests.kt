@@ -29,7 +29,6 @@ import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
@@ -377,7 +376,7 @@ class TemporalQueryServiceTests {
                     }
                     """.trimIndent(),
                     JsonUtils.serializeObject(it.first[0].members),
-                    setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
+                    setOf(NGSILD_CREATED_AT_PROPERTY)
                 )
             })
     }

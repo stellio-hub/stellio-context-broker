@@ -22,7 +22,7 @@ data class Entity(
     val types: List<ExpandedTerm>,
     val scopes: List<String>? = null,
     val createdAt: ZonedDateTime,
-    val modifiedAt: ZonedDateTime = createdAt,
+    val modifiedAt: ZonedDateTime? = null,
     val deletedAt: ZonedDateTime? = null,
     val payload: Json,
     val specificAccessPolicy: SpecificAccessPolicy? = null
@@ -41,7 +41,9 @@ data class Entity(
         }
 
         resultEntity[NGSILD_CREATED_AT_PROPERTY] = buildNonReifiedTemporalValue(createdAt)
-        resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = buildNonReifiedTemporalValue(modifiedAt)
+        modifiedAt?.run {
+            resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = buildNonReifiedTemporalValue(this)
+        }
 
         return resultEntity
     }
@@ -54,8 +56,11 @@ data class Entity(
                 JSONLD_ID to entityId,
                 JSONLD_TYPE to types,
                 NGSILD_CREATED_AT_PROPERTY to buildNonReifiedTemporalValue(createdAt),
-                NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt),
                 NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt),
-            )
+            ).run {
+                if (modifiedAt != null)
+                    this.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
+                else this
+            }
         )
 }

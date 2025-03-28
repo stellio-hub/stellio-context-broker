@@ -82,7 +82,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             .shouldSucceedWith {
                 assertEquals(beehiveTestCId, it.id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.types)
-                assertEquals(8, it.members.size)
+                assertEquals(7, it.members.size)
             }
     }
 
@@ -113,7 +113,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 assertEquals(1, it.second)
                 assertEquals(beehiveTestCId, it.first[0].id)
                 assertEquals(listOf(BEEHIVE_TYPE), it.first[0].types)
-                assertEquals(8, it.first[0].members.size)
+                assertEquals(7, it.first[0].members.size)
             }
     }
 
@@ -146,7 +146,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     .hasFieldOrPropertyWithValue("entityId", entity01Uri)
                     .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
                     .hasFieldOrPropertyWithValue("createdAt", now)
-                    .hasFieldOrPropertyWithValue("modifiedAt", now)
+                    .hasFieldOrPropertyWithValue("modifiedAt", null)
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", null)
             }
     }

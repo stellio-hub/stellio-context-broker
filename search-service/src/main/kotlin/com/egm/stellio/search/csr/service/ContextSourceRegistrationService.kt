@@ -68,8 +68,7 @@ class ContextSourceRegistrationService(
                 management_interval_start,
                 management_interval_end,
                 sub,
-                created_at,
-                modified_at
+                created_at
             )
             VALUES(
                 :id,
@@ -83,8 +82,7 @@ class ContextSourceRegistrationService(
                 :management_interval_start,
                 :management_interval_end,
                 :sub,
-                :created_at,
-                :modified_at
+                :created_at
             )
             """.trimIndent()
         databaseClient.sql(insertStatement)
@@ -103,7 +101,6 @@ class ContextSourceRegistrationService(
             .bind("management_interval_end", contextSourceRegistration.managementInterval?.end)
             .bind("sub", sub.toStringValue())
             .bind("created_at", contextSourceRegistration.createdAt)
-            .bind("modified_at", contextSourceRegistration.modifiedAt)
             .execute().bind()
     }
 
@@ -315,7 +312,7 @@ class ContextSourceRegistrationService(
                 operations = (row["operations"] as Array<String>).mapNotNull { Operation.fromString(it) },
                 registrationName = row["registration_name"] as? String,
                 createdAt = toZonedDateTime(row["created_at"]),
-                modifiedAt = toZonedDateTime(row["modified_at"]),
+                modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
                 observationInterval = row["observation_interval_start"]?.let {
                     TimeInterval(
                         toZonedDateTime(it),

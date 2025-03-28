@@ -43,7 +43,7 @@ data class ContextSourceRegistration(
     val information: List<RegistrationInfo> = emptyList(),
     val operations: List<Operation> = listOf(Operation.FEDERATION_OPS),
     val createdAt: ZonedDateTime = ngsiLdDateTime(),
-    val modifiedAt: ZonedDateTime = createdAt,
+    val modifiedAt: ZonedDateTime? = null,
     val observationInterval: TimeInterval? = null,
     val managementInterval: TimeInterval? = null,
     val status: StatusType? = null,

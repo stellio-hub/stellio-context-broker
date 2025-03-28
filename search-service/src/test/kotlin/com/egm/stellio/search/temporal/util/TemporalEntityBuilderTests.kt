@@ -14,7 +14,6 @@ import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
@@ -64,7 +63,7 @@ class TemporalEntityBuilderTests {
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/beehive_empty_outgoing.jsonld"),
             serializeObject(temporalEntity.members),
-            setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
+            setOf(NGSILD_CREATED_AT_PROPERTY)
         )
     }
 
@@ -96,7 +95,7 @@ class TemporalEntityBuilderTests {
         assertJsonPayloadsAreEqual(
             expectation,
             serializeObject(temporalEntity.members),
-            setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
+            setOf(NGSILD_CREATED_AT_PROPERTY)
         )
     }
 
@@ -120,7 +119,7 @@ class TemporalEntityBuilderTests {
         assertJsonPayloadsAreEqual(
             expectation,
             serializeObject(temporalEntity.map { it.members }),
-            setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
+            setOf(NGSILD_CREATED_AT_PROPERTY)
         )
     }
 
@@ -199,7 +198,7 @@ class TemporalEntityBuilderTests {
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/beehive_aggregated_outgoing.jsonld"),
             serializeObject(temporalEntity.members),
-            setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
+            setOf(NGSILD_CREATED_AT_PROPERTY)
         )
     }
 }

@@ -192,16 +192,14 @@ class SubscriptionService(
 
         val insertStatement =
             """
-            INSERT INTO subscription(id, type, subscription_name, created_at, modified_at, description,
-                watched_attributes, notification_trigger, time_interval, q, scope_q, notif_attributes,
-                notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info,
-                times_sent, is_active, expires_at, sub, contexts, throttling, sys_attrs, lang, datasetId,
-                jsonld_context)
-            VALUES(:id, :type, :subscription_name, :created_at, :modified_at, :description,
-                :watched_attributes, :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes,
-                :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info,
-                :times_sent, :is_active, :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId,
-                :jsonld_context)
+            INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
+                notification_trigger, time_interval, q, scope_q, notif_attributes, notif_format, endpoint_uri, 
+                endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, times_sent, is_active, 
+                expires_at, sub, contexts, throttling, sys_attrs, lang, datasetId, jsonld_context)
+            VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
+                :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes, :notif_format, :endpoint_uri, 
+                :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info, :times_sent, :is_active, 
+                :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId, :jsonld_context)
             """.trimIndent()
 
         databaseClient.sql(insertStatement)
@@ -209,7 +207,6 @@ class SubscriptionService(
             .bind("type", subscription.type)
             .bind("subscription_name", subscription.subscriptionName)
             .bind("created_at", subscription.createdAt)
-            .bind("modified_at", subscription.modifiedAt)
             .bind("description", subscription.description)
             .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
             .bind("notification_trigger", subscription.notificationTrigger.toTypedArray())
@@ -710,7 +707,7 @@ class SubscriptionService(
             type = row["sub_type"] as String,
             subscriptionName = row["subscription_name"] as? String,
             createdAt = toZonedDateTime(row["created_at"]),
-            modifiedAt = toZonedDateTime(row["modified_at"]),
+            modifiedAt = toNullableZonedDateTime(row["modified_at"]),
             expiresAt = toNullableZonedDateTime(row["expires_at"]),
             description = row["description"] as? String,
             watchedAttributes = (row["watched_attributes"] as? String)?.split(","),

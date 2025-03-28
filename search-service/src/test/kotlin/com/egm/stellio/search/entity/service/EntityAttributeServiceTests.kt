@@ -128,8 +128,6 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         assertEquals(2, attributes.size)
         assertTrue(listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY).contains(attributes[0].attributeName))
-        assertNotNull(attributes[0].createdAt)
-        assertNotNull(attributes[0].modifiedAt)
 
         coVerify(exactly = 6) { attributeInstanceService.create(any()) }
     }

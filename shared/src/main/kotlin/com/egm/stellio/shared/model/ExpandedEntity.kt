@@ -53,13 +53,12 @@ data class ExpandedEntity(
                 if (JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
                     it.value
                 else castAttributeValue(it.value).map { expandedAttributeInstance ->
-                    expandedAttributeInstance
-                        .addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)
-                        .addDateTimeProperty(NGSILD_MODIFIED_AT_PROPERTY, createdAt)
-                        as ExpandedAttributeInstance
+                    expandedAttributeInstance.addDateTimeProperty(
+                        NGSILD_CREATED_AT_PROPERTY,
+                        createdAt
+                    ) as ExpandedAttributeInstance
                 }
             }.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)
-                .addDateTimeProperty(NGSILD_MODIFIED_AT_PROPERTY, createdAt)
         )
 
     /**

@@ -352,8 +352,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     it.entities.size == 1 &&
                     it.entities.all { entitySelector -> entitySelector.typeSelection == BEEHIVE_TYPE } &&
                     it.watchedAttributes == null &&
-                    it.isActive &&
-                    it.createdAt == it.modifiedAt
+                    it.isActive
             }
     }
 
@@ -964,7 +963,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val updatedSubscription = subscriptionService.getById(subscription.id)
         assertThat(updatedSubscription)
             .matches {
-                it.isActive && it.modifiedAt > it.createdAt
+                it.isActive && it.modifiedAt != null
             }
     }
 
@@ -986,7 +985,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val updatedSubscription = subscriptionService.getById(subscription.id)
         assertThat(updatedSubscription)
             .matches {
-                !it.isActive && it.modifiedAt > it.createdAt
+                !it.isActive && it.modifiedAt != null
             }
     }
 
@@ -1011,7 +1010,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         assertThat(updatedSubscription)
             .matches {
                 it.watchedAttributes!! == listOf(INCOMING_PROPERTY, TEMPERATURE_PROPERTY) &&
-                    it.modifiedAt > it.createdAt
+                    it.modifiedAt != null
             }
     }
 
@@ -1039,7 +1038,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         assertThat(updatedSubscription)
             .matches {
                 it.notificationTrigger == notificationTriggers &&
-                    it.modifiedAt > it.createdAt
+                    it.modifiedAt != null
             }
     }
 

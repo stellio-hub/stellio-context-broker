@@ -4,10 +4,13 @@ import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
+import com.egm.stellio.search.entity.model.OperationStatus
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
@@ -171,4 +174,16 @@ fun buildDefaultQueryParams(): EntitiesQueryFromGet =
     EntitiesQueryFromGet(
         paginationQuery = PaginationQuery(limit = 50, offset = 0),
         contexts = APIC_COMPOUND_CONTEXTS
+    )
+
+fun gimmeSucceededAttributeOperationResult(
+    attributeName: String = "",
+    datasetId: URI? = null,
+    newExpandedValue: ExpandedAttributeInstance = emptyMap(),
+): SucceededAttributeOperationResult =
+    SucceededAttributeOperationResult(
+        attributeName,
+        datasetId,
+        OperationStatus.CREATED,
+        newExpandedValue
     )

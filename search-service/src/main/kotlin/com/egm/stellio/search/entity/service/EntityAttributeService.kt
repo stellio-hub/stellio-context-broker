@@ -94,6 +94,9 @@ class EntityAttributeService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * Called when doing a creation or replacement of an attribute.
+     */
     @Transactional
     suspend fun upsert(attribute: Attribute): Either<APIException, UUID> =
         databaseClient.sql(
@@ -123,6 +126,9 @@ class EntityAttributeService(
             .bind("payload", attribute.payload)
             .oneToResult { row -> toUuid(row["id"]) }
 
+    /**
+     * Called when doing a merge (5.5.12) or partial update patch (5.5.8) operation over an attribute.
+     */
     @Transactional
     suspend fun update(
         attributeUUID: UUID,
@@ -172,21 +178,21 @@ class EntityAttributeService(
         attributesMetadata: List<Pair<ExpandedTerm, AttributeMetadata>>,
         createdAt: ZonedDateTime,
         sub: String? = null
-    ): Either<APIException, Unit> = either {
+    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         logger.debug("Creating {} attributes in entity: {}", attributesMetadata.size, ngsiLdEntity.id)
 
         attributesMetadata
             .filter {
                 it.first != AuthContextModel.AUTH_PROP_SAP
             }
-            .forEach {
+            .map {
                 val (expandedAttributeName, attributeMetadata) = it
                 val attributePayload = expandedEntity.getAttributes().getAttributeFromExpandedAttributes(
                     expandedAttributeName,
                     attributeMetadata.datasetId
                 )!!
 
-                addAttribute(
+                addOrReplaceAttribute(
                     ngsiLdEntity.id,
                     expandedAttributeName,
                     attributeMetadata,
@@ -198,14 +204,14 @@ class EntityAttributeService(
     }
 
     @Transactional
-    suspend fun addAttribute(
+    suspend fun addOrReplaceAttribute(
         entityId: URI,
         attributeName: ExpandedTerm,
         attributeMetadata: AttributeMetadata,
         createdAt: ZonedDateTime,
         attributePayload: ExpandedAttributeInstance,
         sub: Sub?
-    ): Either<APIException, Unit> = either {
+    ): Either<APIException, SucceededAttributeOperationResult> = either {
         logger.debug("Adding attribute {} to entity {}", attributeName, entityId)
         val attribute = Attribute(
             entityId = entityId,
@@ -218,7 +224,7 @@ class EntityAttributeService(
         )
         val attributeUuid = upsert(attribute).bind()
 
-        // if the temporal property existed before, the create operation returned a different id than the one
+        // if the temporal property existed before, the upsert operation returns a different id than the one
         // in the attribute object
         val timeProperty =
             if (attributeUuid != attribute.id) AttributeInstance.TemporalProperty.MODIFIED_AT
@@ -243,46 +249,31 @@ class EntityAttributeService(
             )
             attributeInstanceService.create(attributeObservedAtInstance).bind()
         }
-    }
 
-    @Transactional
-    suspend fun replaceAttribute(
-        attribute: Attribute,
-        ngsiLdAttribute: NgsiLdAttribute,
-        attributeMetadata: AttributeMetadata,
-        createdAt: ZonedDateTime,
-        attributePayload: ExpandedAttributeInstance,
-        sub: Sub?
-    ): Either<APIException, Unit> = either {
-        logger.debug(
-            "Replacing attribute {} ({}) in entity {}",
-            ngsiLdAttribute.name,
+        val operationStatus =
+            if (timeProperty == AttributeInstance.TemporalProperty.CREATED_AT) OperationStatus.CREATED
+            else OperationStatus.UPDATED
+
+        SucceededAttributeOperationResult(
+            attributeName,
             attributeMetadata.datasetId,
-            attribute.entityId
+            operationStatus,
+            attributePayload
         )
-        addAttribute(
-            attribute.entityId,
-            attribute.attributeName,
-            attributeMetadata,
-            createdAt,
-            attributePayload,
-            sub
-        ).bind()
     }
 
     @Transactional
     suspend fun mergeAttribute(
         attribute: Attribute,
-        attributeName: ExpandedTerm,
         attributeMetadata: AttributeMetadata,
         mergedAt: ZonedDateTime,
         observedAt: ZonedDateTime?,
         attributePayload: ExpandedAttributeInstance,
         sub: Sub?
-    ): Either<APIException, Unit> = either {
+    ): Either<APIException, SucceededAttributeOperationResult> = either {
         logger.debug(
             "Merging attribute {} ({}) in entity {}",
-            attributeName,
+            attribute.attributeName,
             attributeMetadata.datasetId,
             attribute.entityId
         )
@@ -299,11 +290,22 @@ class EntityAttributeService(
 
         val attributeInstance =
             createContextualAttributeInstance(attribute, updatedAttributeInstance, value, mergedAt, sub)
-        attributeInstanceService.create(attributeInstance).bind()
+        attributeInstanceService.create(attributeInstance)
+            .map {
+                SucceededAttributeOperationResult(
+                    attribute.attributeName,
+                    attributeMetadata.datasetId,
+                    OperationStatus.UPDATED,
+                    attributePayload
+                )
+            }.bind()
     }
 
     @Transactional
-    suspend fun deleteAttributes(entityId: URI, deletedAt: ZonedDateTime): Either<APIException, Unit> = either {
+    suspend fun deleteAttributes(
+        entityId: URI,
+        deletedAt: ZonedDateTime
+    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         val attributesToDelete = getForEntity(entityId, emptySet(), emptySet())
         deleteSelectedAttributes(attributesToDelete, deletedAt).bind()
     }
@@ -324,22 +326,14 @@ class EntityAttributeService(
                 listOf(getForEntityAndAttribute(entityId, attributeName, datasetId).bind())
 
         deleteSelectedAttributes(attributesToDelete, deletedAt).bind()
-            .map { expandedAttributeInstance ->
-                SucceededAttributeOperationResult(
-                    attributeName,
-                    datasetId,
-                    OperationStatus.DELETED,
-                    expandedAttributeInstance
-                )
-            }
     }
 
     @Transactional
     internal suspend fun deleteSelectedAttributes(
         attributesToDelete: List<Attribute>,
         deletedAt: ZonedDateTime
-    ): Either<APIException, List<ExpandedAttributeInstance>> = either {
-        if (attributesToDelete.isEmpty()) return emptyList<ExpandedAttributeInstance>().right()
+    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
+        if (attributesToDelete.isEmpty()) return emptyList<SucceededAttributeOperationResult>().right()
         val attributesToDeleteWithPayload = attributesToDelete.map {
             Pair(
                 it,
@@ -384,6 +378,12 @@ class EntityAttributeService(
         attributesToDeleteWithPayload.map { (attribute, expandedAttributeInstance) ->
             val teaTimestamps = teasTimestamps.find { it.containsKey(attribute.id) }!!.values.first()
             expandedAttributeInstance.addSysAttrs(true, teaTimestamps.first, teaTimestamps.second, teaTimestamps.third)
+            SucceededAttributeOperationResult(
+                attribute.attributeName,
+                attribute.datasetId,
+                OperationStatus.DELETED,
+                expandedAttributeInstance
+            )
         }
     }
 
@@ -621,23 +621,8 @@ class EntityAttributeService(
                 ngsiLdAttribute.name,
                 ngsiLdAttributeInstance.datasetId
             )!!
-            if (currentAttribute == null || currentAttribute.deletedAt != null) {
-                addAttribute(
-                    entityUri,
-                    ngsiLdAttribute.name,
-                    attributeMetadata,
-                    createdAt,
-                    attributePayload,
-                    sub
-                ).map {
-                    SucceededAttributeOperationResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.CREATED,
-                        attributePayload
-                    )
-                }.bind()
-            } else if (disallowOverwrite) {
+
+            if (disallowOverwrite && currentAttribute != null && currentAttribute.deletedAt == null) {
                 FailedAttributeOperationResult(
                     ngsiLdAttribute.name,
                     ngsiLdAttributeInstance.datasetId,
@@ -645,21 +630,14 @@ class EntityAttributeService(
                     "Attribute already exists on $entityUri and overwrite is not allowed, ignoring"
                 ).right().bind()
             } else {
-                replaceAttribute(
-                    currentAttribute,
-                    ngsiLdAttribute,
+                addOrReplaceAttribute(
+                    entityUri,
+                    ngsiLdAttribute.name,
                     attributeMetadata,
                     createdAt,
                     attributePayload,
                     sub
-                ).map {
-                    SucceededAttributeOperationResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.UPDATED,
-                        attributePayload
-                    )
-                }.bind()
+                ).bind()
             }
         }
     }.fold({ it.left() }, { it.right() })
@@ -684,23 +662,7 @@ class EntityAttributeService(
                 ngsiLdAttributeInstance.datasetId
             )!!
 
-            if (currentAttribute == null || currentAttribute.deletedAt != null) {
-                addAttribute(
-                    entityUri,
-                    ngsiLdAttribute.name,
-                    attributeMetadata,
-                    createdAt,
-                    attributePayload,
-                    sub
-                ).map {
-                    SucceededAttributeOperationResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.CREATED,
-                        attributePayload
-                    )
-                }.bind()
-            } else if (hasNgsiLdNullValue(attributePayload, currentAttribute.attributeType)) {
+            if (currentAttribute != null && hasNgsiLdNullValue(attributePayload, currentAttribute.attributeType)) {
                 deleteAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -709,21 +671,14 @@ class EntityAttributeService(
                     createdAt
                 ).bind().first()
             } else {
-                replaceAttribute(
-                    currentAttribute,
-                    ngsiLdAttribute,
+                addOrReplaceAttribute(
+                    entityUri,
+                    ngsiLdAttribute.name,
                     attributeMetadata,
                     createdAt,
                     attributePayload,
                     sub
-                ).map {
-                    SucceededAttributeOperationResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.UPDATED,
-                        attributePayload
-                    )
-                }.bind()
+                ).bind()
             }
         }
     }.fold({ it.left() }, { it.right() })
@@ -831,7 +786,7 @@ class EntityAttributeService(
                 ngsiLdAttribute.name,
                 entityUri
             )
-            addAttribute(
+            addOrReplaceAttribute(
                 entityUri,
                 ngsiLdAttribute.name,
                 attributeMetadata,
@@ -871,7 +826,7 @@ class EntityAttributeService(
             )!!
 
             if (currentAttribute == null || currentAttribute.deletedAt != null)
-                addAttribute(
+                addOrReplaceAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
                     attributeMetadata,
@@ -897,20 +852,12 @@ class EntityAttributeService(
             else
                 mergeAttribute(
                     currentAttribute,
-                    ngsiLdAttribute.name,
                     attributeMetadata,
                     createdAt,
                     observedAt,
                     attributePayload,
                     sub
-                ).map {
-                    SucceededAttributeOperationResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.UPDATED,
-                        attributePayload
-                    )
-                }.bind()
+                ).bind()
         }
     }.fold({ it.left() }, { it.right() })
 
@@ -936,9 +883,9 @@ class EntityAttributeService(
                     "Unknown attribute $attributeName with datasetId $datasetId in entity $entityId"
                 )
             } else {
-                replaceAttribute(
-                    currentAttribute,
-                    ngsiLdAttribute,
+                addOrReplaceAttribute(
+                    entityId,
+                    attributeName,
                     attributeMetadata,
                     replacedAt,
                     expandedAttribute.second.first(),

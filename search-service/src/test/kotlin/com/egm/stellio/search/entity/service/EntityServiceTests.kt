@@ -10,6 +10,7 @@ import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.support.gimmeSucceededAttributeOperationResult
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -121,7 +122,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
-        } returns Unit.right()
+        } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -176,9 +177,13 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should allow to create an entity over a deleted one if authorized`() = runTest {
-        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.deleteAttributes(any(), any())
+        } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
-        coEvery { entityAttributeService.createAttributes(any(), any(), any(), any(), any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
+        } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -204,7 +209,9 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should not allow to create an entity over a deleted one if not authorized`() = runTest {
-        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.deleteAttributes(any(), any())
+        } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery {
             authorizationService.userCanAdminEntity(any(), any())
         } returns AccessDeniedException("Unauthorized").left()
@@ -261,7 +268,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
-        } returns Unit.right()
+        } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery {
             entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
         } returns listOf(
@@ -326,7 +333,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
-        } returns Unit.right()
+        } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery {
             entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
         } returns listOf(
@@ -368,7 +375,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
-        } returns Unit.right()
+        } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery {
             entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
         } returns listOf(
@@ -419,8 +426,10 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any(), any())
-        } returns Unit.right()
-        coEvery { entityAttributeService.deleteAttributes(any(), any()) } returns Unit.right()
+        } returns emptyList<SucceededAttributeOperationResult>().right()
+        coEvery {
+            entityAttributeService.deleteAttributes(any(), any())
+        } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -546,8 +555,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun `it should remove the scopes from an entity`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
         coEvery {
-            entityAttributeService.addAttribute(any(), any(), any(), any(), any(), any())
-        } returns Unit.right()
+            entityAttributeService.addOrReplaceAttribute(any(), any(), any(), any(), any(), any())
+        } returns gimmeSucceededAttributeOperationResult().right()
         coEvery {
             entityAttributeService.getForEntity(any(), any(), any())
         } returns emptyList()

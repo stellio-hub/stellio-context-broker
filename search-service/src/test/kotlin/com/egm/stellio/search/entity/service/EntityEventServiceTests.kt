@@ -19,7 +19,6 @@ import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.toUri
@@ -95,10 +94,9 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish an ENTITY_CREATE event`() = runTest {
-        val expandedEntity = loadAndExpandSampleData()
         coEvery {
-            entityEventService.getExpandedAndSerializedEntity(any())
-        } returns Pair(expandedEntity, EMPTY_PAYLOAD).right()
+            entityEventService.getSerializedEntity(any())
+        } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityCreateEvent(
@@ -107,16 +105,15 @@ class EntityEventServiceTests {
             listOf(breedingServiceType)
         ).join()
 
-        coVerify { entityEventService.getExpandedAndSerializedEntity(eq(breedingServiceUri)) }
-        verify(exactly = 5) { kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any()) }
+        coVerify { entityEventService.getSerializedEntity(eq(breedingServiceUri)) }
+        verify { kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any()) }
     }
 
     @Test
     fun `it should publish an ENTITY_REPLACE event`() = runTest {
-        val expandedEntity = loadAndExpandSampleData()
         coEvery {
-            entityEventService.getExpandedAndSerializedEntity(any())
-        } returns Pair(expandedEntity, EMPTY_PAYLOAD).right()
+            entityEventService.getSerializedEntity(any())
+        } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityReplaceEvent(
@@ -125,7 +122,7 @@ class EntityEventServiceTests {
             listOf(breedingServiceType)
         ).join()
 
-        coVerify { entityEventService.getExpandedAndSerializedEntity(eq(breedingServiceUri)) }
+        coVerify { entityEventService.getSerializedEntity(eq(breedingServiceUri)) }
         verify { kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any()) }
     }
 
@@ -143,10 +140,9 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish a single ATTRIBUTE_CREATE event if an attribute was appended`() = runTest {
-        val expandedEntity = loadAndExpandSampleData("aquac/breedingService.jsonld")
         coEvery {
-            entityEventService.getExpandedAndSerializedEntity(any())
-        } returns Pair(expandedEntity, EMPTY_PAYLOAD).right()
+            entityEventService.getSerializedEntity(any())
+        } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
 
         val expandedAttribute =
             expandAttribute(fishNumberTerm, fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
@@ -180,10 +176,9 @@ class EntityEventServiceTests {
     @Test
     fun `it should publish ATTRIBUTE_CREATE and ATTRIBUTE_UPDATE events if attributes were appended and replaced`() =
         runTest {
-            val expandedEntity = loadAndExpandSampleData("aquac/breedingService.jsonld")
             coEvery {
-                entityEventService.getExpandedAndSerializedEntity(any())
-            } returns Pair(expandedEntity, EMPTY_PAYLOAD).right()
+                entityEventService.getSerializedEntity(any())
+            } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
 
             val attributesPayload =
                 """
@@ -244,10 +239,9 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_UPDATE events if two attributes are replaced`() = runTest {
-        val expandedEntity = loadAndExpandSampleData("aquac/breedingService.jsonld")
         coEvery {
-            entityEventService.getExpandedAndSerializedEntity(any())
-        } returns Pair(expandedEntity, EMPTY_PAYLOAD).right()
+            entityEventService.getSerializedEntity(any())
+        } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
 
         val attributesPayload =
             """
@@ -300,10 +294,9 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_UPDATE events if a multi-attribute is replaced`() = runTest {
-        val expandedEntity = loadAndExpandSampleData("aquac/breedingService.jsonld")
         coEvery {
-            entityEventService.getExpandedAndSerializedEntity(any())
-        } returns Pair(expandedEntity, EMPTY_PAYLOAD).right()
+            entityEventService.getSerializedEntity(any())
+        } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
 
         val fishNameAttributeFragment2 =
             """
@@ -362,10 +355,9 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_UPDATE event if an attribute is updated`() = runTest {
-        val expandedEntity = loadAndExpandSampleData("aquac/breedingService.jsonld")
         coEvery {
-            entityEventService.getExpandedAndSerializedEntity(any())
-        } returns Pair(expandedEntity, EMPTY_PAYLOAD).right()
+            entityEventService.getSerializedEntity(any())
+        } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
 
         val expandedAttribute = expandAttribute(
             fishNameTerm,
@@ -403,10 +395,9 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_DELETE event if an attribute has been deleted as part of an update `() = runTest {
-        val expandedEntity = loadAndExpandSampleData("aquac/breedingService.jsonld")
         coEvery {
-            entityEventService.getExpandedAndSerializedEntity(any())
-        } returns Pair(expandedEntity, EMPTY_PAYLOAD).right()
+            entityEventService.getSerializedEntity(any())
+        } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
 
         entityEventService.publishAttributeChangeEvents(
             null,
@@ -438,10 +429,9 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_DELETE event if an instance of an attribute is deleted`() = runTest {
-        val expandedEntity = loadAndExpandSampleData("aquac/breedingService.jsonld")
         coEvery {
-            entityEventService.getExpandedAndSerializedEntity(any())
-        } returns Pair(expandedEntity, EMPTY_PAYLOAD).right()
+            entityEventService.getSerializedEntity(any())
+        } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
 
         entityEventService.publishAttributeDeleteEvent(
             null,
@@ -474,7 +464,7 @@ class EntityEventServiceTests {
         val entity = mockk<Entity>(relaxed = true)
         coEvery { entityQueryService.retrieve(any<URI>()) } answers { entity.right() }
 
-        entityEventService.getExpandedAndSerializedEntity(breedingServiceUri).shouldSucceed()
+        entityEventService.getSerializedEntity(breedingServiceUri).shouldSucceed()
 
         coVerify {
             entityQueryService.retrieve(eq(breedingServiceUri))

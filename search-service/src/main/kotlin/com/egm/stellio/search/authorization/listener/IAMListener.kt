@@ -12,9 +12,9 @@ import com.egm.stellio.search.authorization.service.SubjectReferentialService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeCreateEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
-import com.egm.stellio.shared.model.AttributeReplaceEvent
+import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
@@ -69,8 +69,8 @@ class IAMListener(
             when (authorizationEvent) {
                 is EntityCreateEvent -> createSubjectReferential(tenantName, authorizationEvent)
                 is EntityDeleteEvent -> deleteSubjectReferential(tenantName, authorizationEvent)
-                is AttributeAppendEvent -> updateSubjectProfile(tenantName, authorizationEvent)
-                is AttributeReplaceEvent -> updateSubjectInfo(tenantName, authorizationEvent)
+                is AttributeCreateEvent -> updateSubjectProfile(tenantName, authorizationEvent)
+                is AttributeUpdateEvent -> updateSubjectInfo(tenantName, authorizationEvent)
                 is AttributeDeleteEvent -> removeSubjectFromGroup(tenantName, authorizationEvent)
                 else ->
                     OperationNotSupportedException(unhandledOperationType(authorizationEvent.operationType)).left()
@@ -135,12 +135,12 @@ class IAMListener(
 
     private suspend fun updateSubjectProfile(
         tenantName: String,
-        attributeAppendEvent: AttributeAppendEvent
+        attributeCreateEvent: AttributeCreateEvent
     ): Either<APIException, Unit> = either {
-        val operationPayload = attributeAppendEvent.operationPayload.deserializeAsMap()
-        val subjectUuid = attributeAppendEvent.entityId.extractSub()
+        val operationPayload = attributeCreateEvent.operationPayload.deserializeAsMap()
+        val subjectUuid = attributeCreateEvent.entityId.extractSub()
         mono {
-            when (attributeAppendEvent.attributeName) {
+            when (attributeCreateEvent.attributeName) {
                 AUTH_TERM_ROLES -> {
                     val newRoles = (operationPayload[JSONLD_VALUE_TERM] as List<*>).map {
                         GlobalRole.forKey(it as String)
@@ -159,26 +159,26 @@ class IAMListener(
                 }
                 else ->
                     BadRequestDataException(
-                        "Received unknown attribute name: ${attributeAppendEvent.attributeName}"
+                        "Received unknown attribute name: ${attributeCreateEvent.attributeName}"
                     ).left()
             }
-        }.writeContextAndSubscribe(tenantName, attributeAppendEvent)
+        }.writeContextAndSubscribe(tenantName, attributeCreateEvent)
     }
 
     private suspend fun updateSubjectInfo(
         tenantName: String,
-        attributeReplaceEvent: AttributeReplaceEvent
+        attributeUpdateEvent: AttributeUpdateEvent
     ): Either<APIException, Unit> = either {
-        val operationPayload = attributeReplaceEvent.operationPayload.deserializeAsMap()
-        val subjectUuid = attributeReplaceEvent.entityId.extractSub()
-        val newSubjectInfo = Pair(attributeReplaceEvent.attributeName, operationPayload[JSONLD_VALUE_TERM] as String)
+        val operationPayload = attributeUpdateEvent.operationPayload.deserializeAsMap()
+        val subjectUuid = attributeUpdateEvent.entityId.extractSub()
+        val newSubjectInfo = Pair(attributeUpdateEvent.attributeName, operationPayload[JSONLD_VALUE_TERM] as String)
 
         mono {
             subjectReferentialService.updateSubjectInfo(
                 subjectUuid,
                 newSubjectInfo
             )
-        }.writeContextAndSubscribe(tenantName, attributeReplaceEvent)
+        }.writeContextAndSubscribe(tenantName, attributeUpdateEvent)
     }
 
     private suspend fun removeSubjectFromGroup(

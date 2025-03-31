@@ -1,11 +1,11 @@
 {
-  "entityId": "urn:ngsi-ld:User:312b30b4-9279-4f7e-bdc5-ec56d699bb7d",
+  "operationType": "ATTRIBUTE_DELETE",
   "tenantName": "urn:ngsi-ld:tenant:default",
+  "entityId": "urn:ngsi-ld:User:312b30b4-9279-4f7e-bdc5-ec56d699bb7d",
   "entityTypes": ["User"],
   "attributeName": "urn:ngsi-ld:Beekeeper:01",
   "updatedEntity": "",
   "contexts": [
     "https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld"
-  ],
-  "operationType": "ATTRIBUTE_DELETE"
+  ]
 }

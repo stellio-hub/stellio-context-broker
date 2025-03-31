@@ -5,9 +5,8 @@ import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeCreateEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
-import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
@@ -140,23 +139,9 @@ class EntityEventService(
             tenantName
         )
         when (attributeOperationResult.operationStatus) {
-            OperationStatus.APPENDED ->
+            OperationStatus.CREATED ->
                 publishEntityEvent(
-                    AttributeAppendEvent(
-                        sub,
-                        tenantName,
-                        entityId,
-                        types,
-                        attributeOperationResult.attributeName,
-                        attributeOperationResult.datasetId,
-                        serializeObject(attributeOperationResult.newExpandedValue),
-                        payload
-                    )
-                )
-
-            OperationStatus.REPLACED ->
-                publishEntityEvent(
-                    AttributeReplaceEvent(
+                    AttributeCreateEvent(
                         sub,
                         tenantName,
                         entityId,

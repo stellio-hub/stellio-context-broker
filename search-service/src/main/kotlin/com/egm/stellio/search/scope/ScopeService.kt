@@ -330,7 +330,7 @@ class ScopeService(
             .map {
                 SucceededAttributeOperationResult(
                     attributeName = NGSILD_SCOPE_PROPERTY,
-                    operationStatus = OperationStatus.APPENDED,
+                    operationStatus = OperationStatus.CREATED,
                     newExpandedValue = mapOf(NGSILD_SCOPE_PROPERTY to scopes.toList())
                 )
             }.bind()

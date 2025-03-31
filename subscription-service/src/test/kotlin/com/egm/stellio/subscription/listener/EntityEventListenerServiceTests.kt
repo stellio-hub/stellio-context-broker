@@ -51,26 +51,6 @@ class EntityEventListenerServiceTests {
     }
 
     @Test
-    fun `it should parse and transmit an attribute replace event`() = runTest {
-        val replaceEvent = loadSampleData("events/entity/attributeReplaceTextPropEvent.json")
-
-        val mockedSubscription = mockkClass(Subscription::class)
-        val mockedNotification = mockkClass(Notification::class)
-
-        coEvery {
-            notificationService.notifyMatchingSubscribers(any(), any(), any())
-        } returns listOf(
-            Triple(mockedSubscription, mockedNotification, true),
-            Triple(mockedSubscription, mockedNotification, false)
-        ).right()
-
-        entityEventListenerService.dispatchEntityEvent(replaceEvent)
-
-        coVerify(timeout = 1000L) { notificationService.notifyMatchingSubscribers(any(), any(), any()) }
-        confirmVerified(notificationService)
-    }
-
-    @Test
     fun `it should parse and transmit an attribute update event`() = runTest {
         val updateEvent = loadSampleData("events/entity/attributeUpdateTextPropEvent.json")
 

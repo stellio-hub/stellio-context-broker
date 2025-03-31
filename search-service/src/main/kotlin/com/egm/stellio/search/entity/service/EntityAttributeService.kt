@@ -633,7 +633,7 @@ class EntityAttributeService(
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.APPENDED,
+                        OperationStatus.CREATED,
                         attributePayload
                     )
                 }.bind()
@@ -657,7 +657,7 @@ class EntityAttributeService(
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.REPLACED,
+                        OperationStatus.UPDATED,
                         attributePayload
                     )
                 }.bind()
@@ -697,7 +697,7 @@ class EntityAttributeService(
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.APPENDED,
+                        OperationStatus.CREATED,
                         attributePayload
                     )
                 }.bind()
@@ -721,7 +721,7 @@ class EntityAttributeService(
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.REPLACED,
+                        OperationStatus.UPDATED,
                         attributePayload
                     )
                 }.bind()
@@ -883,7 +883,7 @@ class EntityAttributeService(
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.APPENDED,
+                        OperationStatus.CREATED,
                         attributePayload
                     )
                 }.bind()
@@ -949,7 +949,7 @@ class EntityAttributeService(
                 SucceededAttributeOperationResult(
                     ngsiLdAttribute.name,
                     ngsiLdAttributeInstance.datasetId,
-                    OperationStatus.REPLACED,
+                    OperationStatus.UPDATED,
                     expandedAttribute.second.first()
                 )
             }

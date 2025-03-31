@@ -259,9 +259,9 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             databaseClient.sql(
                 """
                 INSERT INTO temporal_entity_attribute 
-                    (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at)
+                    (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at)
                 VALUES 
-                    (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at)
+                    (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at, :modified_at)
                 """.trimIndent()
             )
                 .bind("id", attribute.id)
@@ -270,6 +270,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 .bind("attribute_type", attribute.attributeType.toString())
                 .bind("attribute_value_type", attribute.attributeValueType.toString())
                 .bind("created_at", attribute.createdAt)
+                .bind("modified_at", attribute.modifiedAt)
                 .execute()
         }
 
@@ -294,12 +295,13 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         runBlocking {
             databaseClient.sql(
                 """
-                INSERT INTO entity_payload (entity_id, types)
-                VALUES (:entity_id, :types)
+                INSERT INTO entity_payload (entity_id, types, modified_at)
+                VALUES (:entity_id, :types, :modified_at)
                 """.trimIndent()
             )
                 .bind("entity_id", entity.entityId)
                 .bind("types", entity.types.toTypedArray())
+                .bind("modified_at", entity.modifiedAt)
                 .execute()
         }
 }

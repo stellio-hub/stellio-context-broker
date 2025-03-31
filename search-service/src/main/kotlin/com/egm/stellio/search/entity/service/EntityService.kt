@@ -93,7 +93,7 @@ class EntityService(
 
         createEntityPayload(ngsiLdEntity, expandedEntity, createdAt).bind()
         scopeService.createHistory(ngsiLdEntity, createdAt, sub).bind()
-        entityAttributeService.createAttributes(
+        val attrsOperationResult = entityAttributeService.createAttributes(
             ngsiLdEntity,
             expandedEntity,
             attributesMetadata,
@@ -106,6 +106,11 @@ class EntityService(
             sub,
             ngsiLdEntity.id,
             ngsiLdEntity.types
+        )
+        entityEventService.publishAttributeChangeEvents(
+            sub,
+            ngsiLdEntity.id,
+            attrsOperationResult.getSucceededOperations()
         )
     }
 
@@ -169,17 +174,7 @@ class EntityService(
         ).bind()
 
         val operationResult = coreOperationResult.plus(attrsOperationResult)
-        // update modifiedAt in entity if at least one attribute has been merged
-        if (operationResult.hasSuccessfulResult()) {
-            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, mergedAt, attributes).bind()
-
-            entityEventService.publishAttributeChangeEvents(
-                sub,
-                entityId,
-                operationResult.getSucceededOperations()
-            )
-        }
+        handleSuccessOperationActions(operationResult, entityId, mergedAt, sub).bind()
 
         UpdateResult(operationResult)
     }
@@ -536,10 +531,15 @@ class EntityService(
         val deletedAt = ngsiLdDateTime()
         val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(deletedAt)
         val previousEntity = deleteEntityPayload(entityId, deletedAt, deletedEntityPayload).bind()
-        entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
+        val deleteOperationResult = entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
         scopeService.addHistoryEntry(entityId, emptyList(), TemporalProperty.DELETED_AT, deletedAt, sub).bind()
 
         entityEventService.publishEntityDeleteEvent(sub, previousEntity, deletedEntityPayload)
+        entityEventService.publishAttributeChangeEvents(
+            sub,
+            entityId,
+            deleteOperationResult.getSucceededOperations()
+        )
     }
 
     @Transactional

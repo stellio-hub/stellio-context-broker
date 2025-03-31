@@ -16,7 +16,6 @@ import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getTenantFromContext
@@ -52,29 +51,13 @@ class EntityEventService(
         entityTypes: List<ExpandedTerm>
     ): Job {
         val tenantName = getTenantFromContext()
-        val entity = getExpandedAndSerializedEntity(entityId)
+        val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
             logger.debug("Sending create event for entity {} in tenant {}", entityId, tenantName)
-            entity.onRight { (expandedEntity, serializedEntity) ->
+            entity.onRight { (_, serializedEntity) ->
                 publishEntityEvent(
                     EntityCreateEvent(sub, tenantName, entityId, entityTypes, serializedEntity)
                 )
-                expandedEntity.getAttributes().forEach { (attributeName, expandedAttributeInstances) ->
-                    expandedAttributeInstances.forEach { expandedAttributeInstance ->
-                        publishAttributeChangeEvent(
-                            sub,
-                            tenantName,
-                            entityId,
-                            Pair(expandedEntity, serializedEntity),
-                            SucceededAttributeOperationResult(
-                                attributeName,
-                                expandedAttributeInstance.getDatasetId(),
-                                OperationStatus.CREATED,
-                                expandedAttributeInstance
-                            )
-                        )
-                    }
-                }
             }.logEntityEvent(EventsType.ENTITY_CREATE, entityId, tenantName)
         }
     }
@@ -85,7 +68,7 @@ class EntityEventService(
         entityTypes: List<ExpandedTerm>
     ): Job {
         val tenantName = getTenantFromContext()
-        val entity = getExpandedAndSerializedEntity(entityId)
+        val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
             logger.debug("Sending replace event for entity {} in tenant {}", entityId, tenantName)
             entity.onRight {
@@ -104,23 +87,6 @@ class EntityEventService(
         val tenantName = getTenantFromContext()
         return coroutineScope.launch {
             logger.debug("Sending delete event for entity {} in tenant {}", previousEntity.entityId, tenantName)
-            val previousExpandedEntity = previousEntity.toExpandedEntity()
-            previousExpandedEntity.getAttributes().forEach { (attributeName, expandedAttributeInstances) ->
-                expandedAttributeInstances.forEach { expandedAttributeInstance ->
-                    publishAttributeChangeEvent(
-                        sub,
-                        tenantName,
-                        previousEntity.entityId,
-                        Pair(previousExpandedEntity, previousEntity.payload.asString()),
-                        SucceededAttributeOperationResult(
-                            attributeName,
-                            expandedAttributeInstance.getDatasetId(),
-                            OperationStatus.DELETED,
-                            expandedAttributeInstance
-                        )
-                    )
-                }
-            }
             publishEntityEvent(
                 EntityDeleteEvent(
                     sub,
@@ -140,7 +106,7 @@ class EntityEventService(
         attributesOperationsResults: List<SucceededAttributeOperationResult>
     ): Job {
         val tenantName = getTenantFromContext()
-        val entity = getExpandedAndSerializedEntity(entityId)
+        val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
             entity.onRight {
                 attributesOperationsResults.forEach { attributeOperationResult ->
@@ -160,10 +126,11 @@ class EntityEventService(
         sub: String?,
         tenantName: String,
         entityId: URI,
-        expandedAndSerializedEntity: Pair<ExpandedEntity, String>,
+        entityTypesAndPayload: Pair<List<ExpandedTerm>, String>,
         attributeOperationResult: SucceededAttributeOperationResult
     ) {
         val attributeName = attributeOperationResult.attributeName
+        val (types, payload) = entityTypesAndPayload
         logger.debug(
             "Sending {} event for attribute {} of entity {} in tenant {}",
             attributeOperationResult.operationStatus,
@@ -178,11 +145,11 @@ class EntityEventService(
                         sub,
                         tenantName,
                         entityId,
-                        expandedAndSerializedEntity.first.types,
+                        types,
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
                         serializeObject(attributeOperationResult.newExpandedValue),
-                        expandedAndSerializedEntity.second
+                        payload
                     )
                 )
 
@@ -192,11 +159,11 @@ class EntityEventService(
                         sub,
                         tenantName,
                         entityId,
-                        expandedAndSerializedEntity.first.types,
+                        types,
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
                         serializeObject(attributeOperationResult.newExpandedValue),
-                        expandedAndSerializedEntity.second
+                        payload
                     )
                 )
 
@@ -206,14 +173,10 @@ class EntityEventService(
                         sub,
                         tenantName,
                         entityId,
-                        expandedAndSerializedEntity.first.types,
+                        types,
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
-                        injectDeletedAttribute(
-                            expandedAndSerializedEntity.second,
-                            attributeName,
-                            attributeOperationResult.newExpandedValue
-                        )
+                        injectDeletedAttribute(payload, attributeName, attributeOperationResult.newExpandedValue)
                     )
                 )
 
@@ -232,7 +195,7 @@ class EntityEventService(
     ): Job {
         val tenantName = getTenantFromContext()
         val attributeName = attributeOperationResult.attributeName
-        val entity = getExpandedAndSerializedEntity(entityId)
+        val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
             logger.debug(
                 "Sending delete event for attribute {} of entity {} in tenant {}",
@@ -246,7 +209,7 @@ class EntityEventService(
                         sub,
                         tenantName,
                         entityId,
-                        it.first.types,
+                        it.first,
                         attributeName,
                         attributeOperationResult.datasetId,
                         injectDeletedAttribute(it.second, attributeName, attributeOperationResult.newExpandedValue)
@@ -256,11 +219,11 @@ class EntityEventService(
         }
     }
 
-    internal suspend fun getExpandedAndSerializedEntity(
+    internal suspend fun getSerializedEntity(
         entityId: URI
-    ): Either<APIException, Pair<ExpandedEntity, String>> =
+    ): Either<APIException, Pair<List<ExpandedTerm>, String>> =
         entityQueryService.retrieve(entityId)
-            .map { Pair(it.toExpandedEntity(), it.payload.asString()) }
+            .map { Pair(it.types, it.payload.asString()) }
 
     internal fun injectDeletedAttribute(
         entityPayload: String,

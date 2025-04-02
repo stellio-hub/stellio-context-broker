@@ -16,10 +16,10 @@ import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
-import com.egm.stellio.search.csr.model.ContextSourceRegistration.RegistrationInfo
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.TimeInterval
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
+import com.egm.stellio.search.csr.model.RegistrationInfo
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException

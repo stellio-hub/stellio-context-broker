@@ -8,7 +8,7 @@ import arrow.core.right
 import arrow.core.separateEither
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.csr.model.CSRFilters
-import com.egm.stellio.search.csr.model.ContextSourceRegistration.EntityInfo.Companion.addFilterForEntityInfo
+import com.egm.stellio.search.csr.model.EntityInfo.Companion.addFilterForEntityInfo
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning

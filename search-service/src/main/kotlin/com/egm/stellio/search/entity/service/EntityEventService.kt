@@ -11,7 +11,6 @@ import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -59,23 +58,6 @@ class EntityEventService(
                     EntityCreateEvent(sub, tenantName, entityId, entityTypes, serializedEntity)
                 )
             }.logEntityEvent(EventsType.ENTITY_CREATE, entityId, tenantName)
-        }
-    }
-
-    suspend fun publishEntityReplaceEvent(
-        sub: String?,
-        entityId: URI,
-        entityTypes: List<ExpandedTerm>
-    ): Job {
-        val tenantName = getTenantFromContext()
-        val entity = getSerializedEntity(entityId)
-        return coroutineScope.launch {
-            logger.debug("Sending replace event for entity {} in tenant {}", entityId, tenantName)
-            entity.onRight {
-                publishEntityEvent(
-                    EntityReplaceEvent(sub, tenantName, entityId, entityTypes, it.second)
-                )
-            }.logEntityEvent(EventsType.ENTITY_REPLACE, entityId, tenantName)
         }
     }
 

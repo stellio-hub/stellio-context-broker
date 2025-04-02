@@ -277,7 +277,7 @@ class EntityOperationServiceTests {
     fun `batch replace should ask to replace entities`() = runTest {
         coEvery {
             entityService.replaceEntity(any(), any(), any(), any())
-        } returns Unit.right()
+        } returns EMPTY_UPDATE_RESULT.right()
 
         val batchOperationResult = entityOperationService.replace(
             listOf(

@@ -110,23 +110,6 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish an ENTITY_REPLACE event`() = runTest {
-        coEvery {
-            entityEventService.getSerializedEntity(any())
-        } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
-        every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
-
-        entityEventService.publishEntityReplaceEvent(
-            null,
-            breedingServiceUri,
-            listOf(breedingServiceType)
-        ).join()
-
-        coVerify { entityEventService.getSerializedEntity(eq(breedingServiceUri)) }
-        verify { kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any()) }
-    }
-
-    @Test
     fun `it should publish an ENTITY_DELETE event`() = runTest {
         val entity = mockk<Entity>(relaxed = true) {
             every { entityId } returns breedingServiceUri

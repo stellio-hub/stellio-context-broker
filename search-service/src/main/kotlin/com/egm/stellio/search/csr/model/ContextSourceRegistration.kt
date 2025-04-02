@@ -171,12 +171,14 @@ data class ContextSourceRegistration(
         }
 
         fun matchCSF(csrFilters: CSRFilters) =
-            this.id?.let { csrFilters.ids.contains(it) } ?: true &&
+            this.id?.let {
+                csrFilters.ids.isEmpty() || csrFilters.ids.contains(it)
+            } ?: true &&
                 csrFilters.typeSelection?.let { typeSelection ->
                     areTypesInSelection(this.types, typeSelection)
                 } ?: true &&
                 this.idPattern?.let { pattern ->
-                    csrFilters.ids.any { pattern.toRegex().matches(it.toString()) }
+                    csrFilters.ids.isEmpty() || csrFilters.ids.any { pattern.toRegex().matches(it.toString()) } ?: true
                 } ?: true
 
         companion object {

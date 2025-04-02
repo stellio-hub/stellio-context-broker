@@ -4,9 +4,10 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.CSRFilters
-import com.egm.stellio.search.csr.model.ContextSourceRegistration
+import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
+import com.egm.stellio.search.csr.model.RegistrationInfo
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
@@ -198,27 +199,27 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
             val id = "test:1".toUri()
             val firstCSR = gimmeRawCSR(
                 information = listOf(
-                    ContextSourceRegistration.RegistrationInfo(
+                    RegistrationInfo(
                         listOf(
-                            ContextSourceRegistration.EntityInfo(types = listOf(APIARY_TYPE)),
-                            ContextSourceRegistration.EntityInfo(id = id, types = listOf(APIARY_TYPE)),
+                            EntityInfo(types = listOf(APIARY_TYPE)),
+                            EntityInfo(id = id, types = listOf(APIARY_TYPE)),
                         )
                     )
                 )
             )
             val secondCSR = gimmeRawCSR(
                 information = listOf(
-                    ContextSourceRegistration.RegistrationInfo(
-                        listOf(ContextSourceRegistration.EntityInfo(idPattern = idPattern, types = listOf(APIARY_TYPE)))
+                    RegistrationInfo(
+                        listOf(EntityInfo(idPattern = idPattern, types = listOf(APIARY_TYPE)))
                     ),
-                    ContextSourceRegistration.RegistrationInfo(
-                        listOf(ContextSourceRegistration.EntityInfo(id = id, types = listOf(APIARY_TYPE)))
+                    RegistrationInfo(
+                        listOf(EntityInfo(id = id, types = listOf(APIARY_TYPE)))
                     )
                 )
             )
             val thirdCSR = gimmeRawCSR(
                 information = listOf(
-                    ContextSourceRegistration.RegistrationInfo(propertyNames = listOf(TEMPERATURE_PROPERTY)),
+                    RegistrationInfo(propertyNames = listOf(TEMPERATURE_PROPERTY)),
                 )
             )
 
@@ -435,7 +436,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
     fun `getDistributedInformation should filter the attributes based on the csr and the received request`() = runTest {
         val csr = gimmeRawCSR().copy(
             information = listOf(
-                ContextSourceRegistration.RegistrationInfo(null, listOf("a", "b", "c"), null)
+                RegistrationInfo(null, listOf("a", "b", "c"), null)
             )
         ).expand(contexts = APIC_COMPOUND_CONTEXTS)
         val path = "/ngsi-ld/v1/entities/$apiaryId"

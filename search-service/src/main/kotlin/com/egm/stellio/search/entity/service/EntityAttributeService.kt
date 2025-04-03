@@ -377,12 +377,16 @@ class EntityAttributeService(
 
         attributesToDeleteWithPayload.map { (attribute, expandedAttributeInstance) ->
             val teaTimestamps = teasTimestamps.find { it.containsKey(attribute.id) }!!.values.first()
-            expandedAttributeInstance.addSysAttrs(true, teaTimestamps.first, teaTimestamps.second, teaTimestamps.third)
             SucceededAttributeOperationResult(
                 attribute.attributeName,
                 attribute.datasetId,
                 OperationStatus.DELETED,
-                expandedAttributeInstance
+                expandedAttributeInstance.addSysAttrs(
+                    true,
+                    teaTimestamps.first,
+                    teaTimestamps.second,
+                    teaTimestamps.third
+                )
             )
         }
     }

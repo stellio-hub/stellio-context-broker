@@ -19,7 +19,9 @@ import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import java.net.URI
 
 class ContextSourceRegistrationTests {
 
@@ -163,7 +165,7 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `getAttributesMatchingCSFAndEntity should not get Attributes for non matching registrationInfo`() = runTest {
+    fun `getAttributesMatchingCSFAndEntity should not get attributes for non matching registrationInfo`() = runTest {
         val entity = expandJsonLdEntity(entityPayload)
 
         val registrationInfoFilter = CSRFilters(
@@ -187,9 +189,9 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `getAttributesName should merge propertyNames and relationshipNames`() = runTest {
+    fun `getAttributeNames should merge propertyNames and relationshipNames`() = runTest {
         val information = RegistrationInfo(
-            propertyNames = listOf(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP),
+            propertyNames = listOf(NGSILD_NAME_PROPERTY),
             relationshipNames = listOf(MANAGED_BY_RELATIONSHIP)
         )
 
@@ -199,36 +201,36 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `getAttributesName should keep propertyNames if relationShipNames is null`() = runTest {
+    fun `getAttributeNames should keep relationshipNames if propertyNames is null`() = runTest {
         val information = RegistrationInfo(
             propertyNames = null,
             relationshipNames = listOf(MANAGED_BY_RELATIONSHIP)
         )
 
         val attrs = information.getAttributeNames()
-        assertEquals(attrs, setOf(MANAGED_BY_RELATIONSHIP))
+        assertEquals(setOf(MANAGED_BY_RELATIONSHIP), attrs)
     }
 
     @Test
-    fun `getAttributesName should keep relationShipNames if propertyNames is null`() = runTest {
+    fun `getAttributeNames should keep propertyNames if relationshipNames is null`() = runTest {
         val information = RegistrationInfo(
-            propertyNames = listOf(MANAGED_BY_RELATIONSHIP),
+            propertyNames = listOf(NGSILD_NAME_PROPERTY),
             relationshipNames = null
         )
 
         val attrs = information.getAttributeNames()
-        assertEquals(attrs, setOf(MANAGED_BY_RELATIONSHIP))
+        assertEquals(setOf(NGSILD_NAME_PROPERTY), attrs)
     }
 
     @Test
-    fun `getAttributesName should return null if propertyNames and relationshipNames are null`() = runTest {
+    fun `getAttributeNames should return null if propertyNames and relationshipNames are null`() = runTest {
         val information = RegistrationInfo(
             propertyNames = null,
             relationshipNames = null
         )
 
         val attrs = information.getAttributeNames()
-        assertEquals(attrs, null)
+        assertNull(attrs)
     }
 
     @Test
@@ -282,10 +284,8 @@ class ContextSourceRegistrationTests {
 
         val csrs = csr.toSingleEntityInfoCSRList(CSRFilters())
         assertThat(csrs).hasSize(4)
-        assertThat(csrs).anyMatch { it.information[0].entities?.get(0)?.id == "urn:1".toUri() }
-        assertThat(csrs).anyMatch { it.information[0].entities?.get(0)?.id == "urn:2".toUri() }
-        assertThat(csrs).anyMatch { it.information[0].entities?.get(0)?.id == "urn:3".toUri() }
-        assertThat(csrs).anyMatch { it.information[0].entities?.get(0)?.id == "urn:4".toUri() }
+            .extracting<URI> { it.information[0].entities?.get(0)?.id }
+            .contains("urn:1".toUri(), "urn:2".toUri(), "urn:3".toUri(), "urn:4".toUri())
     }
 
     @Test
@@ -308,7 +308,8 @@ class ContextSourceRegistrationTests {
 
         val csrs = csr.toSingleEntityInfoCSRList(CSRFilters(ids = setOf("urn:3".toUri())))
         assertThat(csrs).hasSize(1)
-        assertThat(csrs).anyMatch { it.information[0].entities?.get(0)?.id == "urn:3".toUri() }
+            .first()
+            .matches { it.information[0].entities?.get(0)?.id == "urn:3".toUri() }
     }
 
     @Test
@@ -331,9 +332,9 @@ class ContextSourceRegistrationTests {
 
         val csrs = csr.toSingleEntityInfoCSRList(CSRFilters(attrs = setOf(MANAGED_BY_RELATIONSHIP)))
         assertThat(csrs).hasSize(2)
-        assertThat(
-            csrs
-        ).anyMatch { it.information[0].propertyNames == listOf(MANAGED_BY_RELATIONSHIP, NGSILD_NAME_PROPERTY) }
-        assertThat(csrs).anyMatch { it.information[0].relationshipNames == listOf(MANAGED_BY_RELATIONSHIP) }
+            .allMatch {
+                it.information[0].propertyNames == listOf(MANAGED_BY_RELATIONSHIP, NGSILD_NAME_PROPERTY) ||
+                    it.information[0].relationshipNames == listOf(MANAGED_BY_RELATIONSHIP)
+            }
     }
 }

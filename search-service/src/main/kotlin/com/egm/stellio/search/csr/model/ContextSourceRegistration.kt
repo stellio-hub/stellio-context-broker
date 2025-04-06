@@ -178,7 +178,7 @@ data class ContextSourceRegistration(
                     areTypesInSelection(this.types, typeSelection)
                 } ?: true &&
                 this.idPattern?.let { pattern ->
-                    csrFilters.ids.isEmpty() || csrFilters.ids.any { pattern.toRegex().matches(it.toString()) } ?: true
+                    csrFilters.ids.isEmpty() || csrFilters.ids.any { pattern.toRegex().matches(it.toString()) }
                 } ?: true
 
         companion object {

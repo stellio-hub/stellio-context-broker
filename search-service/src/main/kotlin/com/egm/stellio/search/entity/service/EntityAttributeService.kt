@@ -99,11 +99,11 @@ class EntityAttributeService(
         databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
-                (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, dataset_id, 
-                    payload)
+                (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
+                    dataset_id, payload)
             VALUES 
-                (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at, :dataset_id, 
-                    :payload)
+                (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at, :created_at,
+                    :dataset_id, :payload)
             ON CONFLICT (entity_id, attribute_name, dataset_id)
                 DO UPDATE SET deleted_at = null,
                     attribute_type = :attribute_type,
@@ -478,7 +478,7 @@ class EntityAttributeService(
         id: URI,
         attrs: Set<String>,
         datasetIds: Set<String>,
-        excludedDeleted: Boolean = true
+        excludeDeleted: Boolean = true
     ): List<Attribute> {
         val filterOnAttributes =
             if (attrs.isNotEmpty())
@@ -502,7 +502,7 @@ class EntityAttributeService(
                 dataset_id, payload
             FROM temporal_entity_attribute            
             WHERE entity_id = :entity_id
-            ${if (excludedDeleted) " and deleted_at is null " else ""}
+            ${if (excludeDeleted) " and deleted_at is null " else ""}
             $filterOnAttributes
             $filterOnDatasetId
             """.trimIndent()
@@ -551,7 +551,7 @@ class EntityAttributeService(
             ),
             datasetId = toOptionalUri(row["dataset_id"]),
             createdAt = toZonedDateTime(row["created_at"]),
-            modifiedAt = toOptionalZonedDateTime(row["modified_at"]),
+            modifiedAt = toZonedDateTime(row["modified_at"]),
             deletedAt = toOptionalZonedDateTime(row["deleted_at"]),
             payload = toJson(row["payload"])
         )
@@ -633,7 +633,7 @@ class EntityAttributeService(
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.APPENDED,
+                        OperationStatus.CREATED,
                         attributePayload
                     )
                 }.bind()
@@ -657,7 +657,7 @@ class EntityAttributeService(
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.REPLACED,
+                        OperationStatus.UPDATED,
                         attributePayload
                     )
                 }.bind()
@@ -697,7 +697,7 @@ class EntityAttributeService(
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.APPENDED,
+                        OperationStatus.CREATED,
                         attributePayload
                     )
                 }.bind()
@@ -721,7 +721,7 @@ class EntityAttributeService(
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.REPLACED,
+                        OperationStatus.UPDATED,
                         attributePayload
                     )
                 }.bind()
@@ -883,7 +883,7 @@ class EntityAttributeService(
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
                         ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.APPENDED,
+                        OperationStatus.CREATED,
                         attributePayload
                     )
                 }.bind()
@@ -949,7 +949,7 @@ class EntityAttributeService(
                 SucceededAttributeOperationResult(
                     ngsiLdAttribute.name,
                     ngsiLdAttributeInstance.datasetId,
-                    OperationStatus.REPLACED,
+                    OperationStatus.UPDATED,
                     expandedAttribute.second.first()
                 )
             }

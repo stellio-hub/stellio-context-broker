@@ -9,8 +9,7 @@ class UpdateResultTests {
     @Test
     fun `it should find the successful update operation results`() {
         assertTrue(OperationStatus.UPDATED.isSuccessResult())
-        assertTrue(OperationStatus.APPENDED.isSuccessResult())
-        assertTrue(OperationStatus.REPLACED.isSuccessResult())
+        assertTrue(OperationStatus.CREATED.isSuccessResult())
         assertTrue(OperationStatus.IGNORED.isSuccessResult())
     }
 

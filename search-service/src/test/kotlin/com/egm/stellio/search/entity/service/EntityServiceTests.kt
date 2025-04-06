@@ -106,6 +106,13 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityService.createEntityPayload(ngsiLdEntity, jsonLdEntity, now)
             .shouldSucceed()
+
+        entityQueryService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertNotNull(it.createdAt)
+                assertNotNull(it.modifiedAt)
+                assertEquals(it.createdAt, it.modifiedAt)
+            }
     }
 
     @Test
@@ -239,7 +246,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityService.deleteEntityPayload(entity01Uri, ngsiLdDateTime(), loadAndExpandDeletedEntity(entity01Uri))
             .shouldSucceed()
 
-        entityQueryService.retrieve(entity01Uri, true)
+        entityQueryService.retrieve(entity01Uri, false)
             .shouldSucceedWith { entity ->
                 val payload = entity.payload.deserializeAsMap()
                 assertThat(payload)
@@ -258,7 +265,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
         } returns listOf(
-            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.APPENDED, emptyMap()),
+            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.CREATED, emptyMap()),
         ).right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
@@ -283,7 +290,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertTrue(it.modifiedAt != null)
+                assertTrue(it.modifiedAt > it.createdAt)
             }
 
         coVerify {
@@ -323,7 +330,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
         } returns listOf(
-            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.APPENDED, emptyMap())
+            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.CREATED, emptyMap())
         ).right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
@@ -365,7 +372,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
         } returns listOf(
-            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.APPENDED, emptyMap())
+            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.CREATED, emptyMap())
         ).right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
         coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
@@ -436,7 +443,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertTrue(it.modifiedAt != null)
+                assertTrue(it.modifiedAt > it.createdAt)
                 assertEquals(8, it.payload.deserializeAsMap().size)
             }
 
@@ -463,7 +470,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             entityAttributeService.replaceAttribute(any(), any(), any(), any(), any())
         } returns SucceededAttributeOperationResult(
             attributeName = INCOMING_PROPERTY,
-            operationStatus = OperationStatus.REPLACED,
+            operationStatus = OperationStatus.UPDATED,
             newExpandedValue = emptyMap()
         ).right()
 
@@ -498,7 +505,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             .shouldSucceedWith {
                 assertInstanceOf(SucceededAttributeOperationResult::class.java, it)
                 assertEquals(JSONLD_TYPE, it.attributeName)
-                assertEquals(OperationStatus.APPENDED, it.operationStatus)
+                assertEquals(OperationStatus.CREATED, it.operationStatus)
             }
 
         entityQueryService.retrieve(beehiveTestCId)

@@ -21,6 +21,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.OUTGOING_COMPACT_PROPERTY
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
@@ -29,6 +30,7 @@ import com.egm.stellio.shared.util.SENSOR_TYPE
 import com.egm.stellio.shared.util.TEMPERATURE_COMPACT_PROPERTY
 import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import com.egm.stellio.shared.util.loadAndExpandMinimalEntity
+import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldFailWith
@@ -350,7 +352,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     it.entities.size == 1 &&
                     it.entities.all { entitySelector -> entitySelector.typeSelection == BEEHIVE_TYPE } &&
                     it.watchedAttributes == null &&
-                    it.isActive
+                    it.isActive &&
+                    it.createdAt == it.modifiedAt
             }
     }
 
@@ -748,6 +751,26 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    fun `it should not fail to match a subscription if the input entity contains a single quote`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(mapOf("type" to BEEHIVE_COMPACT_TYPE)),
+                "q" to "name==\"C%27est%20une%20belle%20ruche\""
+            )
+        )
+        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+
+        val expandedEntity = loadAndExpandSampleData("beehive_single_quote.jsonld")
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            setOf(NGSILD_NAME_PROPERTY),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+        }
+    }
+
+    @Test
     fun `it should retrieve a subscription with entityUpdated trigger matched with an attribute event`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -941,7 +964,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val updatedSubscription = subscriptionService.getById(subscription.id)
         assertThat(updatedSubscription)
             .matches {
-                it.isActive && it.modifiedAt != null
+                it.isActive && it.modifiedAt > it.createdAt
             }
     }
 
@@ -963,7 +986,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val updatedSubscription = subscriptionService.getById(subscription.id)
         assertThat(updatedSubscription)
             .matches {
-                !it.isActive && it.modifiedAt != null
+                !it.isActive && it.modifiedAt > it.createdAt
             }
     }
 
@@ -988,7 +1011,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         assertThat(updatedSubscription)
             .matches {
                 it.watchedAttributes!! == listOf(INCOMING_PROPERTY, TEMPERATURE_PROPERTY) &&
-                    it.modifiedAt != null
+                    it.modifiedAt > it.createdAt
             }
     }
 
@@ -1016,7 +1039,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         assertThat(updatedSubscription)
             .matches {
                 it.notificationTrigger == notificationTriggers &&
-                    it.modifiedAt != null
+                    it.modifiedAt > it.createdAt
             }
     }
 

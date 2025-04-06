@@ -44,7 +44,7 @@ class TemporalQueryService(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         sub: Sub? = null
     ): Either<APIException, Pair<ExpandedEntity, Range?>> = either {
-        val entity = entityQueryService.retrieve(entityId).bind()
+        val entity = entityQueryService.retrieve(entityId, false).bind()
         authorizationService.userCanReadEntity(entityId, sub.toOption()).bind()
 
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
@@ -159,7 +159,7 @@ class TemporalQueryService(
                     // then, group them by entity
                     it.first.entityId
                 }.mapKeys {
-                    entityQueryService.retrieve(it.key).bind()
+                    entityQueryService.retrieve(it.key, false).bind()
                 }
                 .mapValues {
                     it.value.toMap()

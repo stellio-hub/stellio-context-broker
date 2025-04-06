@@ -29,6 +29,7 @@ import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
@@ -116,7 +117,7 @@ class TemporalQueryServiceTests {
                 )
             }
 
-        coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
         coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any(), any()) } returns attributes
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
@@ -145,7 +146,7 @@ class TemporalQueryServiceTests {
         )
 
         coVerify {
-            entityQueryService.retrieve(entityUri)
+            entityQueryService.retrieve(entityUri, false)
             authorizationService.userCanReadEntity(entityUri, None)
             entityAttributeService.getForEntity(entityUri, emptySet(), emptySet(), false)
             attributeInstanceService.search(
@@ -247,7 +248,7 @@ class TemporalQueryServiceTests {
         } returns listOf(attribute)
         coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 1.right()
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
-        coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns
@@ -325,7 +326,7 @@ class TemporalQueryServiceTests {
         coEvery {
             attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns emptyList<AttributeInstanceResult>().right()
-        coEvery { entityQueryService.retrieve(any<URI>()) } returns gimmeEntityPayload().right()
+        coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
         coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 1.right()
 
         temporalQueryService.queryTemporalEntities(
@@ -376,7 +377,7 @@ class TemporalQueryServiceTests {
                     }
                     """.trimIndent(),
                     JsonUtils.serializeObject(it.first[0].members),
-                    setOf(NGSILD_CREATED_AT_PROPERTY)
+                    setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
                 )
             })
     }

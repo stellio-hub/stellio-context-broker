@@ -53,12 +53,13 @@ data class ExpandedEntity(
                 if (JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
                     it.value
                 else castAttributeValue(it.value).map { expandedAttributeInstance ->
-                    expandedAttributeInstance.addDateTimeProperty(
-                        NGSILD_CREATED_AT_PROPERTY,
-                        createdAt
-                    ) as ExpandedAttributeInstance
+                    expandedAttributeInstance
+                        .addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)
+                        .addDateTimeProperty(NGSILD_MODIFIED_AT_PROPERTY, createdAt)
+                        as ExpandedAttributeInstance
                 }
             }.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)
+                .addDateTimeProperty(NGSILD_MODIFIED_AT_PROPERTY, createdAt)
         )
 
     /**
@@ -93,6 +94,8 @@ data class ExpandedEntity(
         (members[JSONLD_TYPE] ?: throw BadRequestDataException("Could not extract type from JSON-LD entity"))
             as List<ExpandedTerm>
     }
+
+    fun toTypeSelection() = types.joinToString("|")
 
     private fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =
         if (dateTime != null)

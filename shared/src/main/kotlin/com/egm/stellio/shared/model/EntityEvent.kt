@@ -13,8 +13,7 @@ import java.net.URI
         JsonSubTypes.Type(value = EntityCreateEvent::class),
         JsonSubTypes.Type(value = EntityReplaceEvent::class),
         JsonSubTypes.Type(value = EntityDeleteEvent::class),
-        JsonSubTypes.Type(value = AttributeAppendEvent::class),
-        JsonSubTypes.Type(value = AttributeReplaceEvent::class),
+        JsonSubTypes.Type(value = AttributeCreateEvent::class),
         JsonSubTypes.Type(value = AttributeUpdateEvent::class),
         JsonSubTypes.Type(value = AttributeDeleteEvent::class)
     ]
@@ -76,8 +75,8 @@ data class EntityDeleteEvent(
     override fun getEntity() = this.previousEntity
 }
 
-@JsonTypeName("ATTRIBUTE_APPEND")
-data class AttributeAppendEvent(
+@JsonTypeName("ATTRIBUTE_CREATE")
+data class AttributeCreateEvent(
     override val sub: String?,
     override val tenantName: String = DEFAULT_TENANT_NAME,
     override val entityId: URI,
@@ -86,22 +85,7 @@ data class AttributeAppendEvent(
     val datasetId: URI?,
     val operationPayload: String,
     val updatedEntity: String
-) : EntityEvent(EventsType.ATTRIBUTE_APPEND, sub, tenantName, entityId, entityTypes) {
-    override fun getEntity() = this.updatedEntity
-    override fun getAttribute() = this.attributeName
-}
-
-@JsonTypeName("ATTRIBUTE_REPLACE")
-data class AttributeReplaceEvent(
-    override val sub: String?,
-    override val tenantName: String = DEFAULT_TENANT_NAME,
-    override val entityId: URI,
-    override val entityTypes: List<ExpandedTerm>,
-    val attributeName: ExpandedTerm,
-    val datasetId: URI?,
-    val operationPayload: String,
-    val updatedEntity: String
-) : EntityEvent(EventsType.ATTRIBUTE_REPLACE, sub, tenantName, entityId, entityTypes) {
+) : EntityEvent(EventsType.ATTRIBUTE_CREATE, sub, tenantName, entityId, entityTypes) {
     override fun getEntity() = this.updatedEntity
     override fun getAttribute() = this.attributeName
 }
@@ -139,8 +123,7 @@ enum class EventsType {
     ENTITY_CREATE,
     ENTITY_REPLACE,
     ENTITY_DELETE,
-    ATTRIBUTE_APPEND,
-    ATTRIBUTE_REPLACE,
+    ATTRIBUTE_CREATE,
     ATTRIBUTE_UPDATE,
     ATTRIBUTE_DELETE
 }

@@ -137,7 +137,7 @@ class ContextSourceRegistrationTests {
     @Test
     fun `getAssociatedAttributes should check properties and relationship separately`() = runTest {
         val entity = expandJsonLdEntity(entityPayload)
-        val registrationInfoFilter = RegistrationInfoFilter(
+        val registrationInfoFilter = CSRFilters(
             ids = setOf(entity.id),
             types = entity.types.toSet()
         )
@@ -175,7 +175,7 @@ class ContextSourceRegistrationTests {
     fun `getAssociatedAttributes should not get Attributes for non matching registrationInfo`() = runTest {
         val entity = expandJsonLdEntity(entityPayload)
 
-        val registrationInfoFilter = RegistrationInfoFilter(
+        val registrationInfoFilter = CSRFilters(
             ids = setOf(entity.id),
             types = entity.types.toSet()
         )

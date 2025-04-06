@@ -128,6 +128,8 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         assertEquals(2, attributes.size)
         assertTrue(listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY).contains(attributes[0].attributeName))
+        assertNotNull(attributes[0].createdAt)
+        assertNotNull(attributes[0].modifiedAt)
 
         coVerify(exactly = 6) { attributeInstanceService.create(any()) }
     }
@@ -436,8 +438,8 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             val successfulOperations = operationResults.getSucceededOperations()
             assertEquals(6, successfulOperations.size)
             assertEquals(4, successfulOperations.filter { it.operationStatus == OperationStatus.UPDATED }.size)
-            assertEquals(2, successfulOperations.filter { it.operationStatus == OperationStatus.APPENDED }.size)
-            val newAttributes = successfulOperations.filter { it.operationStatus == OperationStatus.APPENDED }
+            assertEquals(2, successfulOperations.filter { it.operationStatus == OperationStatus.CREATED }.size)
+            val newAttributes = successfulOperations.filter { it.operationStatus == OperationStatus.CREATED }
                 .map { it.attributeName }
             assertTrue(newAttributes.containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)))
         }
@@ -639,7 +641,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceedWith { operationResults ->
             val successfulOperations = operationResults.getSucceededOperations()
             assertEquals(1, successfulOperations.size)
-            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.APPENDED }.size)
+            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.CREATED }.size)
         }
 
         entityAttributeService.getForEntityAndAttribute(

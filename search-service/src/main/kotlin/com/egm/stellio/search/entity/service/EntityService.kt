@@ -117,8 +117,10 @@ class EntityService(
         val specificAccessPolicy = ngsiLdEntity.getSpecificAccessPolicy()?.bind()
         databaseClient.sql(
             """
-            INSERT INTO entity_payload (entity_id, types, scopes, created_at, payload, specific_access_policy)
-            VALUES (:entity_id, :types, :scopes, :created_at, :payload, :specific_access_policy)
+            INSERT INTO entity_payload
+                (entity_id, types, scopes, created_at, modified_at, payload, specific_access_policy)
+            VALUES
+                (:entity_id, :types, :scopes, :created_at, :created_at ,:payload, :specific_access_policy)
             ON CONFLICT (entity_id)
                 DO UPDATE SET types = :types,
                     scopes = :scopes,
@@ -293,7 +295,7 @@ class EntityService(
         if (currentTypes.sorted() == newTypes.sorted() || newTypes.isEmpty() && allowEmptyListOfTypes)
             return@either SucceededAttributeOperationResult(
                 attributeName = JSONLD_TYPE,
-                operationStatus = OperationStatus.APPENDED,
+                operationStatus = OperationStatus.CREATED,
                 newExpandedValue = mapOf(JSONLD_TYPE to currentTypes.toList())
             )
 
@@ -322,7 +324,7 @@ class EntityService(
             .map {
                 SucceededAttributeOperationResult(
                     attributeName = JSONLD_TYPE,
-                    operationStatus = OperationStatus.APPENDED,
+                    operationStatus = OperationStatus.CREATED,
                     newExpandedValue = mapOf(JSONLD_TYPE to updatedTypes.toList())
                 )
             }.bind()
@@ -560,10 +562,7 @@ class EntityService(
             update_entity AS (
                 UPDATE entity_payload
                 SET deleted_at = :deleted_at,
-                    payload = :payload,
-                    scopes = null,
-                    specific_access_policy = null,
-                    types = '{}'
+                    payload = :payload
                 WHERE entity_id = :entity_id
             )
             SELECT * FROM entity_before_delete
@@ -580,7 +579,7 @@ class EntityService(
 
     @Transactional
     suspend fun permanentlyDeleteEntity(entityId: URI, sub: Sub? = null): Either<APIException, Unit> = either {
-        val currentEntity = entityQueryService.retrieve(entityId, true).bind()
+        val currentEntity = entityQueryService.retrieve(entityId, false).bind()
         authorizationService.userCanAdminEntity(entityId, sub.toOption()).bind()
 
         val previousEntity = permanentyDeleteEntityPayload(entityId).bind()

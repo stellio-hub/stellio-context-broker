@@ -237,6 +237,14 @@ class EntityService(
         scopeService.replace(ngsiLdEntity, replacedAt, sub).bind()
 
         val operationResult = deleteOperationResults.plus(createOrReplaceOperationResult)
+        operationResult.filterIsInstance<SucceededAttributeOperationResult>()
+            .forEach {
+                if (it.operationStatus == OperationStatus.DELETED)
+                    entityEventService.publishAttributeDeleteEvent(sub, entityId, it)
+                else
+                    entityEventService.publishAttributeChangeEvents(sub, entityId, listOf(it))
+            }
+
         UpdateResult(operationResult)
     }
 

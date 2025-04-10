@@ -19,6 +19,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import com.egm.stellio.shared.util.expandJsonLdEntity
+import com.egm.stellio.shared.util.toTypeSelection
 import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.badRequest
 import com.github.tomakehurst.wiremock.client.WireMock.post
@@ -115,7 +116,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
                 entity,
                 contexts,
                 Operation.CREATE_ENTITY,
-                entity.toTypeSelection()
+                entity.types.toTypeSelection()
             )
         } returns (BatchOperationResult() to entity)
     }
@@ -139,7 +140,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
                 entity,
                 contexts,
                 Operation.UPDATE_ENTITY,
-                entity.toTypeSelection()
+                entity.types.toTypeSelection()
             )
         } returns (BatchOperationResult() to entity)
     }
@@ -255,7 +256,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         } returns contextSourceException.left() andThen Unit.right()
 
         coEvery {
-            csr.getAssociatedAttributes(any(), any())
+            csr.getAttributesMatchingCSFAndEntity(any(), any())
         } returns setOf(NGSILD_NAME_PROPERTY) andThen setOf(TEMPERATURE_PROPERTY)
         coEvery {
             csr.id
@@ -286,7 +287,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     fun `distributeEntityProvisionForContextSources should return null if whole entity has been processed`() = runTest {
         val csr = spyk(gimmeRawCSR())
         coEvery {
-            csr.getAssociatedAttributes(any(), any())
+            csr.getAttributesMatchingCSFAndEntity(any(), any())
         } returns setOf(NGSILD_NAME_PROPERTY) andThen setOf(TEMPERATURE_PROPERTY)
 
         coEvery {
@@ -309,7 +310,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     fun `distributeEntityProvisionForContextSources should return only non processed attributes`() = runTest {
         val csr = spyk(gimmeRawCSR())
         coEvery {
-            csr.getAssociatedAttributes(any(), any())
+            csr.getAttributesMatchingCSFAndEntity(any(), any())
         } returns setOf(NGSILD_NAME_PROPERTY)
 
         coEvery {
@@ -334,7 +335,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         val csr = spyk(gimmeRawCSR())
 
         coEvery {
-            csr.getAssociatedAttributes(any(), any())
+            csr.getAttributesMatchingCSFAndEntity(any(), any())
         } returns setOf(NGSILD_NAME_PROPERTY)
         coEvery {
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())

@@ -1,22 +1,35 @@
 package com.egm.stellio.search.csr.service
 
 import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
+import com.egm.stellio.search.csr.model.CSRFilters
+import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.queryparameter.PaginationQuery
+import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
+import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
+import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.toUri
+import com.github.tomakehurst.wiremock.client.WireMock.containing
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.notContaining
@@ -115,6 +128,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         val response = distributedEntityConsumptionService.queryEntitiesFromContextSource(
             HttpHeaders.EMPTY,
             csr,
+            CSRFilters(),
             emptyParams
         ).getOrNull()
         assertNotNull(response)
@@ -137,6 +151,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         val response = distributedEntityConsumptionService.queryEntitiesFromContextSource(
             HttpHeaders.EMPTY,
             csr,
+            CSRFilters(),
             emptyParams
         )
 
@@ -155,7 +170,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
             } returns listOf(csr, csr)
 
             coEvery {
-                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any())
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), any())
             } returns MiscellaneousWarning(
                 "message with\nline\nbreaks",
                 csr
@@ -177,6 +192,73 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         }
 
     @Test
+    fun `distributeQueryEntitiesOperation should ask for different filter based on the different EntityInfo`() =
+        runTest {
+            val idPattern = "test:.*"
+            val id = "test:1".toUri()
+            val firstCSR = gimmeRawCSR(
+                information = listOf(
+                    ContextSourceRegistration.RegistrationInfo(
+                        listOf(
+                            ContextSourceRegistration.EntityInfo(types = listOf(APIARY_TYPE)),
+                            ContextSourceRegistration.EntityInfo(id = id, types = listOf(APIARY_TYPE)),
+                        )
+                    )
+                )
+            )
+            val secondCSR = gimmeRawCSR(
+                information = listOf(
+                    ContextSourceRegistration.RegistrationInfo(
+                        listOf(ContextSourceRegistration.EntityInfo(idPattern = idPattern, types = listOf(APIARY_TYPE)))
+                    ),
+                    ContextSourceRegistration.RegistrationInfo(
+                        listOf(ContextSourceRegistration.EntityInfo(id = id, types = listOf(APIARY_TYPE)))
+                    )
+                )
+            )
+            val thirdCSR = gimmeRawCSR(
+                information = listOf(
+                    ContextSourceRegistration.RegistrationInfo(propertyNames = listOf(TEMPERATURE_PROPERTY)),
+                )
+            )
+
+            coEvery {
+                contextSourceRegistrationService
+                    .getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(firstCSR, secondCSR, thirdCSR)
+
+            coEvery {
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), any())
+            } returns (emptyList<CompactedEntity>() to 0).right()
+
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+
+            val queryParams = MultiValueMap.fromSingleValue<String, String>(emptyMap())
+            val headers = HttpHeaders()
+
+            distributedEntityConsumptionService.distributeQueryEntitiesOperation(
+                composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, emptyList()).getOrNull()!!,
+                headers,
+                queryParams
+            )
+            val typeParams = MultiValueMap.fromSingleValue(mapOf(QP.TYPE.key to APIARY_TYPE))
+            val idParams = MultiValueMap.fromSingleValue(mapOf(QP.TYPE.key to APIARY_TYPE, QP.ID.key to id.toString()))
+            val idPatternParams = MultiValueMap.fromSingleValue(
+                mapOf(
+                    QP.TYPE.key to APIARY_TYPE,
+                    QP.ID_PATTERN.key to idPattern
+                )
+            )
+            coVerify {
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), typeParams)
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), idParams)
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), idPatternParams)
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), idParams)
+                distributedEntityConsumptionService.queryEntitiesFromContextSource(any(), any(), any(), queryParams)
+            }
+        }
+
+    @Test
     fun `retrieveEntityFromContextSource should return the entity when the request succeeds`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/entities/$apiaryId"
@@ -191,6 +273,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         val response = distributedEntityConsumptionService.retrieveEntityFromContextSource(
             HttpHeaders.EMPTY,
             csr,
+            CSRFilters(),
             apiaryId.toUri(),
             emptyParams
         )
@@ -212,6 +295,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         val response = distributedEntityConsumptionService.retrieveEntityFromContextSource(
             HttpHeaders.EMPTY,
             csr,
+            CSRFilters(),
             apiaryId.toUri(),
             emptyParams
         )
@@ -231,7 +315,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
             } returns listOf(csr, csr)
 
             coEvery {
-                distributedEntityConsumptionService.retrieveEntityFromContextSource(any(), any(), any(), any())
+                distributedEntityConsumptionService.retrieveEntityFromContextSource(any(), any(), any(), any(), any())
             } returns MiscellaneousWarning(
                 "message with\nline\nbreaks",
                 csr
@@ -242,6 +326,10 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
 
             val (warnings, _) = distributedEntityConsumptionService.distributeRetrieveEntityOperation(
                 apiaryId.toUri(),
+                EntitiesQueryFromGet(
+                    paginationQuery = PaginationQuery(limit = 10, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
                 HttpHeaders(),
                 MultiValueMap.fromSingleValue(emptyMap())
             )
@@ -253,8 +341,8 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
     fun `getDistributedInformation should return a MiscellaneousWarning if it receives no answer`() = runTest {
         val csr = gimmeRawCSR().copy(endpoint = "http://localhost:invalid".toUri())
         val path = "/ngsi-ld/v1/entities/$apiaryId"
-        val response =
-            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response = distributedEntityConsumptionService
+            .getDistributedInformation(HttpHeaders.EMPTY, csr, CSRFilters(), path, emptyParams)
 
         assertTrue(response.isLeft())
         assertInstanceOf(MiscellaneousWarning::class.java, response.leftOrNull())
@@ -269,8 +357,8 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 .willReturn(unauthorized())
         )
 
-        val response =
-            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+        val response = distributedEntityConsumptionService
+            .getDistributedInformation(HttpHeaders.EMPTY, csr, CSRFilters(), path, emptyParams)
 
         assertTrue(response.isLeft())
         assertInstanceOf(MiscellaneousPersistentWarning::class.java, response.leftOrNull())
@@ -286,7 +374,13 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         )
 
         val response =
-            distributedEntityConsumptionService.getDistributedInformation(HttpHeaders.EMPTY, csr, path, emptyParams)
+            distributedEntityConsumptionService.getDistributedInformation(
+                HttpHeaders.EMPTY,
+                csr,
+                CSRFilters(),
+                path,
+                emptyParams
+            )
 
         assertTrue(response.isRight())
         assertNull(response.getOrNull()!!.first)
@@ -305,6 +399,7 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         distributedEntityConsumptionService.getDistributedInformation(
             header,
             csr,
+            CSRFilters(),
             path,
             emptyParams
         )
@@ -326,12 +421,44 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         distributedEntityConsumptionService.getDistributedInformation(
             HttpHeaders.EMPTY,
             csr,
+            CSRFilters(),
             path,
             params
         )
         verify(
             getRequestedFor(urlPathEqualTo(path))
                 .withQueryParam(QueryParameter.OPTIONS.key, notContaining("simplified"))
+        )
+    }
+
+    @Test
+    fun `getDistributedInformation should filter the attributes based on the csr and the received request`() = runTest {
+        val csr = gimmeRawCSR().copy(
+            information = listOf(
+                ContextSourceRegistration.RegistrationInfo(null, listOf("a", "b", "c"), null)
+            )
+        ).expand(contexts = APIC_COMPOUND_CONTEXTS)
+        val path = "/ngsi-ld/v1/entities/$apiaryId"
+
+        stubFor(get(urlMatching(path)).willReturn(ok()))
+
+        val header = HttpHeaders().apply {
+            set(HttpHeaders.LINK, APIC_HEADER_LINK)
+        }
+        val params = LinkedMultiValueMap(mapOf(QueryParameter.ATTRS.key to listOf("c,d,e")))
+
+        distributedEntityConsumptionService.getDistributedInformation(
+            header,
+            csr,
+            CSRFilters(attrs = parseAndExpandQueryParameter("c,d,e", APIC_COMPOUND_CONTEXTS)),
+            path,
+            params
+        )
+        verify(
+            getRequestedFor(urlPathEqualTo(path)).withQueryParam(
+                QueryParameter.ATTRS.key,
+                containing("c")
+            )
         )
     }
 }

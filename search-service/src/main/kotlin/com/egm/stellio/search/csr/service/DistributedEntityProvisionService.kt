@@ -22,6 +22,7 @@ import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.toTypeSelection
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -77,7 +78,7 @@ class DistributedEntityProvisionService(
         entity,
         contexts,
         Operation.CREATE_ENTITY,
-        entity.toTypeSelection()
+        entity.types.toTypeSelection()
     )
 
     suspend fun distributeReplaceEntity(
@@ -88,7 +89,7 @@ class DistributedEntityProvisionService(
         entity,
         contexts,
         Operation.REPLACE_ENTITY,
-        queryParams.getFirst(QP.TYPE.key) ?: entity.toTypeSelection()
+        queryParams.getFirst(QP.TYPE.key) ?: entity.types.toTypeSelection()
     )
 
     suspend fun distributeEntityProvision(
@@ -149,7 +150,7 @@ class DistributedEntityProvisionService(
     ): ExpandedEntity? {
         val allProcessedAttrs = mutableSetOf<ExpandedTerm>()
         csrs?.forEach { csr ->
-            csr.getAssociatedAttributes(csrFilters, entity)
+            csr.getAttributesMatchingCSFAndEntity(csrFilters, entity)
                 .let { attrs ->
                     allProcessedAttrs.addAll(attrs)
                     if (attrs.isEmpty()) Unit

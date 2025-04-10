@@ -4,6 +4,7 @@ import arrow.core.Some
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.notFoundMessage
+import com.egm.stellio.search.csr.model.ContextSourceRegistration.RegistrationInfo
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -13,6 +14,8 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.DEVICE_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.LUMINOSITY_JSONPROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
@@ -20,6 +23,7 @@ import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -322,6 +326,29 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
             CSRFilters(idPattern = "INVALID")
         )
         assertTrue(notMatchingCsr.isEmpty())
+    }
+
+    @Test
+    fun `query on CSR information attributes should filter the result`() = runTest {
+        val newCsr =
+            loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
+                .copy(
+                    information = listOf(
+                        RegistrationInfo(null, listOf(TEMPERATURE_PROPERTY), null)
+                    )
+                )
+
+        contextSourceRegistrationService.create(newCsr, mockUserSub).shouldSucceed()
+
+        val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(attrs = setOf(TEMPERATURE_PROPERTY))
+        )
+        assertEquals(listOf(newCsr), oneCsrMatching)
+
+        val notMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(attrs = setOf(LUMINOSITY_JSONPROPERTY))
+        )
+        assertThat(notMatchingCsr).isEmpty()
     }
 
     @Test

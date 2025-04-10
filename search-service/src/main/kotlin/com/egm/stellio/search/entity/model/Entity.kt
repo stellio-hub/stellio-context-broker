@@ -1,5 +1,6 @@
 package com.egm.stellio.search.entity.model
 
+import com.egm.stellio.search.common.util.deserializeExpandedPayload
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel
@@ -58,4 +59,7 @@ data class Entity(
                 NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt),
             )
         )
+
+    fun toExpandedEntity(): ExpandedEntity =
+        ExpandedEntity(this.payload.deserializeExpandedPayload())
 }

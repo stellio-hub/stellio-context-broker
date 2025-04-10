@@ -53,6 +53,13 @@ fun ExpandedAttributes.getAttributeFromExpandedAttributes(
         }
     }
 
+fun ExpandedAttributes.flattenOnAttributeAndDatasetId(): List<Triple<ExpandedTerm, URI?, ExpandedAttributeInstance>> =
+    this.flatMap { (attributeName, expandedAttributeInstances) ->
+        expandedAttributeInstances.map { expandedAttributeInstance ->
+            Triple(attributeName, expandedAttributeInstance.getDatasetId(), expandedAttributeInstance)
+        }
+    }
+
 fun ExpandedAttribute.toExpandedAttributes(): ExpandedAttributes =
     mapOf(this)
 

@@ -11,7 +11,6 @@ import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -54,28 +53,11 @@ class EntityEventService(
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
             logger.debug("Sending create event for entity {} in tenant {}", entityId, tenantName)
-            entity.onRight {
+            entity.onRight { (_, serializedEntity) ->
                 publishEntityEvent(
-                    EntityCreateEvent(sub, tenantName, entityId, entityTypes, it.second)
+                    EntityCreateEvent(sub, tenantName, entityId, entityTypes, serializedEntity)
                 )
             }.logEntityEvent(EventsType.ENTITY_CREATE, entityId, tenantName)
-        }
-    }
-
-    suspend fun publishEntityReplaceEvent(
-        sub: String?,
-        entityId: URI,
-        entityTypes: List<ExpandedTerm>
-    ): Job {
-        val tenantName = getTenantFromContext()
-        val entity = getSerializedEntity(entityId)
-        return coroutineScope.launch {
-            logger.debug("Sending replace event for entity {} in tenant {}", entityId, tenantName)
-            entity.onRight {
-                publishEntityEvent(
-                    EntityReplaceEvent(sub, tenantName, entityId, entityTypes, it.second)
-                )
-            }.logEntityEvent(EventsType.ENTITY_REPLACE, entityId, tenantName)
         }
     }
 
@@ -223,9 +205,7 @@ class EntityEventService(
         entityId: URI
     ): Either<APIException, Pair<List<ExpandedTerm>, String>> =
         entityQueryService.retrieve(entityId)
-            .map {
-                Pair(it.types, it.payload.asString())
-            }
+            .map { Pair(it.types, it.payload.asString()) }
 
     internal fun injectDeletedAttribute(
         entityPayload: String,

@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.util.MultiValueMap
 import kotlin.reflect.KClass
 
-@Target(AnnotationTarget.VALUE_PARAMETER,)
+@Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)
 @Constraint(validatedBy = [ AllowedParameters.ParamValidator::class])
 annotation class AllowedParameters(

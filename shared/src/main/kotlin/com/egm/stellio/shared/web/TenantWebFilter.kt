@@ -44,7 +44,7 @@ class TenantWebFilter(
         val tenantName = tenantNameFromHeader ?: DEFAULT_TENANT_NAME
         if (!tenantsNames.contains(tenantName)) {
             logger.error("Unknown tenant requested: $tenantName")
-            exchange.response.setStatusCode(HttpStatus.NOT_FOUND)
+            exchange.response.statusCode = HttpStatus.NOT_FOUND
             exchange.response.headers[CONTENT_TYPE] = MediaType.APPLICATION_JSON_VALUE
             val errorResponse =
                 serializeObject(NonexistentTenantException("Tenant $tenantName does not exist").toProblemDetail())

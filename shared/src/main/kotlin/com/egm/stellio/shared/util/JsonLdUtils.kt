@@ -142,8 +142,6 @@ object JsonLdUtils {
     const val NGSILD_OBSERVATION_SPACE_PROPERTY = "https://uri.etsi.org/ngsi-ld/observationSpace"
     const val NGSILD_OPERATION_SPACE_TERM = "operationSpace"
     const val NGSILD_OPERATION_SPACE_PROPERTY = "https://uri.etsi.org/ngsi-ld/operationSpace"
-    val NGSILD_GEO_PROPERTIES_TERMS =
-        setOf(NGSILD_LOCATION_TERM, NGSILD_OBSERVATION_SPACE_TERM, NGSILD_OPERATION_SPACE_TERM)
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
     const val NGSILD_DATASET_ID_TERM = "datasetId"
 
@@ -198,11 +196,6 @@ object JsonLdUtils {
 
     suspend fun expandJsonLdEntity(input: String, contexts: List<String>): ExpandedEntity =
         expandJsonLdEntity(input.deserializeAsMap(), contexts)
-
-    fun expandJsonLdTerms(terms: List<String>, contexts: List<String>): List<ExpandedTerm> =
-        terms.map {
-            expandJsonLdTerm(it, contexts)
-        }
 
     fun expandJsonLdTerm(term: String, context: String): String =
         expandJsonLdTerm(term, listOf(context))

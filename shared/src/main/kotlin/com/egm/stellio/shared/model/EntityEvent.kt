@@ -114,5 +114,3 @@ enum class EventsType {
     ATTRIBUTE_UPDATE,
     ATTRIBUTE_DELETE
 }
-
-fun unhandledOperationType(operationType: EventsType): String = "Entity event $operationType not handled."

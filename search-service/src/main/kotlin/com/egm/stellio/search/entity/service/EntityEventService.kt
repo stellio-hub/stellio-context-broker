@@ -201,6 +201,41 @@ class EntityEventService(
         }
     }
 
+    suspend fun publishAttributeDeletesOnEntityDeleteEvent(
+        sub: String?,
+        entityId: URI,
+        deletedEntityPayload: ExpandedEntity,
+        deleteAttributesOperationsResults: List<SucceededAttributeOperationResult>
+    ): Job {
+        val tenantName = getTenantFromContext()
+        return coroutineScope.launch {
+            deleteAttributesOperationsResults.forEach { attributeDeleteEvent ->
+                val attributeName = attributeDeleteEvent.attributeName
+                logger.debug(
+                    "Sending delete event for attribute {} of entity {} in tenant {}",
+                    attributeName,
+                    entityId,
+                    tenantName
+                )
+                publishEntityEvent(
+                    AttributeDeleteEvent(
+                        sub,
+                        tenantName,
+                        entityId,
+                        deletedEntityPayload.types,
+                        attributeName,
+                        attributeDeleteEvent.datasetId,
+                        injectDeletedAttribute(
+                            serializeObject(deletedEntityPayload.members),
+                            attributeName,
+                            attributeDeleteEvent.newExpandedValue
+                        )
+                    )
+                )
+            }
+        }
+    }
+
     internal suspend fun getSerializedEntity(
         entityId: URI
     ): Either<APIException, Pair<List<ExpandedTerm>, String>> =

@@ -20,7 +20,6 @@ import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.OperationNotSupportedException
-import com.egm.stellio.shared.model.unhandledOperationType
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
 import com.egm.stellio.shared.util.GlobalRole
@@ -72,8 +71,6 @@ class IAMListener(
                 is AttributeCreateEvent -> updateSubjectProfile(tenantName, authorizationEvent)
                 is AttributeUpdateEvent -> updateSubjectInfo(tenantName, authorizationEvent)
                 is AttributeDeleteEvent -> removeSubjectFromGroup(tenantName, authorizationEvent)
-                else ->
-                    OperationNotSupportedException(unhandledOperationType(authorizationEvent.operationType)).left()
             }
         }.onFailure {
             logger.error(authorizationEvent.failedHandlingMessage(it))

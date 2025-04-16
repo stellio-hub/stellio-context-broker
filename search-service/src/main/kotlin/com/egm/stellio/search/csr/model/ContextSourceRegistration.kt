@@ -8,33 +8,24 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.areTypesInSelection
 import com.egm.stellio.shared.model.toAPIException
-import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CSR_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toTypeSelection
 import com.egm.stellio.shared.util.toUri
-import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.convertValue
 import org.springframework.http.MediaType
-import org.springframework.util.CollectionUtils
-import org.springframework.util.MultiValueMap
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
-import java.util.regex.Pattern
 
 typealias SingleEntityInfoCSR = ContextSourceRegistration
 
@@ -72,129 +63,6 @@ data class ContextSourceRegistration(
         val start: ZonedDateTime,
         val end: ZonedDateTime? = null
     )
-
-    /**
-     * RegistrationInfo type as defined in 5.2.10
-     */
-    data class RegistrationInfo(
-        val entities: List<EntityInfo>? = null,
-        val propertyNames: List<String>? = null,
-        val relationshipNames: List<String>? = null
-    ) {
-        fun expand(contexts: List<String>): RegistrationInfo =
-            RegistrationInfo(
-                entities = entities?.map { it.expand(contexts) },
-                propertyNames = propertyNames?.map { expandJsonLdTerm(it, contexts) },
-                relationshipNames = relationshipNames?.map { expandJsonLdTerm(it, contexts) },
-            )
-
-        fun compact(contexts: List<String>): RegistrationInfo =
-            RegistrationInfo(
-                entities = entities?.map { it.compact(contexts) },
-                propertyNames = propertyNames?.map { compactTerm(it, contexts) },
-                relationshipNames = relationshipNames?.map { compactTerm(it, contexts) }
-            )
-
-        fun validate(): Either<BadRequestDataException, Unit> = either {
-            return if (entities != null || propertyNames != null || relationshipNames != null) {
-                entities?.forEach { it.validate().bind() }
-                Unit.right()
-            } else {
-                BadRequestDataException("RegistrationInfo should have at least one element").left()
-            }
-        }
-
-        @JsonIgnore
-        fun getAttributeNames(): Set<String>? = when {
-            this.propertyNames == null && this.relationshipNames == null -> null
-            this.propertyNames == null -> this.relationshipNames?.toSet()
-            this.relationshipNames == null -> this.propertyNames.toSet()
-            else -> this.propertyNames.toMutableSet().plus(this.relationshipNames.toSet())
-        }
-
-        fun matchCSF(csrFilters: CSRFilters): Boolean =
-            entities?.any { entityInfo ->
-                entityInfo.matchCSF(csrFilters)
-            } ?: true &&
-                (
-                    csrFilters.attrs.isEmpty() ||
-                        getAttributeNames()?.any { it in csrFilters.attrs } ?: true
-                    )
-
-        @JsonIgnore
-        fun computeAttrsQueryParam(
-            csrFilters: CSRFilters,
-            contexts: List<String>
-        ): String? {
-            val csrAttrs = getAttributeNames()
-            val queryAttrs = csrFilters.attrs
-            val matchingAttrs = when {
-                queryAttrs.isEmpty() -> csrAttrs
-                csrAttrs.isNullOrEmpty() -> queryAttrs
-                else -> csrAttrs.intersect(queryAttrs)
-            }
-            return if (matchingAttrs.isNullOrEmpty()) null
-            else matchingAttrs.joinToString(",") { compactTerm(it, contexts) }
-        }
-    }
-
-    /**
-     * EntityInfo type as defined in 5.2.8
-     */
-    data class EntityInfo(
-        val id: URI? = null,
-        val idPattern: String? = null,
-        // no WRITE_SINGLE_ELEM_ARRAYS_UNWRAPPED because it is used for the database
-        @JsonFormat(with = [JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY])
-        @JsonProperty("type")
-        val types: List<String>
-    ) {
-        fun expand(contexts: List<String>): EntityInfo =
-            this.copy(
-                types = types.map { expandJsonLdTerm(it, contexts) },
-            )
-
-        fun compact(contexts: List<String>): EntityInfo =
-            this.copy(
-                types = types.map { compactTerm(it, contexts) },
-            )
-
-        fun validate(): Either<BadRequestDataException, Unit> {
-            val result = runCatching {
-                idPattern?.let { Pattern.compile(it) }
-                true
-            }.fold({ true }, { false })
-
-            return if (result)
-                Unit.right()
-            else BadRequestDataException("Invalid idPattern found in contextSourceRegistration").left()
-        }
-
-        fun matchCSF(csrFilters: CSRFilters) =
-            this.id?.let {
-                csrFilters.ids.isEmpty() || csrFilters.ids.contains(it)
-            } ?: true &&
-                csrFilters.typeSelection?.let { typeSelection ->
-                    areTypesInSelection(this.types, typeSelection)
-                } ?: true &&
-                this.idPattern?.let { pattern ->
-                    csrFilters.ids.isEmpty() || csrFilters.ids.any { pattern.toRegex().matches(it.toString()) }
-                } ?: true
-
-        companion object {
-
-            fun MultiValueMap<String, String>.addFilterForEntityInfo(
-                entityInfo: EntityInfo
-            ): MultiValueMap<String, String> {
-                val newParams = CollectionUtils.toMultiValueMap(this.toMutableMap())
-                newParams[QP.TYPE.key] = entityInfo.types.toTypeSelection()
-                entityInfo.id?.let { id -> newParams[QP.ID.key] = id.toString() }
-                if (this.getFirst(QP.ID_PATTERN.key) == null && entityInfo.idPattern != null)
-                    newParams[QP.ID_PATTERN.key] = entityInfo.idPattern
-                return newParams
-            }
-        }
-    }
 
     fun expand(contexts: List<String>): ContextSourceRegistration =
         this.copy(information = information.map { it.expand(contexts) })

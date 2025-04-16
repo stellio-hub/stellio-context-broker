@@ -203,9 +203,9 @@ class ContextSourceRegistrationService(
                 modified_at
             FROM context_source_registration as csr
             LEFT JOIN jsonb_to_recordset(information)
-                as information(entities jsonb, propertyNames text[], relationshipNames text[]) on true
+                as information(entities jsonb, "propertyNames" text[], "relationshipNames" text[]) on true
             LEFT JOIN jsonb_to_recordset(entities)
-                as entity_info(id text, idPattern text, type text[]) on true
+                as entity_info(id text, "idPattern" text, type text[]) on true
             WHERE $filterQuery
             GROUP BY csr.id
             ORDER BY csr.id
@@ -228,9 +228,9 @@ class ContextSourceRegistrationService(
             SELECT count(distinct csr.id)
             FROM context_source_registration as csr
             LEFT JOIN jsonb_to_recordset(information)
-                as information(entities jsonb, propertyNames text[], relationshipNames text[]) on true
+                as information(entities jsonb, "propertyNames" text[], "relationshipNames" text[]) on true
             LEFT JOIN jsonb_to_recordset(entities)
-                as entity_info(id text, idPattern text, type text[]) on true
+                as entity_info(id text, "idPattern" text, type text[]) on true
             WHERE $filterQuery
             """.trimIndent()
         return databaseClient.sql(selectStatement)
@@ -269,8 +269,8 @@ class ContextSourceRegistrationService(
                 entity_info.id in ('${csrFilters.ids.joinToString("', '")}')
             ) AND
             (
-                entity_info.idPattern is null OR 
-                ${csrFilters.ids.joinToString(" OR ") { "'$it' ~ entity_info.idPattern" }}
+                entity_info."idPattern" is null OR 
+                ${csrFilters.ids.joinToString(" OR ") { "'$it' ~ entity_info.\"idPattern\"" }}
             )
                 """.trimIndent()
             else null
@@ -300,7 +300,18 @@ class ContextSourceRegistrationService(
                 "operations && ARRAY[${operations.joinToString(",") { "'$it'" }}]"
             } else null
 
-            val filters = listOfNotNull(idFilter, typeFilter, idPatternFilter, csfFilter)
+            val attrsFilter = if (csrFilters.attrs.isNotEmpty()) {
+                val attrsArray = "ARRAY[${csrFilters.attrs.joinToString(",") { "'$it'" }}]"
+                """
+                (
+                    (information."relationshipNames" is null AND information."propertyNames" is null) OR 
+                    information."relationshipNames" && $attrsArray OR 
+                    information."propertyNames" && $attrsArray 
+                )
+                """.trimIndent()
+            } else null
+
+            val filters = listOfNotNull(idFilter, typeFilter, idPatternFilter, csfFilter, attrsFilter)
 
             return if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
         }

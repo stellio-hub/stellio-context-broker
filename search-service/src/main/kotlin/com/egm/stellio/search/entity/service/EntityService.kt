@@ -8,6 +8,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.deserializeExpandedPayload
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
@@ -161,12 +162,13 @@ class EntityService(
                 .filter { it.first != JSONLD_ID }
                 .partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         val mergedAt = ngsiLdDateTime()
+        val ngsiLdAttributes = otherAttrs.toMap().toNgsiLdAttributes().bind()
         logger.debug("Merging entity {}", entityId)
 
         val coreOperationResult = updateCoreAttributes(entityId, coreAttrs, mergedAt, MERGE_ENTITY).bind()
         val attrsOperationResult = entityAttributeService.mergeAttributes(
             entityId,
-            otherAttrs.toMap().toNgsiLdAttributes().bind(),
+            ngsiLdAttributes,
             expandedAttributes,
             mergedAt,
             observedAt,
@@ -206,6 +208,12 @@ class EntityService(
                 currentAttributeName == newAttributeName && currentDatasetId == newDatasetId
             }
         }
+        val attributesToCreateOrUpdate = newEntityAttributes
+            .map { (attributeName, _, expandedAttributeInstance) ->
+                val expandedAttributes = mapOf(attributeName to listOf(expandedAttributeInstance))
+                val ngsiLdAttributes = expandedAttributes.toNgsiLdAttributes().bind()
+                Pair(expandedAttributes, ngsiLdAttributes)
+            }
 
         val deleteOperationResults = attributesToDelete.flatMap { (attributeName, datasetId, _) ->
             entityAttributeService.deleteAttribute(
@@ -219,12 +227,11 @@ class EntityService(
 
         // all attributes in the new entity are to be created or updated (if they already exist)
         // both create or update operations are handled by the appendAttributes
-        val createOrReplaceOperationResult = newEntityAttributes
-            .flatMap { (attributeName, _, expandedAttributeInstance) ->
-                val expandedAttributes = mapOf(attributeName to listOf(expandedAttributeInstance))
+        val createOrReplaceOperationResult = attributesToCreateOrUpdate
+            .flatMap { (expandedAttributes, ngsiLdAttributes) ->
                 entityAttributeService.appendAttributes(
                     entityId,
-                    expandedAttributes.toNgsiLdAttributes().bind(),
+                    ngsiLdAttributes,
                     expandedAttributes,
                     false,
                     replacedAt,
@@ -331,12 +338,7 @@ class EntityService(
             )
 
         val updatedTypes = currentTypes.union(newTypes)
-        val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
-            .mapValues {
-                if (it.key == JSONLD_TYPE)
-                    updatedTypes
-                else it
-            }
+        val updatedPayload = entityPayload.payload.deserializeAsMap().plus(JSONLD_TYPE to updatedTypes)
 
         databaseClient.sql(
             """
@@ -374,6 +376,7 @@ class EntityService(
         val (coreAttrs, otherAttrs) =
             expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         val createdAt = ngsiLdDateTime()
+        val ngsiLdAttributes = otherAttrs.toMap().toNgsiLdAttributes().bind()
 
         val operationType =
             if (disallowOverwrite) APPEND_ATTRIBUTES
@@ -381,7 +384,7 @@ class EntityService(
         val coreOperationResult = updateCoreAttributes(entityId, coreAttrs, createdAt, operationType).bind()
         val attrsOperationResult = entityAttributeService.appendAttributes(
             entityId,
-            otherAttrs.toMap().toNgsiLdAttributes().bind(),
+            ngsiLdAttributes,
             expandedAttributes,
             disallowOverwrite,
             createdAt,
@@ -406,11 +409,12 @@ class EntityService(
         val (coreAttrs, otherAttrs) =
             expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         val createdAt = ngsiLdDateTime()
+        val ngsiLdAttributes = otherAttrs.toMap().toNgsiLdAttributes().bind()
 
         val coreOperationResult = updateCoreAttributes(entityId, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()
         val attrsOperationResult = entityAttributeService.updateAttributes(
             entityId,
-            otherAttrs.toMap().toNgsiLdAttributes().bind(),
+            ngsiLdAttributes,
             expandedAttributes,
             createdAt,
             sub

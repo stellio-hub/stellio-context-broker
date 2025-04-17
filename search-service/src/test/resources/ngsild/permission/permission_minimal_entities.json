@@ -1,0 +1,10 @@
+{
+  "id": "urn:ngsi-ld:Permission:1",
+  "type": "Permission",
+  "target": {
+    "id": "urn:ngsi-ld:BeeHive:A456"
+  },
+  "assignee": "thomas.bousselin@egm.io",
+  "assigner": "thomas.bousselin@egm.io",
+  "action": "read"
+}

@@ -1,7 +1,7 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.right
-import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
@@ -14,7 +14,6 @@ import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEKEEPER_IRI
 import com.egm.stellio.shared.util.DEVICE_IRI
@@ -43,11 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
-import org.springframework.data.relational.core.query.Criteria
-import org.springframework.data.relational.core.query.Query
-import org.springframework.data.relational.core.query.Update
 import org.springframework.test.context.ActiveProfiles
-import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -463,7 +458,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities according to access rights`() = runTest {
+    fun `queryEntities should apply the received access right filter`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -474,69 +469,13 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             ) {
                 """
                 (
-                    (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
-                    OR
-                    (entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:01'))
+                    entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:02')
                 )
                 """.trimIndent()
             }
 
         assertEquals(1, entitiesIds.size)
-        assertThat(entitiesIds).contains(entity01Uri)
-    }
-
-    @Test
-    fun `it should retrieve entities according to specific access policy`() = runTest {
-        updateSpecificAccessPolicy(entity01Uri, AuthContextModel.SpecificAccessPolicy.AUTH_READ)
-
-        val entitiesIds =
-            entityQueryService.queryEntities(
-                EntitiesQueryFromGet(
-                    typeSelection = BEEHIVE_IRI,
-                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
-                    contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) {
-                """
-                (
-                    (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
-                    OR
-                    (entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:03'))
-                )
-                """.trimIndent()
-            }
-
-        assertEquals(1, entitiesIds.size)
-        assertThat(entitiesIds).contains(entity01Uri)
-
-        resetSpecificAccessPolicy(entity01Uri)
-    }
-
-    @Test
-    fun `it should retrieve entities according to specific access policy and rights`() = runTest {
-        updateSpecificAccessPolicy(entity01Uri, AuthContextModel.SpecificAccessPolicy.AUTH_READ)
-
-        val entitiesIds =
-            entityQueryService.queryEntities(
-                EntitiesQueryFromGet(
-                    typeSelection = BEEHIVE_IRI,
-                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
-                    contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) {
-                """
-                (
-                    (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
-                    OR
-                    (entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:02'))
-                )
-                """.trimIndent()
-            }
-
-        assertEquals(2, entitiesIds.size)
-        assertThat(entitiesIds).contains(entity01Uri, entity02Uri)
-
-        resetSpecificAccessPolicy(entity01Uri)
+        assertThat(entitiesIds).contains(entity02Uri)
     }
 
     @Test
@@ -592,17 +531,4 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
 
         assertThat(entitiesIds).isEmpty()
     }
-
-    private fun updateSpecificAccessPolicy(
-        entityId: URI,
-        specificAccessPolicy: AuthContextModel.SpecificAccessPolicy
-    ) = r2dbcEntityTemplate.update(Entity::class.java).inTable("entity_payload")
-        .matching(Query.query(Criteria.where("entity_id").`is`(entityId)))
-        .apply(Update.update("specific_access_policy", specificAccessPolicy.toString())).block()
-
-    private fun resetSpecificAccessPolicy(
-        entityId: URI
-    ) = r2dbcEntityTemplate.update(Entity::class.java).inTable("entity_payload")
-        .matching(Query.query(Criteria.where("entity_id").`is`(entityId)))
-        .apply(Update.update("specific_access_policy", null)).block()
 }

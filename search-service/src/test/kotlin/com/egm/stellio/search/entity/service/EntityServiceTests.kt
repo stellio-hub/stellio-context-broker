@@ -2,6 +2,7 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.left
 import arrow.core.right
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.USER_UUID
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.util.deserializeAsMap
@@ -68,7 +69,6 @@ import org.springframework.test.context.ActiveProfiles
 @SpringBootTest
 @ActiveProfiles("test")
 class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
-
     @Autowired
     private lateinit var entityService: EntityService
 

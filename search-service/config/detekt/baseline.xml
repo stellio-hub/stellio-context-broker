@@ -7,8 +7,6 @@
     <ID>ComplexCondition:EntitiesQueryUtils.kt$geoQuery == null &amp;&amp; q.isNullOrEmpty() &amp;&amp; typeSelection.isNullOrEmpty() &amp;&amp; attrs.isEmpty() &amp;&amp; !local</ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
-    <ID>LongMethod:EnabledAuthorizationServiceTests.kt$EnabledAuthorizationServiceTests$@Test fun `it should return serialized access control entities with other rigths if user is owner`()</ID>
-    <ID>LongMethod:EntityAccessControlHandler.kt$EntityAccessControlHandler$@PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun addRightsOnEntities( @RequestHeader httpHeaders: HttpHeaders, @PathVariable subjectId: String, @RequestBody requestBody: Mono&lt;String&gt;, @AllowedParameters @RequestParam queryParams: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>LongMethod:LinkedEntityServiceTests.kt$LinkedEntityServiceTests$@Test fun `it should inline entities up to the asked 2nd level`()</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun mergePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun partialUpdatePatchProvider(): Stream&lt;Arguments&gt;</ID>
@@ -22,7 +20,12 @@
     <ID>LongParameterList:EntitiesQuery.kt$EntitiesQuery$( open val q: String?, open val scopeQ: String?, open val paginationQuery: PaginationQuery, open val attrs: Set&lt;ExpandedTerm&gt;, open val datasetId: Set&lt;String&gt;, open val geoQuery: GeoQuery?, open val linkedEntityQuery: LinkedEntityQuery?, open val local: Boolean = false, open val contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:TemporalEntityHandler.kt$TemporalEntityHandler$( @RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: URI, @PathVariable attrId: String, @PathVariable instanceId: URI, @RequestBody requestBody: Mono&lt;String&gt;, @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA]) @RequestParam queryParams: MultiValueMap&lt;String, String&gt; )</ID>
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
+    <ID>MaxLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$fun</ID>
+    <ID>MaximumLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$ </ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>SwallowedException:TemporalQueryUtils.kt$e: IllegalArgumentException</ID>
+    <ID>UnusedParameter:PermissionFilters.kt$PermissionFilters.Companion$contexts: List&lt;String&gt;</ID>
+    <ID>UnusedParameter:PermissionService.kt$PermissionService$contexts: List&lt;String&gt;</ID>
+    <ID>UnusedParameter:TargetAsset.kt$TargetAsset$contexts: List&lt;String&gt;</ID>
   </CurrentIssues>
 </SmellBaseline>

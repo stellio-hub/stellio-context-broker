@@ -8,6 +8,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.deserializeExpandedPayload
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
@@ -300,12 +301,7 @@ class EntityService(
             )
 
         val updatedTypes = currentTypes.union(newTypes)
-        val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
-            .mapValues {
-                if (it.key == JSONLD_TYPE)
-                    updatedTypes
-                else it
-            }
+        val updatedPayload = entityPayload.payload.deserializeAsMap().plus(JSONLD_TYPE to updatedTypes)
 
         databaseClient.sql(
             """

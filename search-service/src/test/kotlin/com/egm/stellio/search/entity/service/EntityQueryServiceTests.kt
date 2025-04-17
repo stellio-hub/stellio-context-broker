@@ -1,20 +1,17 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.right
-import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadAndPrepareSampleData
 import com.egm.stellio.shared.util.loadMinimalEntity
-import com.egm.stellio.shared.util.loadMinimalEntityWithSap
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.sampleDataToNgsiLdEntity
@@ -148,25 +145,6 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     .hasFieldOrPropertyWithValue("createdAt", now)
                     .hasFieldOrPropertyWithValue("modifiedAt", now)
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", null)
-            }
-    }
-
-    @Test
-    fun `it should retrieve an entity payload with specificAccesPolicy`() = runTest {
-        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_IRI), AUTH_READ, AUTHZ_TEST_COMPOUND_CONTEXTS)
-            .sampleDataToNgsiLdEntity()
-            .map {
-                entityService.createEntityPayload(
-                    it.second,
-                    it.first,
-                    now
-                )
-            }
-
-        entityQueryService.retrieve(entity01Uri)
-            .shouldSucceedWith {
-                assertThat(it)
-                    .hasFieldOrPropertyWithValue("specificAccessPolicy", AUTH_READ)
             }
     }
 

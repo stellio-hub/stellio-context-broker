@@ -1,7 +1,7 @@
 package com.egm.stellio.search.common.support
 
-import com.egm.stellio.search.authorization.model.SubjectReferential
-import com.egm.stellio.search.authorization.service.SubjectReferentialService
+import com.egm.stellio.search.authorization.subject.model.SubjectReferential
+import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.SubjectType
 import io.r2dbc.postgresql.codec.Json
@@ -53,15 +53,18 @@ class ApiTestsBootstrapper(
                 apiTestUserId1!!,
                 userSubject(
                     subjectId = apiTestUserId1!!,
-                    username = apiTestUsername1!!,
-                    groupMembership = apiTestGroupId1
+                    username = apiTestUsername1!!
                 )
             )
 
             if (!apiTestUserId2.isNullOrEmpty()) {
                 createSubject(
-                    apiTestUserId2!!,
-                    userSubject(subjectId = apiTestUserId2!!, username = apiTestUsername2!!)
+                    subjectId = apiTestUserId2!!,
+                    userSubject(
+                        subjectId = apiTestUserId2!!,
+                        username = apiTestUsername2!!,
+                        groupMembership = apiTestGroupId1
+                    ),
                 )
             }
 

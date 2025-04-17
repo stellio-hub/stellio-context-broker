@@ -21,6 +21,7 @@ class ApiGatewayApplication {
         builder.routes()
             .route { p ->
                 p.path(
+                    "/ngsi-ld/v1/auth/**",
                     "/ngsi-ld/v1/entities/**",
                     "/ngsi-ld/v1/entityOperations/**",
                     "/ngsi-ld/v1/entityAccessControl/**",

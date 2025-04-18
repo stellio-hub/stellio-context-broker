@@ -113,7 +113,7 @@ class PermissionHandler(
             csrFilters,
             paginationQuery.limit,
             paginationQuery.offset,
-        ).serialize(contexts, mediaType, includeSysAttrs)
+        ).bind().serialize(contexts, mediaType, includeSysAttrs)
         val permissionsCount = permissionService.getPermissionsCount(
             csrFilters
         ).bind()
@@ -166,17 +166,17 @@ class PermissionHandler(
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
     suspend fun update(
-        @PathVariable subscriptionId: URI,
+        @PathVariable permissionId: URI,
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(notImplemented = [QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
-        checkIsAllowed(subscriptionId, sub).bind()
+        checkIsAllowed(permissionId, sub).bind()
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
-        permissionService.update(subscriptionId, body, contexts).bind()
+        permissionService.update(permissionId, body, contexts).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

@@ -34,7 +34,7 @@ data class Permission(
     val action: Action, // odrl:action
     val createdAt: ZonedDateTime = ngsiLdDateTime(),
     val modifiedAt: ZonedDateTime = createdAt,
-    val assigner: Sub // odrl:assigner
+    val assigner: Sub? = null // odrl:assigner
 ) {
     fun expand(contexts: List<String>): Permission =
         this.copy(

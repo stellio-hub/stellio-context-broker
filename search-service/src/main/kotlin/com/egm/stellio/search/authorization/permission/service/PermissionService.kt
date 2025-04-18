@@ -6,13 +6,13 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toBoolean
-import com.egm.stellio.search.common.util.toEnum
 import com.egm.stellio.search.common.util.toInt
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
@@ -23,7 +23,8 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PERMISSION_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -136,7 +137,7 @@ class PermissionService(
 
         return databaseClient.sql(selectStatement)
             .bind("id", id)
-            .oneToResult { rowToPermission(it) }
+            .oneToResult { rowToPermission(it).bind() }
     }
 
     suspend fun isCreatorOf(id: URI, sub: Option<Sub>): Either<APIException, Boolean> {
@@ -163,22 +164,30 @@ class PermissionService(
 
     @Transactional
     suspend fun update(
-        subscriptionId: URI,
+        permissionId: URI,
         input: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, Unit> = either {
-        if (!input.containsKey(JSONLD_TYPE_TERM) || input[JSONLD_TYPE_TERM]!! != NGSILD_SUBSCRIPTION_TERM)
-            raise(BadRequestDataException("type attribute must be present and equal to '$NGSILD_SUBSCRIPTION_TERM'"))
+        checkExistence(permissionId).bind()
+        if (!input.containsKey(JSONLD_TYPE_TERM) || input[JSONLD_TYPE_TERM]!! != NGSILD_PERMISSION_TERM)
+            raise(BadRequestDataException("type attribute must be present and equal to '$NGSILD_PERMISSION_TERM'"))
 
         input.filterKeys {
             it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
-        }.plus("modifiedAt" to ngsiLdDateTime()) // todo
+        }.plus("modifiedAt" to ngsiLdDateTime())
             .forEach {
                 when {
                     it.key == "target" -> {
-                        "target_id",
-                        "target_scope",
-                        "target_types",
+                        val target = input["target"] as Map<String, Any>
+                        target["id"]?.let {
+                            updatePermissionAttribute(permissionId, "target_id", it).bind()
+                        }
+                        target["scope"]?.let {
+                            updatePermissionAttribute(permissionId, "target_scope", it).bind()
+                        }
+                        target["types"]?.let {// todo expand
+                            updatePermissionAttribute(permissionId, "target_types", it?.map { expandJsonLdTerm(it, contexts)}).bind()
+                        }
                     }
 
                     listOf(
@@ -188,9 +197,9 @@ class PermissionService(
                         "assigner",
                         "modifiedAt"
                     ).contains(it.key) -> {
-                        val columnName = it.key.toSqlColumnName()
-                        val value = it.value.toSqlValue(it.key)
-                        updatePermissionAttribute(subscriptionId, columnName, value).bind()
+                        val columnName = it.key
+                        val value = it.value
+                        updatePermissionAttribute(permissionId, columnName, value).bind()
                     }
 
                     else -> {
@@ -218,7 +227,7 @@ class PermissionService(
         filters: CSRFilters = CSRFilters(),
         limit: Int = Int.MAX_VALUE,
         offset: Int = 0,
-    ): List<Permission> {
+    ): Either<APIException, List<Permission>> = either {
         val filterQuery = buildWhereStatement(filters)
 
         val selectStatement =
@@ -238,10 +247,11 @@ class PermissionService(
             LIMIT :limit
             OFFSET :offset
             """.trimIndent()
-        return databaseClient.sql(selectStatement)
+
+        databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
-            .allToMappedList { rowToPermission(it) }
+            .allToMappedList { rowToPermission(it).bind() }
     }
 
     suspend fun getPermissionsCount(
@@ -304,7 +314,7 @@ class PermissionService(
             return if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
         }
 
-        private val rowToPermission: ((Map<String, Any>) -> Permission) = { row ->
+        private fun rowToPermission(row: Map<String, Any>): Either<APIException, Permission> = either {
             Permission(
                 id = toUri(row["id"]),
                 createdAt = toZonedDateTime(row["created_at"]),
@@ -314,7 +324,7 @@ class PermissionService(
                     scope = row["target_scope"] as? String,
                     types = (row["target_types"] as? Array<String>)?.toList(),
                 ),
-                action = toEnum(row["action"] as String),
+                action = Action.fromString(row["action"] as String).bind(),
                 assigner = row["assigner"] as String,
             )
         }

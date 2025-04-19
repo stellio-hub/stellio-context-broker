@@ -5,7 +5,6 @@ import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
@@ -77,12 +76,6 @@ class JsonUtilsTests {
     fun `it should parse an event of type ENTITY_CREATE`() {
         val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/entityCreateEvent.json"))
         Assertions.assertTrue(parsedEvent is EntityCreateEvent)
-    }
-
-    @Test
-    fun `it should parse an event of type ENTITY_REPLACE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/entityReplaceEvent.json"))
-        Assertions.assertTrue(parsedEvent is EntityReplaceEvent)
     }
 
     @Test

@@ -1,0 +1,25 @@
+{
+  "id": "urn:ngsi-ld:BeeHive:TESTC",
+  "type": "BeeHive",
+  "title": {
+    "type": "Property",
+    "value": "Nantes Beehive"
+  },
+  "incoming": [
+    {
+      "type": "Property",
+      "value": 5678,
+      "observedAt": "2020-01-24T14:01:22.066Z",
+      "datasetId": "urn:ngsi-ld:Dataset:123"
+    },
+    {
+      "type": "Property",
+      "value": 5678,
+      "observedAt": "2020-01-24T14:01:22.066Z",
+      "datasetId": "urn:ngsi-ld:Dataset:456"
+    }
+  ],
+  "@context": [
+    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+  ]
+}

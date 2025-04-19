@@ -11,7 +11,6 @@ import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -54,28 +53,11 @@ class EntityEventService(
         val entity = getSerializedEntity(entityId)
         return coroutineScope.launch {
             logger.debug("Sending create event for entity {} in tenant {}", entityId, tenantName)
-            entity.onRight {
+            entity.onRight { (_, serializedEntity) ->
                 publishEntityEvent(
-                    EntityCreateEvent(sub, tenantName, entityId, entityTypes, it.second)
+                    EntityCreateEvent(sub, tenantName, entityId, entityTypes, serializedEntity)
                 )
             }.logEntityEvent(EventsType.ENTITY_CREATE, entityId, tenantName)
-        }
-    }
-
-    suspend fun publishEntityReplaceEvent(
-        sub: String?,
-        entityId: URI,
-        entityTypes: List<ExpandedTerm>
-    ): Job {
-        val tenantName = getTenantFromContext()
-        val entity = getSerializedEntity(entityId)
-        return coroutineScope.launch {
-            logger.debug("Sending replace event for entity {} in tenant {}", entityId, tenantName)
-            entity.onRight {
-                publishEntityEvent(
-                    EntityReplaceEvent(sub, tenantName, entityId, entityTypes, it.second)
-                )
-            }.logEntityEvent(EventsType.ENTITY_REPLACE, entityId, tenantName)
         }
     }
 
@@ -219,13 +201,46 @@ class EntityEventService(
         }
     }
 
+    suspend fun publishAttributeDeletesOnEntityDeleteEvent(
+        sub: String?,
+        entityId: URI,
+        deletedEntityPayload: ExpandedEntity,
+        deleteAttributesOperationsResults: List<SucceededAttributeOperationResult>
+    ): Job {
+        val tenantName = getTenantFromContext()
+        return coroutineScope.launch {
+            deleteAttributesOperationsResults.forEach { attributeDeleteEvent ->
+                val attributeName = attributeDeleteEvent.attributeName
+                logger.debug(
+                    "Sending delete event for attribute {} of entity {} in tenant {}",
+                    attributeName,
+                    entityId,
+                    tenantName
+                )
+                publishEntityEvent(
+                    AttributeDeleteEvent(
+                        sub,
+                        tenantName,
+                        entityId,
+                        deletedEntityPayload.types,
+                        attributeName,
+                        attributeDeleteEvent.datasetId,
+                        injectDeletedAttribute(
+                            serializeObject(deletedEntityPayload.members),
+                            attributeName,
+                            attributeDeleteEvent.newExpandedValue
+                        )
+                    )
+                )
+            }
+        }
+    }
+
     internal suspend fun getSerializedEntity(
         entityId: URI
     ): Either<APIException, Pair<List<ExpandedTerm>, String>> =
         entityQueryService.retrieve(entityId)
-            .map {
-                Pair(it.types, it.payload.asString())
-            }
+            .map { Pair(it.types, it.payload.asString()) }
 
     internal fun injectDeletedAttribute(
         entityPayload: String,

@@ -274,18 +274,12 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
             .shouldSucceed()
 
-        val attribute = entityAttributeService.getForEntityAndAttribute(
-            beehiveTestCId,
-            INCOMING_PROPERTY
-        ).shouldSucceedAndResult()
-
         val createdAt = ngsiLdDateTime()
         val newProperty = loadSampleData("fragments/beehive_new_incoming_property.json")
         val expandedAttribute = expandAttribute(newProperty, APIC_COMPOUND_CONTEXTS)
-        val newNgsiLdProperty = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
-        entityAttributeService.replaceAttribute(
-            attribute,
-            newNgsiLdProperty,
+        entityAttributeService.addOrReplaceAttribute(
+            beehiveTestCId,
+            INCOMING_PROPERTY,
             AttributeMetadata(
                 null,
                 "It's a string now",
@@ -332,7 +326,6 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         val expandedAttribute = expandAttribute(propertyToMerge, APIC_COMPOUND_CONTEXTS)
         entityAttributeService.mergeAttribute(
             attribute,
-            INCOMING_PROPERTY,
             AttributeMetadata(
                 null,
                 "It's a string now",
@@ -641,7 +634,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceedWith { operationResults ->
             val successfulOperations = operationResults.getSucceededOperations()
             assertEquals(1, successfulOperations.size)
-            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.CREATED }.size)
+            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.UPDATED }.size)
         }
 
         entityAttributeService.getForEntityAndAttribute(

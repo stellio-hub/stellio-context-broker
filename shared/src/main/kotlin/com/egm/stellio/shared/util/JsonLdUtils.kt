@@ -94,6 +94,7 @@ object JsonLdUtils {
     const val NGSILD_NONE_TERM = "@none"
     const val NGSILD_DATASET_TERM = "dataset"
     const val NGSILD_ENTITY_TERM = "entity"
+    const val NGSILD_TITLE_TERM = "title"
     const val NGSILD_NULL = "urn:ngsi-ld:null"
     val NGSILD_LOCAL = "urn:ngsi-ld:local".toUri()
 

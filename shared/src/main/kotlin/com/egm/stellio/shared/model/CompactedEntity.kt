@@ -6,7 +6,6 @@ import com.egm.stellio.shared.model.AttributeCompactedType.LANGUAGEPROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.PROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.RELATIONSHIP
 import com.egm.stellio.shared.model.AttributeCompactedType.VOCABPROPERTY
-import com.egm.stellio.shared.model.AttributeCompactedType.entries
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.FEATURES_PROPERTY_TERM
 import com.egm.stellio.shared.util.FEATURE_COLLECTION_TYPE
@@ -205,7 +204,10 @@ fun CompactedEntity.toGeoJson(geometryProperty: String): Map<String, Any?> {
         JSONLD_ID_TERM to this[JSONLD_ID_TERM]!!,
         JSONLD_TYPE_TERM to FEATURE_TYPE,
         GEOMETRY_PROPERTY_TERM to geometryPropertyValue,
-        PROPERTIES_PROPERTY_TERM to this.filter { it.key != JSONLD_ID_TERM }
+        PROPERTIES_PROPERTY_TERM to this.filter {
+            it.key != JSONLD_ID_TERM && it.key != JSONLD_CONTEXT
+        },
+        JSONLD_CONTEXT to this[JSONLD_CONTEXT]!!
     )
 }
 

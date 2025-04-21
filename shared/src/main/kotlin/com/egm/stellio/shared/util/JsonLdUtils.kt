@@ -179,7 +179,7 @@ object JsonLdUtils {
     ): Map<String, Any> =
         doJsonLdExpansion(deserializedPayload, contexts)
 
-    suspend fun expandJsonLdEntityF(
+    suspend fun expandJsonLdEntitySafe(
         input: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, ExpandedEntity> =

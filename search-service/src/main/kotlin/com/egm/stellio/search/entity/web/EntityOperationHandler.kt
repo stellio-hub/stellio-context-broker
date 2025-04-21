@@ -12,7 +12,7 @@ import com.egm.stellio.search.entity.util.composeEntitiesQueryFromPost
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.LdContextNotAvailableException
+import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
@@ -26,16 +26,16 @@ import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntityF
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntitySafe
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
-import com.egm.stellio.shared.util.addCoreContextIfMissing
+import com.egm.stellio.shared.util.addCoreContextIfMissingSafe
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkContentIsNgsiLdSupported
 import com.egm.stellio.shared.util.checkContentType
+import com.egm.stellio.shared.util.checkLinkHeader
 import com.egm.stellio.shared.util.checkNamesAreNgsiLdSupported
 import com.egm.stellio.shared.util.extractContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
-import com.egm.stellio.shared.util.getContextFromLinkHeader
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.toListOfUri
@@ -300,28 +300,32 @@ class EntityOperationHandler(
             BadRequestDataException("Batch request payload shall not be empty").left()
         else Unit.right()
 
-    private suspend fun expandAndPrepareBatchOfEntities(
-        payload: List<Map<String, Any>>,
+    private suspend fun checkAndExpandBatchOfEntities(
+        payload: List<CompactedEntity>,
         context: String?,
-        contentType: MediaType?
-    ): Either<APIException, BatchEntityPreparation> =
-        payload.map {
-            val jsonLdExpansionResult =
-                if (contentType == JSON_LD_MEDIA_TYPE)
-                    expandJsonLdEntityF(
-                        it.minus(JSONLD_CONTEXT),
-                        addCoreContextIfMissing(it.extractContexts(), applicationProperties.contexts.core)
-                    )
-                else
-                    expandJsonLdEntityF(
-                        it,
-                        addCoreContextIfMissing(listOfNotNull(context), applicationProperties.contexts.core)
-                    )
-            jsonLdExpansionResult
-                .mapLeft { apiException -> Pair(it[JSONLD_ID_TERM] as String, apiException) }
+        httpHeaders: HttpHeaders
+    ): BatchEntityPreparation =
+        payload.map { compactedEntity ->
+            compactedEntity.checkNamesAreNgsiLdSupported()
+                .flatMap {
+                    it.checkContentIsNgsiLdSupported()
+                }.flatMap {
+                    it.checkContentType(httpHeaders)
+                }.flatMap {
+                    val coreContext = applicationProperties.contexts.core
+                    if (httpHeaders.contentType == JSON_LD_MEDIA_TYPE)
+                        addCoreContextIfMissingSafe(it.extractContexts(), coreContext).flatMap { contexts ->
+                            expandJsonLdEntitySafe(it.minus(JSONLD_CONTEXT), contexts)
+                        }
+                    else
+                        addCoreContextIfMissingSafe(listOfNotNull(context), coreContext).flatMap { contexts ->
+                            expandJsonLdEntitySafe(it, contexts)
+                        }
+                }
+                .mapLeft { apiException -> Pair(compactedEntity[JSONLD_ID_TERM] as String, apiException) }
                 .flatMap { jsonLdEntity ->
                     jsonLdEntity.toNgsiLdEntity()
-                        .mapLeft { apiException -> Pair(it[JSONLD_ID_TERM] as String, apiException) }
+                        .mapLeft { apiException -> Pair(compactedEntity[JSONLD_ID_TERM] as String, apiException) }
                         .map { ngsiLdEntity -> Pair(jsonLdEntity, ngsiLdEntity) }
                 }
         }.fold(BatchEntityPreparation()) { acc, entry ->
@@ -329,10 +333,6 @@ class EntityOperationHandler(
                 is Either.Left -> acc.copy(errors = acc.errors.plus(entry.value))
                 is Either.Right -> acc.copy(success = acc.success.plus(entry.value))
             }
-        }.let { batchEntityPreparation ->
-            // fail fast for LdContextNotAvailableException errors
-            batchEntityPreparation.errors.find { it.second is LdContextNotAvailableException }?.second?.left()
-                ?: batchEntityPreparation.right()
         }
 
     private suspend fun prepareEntitiesFromRequestBody(
@@ -340,11 +340,8 @@ class EntityOperationHandler(
         httpHeaders: HttpHeaders,
     ): Either<APIException, BatchEntityPreparation> = either {
         val body = requestBody.awaitFirst().deserializeAsList()
-            .checkNamesAreNgsiLdSupported().bind()
-            .checkContentIsNgsiLdSupported().bind()
         checkBatchRequestBody(body).bind()
-        checkContentType(httpHeaders, body).bind()
-        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
-        expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType).bind()
+        val context = checkLinkHeader(httpHeaders).bind()
+        checkAndExpandBatchOfEntities(body, context, httpHeaders)
     }
 }

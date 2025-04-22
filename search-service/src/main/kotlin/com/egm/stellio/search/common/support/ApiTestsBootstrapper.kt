@@ -1,7 +1,7 @@
 package com.egm.stellio.search.common.support
 
-import com.egm.stellio.search.authorization.model.SubjectReferential
-import com.egm.stellio.search.authorization.service.SubjectReferentialService
+import com.egm.stellio.search.authorization.subject.model.SubjectReferential
+import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.SubjectType
 import io.r2dbc.postgresql.codec.Json

@@ -1,14 +1,14 @@
-package com.egm.stellio.search.authorization.listener
+package com.egm.stellio.search.authorization.subject.listener
 
 import arrow.core.Either
 import arrow.core.flattenOption
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.search.authorization.model.SubjectReferential
-import com.egm.stellio.search.authorization.model.toSubjectInfo
-import com.egm.stellio.search.authorization.service.EntityAccessRightsService
-import com.egm.stellio.search.authorization.service.SubjectReferentialService
+import com.egm.stellio.search.authorization.permission.service.PermissionService
+import com.egm.stellio.search.authorization.subject.model.SubjectReferential
+import com.egm.stellio.search.authorization.subject.model.toSubjectInfo
+import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.APIException
@@ -45,8 +45,8 @@ import reactor.core.publisher.Mono
 class IAMListener(
     private val subjectReferentialService: SubjectReferentialService,
     private val searchProperties: SearchProperties,
-    private val entityAccessRightsService: EntityAccessRightsService,
-    private val entityService: EntityService
+    private val entityService: EntityService,
+    private val permissionService: PermissionService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -121,7 +121,7 @@ class IAMListener(
             // delete the entities owned by the user while the user still exists
             // (if it no longer exists, it fails because of access rights checks)
             if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
-                entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()?.forEach { entityId ->
+                permissionService.getEntitiesIdsOwnedBySubject(sub).getOrNull()?.forEach { entityId ->
                     entityService.permanentlyDeleteEntity(entityId, sub)
                 }
                 Unit.right()

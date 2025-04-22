@@ -1,12 +1,12 @@
-package com.egm.stellio.search.authorization.service
+package com.egm.stellio.search.authorization.subject.service
 
 import arrow.core.Either
 import arrow.core.Option
 import arrow.core.Some
 import arrow.core.getOrElse
-import com.egm.stellio.search.authorization.model.Group
-import com.egm.stellio.search.authorization.model.SubjectReferential
-import com.egm.stellio.search.authorization.model.User
+import com.egm.stellio.search.authorization.subject.model.Group
+import com.egm.stellio.search.authorization.subject.model.SubjectReferential
+import com.egm.stellio.search.authorization.subject.model.User
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult

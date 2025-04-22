@@ -7,10 +7,10 @@ import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PERMISSION_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
@@ -27,8 +27,8 @@ import java.util.UUID
  * Permission inspired by https://www.w3.org/TR/odrl-model/#permission
  */
 data class Permission(
-    val id: URI = "urn:ngsi-ld:permission:${UUID.randomUUID()}".toUri(),
-    val type: String = NGSILD_PERMISSION_TERM,
+    val id: URI = "urn:ngsi-ld:Permission:${UUID.randomUUID()}".toUri(),
+    val type: String = AUTH_PERMISSION_TERM,
     val target: TargetAsset, // odrl:target
     val assignee: Sub? = null, // odrl:assignee
     val action: Action, // odrl:action
@@ -60,14 +60,14 @@ data class Permission(
         )
     }
 
-    fun validate() = either {
+    fun validate(): Either<APIException, Unit> = either {
         checkTypeIsPermission().bind()
         checkIdIsValid().bind()
     }
 
     private fun checkTypeIsPermission(): Either<APIException, Unit> =
-        if (type != NGSILD_PERMISSION_TERM)
-            BadRequestDataException("type attribute must be equal to '$NGSILD_PERMISSION_TERM'").left()
+        if (type != AUTH_PERMISSION_TERM)
+            BadRequestDataException("type attribute must be equal to '$AUTH_PERMISSION_TERM'").left()
         else Unit.right()
 
     private fun checkIdIsValid(): Either<APIException, Unit> =

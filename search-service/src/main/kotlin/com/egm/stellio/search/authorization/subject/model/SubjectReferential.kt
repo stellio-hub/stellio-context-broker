@@ -1,4 +1,4 @@
-package com.egm.stellio.search.authorization.model
+package com.egm.stellio.search.authorization.subject.model
 
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.shared.util.GlobalRole

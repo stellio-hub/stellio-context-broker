@@ -1,4 +1,4 @@
-package com.egm.stellio.search.authorization.model
+package com.egm.stellio.search.authorization.subject.model
 
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_MEMBER_OF

@@ -1,4 +1,4 @@
-package com.egm.stellio.search.authorization.permission.handler
+package com.egm.stellio.search.authorization.permission.web
 
 import arrow.core.Either
 import arrow.core.Option
@@ -58,9 +58,6 @@ class PermissionHandler(
     private val permissionService: PermissionService
 ) : BaseHandler() {
 
-    /**
-     * Create Permission
-     */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
@@ -82,20 +79,18 @@ class PermissionHandler(
         { it }
     )
 
-    /**
-     * Query Permissions
-     */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun query(
         @RequestHeader httpHeaders: HttpHeaders,
         @AllowedParameters(
             implemented = [
                 QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
-                QP.ACTION, QP.ASSIGNEE, QP.ASSIGNER
+                QP.ACTION, QP.ASSIGNEE, QP.ASSIGNER,
+                QP.ID
             ],
             notImplemented = [
                 QP.JOIN, QP.JOIN_LEVEL,
-                QP.ID, QP.TYPE, QP.SCOPEQ,
+                QP.TYPE, QP.SCOPEQ
             ]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
@@ -123,7 +118,7 @@ class PermissionHandler(
         buildQueryResponse(
             permissions,
             permissionsCount,
-            "/ngsi-ld/v1/csourceRegistrations",
+            "/ngsi-ld/v1/auth/permissions",
             paginationQuery,
             queryParams,
             mediaType,
@@ -134,9 +129,6 @@ class PermissionHandler(
         { it }
     )
 
-    /**
-     * Retrieve Permission
-     */
     @GetMapping("/{permissionId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun retrieve(
         @RequestHeader httpHeaders: HttpHeaders,
@@ -160,9 +152,6 @@ class PermissionHandler(
         { it }
     )
 
-    /**
-     * Update Permission
-     */
     @PatchMapping(
         "/{permissionId}",
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
@@ -171,7 +160,7 @@ class PermissionHandler(
         @PathVariable permissionId: URI,
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @AllowedParameters(notImplemented = [QP.VIA])
+        @AllowedParameters
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()
@@ -186,13 +175,10 @@ class PermissionHandler(
         { it }
     )
 
-    /**
-     * Delete Permission
-     */
     @DeleteMapping("/{permissionId}")
     suspend fun delete(
         @PathVariable permissionId: URI,
-        @AllowedParameters // no query parameter is defined in the specification
+        @AllowedParameters // no query parameter is allowed
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val sub = getSubFromSecurityContext()

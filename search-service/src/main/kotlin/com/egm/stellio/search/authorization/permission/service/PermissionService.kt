@@ -10,6 +10,7 @@ import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
+import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
@@ -17,13 +18,14 @@ import com.egm.stellio.search.common.util.toBoolean
 import com.egm.stellio.search.common.util.toInt
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PERMISSION_TERM
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
@@ -42,7 +44,9 @@ import java.net.URI
 @Component
 class PermissionService(
     private val databaseClient: DatabaseClient,
-    private val r2dbcEntityTemplate: R2dbcEntityTemplate
+    private val r2dbcEntityTemplate: R2dbcEntityTemplate,
+    private val applicationProperties: ApplicationProperties,
+    private val subjectReferentialService: SubjectReferentialService,
 ) {
 
     @Transactional
@@ -159,8 +163,8 @@ class PermissionService(
         contexts: List<String>
     ): Either<APIException, Unit> = either {
         checkExistence(permissionId).bind()
-        if (!input.containsKey(JSONLD_TYPE_TERM) || input[JSONLD_TYPE_TERM]!! != NGSILD_PERMISSION_TERM)
-            raise(BadRequestDataException("type attribute must be present and equal to '$NGSILD_PERMISSION_TERM'"))
+        if (!input.containsKey(JSONLD_TYPE_TERM) || input[JSONLD_TYPE_TERM]!! != AUTH_PERMISSION_TERM)
+            raise(BadRequestDataException("type attribute must be present and equal to '$AUTH_PERMISSION_TERM'"))
 
         input.filterKeys {
             it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
@@ -249,6 +253,72 @@ class PermissionService(
             """.trimIndent()
         return databaseClient.sql(selectStatement)
             .oneToResult { toInt(it["count"]) }
+    }
+
+    @Transactional
+    suspend fun removePermissionsOnEntity(entityId: URI): Either<APIException, Unit> =
+        databaseClient
+            .sql(
+                """
+                DELETE FROM permission
+                WHERE target_id = :entity_id
+                """.trimIndent()
+            )
+            .bind("entity_id", entityId)
+            .execute()
+
+    internal suspend fun checkHasPermissionOnEntity(
+        sub: Option<Sub>,
+        entityId: URI,
+        action: Action
+    ): Either<APIException, Boolean> = either {
+        if (!applicationProperties.authentication.enabled)
+            return@either true
+
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+
+        subjectReferentialService.hasStellioAdminRole(subjectUuids)
+            .flatMap {
+                if (!it)
+                    hasPermissionOnEntity(subjectUuids, entityId, action.getIncludedIn())
+                else true.right()
+            }.bind()
+    }
+
+    private suspend fun hasPermissionOnEntity(
+        uuids: List<Sub>,
+        entityId: URI,
+        actions: Set<Action>
+    ): Either<APIException, Boolean> =
+        databaseClient
+            .sql(
+                """
+                SELECT COUNT(assignee) as count
+                FROM permission
+                WHERE assignee IN(:uuids)
+                AND target_id = :entity_id
+                AND action IN(:actions)
+                """.trimIndent()
+            )
+            .bind("uuids", uuids)
+            .bind("entity_id", entityId)
+            .bind("actions", actions.map { it.value })
+            .oneToResult { it["count"] as Long >= 1L }
+
+    suspend fun getEntitiesIdsOwnedBySubject(
+        subjectId: Sub
+    ): Either<APIException, List<URI>> = either {
+        databaseClient
+            .sql(
+                """
+                SELECT target_id 
+                FROM permission
+                WHERE assignee = :sub
+                AND action = 'own'
+                """.trimIndent()
+            )
+            .bind("sub", subjectId)
+            .allToMappedList { toUri(it["entity_id"]) }
     }
 
     companion object {

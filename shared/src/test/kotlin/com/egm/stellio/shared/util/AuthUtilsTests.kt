@@ -62,18 +62,6 @@ class AuthUtilsTests {
     }
 
     @Test
-    fun `it should find the access right with a given key`() {
-        assertEquals(Some(AccessRight.CAN_READ), AccessRight.forAttributeName("canRead"))
-        assertEquals(Some(AccessRight.CAN_WRITE), AccessRight.forAttributeName("canWrite"))
-        assertEquals(Some(AccessRight.CAN_ADMIN), AccessRight.forAttributeName("canAdmin"))
-    }
-
-    @Test
-    fun `it should not find the access right for an unknown key`() {
-        assertEquals(None, AccessRight.forAttributeName("unknown-access-right"))
-    }
-
-    @Test
     fun `it should return a 400 if the payload contains a multi-instance property`() = runTest {
         val requestPayload =
             """

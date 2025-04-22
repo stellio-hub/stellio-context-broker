@@ -9,13 +9,15 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.fx.coroutines.parMap
-import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
+import com.egm.stellio.search.authorization.permission.model.Action
+import com.egm.stellio.search.authorization.permission.model.Permission
+import com.egm.stellio.search.authorization.permission.model.TargetAsset
+import com.egm.stellio.search.authorization.permission.service.PermissionService
+import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.ADMIN_ROLES
-import com.egm.stellio.shared.util.AccessRight
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.CREATION_ROLES
 import com.egm.stellio.shared.util.ENTITIY_READ_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
@@ -30,7 +32,7 @@ import java.net.URI
 @ConditionalOnProperty("application.authentication.enabled")
 class EnabledAuthorizationService(
     private val subjectReferentialService: SubjectReferentialService,
-    private val entityAccessRightsService: EntityAccessRightsService
+    private val permissionService: PermissionService
 ) : AuthorizationService {
 
     override suspend fun userIsAdmin(sub: Option<Sub>): Either<APIException, Unit> =
@@ -57,40 +59,35 @@ class EnabledAuthorizationService(
         }
 
     override suspend fun userCanReadEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
-        userHasOneOfGivenRightsOnEntity(
+        userCanDoActionOnEntity(
             entityId,
-            listOf(AccessRight.IS_OWNER, AccessRight.CAN_ADMIN, AccessRight.CAN_WRITE, AccessRight.CAN_READ),
-            listOf(SpecificAccessPolicy.AUTH_WRITE, SpecificAccessPolicy.AUTH_READ),
+            Action.READ,
             sub
         ).toAccessDecision(ENTITIY_READ_FORBIDDEN_MESSAGE)
 
     override suspend fun userCanUpdateEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
-        userHasOneOfGivenRightsOnEntity(
+        userCanDoActionOnEntity(
             entityId,
-            listOf(AccessRight.IS_OWNER, AccessRight.CAN_ADMIN, AccessRight.CAN_WRITE),
-            listOf(SpecificAccessPolicy.AUTH_WRITE),
+            Action.WRITE,
             sub
         ).toAccessDecision(ENTITY_UPDATE_FORBIDDEN_MESSAGE)
 
     override suspend fun userCanAdminEntity(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
-        userHasOneOfGivenRightsOnEntity(
+        userCanDoActionOnEntity(
             entityId,
-            listOf(AccessRight.IS_OWNER, AccessRight.CAN_ADMIN),
-            emptyList(),
+            Action.ADMIN,
             sub
         ).toAccessDecision(ENTITY_ADMIN_FORBIDDEN_MESSAGE)
 
-    private suspend fun userHasOneOfGivenRightsOnEntity(
+    private suspend fun userCanDoActionOnEntity(
         entityId: URI,
-        rights: List<AccessRight>,
-        specificAccessPolicies: List<SpecificAccessPolicy>,
+        action: Action,
         sub: Option<Sub>
     ): Either<APIException, Boolean> =
-        entityAccessRightsService.checkHasRightOnEntity(
+        permissionService.checkHasPermissionOnEntity(
             sub,
             entityId,
-            specificAccessPolicies,
-            rights
+            action
         )
 
     override suspend fun createOwnerRight(entityId: URI, sub: Option<Sub>): Either<APIException, Unit> =
@@ -98,62 +95,21 @@ class EnabledAuthorizationService(
 
     override suspend fun createOwnerRights(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit> =
         either {
+            val subValue = (sub as Some).value
             entitiesId.parMap {
-                entityAccessRightsService.setOwnerRoleOnEntity((sub as Some).value, it).bind()
+                permissionService.create(
+                    Permission(
+                        assignee = subValue,
+                        assigner = subValue,
+                        target = TargetAsset(id = it),
+                        action = Action.OWN
+                    )
+                ).bind()
             }
         }.map { it.first() }
 
     override suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit> =
-        entityAccessRightsService.removeRolesOnEntity(entityId)
-
-    override suspend fun getAuthorizedEntities(
-        entitiesQuery: EntitiesQueryFromGet,
-        includeDeleted: Boolean,
-        contexts: List<String>,
-        sub: Option<Sub>
-    ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = either {
-        val accessRights = entitiesQuery.attrs.mapNotNull { AccessRight.forExpandedAttributeName(it).getOrNull() }
-        val entitiesAccessRights = entityAccessRightsService.getSubjectAccessRights(
-            sub,
-            accessRights,
-            entitiesQuery,
-            includeDeleted
-        ).bind()
-
-        // for each entity user is admin or creator of, retrieve the full details of rights other users have on it
-
-        val entitiesWithAdminRight = entitiesAccessRights.filter {
-            listOf(AccessRight.CAN_ADMIN, AccessRight.IS_OWNER).contains(it.right)
-        }.map { it.id }
-
-        val rightsForAdminEntities =
-            entityAccessRightsService.getAccessRightsForEntities(sub, entitiesWithAdminRight).bind()
-
-        val entitiesAccessControlWithSubjectRights = entitiesAccessRights
-            .map { entityAccessRight ->
-                if (rightsForAdminEntities.containsKey(entityAccessRight.id)) {
-                    val rightsForEntity = rightsForAdminEntities[entityAccessRight.id]!!
-                    entityAccessRight.copy(
-                        canRead = rightsForEntity[AccessRight.CAN_READ],
-                        canWrite = rightsForEntity[AccessRight.CAN_WRITE],
-                        canAdmin = rightsForEntity[AccessRight.CAN_ADMIN],
-                        owner = rightsForEntity[AccessRight.IS_OWNER]?.get(0)
-                    )
-                } else entityAccessRight
-            }
-            .map { it.serializeProperties(contexts) }
-            .map { ExpandedEntity(it) }
-
-        val count = entityAccessRightsService.getSubjectAccessRightsCount(
-            sub,
-            accessRights,
-            entitiesQuery.typeSelection,
-            entitiesQuery.ids,
-            includeDeleted
-        ).bind()
-
-        Pair(count, entitiesAccessControlWithSubjectRights)
-    }
+        permissionService.removePermissionsOnEntity(entityId)
 
     override suspend fun getGroupsMemberships(
         offset: Int,
@@ -205,15 +161,11 @@ class EnabledAuthorizationService(
             } else {
                 {
                     """
-                    ( 
-                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
-                        OR
                         (entity_payload.entity_id IN (
                             SELECT entity_id
-                            FROM entity_access_rights
-                            WHERE subject_id IN (${uuids.toListOfString()})
+                            FROM permission
+                            WHERE assignee IN (${uuids.toListOfString()})
                         ))
-                    )
                     """.trimIndent()
                 }
             }

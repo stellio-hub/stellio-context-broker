@@ -1,4 +1,4 @@
-package com.egm.stellio.search.authorization.model
+package com.egm.stellio.search.authorization.subject.model
 
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_FAMILY_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_GIVEN_NAME

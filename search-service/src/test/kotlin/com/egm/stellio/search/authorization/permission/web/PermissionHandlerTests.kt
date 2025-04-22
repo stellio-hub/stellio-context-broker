@@ -2,7 +2,6 @@ package com.egm.stellio.search.authorization.permission.web
 
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.authorization.permission.handler.PermissionHandler
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
@@ -14,8 +13,8 @@ import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PERMISSION_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
@@ -75,7 +74,7 @@ class PermissionHandlerTests {
     @SuppressWarnings("LongParameterList")
     fun giveMeRawPermission(
         id: URI = "urn:ngsi-ld:Permission".toUri(),
-        type: String = NGSILD_PERMISSION_TERM,
+        type: String = AUTH_PERMISSION_TERM,
         target: TargetAsset = TargetAsset(id = "my:id".toUri()),
         assignee: Sub = MOCK_USER_SUB,
         action: Action = Action.READ,

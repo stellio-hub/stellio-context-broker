@@ -1,8 +1,12 @@
 package com.egm.stellio.search.authorization.listener
 
 import arrow.core.right
-import com.egm.stellio.search.authorization.service.EntityAccessRightsService
-import com.egm.stellio.search.authorization.service.SubjectReferentialService
+import com.egm.stellio.search.authorization.permission.model.Action
+import com.egm.stellio.search.authorization.permission.model.Permission
+import com.egm.stellio.search.authorization.permission.model.TargetAsset
+import com.egm.stellio.search.authorization.permission.service.PermissionService
+import com.egm.stellio.search.authorization.subject.listener.IAMListener
+import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.util.GlobalRole
@@ -23,11 +27,11 @@ import org.springframework.test.context.ActiveProfiles
 @ActiveProfiles("test")
 class IAMListenerTests {
 
+    @MockkBean(relaxed = true)
+    private lateinit var permissionService: PermissionService
+
     @Autowired
     private lateinit var iamListener: IAMListener
-
-    @MockkBean(relaxed = true)
-    private lateinit var entityAccessRightsService: EntityAccessRightsService
 
     @MockkBean(relaxed = true)
     private lateinit var entityService: EntityService
@@ -337,16 +341,20 @@ class IAMListenerTests {
     fun `it should delete all entities owned by a user if user is deleted`() = runTest {
         val subjectDeleteEvent = loadSampleData("events/authorization/UserDeleteEvent.json")
         coEvery {
-            entityAccessRightsService.setOwnerRoleOnEntity(
-                "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
-                entityId
+            permissionService.create(
+                Permission(
+                    assignee = "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
+                    assigner = "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
+                    target = TargetAsset(entityId),
+                    action = Action.OWN
+                )
             )
         } returns Unit.right()
 
         coEvery { subjectReferentialService.delete(any()) } returns Unit.right()
         every { searchProperties.onOwnerDeleteCascadeEntities } returns true
         coEvery {
-            entityAccessRightsService.getEntitiesIdsOwnedBySubject("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")
+            permissionService.getEntitiesIdsOwnedBySubject("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")
         } returns listOf(entityId).right()
         coEvery {
             entityService.permanentlyDeleteEntity(entityId, "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")

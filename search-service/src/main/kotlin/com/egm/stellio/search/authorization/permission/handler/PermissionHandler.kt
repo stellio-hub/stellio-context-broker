@@ -8,9 +8,9 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedMessage
+import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.serialize
 import com.egm.stellio.search.authorization.permission.service.PermissionService
-import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -100,7 +100,7 @@ class PermissionHandler(
     ): ResponseEntity<*> = either {
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val csrFilters = CSRFilters.fromQueryParameters(queryParams, contexts).bind()
+        val permissionFilters = PermissionFilters.fromQueryParameters(queryParams, contexts).bind()
 
         val includeSysAttrs = queryParams.getOrDefault(QP.OPTIONS.key, emptyList())
             .contains(OptionsValue.SYS_ATTRS.value)
@@ -110,12 +110,12 @@ class PermissionHandler(
             applicationProperties.pagination.limitMax
         ).bind()
         val permissions = permissionService.getPermissions(
-            csrFilters,
+            permissionFilters,
             paginationQuery.limit,
             paginationQuery.offset,
         ).bind().serialize(contexts, mediaType, includeSysAttrs)
         val permissionsCount = permissionService.getPermissionsCount(
-            csrFilters
+            permissionFilters
         ).bind()
 
         buildQueryResponse(

@@ -18,6 +18,8 @@ ALTER TABLE permission
     ADD COLUMN created_at   timestamp with time zone,
     ADD COLUMN modified_at  timestamp with time zone;
 
+ALTER TABLE permission
+    ALTER target_id DROP NOT NULL;
 
 -- migrate specific access policy into permission
 INSERT INTO permission (action, target_id)

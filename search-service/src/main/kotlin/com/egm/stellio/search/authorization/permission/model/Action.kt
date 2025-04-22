@@ -7,15 +7,20 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.fasterxml.jackson.annotation.JsonProperty
 
-enum class Action(val value: String) {
-    @JsonProperty("read")
-    READ("read"),
-
-    @JsonProperty("write")
-    WRITE("write"),
+enum class Action(val value: String, private val includedIn: Set<Action> = emptySet()) {
+    @JsonProperty("own")
+    OWN("own"),
 
     @JsonProperty("admin")
-    ADMIN("admin");
+    ADMIN("admin", includedIn = setOf(OWN)),
+
+    @JsonProperty("write")
+    WRITE("write", includedIn = setOf(OWN, ADMIN)),
+
+    @JsonProperty("read")
+    READ("read", includedIn = setOf(OWN, ADMIN, WRITE));
+
+    fun getIncludedIn(): Set<Action> = includedIn + this
 
     companion object {
         fun fromString(action: String): Either<APIException, Action> =

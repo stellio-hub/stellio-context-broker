@@ -8,6 +8,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
+import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.execute
@@ -16,7 +17,6 @@ import com.egm.stellio.search.common.util.toBoolean
 import com.egm.stellio.search.common.util.toInt
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
-import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -26,6 +26,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PERMISSION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
@@ -83,9 +84,9 @@ class PermissionService(
             .bind("id", permission.id)
             .bind("target_id", permission.target.id)
             .bind("target_scope", permission.target.scope)
-            .bind("target_types", permission.target.types)
+            .bind("target_types", permission.target.types?.toTypedArray())
             .bind("assignee", permission.assignee)
-            .bind("action", permission.action)
+            .bind("action", permission.action.value)
             .bind("created_at", permission.createdAt)
             .bind("modified_at", permission.modifiedAt)
             .bind("assigner", permission.assigner)
@@ -185,8 +186,18 @@ class PermissionService(
                         target["scope"]?.let {
                             updatePermissionAttribute(permissionId, "target_scope", it).bind()
                         }
-                        target["types"]?.let {// todo expand
-                            updatePermissionAttribute(permissionId, "target_types", it?.map { expandJsonLdTerm(it, contexts)}).bind()
+                        target["types"]?.let { types ->
+                            updatePermissionAttribute(
+                                permissionId,
+                                "target_types",
+                                when (types) {
+                                    is List<*> -> types.map { type -> expandJsonLdTerm(type as String, contexts) }
+                                    is String -> listOf(expandJsonLdTerm(types, contexts))
+                                    else -> BadRequestDataException(
+                                        "target.types must be a type or a list of types"
+                                    ).left().bind<Either<APIException, Unit>>()
+                                }
+                            ).bind()
                         }
                     }
 
@@ -224,7 +235,7 @@ class PermissionService(
     }
 
     suspend fun getPermissions(
-        filters: CSRFilters = CSRFilters(),
+        filters: PermissionFilters = PermissionFilters(),
         limit: Int = Int.MAX_VALUE,
         offset: Int = 0,
     ): Either<APIException, List<Permission>> = either {
@@ -255,18 +266,14 @@ class PermissionService(
     }
 
     suspend fun getPermissionsCount(
-        filters: CSRFilters = CSRFilters(),
+        filters: PermissionFilters = PermissionFilters(),
     ): Either<APIException, Int> {
         val filterQuery = buildWhereStatement(filters)
 
         val selectStatement =
             """
-            SELECT count(distinct csr.id)
-            FROM permission as csr
-            LEFT JOIN jsonb_to_recordset(information)
-                as information(entities jsonb, "propertyNames" text[], "relationshipNames" text[]) on true
-            LEFT JOIN jsonb_to_recordset(entities)
-                as entity_info(id text, "idPattern" text, type text[]) on true
+            SELECT count(distinct permission.id)
+            FROM permission
             WHERE $filterQuery
             """.trimIndent()
         return databaseClient.sql(selectStatement)
@@ -275,41 +282,59 @@ class PermissionService(
 
     companion object {
 
-        private fun buildWhereStatement(csrFilters: CSRFilters): String {
-            val idFilter = if (csrFilters.ids.isNotEmpty())
-                """
-            (
-                entity_info.id is null OR
-                entity_info.id in ('${csrFilters.ids.joinToString("', '")}')
-            ) AND
-            (
-                entity_info."idPattern" is null OR 
-                ${csrFilters.ids.joinToString(" OR ") { "'$it' ~ entity_info.\"idPattern\"" }}
-            )
-                """.trimIndent()
-            else null
-            val typeFilter = if (!csrFilters.typeSelection.isNullOrBlank()) {
-                val typeQuery = buildTypeQuery(csrFilters.typeSelection, columnName = "type")
+        private fun buildWhereStatement(permissionFilters: PermissionFilters): String {
+            val idFilter = if (!permissionFilters.ids.isNullOrEmpty())
                 """
                 (
-                    type is null OR
+                    target_id is null OR
+                    target_id in ('${permissionFilters.ids.joinToString("', '")}')
+                )
+                """.trimIndent()
+            else null
+
+            val typeFilter = if (!permissionFilters.typeSelection.isNullOrBlank()) {
+                val typeQuery = buildTypeQuery(permissionFilters.typeSelection, columnName = "target_types")
+                """
+                (
+                    target_types is null OR
                     ( $typeQuery )
                 )
                 """.trimIndent()
             } else null
 
-            // we only filter on id since there is no easy way to know if two idPatterns overlap
-            // possible resources : https://meta.stackoverflow.com/questions/426313/canonical-for-overlapping-regex-questions
-            val idPatternFilter = if (!csrFilters.idPattern.isNullOrBlank())
+            val scopeFilter = if (!permissionFilters.scopeSelection.isNullOrBlank()) {
+                val scopeQuery = buildScopeQQuery(permissionFilters.scopeSelection, columnName = "target_scope")
                 """
                 (
-                    entity_info.id is null OR
-                    entity_info.id ~ ('${csrFilters.idPattern}')
+                    target_scope is null OR
+                    ( $scopeQuery )
                 )
                 """.trimIndent()
-            else null
+            } else null
 
-            val filters = listOfNotNull(idFilter, typeFilter, idPatternFilter)
+            val actionFilter = permissionFilters.action?.let { action ->
+                """
+                    action in ('${
+                    action.getIncludedIn()
+                        .joinToString("', '") { it.value }
+                }')
+                """.trimIndent()
+            }
+
+            val assigneeFilter = permissionFilters.assignee?.let { assignee ->
+                """
+                (
+                    assignee null OR
+                    assignee = '$assignee'
+                )
+                """
+            }
+
+            val assignerFilter = permissionFilters.assigner?.let { assigner ->
+                "assigner = '$assigner'"
+            }
+
+            val filters = listOfNotNull(idFilter, typeFilter, scopeFilter, actionFilter, assigneeFilter, assignerFilter)
 
             return if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
         }
@@ -325,7 +350,8 @@ class PermissionService(
                     types = (row["target_types"] as? Array<String>)?.toList(),
                 ),
                 action = Action.fromString(row["action"] as String).bind(),
-                assigner = row["assigner"] as String,
+                assigner = row["assigner"] as? String,
+                assignee = row["assignee"] as? String
             )
         }
     }

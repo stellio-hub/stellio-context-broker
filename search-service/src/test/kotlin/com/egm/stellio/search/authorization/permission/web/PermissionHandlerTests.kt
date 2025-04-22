@@ -257,27 +257,6 @@ class PermissionHandlerTests {
     }
 
     @Test
-    fun `update permission should return a 204 if JSON-LD payload is correct`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.jsonld")
-        val permissionId = id
-        val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
-
-        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
-        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
-
-        webClient.patch()
-            .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isNoContent
-
-        coVerify { permissionService.isCreatorOf(permissionId, sub) }
-        coVerify { permissionService.update(eq(permissionId), parsedPermission, APIC_COMPOUND_CONTEXTS) }
-
-        confirmVerified(permissionService)
-    }
-
-    @Test
     fun `update permission should return a 500 if update in DB failed`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.jsonld")
         val permissionId = id
@@ -300,6 +279,27 @@ class PermissionHandlerTests {
                     }
                     """
             )
+
+        coVerify { permissionService.isCreatorOf(permissionId, sub) }
+        coVerify { permissionService.update(eq(permissionId), parsedPermission, APIC_COMPOUND_CONTEXTS) }
+
+        confirmVerified(permissionService)
+    }
+
+    @Test
+    fun `update permission should return a 204 if JSON-LD payload is correct`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.jsonld")
+        val permissionId = id
+        val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
+
+        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
 
         coVerify { permissionService.isCreatorOf(permissionId, sub) }
         coVerify { permissionService.update(eq(permissionId), parsedPermission, APIC_COMPOUND_CONTEXTS) }
@@ -351,34 +351,4 @@ class PermissionHandlerTests {
             .exchange()
             .expectStatus().isNoContent
     }
-
-//
-//    @Test
-//    fun `update permission should return a 403 if permission does not belong to the user`() = runTest {
-//        val jsonLdFile = ClassPathResource("/ngsild/permission_update.jsonld")
-//        val permissionId = permissionId
-//
-//        coEvery { permissionService.checkExistence(any()) } returns true.right()
-//        coEvery { permissionService.isCreatorOf(any(), any()) } returns false.right()
-//
-//        webClient.patch()
-//            .uri("/ngsi-ld/v1/permissions/$permissionId")
-//            .bodyValue(jsonLdFile)
-//            .exchange()
-//            .expectStatus().isForbidden
-//            .expectBody().json(
-//                """
-//                {
-//                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-//                    "title": "${permissionUnauthorizedMessage(permissionId)}",
-//                    "detail": "$DEFAULT_DETAIL"
-//                }
-//                """.trimIndent()
-//            )
-//
-//        coVerify { permissionService.checkExistence(eq(permissionId)) }
-//        coVerify { permissionService.isCreatorOf(permissionId, sub) }
-//
-//        confirmVerified(permissionService)
-//    }
 }

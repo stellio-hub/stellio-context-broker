@@ -8,6 +8,7 @@ import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
 import com.egm.stellio.search.csr.service.DistributedEntityProvisionService
+import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateResult
@@ -1441,7 +1442,7 @@ class EntityHandlerTests {
 
         coEvery {
             entityService.replaceEntity(any(), any<NgsiLdEntity>(), any(), any())
-        } returns Unit.right()
+        } returns EMPTY_UPDATE_RESULT.right()
 
         webClient.put()
             .uri("/ngsi-ld/v1/entities/$breedingServiceId")
@@ -1555,7 +1556,7 @@ class EntityHandlerTests {
 
         coEvery {
             entityService.replaceEntity(breedingServiceId, any(), any(), sub.getOrNull())
-        } returns Unit.right()
+        } returns EMPTY_UPDATE_RESULT.right()
 
         every { result.addEither(any(), any(), any()) } returns Unit
 
@@ -1581,7 +1582,7 @@ class EntityHandlerTests {
 
         coEvery {
             entityService.replaceEntity(breedingServiceId, any(), any(), sub.getOrNull())
-        } returns Unit.right()
+        } returns EMPTY_UPDATE_RESULT.right()
 
         webClient.put()
             .uri("/ngsi-ld/v1/entities/$breedingServiceId?local=true")

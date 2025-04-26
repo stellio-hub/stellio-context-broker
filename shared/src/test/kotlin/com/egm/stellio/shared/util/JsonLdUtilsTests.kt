@@ -14,7 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntityF
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntitySafe
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -222,7 +222,7 @@ class JsonLdUtilsTests {
                 }
             """.trimIndent()
 
-        val expandedEntity = expandJsonLdEntityF(payload.deserializeAsMap(), NGSILD_TEST_CORE_CONTEXTS)
+        val expandedEntity = expandJsonLdEntitySafe(payload.deserializeAsMap(), NGSILD_TEST_CORE_CONTEXTS)
             .shouldSucceedAndResult()
 
         val location = expandedEntity.getAttributes().getAttributeFromExpandedAttributes(NGSILD_LOCATION_PROPERTY, null)
@@ -272,7 +272,7 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val deserializedPayload = payload.deserializeAsMap()
-        val expandedEntity = expandJsonLdEntityF(deserializedPayload, NGSILD_TEST_CORE_CONTEXTS)
+        val expandedEntity = expandJsonLdEntitySafe(deserializedPayload, NGSILD_TEST_CORE_CONTEXTS)
             .shouldSucceedAndResult()
         val compactedEntity = compactEntity(expandedEntity, NGSILD_TEST_CORE_CONTEXTS)
         assertJsonPayloadsAreEqual(
@@ -299,7 +299,7 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val deserializedPayload = payload.deserializeAsMap()
-        val expandedEntity = expandJsonLdEntityF(deserializedPayload, NGSILD_TEST_CORE_CONTEXTS)
+        val expandedEntity = expandJsonLdEntitySafe(deserializedPayload, NGSILD_TEST_CORE_CONTEXTS)
             .shouldSucceedAndResult()
 
         val userDefinedGeoProperty = expandedEntity.getAttributes()

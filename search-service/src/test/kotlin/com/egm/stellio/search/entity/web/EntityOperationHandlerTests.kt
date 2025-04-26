@@ -96,7 +96,7 @@ class EntityOperationHandlerTests {
     private val deleteAllJsonFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
 
     @Test
-    fun `update batch entity should return a 204 if JSON-LD payload is correct`() = runTest {
+    fun `update batch entity should return a 204 if all entities have been updated`() = runTest {
         val jsonLdFile = validJsonFile
 
         coEvery {
@@ -116,7 +116,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `update batch entity should return a 207 if JSON-LD payload contains update errors`() = runTest {
+    fun `update batch entity should return a 207 if some entities could not be updated`() = runTest {
         val jsonLdFile = validJsonFile
         val errors = arrayListOf(
             BatchEntityError(
@@ -165,7 +165,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `update batch entity should return a 207 if one entity is an invalid NGSI-LD payload`() = runTest {
+    fun `update batch entity should return a 207 if one entity has an invalid NGSI-LD payload`() = runTest {
         val jsonLdFile = twoEntityOneInvalidJsonLDFile
 
         coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
@@ -199,12 +199,12 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `update batch entity should return a 400 if JSON-LD payload is not correct`() {
-        shouldReturn400WithBadPayload("update")
+    fun `update batch entity should return a 207 if entities are missing a JSON-LD context`() {
+        shouldReturn207WithBadRequestErrors("update")
     }
 
     @Test
-    fun `update batch entity should return 204 if JSON-LD payload is correct and noOverwrite is asked`() = runTest {
+    fun `update batch entity with noOverwrite should return 204 if all entities have been updated`() = runTest {
         val jsonLdFile = validJsonFile
         coEvery {
             entityOperationService.update(any(), any(), any())
@@ -223,7 +223,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `create batch entity should return a 201 if JSON-LD payload is correct`() = runTest {
+    fun `create batch entity should return a 201 if all entities have been created`() = runTest {
         val jsonLdFile = validJsonFile
 
         coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
@@ -242,7 +242,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `create batch entity should return a 207 when some creation are in errors`() = runTest {
+    fun `create batch entity should return a 207 if some entities could not be created`() = runTest {
         val jsonLdFile = validJsonFile
         val createdEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
 
@@ -283,32 +283,50 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `create batch entity should return a 400 if JSON-LD payload is not correct`() = runTest {
-        shouldReturn400WithBadPayload("create")
+    fun `create batch entity should return a 207 if entities are missing a JSON-LD context`() = runTest {
+        shouldReturn207WithBadRequestErrors("create")
     }
 
     @Test
-    fun `create batch entity should return a 400 if one JSON-LD entity misses a context`() = runTest {
+    fun `create batch entity should return a 207 if one entity misses a JSON-LD context`() = runTest {
         val jsonLdFile = oneEntityMissingContextJsonFile
+        val createdEntitiesIds = arrayListOf(temperatureSensorUri, deviceUri)
+
+        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
+            createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList()
+        )
+
         webClient.post()
             .uri(batchCreateEndpoint)
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isBadRequest
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":
-                 "Request payload must contain @context term for a request having an application/ld+json content type",
-                    "detail": "$DEFAULT_DETAIL"
+                    "success": [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                    ],
+                    "errors": [
+                        {
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                            "error": {
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                                "title": "Request payload must contain @context term for a request having an application/ld+json content type",
+                                "status": 400,
+                                "detail": "$DEFAULT_DETAIL"
+                            },
+                            "registrationId": null
+                        }
+                    ]
                 }
                 """.trimIndent()
             )
     }
 
     @Test
-    fun `upsert batch entity should return a 201 if JSON-LD payload is correct`() = runTest {
+    fun `upsert batch entity should return a 201 if all entities have been created`() = runTest {
         val jsonLdFile = validJsonFile
         val createdEntitiesIds = arrayListOf(temperatureSensorUri)
         val updatedEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
@@ -346,7 +364,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `upsert batch entity should return a 207 if JSON-LD payload contains update errors`() = runTest {
+    fun `upsert batch entity should return a 207 if some entities could not be upserted`() = runTest {
         val jsonLdFile = validJsonFile
         val errorMessage = "Update unexpectedly failed."
         val errors = arrayListOf(
@@ -416,32 +434,60 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `upsert batch entity should return a 400 if JSON-LD payload is not correct`() {
-        shouldReturn400WithBadPayload("upsert")
+    fun `upsert batch entity should return a 207 if entities are missing a JSON-LD context`() {
+        shouldReturn207WithBadRequestErrors("upsert")
     }
 
-    private fun shouldReturn400WithBadPayload(method: String) {
+    private fun shouldReturn207WithBadRequestErrors(method: String) {
         val jsonLdFile = missingContextJsonFile
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/$method")
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isBadRequest
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
             .expectBody().json(
                 """
                 {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":
-                "Request payload must contain @context term for a request having an application/ld+json content type",
-                    "detail": "$DEFAULT_DETAIL",
-
+                    "success": [],
+                    "errors": [
+                        {
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                            "error": {
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                                "title": "Request payload must contain @context term for a request having an application/ld+json content type",
+                                "status": 400,
+                                "detail": "$DEFAULT_DETAIL"
+                            },
+                            "registrationId": null
+                        },
+                        {
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                            "error": {
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                                "title": "Request payload must contain @context term for a request having an application/ld+json content type",
+                                "status": 400,
+                                "detail": "$DEFAULT_DETAIL"
+                            },
+                            "registrationId": null
+                        },
+                        {
+                            "entityId": "urn:ngsi-ld:Device:HCMR-AQUABOX1",
+                            "error": {
+                                "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                                "title": "Request payload must contain @context term for a request having an application/ld+json content type",
+                                "status": 400,
+                                "detail": "$DEFAULT_DETAIL"
+                            },
+                            "registrationId": null
+                        }
+                    ]
                 }
                 """.trimIndent()
             )
     }
 
     @Test
-    fun `delete batch for correct entities should return a 204`() = runTest {
+    fun `delete batch entity should return a 204 if all entities have been deleted`() = runTest {
         val jsonLdFile = deleteAllJsonFile
 
         coEvery { entityOperationService.delete(any(), any()) } returns
@@ -458,7 +504,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `delete batch with errors should return a 207 with explicit error messages`() = runTest {
+    fun `delete batch entity should return a 207 if some entities could not be deleted`() = runTest {
         coEvery { entityOperationService.delete(any(), any()) } returns
             BatchOperationResult(
                 mutableListOf(BatchEntitySuccess(temperatureSensorUri), BatchEntitySuccess(dissolvedOxygenSensorUri)),
@@ -532,7 +578,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `merge batch entity should return a 204 if JSON-LD payload is correct`() = runTest {
+    fun `merge batch entity should return a 204 if all entities have been merged`() = runTest {
         val jsonLdFile = validJsonFile
 
         coEvery {
@@ -552,7 +598,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `merge batch entity should return a 207 if JSON-LD payload contains update errors`() = runTest {
+    fun `merge batch entity should return a 207 if some entities could not be merged`() = runTest {
         val jsonLdFile = validJsonFile
         val internalError = InternalErrorException("Update unexpectedly failed.").toProblemDetail()
         val errors = arrayListOf(
@@ -596,7 +642,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `merge batch entity should return a 207 if one entity is an invalid NGSI-LD payload`() = runTest {
+    fun `merge batch entity should return a 207 if one entity has an invalid NGSI-LD payload`() = runTest {
         val jsonLdFile = twoEntityOneInvalidJsonLDFile
 
         coEvery { entityOperationService.merge(any(), any()) } returns BatchOperationResult(
@@ -630,8 +676,8 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `merge batch entity should return a 400 if JSON-LD payload is not correct`() {
-        shouldReturn400WithBadPayload("merge")
+    fun `merge batch entity should return a 207 if entities are missing a JSON-LD context`() {
+        shouldReturn207WithBadRequestErrors("merge")
     }
 
     @Test

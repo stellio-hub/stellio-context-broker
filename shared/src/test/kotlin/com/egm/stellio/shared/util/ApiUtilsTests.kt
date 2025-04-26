@@ -3,7 +3,9 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.queryparameter.OptionsValue.TEMPORAL_VALUES
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.web.CustomWebFilter
 import io.mockk.every
 import io.mockk.mockk
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.util.Optional
@@ -30,6 +33,104 @@ class ApiUtilsTests {
 
     private val applicationProperties = mockk<ApplicationProperties> {
         every { contexts.core } returns "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+    }
+
+    @Test
+    fun `checkContentType should succeed if entity is compliant with the Content-Type header`() {
+        val compactedEntity = """
+            {
+                "id": "urn:Entity:1",
+                "type": "Entity"
+            }
+        """.trimIndent()
+            .deserializeAsMap()
+
+        compactedEntity.checkContentType(HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON })
+            .shouldSucceed()
+    }
+
+    @Test
+    fun `checkContentType should fail if entity contains a context and Content-Type header is JSON`() {
+        val compactedEntity = """
+            {
+                "id": "urn:Entity:1",
+                "type": "Entity",
+                "@context": "$APIC_CONTEXT"
+            }
+        """.trimIndent()
+            .deserializeAsMap()
+
+        compactedEntity.checkContentType(HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON })
+            .shouldFailWith {
+                it is BadRequestDataException
+            }
+    }
+
+    @Test
+    fun `checkContentType should fail if entity does not contain context and Content-Type header is JSON-LD`() {
+        val compactedEntity = """
+            {
+                "id": "urn:Entity:1",
+                "type": "Entity"
+            }
+        """.trimIndent()
+            .deserializeAsMap()
+
+        compactedEntity.checkContentType(HttpHeaders().apply { contentType = JSON_LD_MEDIA_TYPE })
+            .shouldFailWith {
+                it is BadRequestDataException
+            }
+    }
+
+    @Test
+    fun `checkLinkHeader should return the Link header if present and Content-Type is not JSON-LD`() {
+        val httpHeaders = HttpHeaders().apply {
+            contentType = MediaType.APPLICATION_JSON
+            set(HttpHeaders.LINK, APIC_HEADER_LINK)
+        }
+
+        checkLinkHeader(httpHeaders).shouldSucceedWith {
+            assertEquals(APIC_COMPOUND_CONTEXT, it)
+        }
+    }
+
+    @Test
+    fun `checkLinkHeader should return null if the Link header is not present and Content-Type is not JSON-LD`() {
+        val httpHeaders = HttpHeaders().apply {
+            contentType = MediaType.APPLICATION_JSON
+        }
+
+        checkLinkHeader(httpHeaders).shouldSucceedWith {
+            assertNull(it)
+        }
+    }
+
+    @Test
+    fun `checkLinkHeader should fail if the Link header is present and Content-Type is JSON-LD`() {
+        val httpHeaders = HttpHeaders().apply {
+            contentType = JSON_LD_MEDIA_TYPE
+            set(HttpHeaders.LINK, APIC_HEADER_LINK)
+        }
+
+        checkLinkHeader(httpHeaders).shouldFailWith {
+            it is BadRequestDataException
+        }
+    }
+
+    @Test
+    fun `addCoreContextIfMissingSafe should return the core context if no contexts are provided`() {
+        addCoreContextIfMissingSafe(emptyList(), applicationProperties.contexts.core)
+            .shouldSucceedWith {
+                assertEquals(listOf(applicationProperties.contexts.core), it)
+            }
+    }
+
+    @Test
+    fun `addCoreContextIfMissingSafe should fail if the provided context is not available`() {
+        addCoreContextIfMissingSafe(listOf("http://non.existent/context.jsonld"), applicationProperties.contexts.core)
+            .shouldFailWith {
+                it is LdContextNotAvailableException
+            }
     }
 
     @Test

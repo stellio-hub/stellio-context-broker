@@ -25,13 +25,6 @@ suspend fun Map<String, Any>.checkNamesAreNgsiLdSupported(): Either<APIException
     this@checkNamesAreNgsiLdSupported
 }
 
-suspend fun List<Map<String, Any>>.checkNamesAreNgsiLdSupported(): Either<APIException, List<Map<String, Any>>> =
-    either {
-        parMap {
-            it.checkNamesAreNgsiLdSupported().bind()
-        }
-    }
-
 fun String.checkNameIsNgsiLdSupported(): Either<APIException, Unit> =
     if (this.isNgsiLdSupportedName()) Unit.right()
     else BadRequestDataException(invalidCharacterInName(this)).left()
@@ -74,13 +67,6 @@ suspend fun Map<String, Any>.checkContentIsNgsiLdSupported(): Either<APIExceptio
     get(JsonLdUtils.NGSILD_SCOPE_TERM)?.checkScopesNamesAreNgsiLdSupported()?.bind()
     this@checkContentIsNgsiLdSupported
 }
-
-suspend fun List<Map<String, Any>>.checkContentIsNgsiLdSupported(): Either<APIException, List<Map<String, Any>>> =
-    either {
-        parMap {
-            it.checkContentIsNgsiLdSupported().bind()
-        }
-    }
 
 private fun Any.checkContentIsNgsiLdSupported(): Either<APIException, Unit> =
     if (this is String) {

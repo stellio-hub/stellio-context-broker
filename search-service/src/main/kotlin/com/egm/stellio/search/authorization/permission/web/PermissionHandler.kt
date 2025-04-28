@@ -1,16 +1,18 @@
 package com.egm.stellio.search.authorization.permission.web
 
 import arrow.core.Either
-import arrow.core.Option
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.authorization.permission.model.Action
+import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.serialize
 import com.egm.stellio.search.authorization.permission.service.PermissionService
+import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -21,7 +23,6 @@ import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
@@ -55,7 +56,8 @@ import java.net.URI
 @Validated
 class PermissionHandler(
     private val applicationProperties: ApplicationProperties,
-    private val permissionService: PermissionService
+    private val permissionService: PermissionService,
+    private val subjectReferentialService: SubjectReferentialService
 ) : BaseHandler() {
 
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
@@ -68,6 +70,7 @@ class PermissionHandler(
         val sub = getSubFromSecurityContext()
 
         val permission = deserialize(body, contexts).bind().copy(assigner = sub.toStringValue())
+        checkIsAdmin(permission).bind()
 
         permissionService.create(permission).bind()
 
@@ -141,9 +144,13 @@ class PermissionHandler(
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
-        val sub = getSubFromSecurityContext()
-        checkIsAllowed(permissionId, sub).bind()
+        val subjects = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+
         val permission = permissionService.getById(permissionId).bind()
+
+        if (permission.assignee !in subjects) {
+            checkIsAdmin(permissionId).bind()
+        }
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .body(permission.serialize(contexts, mediaType, includeSysAttrs))
@@ -160,12 +167,12 @@ class PermissionHandler(
         @PathVariable permissionId: URI,
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
-        @AllowedParameters
+        @AllowedParameters // no query parameter is allowed
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-        checkIsAllowed(permissionId, sub).bind()
+        checkIsAdmin(permissionId).bind()
         val body = requestBody.awaitFirst().deserializeAsMap()
+
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
         permissionService.update(permissionId, body, contexts).bind()
 
@@ -181,8 +188,7 @@ class PermissionHandler(
         @AllowedParameters // no query parameter is allowed
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-        checkIsAllowed(permissionId, sub).bind()
+        checkIsAdmin(permissionId).bind()
 
         permissionService.delete(permissionId).bind()
 
@@ -192,12 +198,23 @@ class PermissionHandler(
         { it }
     )
 
-    private suspend fun checkIsAllowed(permissionId: URI, sub: Option<Sub>): Either<APIException, Unit> =
-        permissionService.isCreatorOf(permissionId, sub) // todo way more complicated than that
+    private suspend fun checkIsAdmin(permissionId: URI): Either<APIException, Unit> =
+        permissionService.isAdminOf(permissionId, getSubFromSecurityContext())
             .flatMap {
                 if (!it)
                     AccessDeniedException(
                         unauthorizedMessage(permissionId)
+                    ).left()
+                else
+                    Unit.right()
+            }
+
+    private suspend fun checkIsAdmin(permission: Permission): Either<APIException, Unit> =
+        permissionService.checkHasPermissionOnEntity(getSubFromSecurityContext(), permission.target.id, Action.ADMIN)
+            .flatMap {
+                if (!it)
+                    AccessDeniedException(
+                        unauthorizedMessage(permission.target.id)
                     ).left()
                 else
                     Unit.right()

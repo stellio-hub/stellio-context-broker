@@ -1,11 +1,10 @@
-package com.egm.stellio.search.authorization.service
+package com.egm.stellio.search.authorization.permission.service
 
 import arrow.core.Either
 import arrow.core.Some
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
-import com.egm.stellio.search.authorization.permission.service.PermissionService
 import com.egm.stellio.search.authorization.subject.model.Group
 import com.egm.stellio.search.authorization.subject.model.User
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
@@ -232,7 +231,7 @@ class EnabledAuthorizationServiceTests {
         assertEquals(
             """
                 (entity_payload.entity_id IN (
-                    SELECT entity_id
+                    SELECT target_id
                     FROM permission
                     WHERE assignee IN ('$subjectUuid','$groupUuid')
                 ))

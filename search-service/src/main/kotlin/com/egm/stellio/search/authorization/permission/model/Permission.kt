@@ -90,7 +90,7 @@ data class Permission(
 
         fun notFoundMessage(id: URI) = "Could not find a Permission with id $id"
         fun alreadyExistsMessage(id: URI) = "A Permission with id : $id already exists"
-        fun unauthorizedMessage(id: URI) = "User is not authorized to access Permission $id"
+        fun unauthorizedMessage(entityId: URI) = "User is not authorized to access Permission targeting $entityId"
     }
 }
 

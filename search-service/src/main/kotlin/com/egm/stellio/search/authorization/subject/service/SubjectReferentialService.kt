@@ -23,6 +23,7 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -83,6 +84,9 @@ class SubjectReferentialService(
             .oneToResult(AccessDeniedException("No subject information found for $sub")) {
                 rowToSubjectReferential(it)
             }
+
+    suspend fun getSubjectAndGroupsUUID(): Either<APIException, List<Sub>> =
+        getSubjectAndGroupsUUID(getSubFromSecurityContext())
 
     suspend fun getSubjectAndGroupsUUID(sub: Option<Sub>): Either<APIException, List<Sub>> =
         databaseClient

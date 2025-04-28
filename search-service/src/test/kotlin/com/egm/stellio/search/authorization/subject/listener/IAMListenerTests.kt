@@ -1,11 +1,10 @@
-package com.egm.stellio.search.authorization.listener
+package com.egm.stellio.search.authorization.subject.listener
 
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.authorization.permission.service.PermissionService
-import com.egm.stellio.search.authorization.subject.listener.IAMListener
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.service.EntityService

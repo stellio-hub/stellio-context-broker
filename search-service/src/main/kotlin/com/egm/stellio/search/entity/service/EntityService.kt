@@ -7,8 +7,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.toOption
-import com.egm.stellio.search.authorization.service.AuthorizationService
-import com.egm.stellio.search.common.util.deserializeAsMap
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.common.util.deserializeExpandedPayload
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult

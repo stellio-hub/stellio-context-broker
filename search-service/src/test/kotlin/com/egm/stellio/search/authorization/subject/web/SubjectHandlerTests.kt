@@ -1,10 +1,9 @@
-package com.egm.stellio.search.authorization.web
+package com.egm.stellio.search.authorization.subject.web
 
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.subject.model.User
-import com.egm.stellio.search.authorization.subject.web.SubjectHandler
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException

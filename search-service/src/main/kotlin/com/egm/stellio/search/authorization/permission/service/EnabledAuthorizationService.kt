@@ -1,4 +1,4 @@
-package com.egm.stellio.search.authorization.service
+package com.egm.stellio.search.authorization.permission.service
 
 import arrow.core.Either
 import arrow.core.Option
@@ -12,7 +12,6 @@ import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
-import com.egm.stellio.search.authorization.permission.service.PermissionService
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -162,7 +161,7 @@ class EnabledAuthorizationService(
                 {
                     """
                         (entity_payload.entity_id IN (
-                            SELECT entity_id
+                            SELECT target_id
                             FROM permission
                             WHERE assignee IN (${uuids.toListOfString()})
                         ))

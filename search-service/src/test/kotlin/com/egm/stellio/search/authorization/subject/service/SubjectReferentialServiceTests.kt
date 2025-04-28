@@ -1,11 +1,10 @@
-package com.egm.stellio.search.authorization.service
+package com.egm.stellio.search.authorization.subject.service
 
 import arrow.core.Some
-import com.egm.stellio.search.authorization.getSubjectInfoForClient
-import com.egm.stellio.search.authorization.getSubjectInfoForGroup
-import com.egm.stellio.search.authorization.getSubjectInfoForUser
+import com.egm.stellio.search.authorization.subject.getSubjectInfoForClient
+import com.egm.stellio.search.authorization.subject.getSubjectInfoForGroup
+import com.egm.stellio.search.authorization.subject.getSubjectInfoForUser
 import com.egm.stellio.search.authorization.subject.model.SubjectReferential
-import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer

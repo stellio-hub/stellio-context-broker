@@ -1,4 +1,4 @@
-package com.egm.stellio.search.authorization
+package com.egm.stellio.search.authorization.subject
 
 import io.r2dbc.postgresql.codec.Json
 

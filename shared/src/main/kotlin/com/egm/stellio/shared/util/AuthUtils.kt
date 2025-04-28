@@ -41,6 +41,7 @@ object AuthContextModel {
     const val DATASET_ID_PREFIX = "urn:ngsi-ld:Dataset:"
 
     const val AUTH_PERMISSION_TERM = "Permission"
+    const val AUTH_ASSIGNER_TERM = "assigner"
     const val AUTH_TERM_SUB = "sub"
     const val AUTH_PROP_SUB = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SUB
     const val AUTH_TERM_CLIENT_ID = "clientId"

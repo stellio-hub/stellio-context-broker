@@ -18,11 +18,23 @@ ALTER TABLE permission
 
 
 -- migrate specific access policy into permission
-INSERT INTO permission (action, target_id)
+INSERT INTO permission (id, action, target_id)
 SELECT specific_access_policy, entity_id
 FROM entity_payload
 WHERE specific_access_policy is not null;
 
+ALTER TABLE entity_payload
+    DROP COLUMN specific_access_policy;
+
+-- guess the permission creation date with the entity it target
+UPDATE permission
+SET created_at  = entity_payload.created_at,
+    modified_at = entity_payload.created_at
+FROM entity_payload
+WHERE permission.target_id = entity_payload.entity_id;
+
+UPDATE permission
+set id = concat("urn:ngsi-ld:Permission:", gen_random_uuid());
 
 UPDATE permission
 SET action = 'read'

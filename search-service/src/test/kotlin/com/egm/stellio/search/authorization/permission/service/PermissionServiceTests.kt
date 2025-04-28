@@ -55,6 +55,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     private val userUuid = "55e64faf-4bda-41cc-98b0-195874cefd29"
     private val groupUuid = UUID.randomUUID().toString()
     private val entityId = "urn:ngsi-ld:Entity:01".toUri()
+    val minimalPermission = loadAndDeserializePermission("permission/permission_minimal.json")
 
     @BeforeEach
     fun setDefaultBehaviorOnSubjectReferential() {
@@ -70,7 +71,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             .block()
     }
 
-    fun loadAndDeserializePermission(
+    final fun loadAndDeserializePermission(
         filename: String,
         contexts: List<String> = APIC_COMPOUND_CONTEXTS
     ): Permission {
@@ -87,32 +88,26 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `create a second Permission with the same id should return an AlreadyExist error`() = runTest {
-        val permission =
-            loadAndDeserializePermission("permission/permission_minimal_entities.json")
-        permissionService.create(permission).shouldSucceed()
-        permissionService.create(permission).shouldFailWith {
+        permissionService.create(minimalPermission).shouldSucceed()
+        permissionService.create(minimalPermission).shouldFailWith {
             it is AlreadyExistsException
         }
     }
 
     @Test
     fun `get a minimal Permission should return the created Permission`() = runTest {
-        val permission =
-            loadAndDeserializePermission("permission/permission_minimal_entities.json")
-        permissionService.create(permission).shouldSucceed()
+        permissionService.create(minimalPermission).shouldSucceed()
 
         permissionService.getById(
-            permission.id
+            minimalPermission.id
         ).shouldSucceedWith {
-            assertEquals(permission, it)
+            assertEquals(minimalPermission, it)
         }
     }
 
     @Test
     fun `query Permission on entities ids should return Permissions matching this id`() = runTest {
-        val permission =
-            loadAndDeserializePermission("permission/permission_minimal_entities.json")
-        permissionService.create(permission).shouldSucceed()
+        permissionService.create(minimalPermission).shouldSucceed()
 
         val matchingPermissions = permissionService.getPermissions(
             PermissionFilters(ids = setOf("urn:ngsi-ld:BeeHive:A456".toUri()))
@@ -123,9 +118,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `query Permission on entities ids should return an empty list if no Permission matches`() = runTest {
-        val permission =
-            loadAndDeserializePermission("permission/permission_minimal_entities.json")
-        permissionService.create(permission).shouldSucceed()
+        permissionService.create(minimalPermission).shouldSucceed()
 
         val matchingPermissions = permissionService.getPermissions(
             PermissionFilters(ids = setOf("urn:ngsi-ld:Vehicle:A457".toUri()))
@@ -136,19 +129,19 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `query Permission on action should return all Permission matching the action`() = runTest {
-        val readPermission = loadAndDeserializePermission("permission/permission_minimal_entities.json")
+        val readPermission = loadAndDeserializePermission("permission/permission_minimal.json")
             .copy(id = "urn:readPermission".toUri(), action = Action.READ)
         permissionService.create(readPermission).shouldSucceed()
 
-        val writePermission = loadAndDeserializePermission("permission/permission_minimal_entities.json")
+        val writePermission = loadAndDeserializePermission("permission/permission_minimal.json")
             .copy(id = "urn:writePermission".toUri(), action = Action.WRITE)
         permissionService.create(writePermission).shouldSucceed()
 
-        val adminPermission = loadAndDeserializePermission("permission/permission_minimal_entities.json")
+        val adminPermission = loadAndDeserializePermission("permission/permission_minimal.json")
             .copy(id = "urn:adminPermission".toUri(), action = Action.ADMIN)
         permissionService.create(adminPermission).shouldSucceed()
 
-        val ownPermission = loadAndDeserializePermission("permission/permission_minimal_entities.json")
+        val ownPermission = loadAndDeserializePermission("permission/permission_minimal.json")
             .copy(id = "urn:ownPermission".toUri(), action = Action.OWN)
         permissionService.create(ownPermission).shouldSucceed()
 
@@ -167,9 +160,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `query on Permission assignee should filter the result`() = runTest {
-        val permission =
-            loadAndDeserializePermission("permission/permission_minimal_entities.json")
-                .copy(assignee = userUuid)
+        val permission = minimalPermission.copy(assignee = userUuid)
         permissionService.create(permission).shouldSucceed()
 
         val matchingPermissions = permissionService.getPermissions(
@@ -188,9 +179,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `query on Permission assigner should filter the result`() = runTest {
-        val permission =
-            loadAndDeserializePermission("permission/permission_minimal_entities.json")
-                .copy(assigner = userUuid)
+        val permission = minimalPermission.copy(assigner = userUuid)
         permissionService.create(permission).shouldSucceed()
 
         val matchingPermissions = permissionService.getPermissions(
@@ -210,9 +199,8 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `query on Permissions should not return a permission if the subject is nor the assignee nor the administrator of the target`() =
         runTest {
-            val permission =
-                loadAndDeserializePermission("permission/permission_minimal_entities.json")
-                    .copy(assignee = "not-the-subject", assigner = userUuid)
+            val permission = minimalPermission
+                .copy(assignee = "not-the-subject", assigner = userUuid)
             permissionService.create(permission).shouldSucceed()
 
             val matchingPermissions = permissionService.getPermissions(
@@ -224,10 +212,8 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
 
     @Test
-    fun `count should apply the filter`() = runTest {
-        val permission =
-            loadAndDeserializePermission("permission/permission_minimal_entities.json")
-                .copy(assignee = userUuid)
+    fun `count on Permission should apply the filter`() = runTest {
+        val permission = minimalPermission.copy(assignee = userUuid)
         permissionService.create(permission).shouldSucceed()
 
         val count = permissionService.getPermissionsCount(
@@ -243,15 +229,13 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `delete an existing Permission should succeed`() = runTest {
-        val permission =
-            loadAndDeserializePermission("permission/permission_minimal_entities.json")
-        permissionService.create(permission).shouldSucceed()
+        permissionService.create(minimalPermission).shouldSucceed()
 
-        permissionService.delete(permission.id).shouldSucceed()
+        permissionService.delete(minimalPermission.id).shouldSucceed()
 
-        permissionService.getById(permission.id).shouldFailWith {
+        permissionService.getById(minimalPermission.id).shouldFailWith {
             it is ResourceNotFoundException &&
-                it.message == notFoundMessage(permission.id)
+                it.message == notFoundMessage(minimalPermission.id)
         }
     }
 
@@ -267,7 +251,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `removePermissionsOnEntity should remove all permission on entity`() = runTest {
+    fun `removePermissionsOnEntity should remove all permissions on entity`() = runTest {
         permissionService.create(
             Permission(
                 assignee = userUuid,
@@ -292,10 +276,8 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
         } returns listOf(userUuid).right()
 
-        val answer = permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
-            .shouldSucceedAndResult()
-
-        assertFalse(answer)
+        permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
+            .shouldSucceedWith { assertFalse(it) }
 
         coVerify {
             subjectReferentialService.hasStellioAdminRole(listOf(userUuid))
@@ -312,13 +294,12 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         permissionService.create(Permission(assignee = userUuid, target = TargetAsset(entityId), action = Action.READ))
 
-        val result = permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
-            .shouldSucceedAndResult()
-        assertTrue(result)
+        permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
+            .shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
-    fun `hasPermissionOnEntity should allow a user to read if it has an write permission`() = runTest {
+    fun `hasPermissionOnEntity should allow a user to read if it has a write permission`() = runTest {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
@@ -327,9 +308,8 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         permissionService.create(Permission(assignee = userUuid, target = TargetAsset(entityId), action = Action.WRITE))
 
-        val result = permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
-            .shouldSucceedAndResult()
-        assertTrue(result)
+        permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
+            .shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
@@ -342,10 +322,8 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         permissionService.create(Permission(assignee = groupUuid, target = TargetAsset(entityId), action = Action.READ))
 
-        val answer = permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
-            .shouldSucceedAndResult()
-
-        assertTrue(answer)
+        permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
+            .shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
@@ -356,10 +334,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
         } returns listOf(userUuid).right()
 
-        val answer = permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
-            .shouldSucceedAndResult()
-
-        assertTrue(answer)
+        permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
+            .shouldSucceedWith {
+                assertTrue(it)
+            }
 
         coVerify {
             subjectReferentialService.hasStellioAdminRole(listOf(userUuid))

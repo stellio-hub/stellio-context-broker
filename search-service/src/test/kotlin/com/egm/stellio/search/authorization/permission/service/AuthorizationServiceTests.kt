@@ -1,4 +1,4 @@
-package com.egm.stellio.search.authorization.service
+package com.egm.stellio.search.authorization.permission.service
 
 import arrow.core.None
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS

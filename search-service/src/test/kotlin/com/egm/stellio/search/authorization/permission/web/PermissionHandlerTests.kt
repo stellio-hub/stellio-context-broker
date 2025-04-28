@@ -6,6 +6,7 @@ import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.authorization.permission.service.PermissionService
+import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AlreadyExistsException
@@ -55,9 +56,13 @@ class PermissionHandlerTests {
     @Autowired
     private lateinit var webClient: WebTestClient
 
+    @MockkBean
+    private lateinit var subjectReferentialService: SubjectReferentialService
+
     private val permissionUri = "/ngsi-ld/v1/auth/permissions"
     private val id = "urn:ngsi-ld:Permission:1".toUri()
     private val jwt = mockJwt().jwt { it.subject(MOCK_USER_SUB) }
+    private val userUuid = "55e64faf-4bda-41cc-98b0-195874cefd29"
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -87,8 +92,9 @@ class PermissionHandlerTests {
     fun `get Permission by id should return 200 when it exists`() = runTest {
         val permission = giveMeRawPermission(id = id)
 
-        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(userUuid).right()
 
         webClient.get()
             .uri("$permissionUri/$id")
@@ -105,8 +111,9 @@ class PermissionHandlerTests {
     fun `get Permission by id should return 200 with sysAttrs when options query param specify it`() = runTest {
         val permission = giveMeRawPermission(id = id)
 
-        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(userUuid).right()
 
         webClient.get()
             .uri("$permissionUri/$id?options=sysAttrs")
@@ -122,8 +129,9 @@ class PermissionHandlerTests {
     fun `get Permission by id should return the errors from the service`() = runTest {
         val permission = giveMeRawPermission(id = id)
 
-        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns ResourceNotFoundException("").left()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(userUuid).right()
 
         webClient.get()
             .uri("$permissionUri/$id")
@@ -132,6 +140,39 @@ class PermissionHandlerTests {
 
         coVerify { permissionService.getById(permission.id) }
     }
+
+    @Test
+    fun `get Permission by id should the permission if the subject it assigne to the permission`() = runTest {
+        val permission = giveMeRawPermission(id = id, assignee = userUuid)
+
+        coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
+        coEvery { permissionService.getById(any()) } returns permission.right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(userUuid).right()
+
+        webClient.get()
+            .uri("$permissionUri/$id")
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify { permissionService.getById(id) }
+    }
+
+    @Test
+    fun `get Permission by id should return unauthorized if the subject is nor the assignee nor the admin of the target entity`() =
+        runTest {
+            val permission = giveMeRawPermission(id = id, assignee = "not-matching-sub")
+
+            coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
+            coEvery { permissionService.getById(any()) } returns permission.right()
+            coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(userUuid).right()
+
+            webClient.get()
+                .uri("$permissionUri/$id")
+                .exchange()
+                .expectStatus().isForbidden
+
+            coVerify { permissionService.getById(id) }
+        }
 
     @Test
     fun `query Permission should return 200 whether a Permission exists or not`() = runTest {
@@ -156,7 +197,7 @@ class PermissionHandlerTests {
     fun `query Permission should return the count if it was asked`() = runTest {
         val permission = giveMeRawPermission(id = id)
 
-        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery {
             permissionService.getPermissions(any(), any(), any())
         } returns listOf(permission).right()
@@ -175,7 +216,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `delete Permission should return the errors from the service`() = runTest {
-        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.delete(any()) } returns ResourceNotFoundException("").left()
 
         webClient.delete()
@@ -188,7 +229,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `delete Permission should return a 204 if the deletion succeeded`() = runTest {
-        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.delete(any()) } returns Unit.right()
 
         webClient.delete()
@@ -200,10 +241,26 @@ class PermissionHandlerTests {
     }
 
     @Test
+    fun `delete Permission should refuse to delete permission if the subject is not admin of the target`() = runTest {
+        coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
+        coEvery { permissionService.delete(any()) } returns Unit.right()
+
+        webClient.delete()
+            .uri("$permissionUri/$id")
+            .exchange()
+            .expectStatus().isForbidden
+
+        coVerify(exactly = 0) { permissionService.delete(eq(id)) }
+    }
+
+    @Test
     fun `create Permission should return the errors from the service`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal_entities.json")
 
         coEvery { permissionService.create(any()) } returns AlreadyExistsException("").left()
+        coEvery {
+            permissionService.checkHasPermissionOnEntity(any(), any(), any())
+        } returns true.right()
 
         webClient.post()
             .uri(permissionUri)
@@ -224,6 +281,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal_entities.json")
 
         coEvery { permissionService.create(any()) } returns Unit.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
 
         webClient.post()
             .uri(permissionUri)
@@ -245,6 +303,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission.jsonld")
 
         coEvery { permissionService.create(any()) } returns Unit.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
 
         webClient.post()
             .uri(permissionUri)
@@ -257,12 +316,28 @@ class PermissionHandlerTests {
     }
 
     @Test
+    fun `create Permission should refuse to create permission if the subject is not administrator`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/permission/permission.jsonld")
+
+        coEvery { permissionService.create(any()) } returns Unit.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns false.right()
+
+        webClient.post()
+            .uri(permissionUri)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+
+        coVerify(exactly = 0) { permissionService.create(any()) }
+    }
+
+    @Test
     fun `update permission should return a 500 if update in DB failed`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.jsonld")
         val permissionId = id
         val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
-        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
 
         webClient.patch()
@@ -280,7 +355,7 @@ class PermissionHandlerTests {
                     """
             )
 
-        coVerify { permissionService.isCreatorOf(permissionId, sub) }
+        coVerify { permissionService.isAdminOf(permissionId, sub) }
         coVerify { permissionService.update(eq(permissionId), parsedPermission, APIC_COMPOUND_CONTEXTS) }
 
         confirmVerified(permissionService)
@@ -292,7 +367,7 @@ class PermissionHandlerTests {
         val permissionId = id
         val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
-        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
 
         webClient.patch()
@@ -301,7 +376,7 @@ class PermissionHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        coVerify { permissionService.isCreatorOf(permissionId, sub) }
+        coVerify { permissionService.isAdminOf(permissionId, sub) }
         coVerify { permissionService.update(eq(permissionId), parsedPermission, APIC_COMPOUND_CONTEXTS) }
 
         confirmVerified(permissionService)
@@ -311,7 +386,7 @@ class PermissionHandlerTests {
     fun `update permission should return a 400 if JSON-LD context is not correct`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
 
-        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
 
         @Suppress("MaxLineLength")
         webClient.patch()
@@ -329,14 +404,14 @@ class PermissionHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { permissionService.isCreatorOf(id, sub) }
+        coVerify { permissionService.isAdminOf(id, sub) }
     }
 
     @Test
     fun `update permission should return a 204 if JSON-LD context is provided in header`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
 
-        coEvery { permissionService.isCreatorOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
 
         @Suppress("MaxLineLength")
@@ -350,5 +425,22 @@ class PermissionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
+    }
+
+    @Test
+    fun `update permission should refuse to modify a permission if the subject does not administrate it`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.jsonld")
+        val permissionId = id
+
+        coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
+        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+
+        coVerify(exactly = 0) { permissionService.update(any(), any(), any()) }
     }
 }

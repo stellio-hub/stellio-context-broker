@@ -20,7 +20,7 @@ import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
-import com.ninjasquad.springmockk.SpykBean
+import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
@@ -29,6 +29,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -48,12 +49,19 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    @SpykBean
+    @MockkBean
     private lateinit var subjectReferentialService: SubjectReferentialService
 
-    private val userUuid = UUID.randomUUID().toString()
+    private val userUuid = "55e64faf-4bda-41cc-98b0-195874cefd29"
     private val groupUuid = UUID.randomUUID().toString()
     private val entityId = "urn:ngsi-ld:Entity:01".toUri()
+
+    @BeforeEach
+    fun setDefaultBehaviorOnSubjectReferential() {
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } answers { listOf(userUuid).right() }
+    }
 
     @AfterEach
     fun deletePermissions() {
@@ -127,7 +135,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `query Permission on action should return all Permission matching the right`() = runTest {
+    fun `query Permission on action should return all Permission matching the action`() = runTest {
         val readPermission = loadAndDeserializePermission("permission/permission_minimal_entities.json")
             .copy(id = "urn:readPermission".toUri(), action = Action.READ)
         permissionService.create(readPermission).shouldSucceed()
@@ -198,6 +206,22 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         assertTrue(notMatchingPermission.isRight())
         assertThat(notMatchingPermission.getOrNull()).isEmpty()
     }
+
+    @Test
+    fun `query on Permissions should not return a permission if the subject is nor the assignee nor the administrator of the target`() =
+        runTest {
+            val permission =
+                loadAndDeserializePermission("permission/permission_minimal_entities.json")
+                    .copy(assignee = "not-the-subject", assigner = userUuid)
+            permissionService.create(permission).shouldSucceed()
+
+            val matchingPermissions = permissionService.getPermissions(
+                PermissionFilters(assigner = userUuid)
+            )
+
+            assertTrue(matchingPermissions.isRight())
+            assertThat(matchingPermissions.getOrNull()).isEmpty()
+        }
 
     @Test
     fun `count should apply the filter`() = runTest {
@@ -282,6 +306,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun `hasPermissionOnEntity should allow a user having a direct permission on a entity`() = runTest {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
+        } returns listOf(userUuid).right()
+
         permissionService.create(Permission(assignee = userUuid, target = TargetAsset(entityId), action = Action.READ))
 
         val result = permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
@@ -293,6 +321,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun `hasPermissionOnEntity should allow a user to read if it has an write permission`() = runTest {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
+        } returns listOf(userUuid).right()
+
         permissionService.create(Permission(assignee = userUuid, target = TargetAsset(entityId), action = Action.WRITE))
 
         val result = permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
@@ -302,10 +334,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `hasPermissionOnEntity should allow a user having permission via a group membership`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
+        coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
+            subjectReferentialService.getSubjectAndGroupsUUID(any())
         } returns listOf(groupUuid, userUuid).right()
 
         permissionService.create(Permission(assignee = groupUuid, target = TargetAsset(entityId), action = Action.READ))

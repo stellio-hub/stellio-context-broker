@@ -23,10 +23,13 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.shared.util.toUri
@@ -134,19 +137,18 @@ class PermissionService(
             .oneToResult { rowToPermission(it).bind() }
     }
 
-    suspend fun isCreatorOf(id: URI, sub: Option<Sub>): Either<APIException, Boolean> {
+    suspend fun isAdminOf(id: URI, sub: Option<Sub>): Either<APIException, Boolean> = either {
         val selectStatement =
             """
-            SELECT assigner
+            SELECT target_id
             FROM permission
             WHERE id = :id
             """.trimIndent()
 
-        return databaseClient.sql(selectStatement)
+        val targetEntityId = databaseClient.sql(selectStatement)
             .bind("id", id)
-            .oneToResult {
-                it["sub"] == sub.toStringValue()
-            }
+            .oneToResult { it["target_id"] as String }.bind()
+        checkHasPermissionOnEntity(sub, targetEntityId.toUri(), Action.ADMIN).bind()
     }
 
     suspend fun delete(id: URI): Either<APIException, Unit> = either {
@@ -160,21 +162,28 @@ class PermissionService(
     suspend fun update(
         permissionId: URI,
         input: Map<String, Any>,
-        contexts: List<String>
+        contexts: List<String>,
     ): Either<APIException, Unit> = either {
         checkExistence(permissionId).bind()
+        val sub = getSubFromSecurityContext()
         if (!input.containsKey(JSONLD_TYPE_TERM) || input[JSONLD_TYPE_TERM]!! != AUTH_PERMISSION_TERM)
             raise(BadRequestDataException("type attribute must be present and equal to '$AUTH_PERMISSION_TERM'"))
 
         input.filterKeys {
-            it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
-        }.plus("modifiedAt" to ngsiLdDateTime())
+            it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS + AUTH_ASSIGNER_TERM
+        }.plus(NGSILD_MODIFIED_AT_TERM to ngsiLdDateTime()).plus(AUTH_ASSIGNER_TERM to sub.toStringValue())
             .forEach {
                 when {
                     it.key == "target" -> {
                         val target = input["target"] as Map<String, Any>
-                        target["id"]?.let {
-                            updatePermissionAttribute(permissionId, "target_id", it).bind()
+                        target["id"]?.let { entityId ->
+                            checkHasPermissionOnEntity(
+                                sub,
+                                (entityId as String).toUri(),
+                                Action.ADMIN
+                            ).bind()
+
+                            updatePermissionAttribute(permissionId, "target_id", entityId).bind()
                         }
                     }
 
@@ -182,8 +191,8 @@ class PermissionService(
                         "id",
                         "assignee",
                         "action",
-                        "assigner",
-                        "modifiedAt"
+                        AUTH_ASSIGNER_TERM,
+                        NGSILD_MODIFIED_AT_TERM
                     ).contains(it.key) -> {
                         val columnName = it.key
                         val value = it.value
@@ -217,7 +226,7 @@ class PermissionService(
         offset: Int = 0,
     ): Either<APIException, List<Permission>> = either {
         val filterQuery = buildWhereStatement(filters)
-
+        val authorizationFilter = buildAuthorizationFilter().bind()
         val selectStatement =
             """
             SELECT id,
@@ -228,7 +237,7 @@ class PermissionService(
                 modified_at,
                 assigner
             FROM permission
-            WHERE $filterQuery
+            WHERE $filterQuery AND $authorizationFilter
             ORDER BY permission.created_at
             LIMIT :limit
             OFFSET :offset
@@ -242,17 +251,18 @@ class PermissionService(
 
     suspend fun getPermissionsCount(
         filters: PermissionFilters = PermissionFilters(),
-    ): Either<APIException, Int> {
+    ): Either<APIException, Int> = either {
         val filterQuery = buildWhereStatement(filters)
+        val authorizationFilter = buildAuthorizationFilter().bind()
 
         val selectStatement =
             """
             SELECT count(distinct permission.id)
             FROM permission
-            WHERE $filterQuery
+            WHERE $filterQuery AND $authorizationFilter
             """.trimIndent()
-        return databaseClient.sql(selectStatement)
-            .oneToResult { toInt(it["count"]) }
+        databaseClient.sql(selectStatement)
+            .oneToResult { toInt(it["count"]) }.bind()
     }
 
     @Transactional
@@ -321,6 +331,21 @@ class PermissionService(
             .allToMappedList { toUri(it["entity_id"]) }
     }
 
+    private suspend fun buildAuthorizationFilter(): Either<APIException, String> = either {
+        val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind().joinToString(",") { "'$it'" }
+
+        """
+        (
+            assignee IN ($uuids)
+            OR target_id in (
+                    SELECT target_id
+                    FROM permission
+                    WHERE assignee IN ($uuids)
+                    AND action IN ('admin', 'own')
+                )
+         )
+        """.trimIndent()
+    }
     companion object {
 
         private fun buildWhereStatement(permissionFilters: PermissionFilters): String {
@@ -366,7 +391,7 @@ class PermissionService(
                 createdAt = toZonedDateTime(row["created_at"]),
                 modifiedAt = toZonedDateTime(row["modified_at"]),
                 target = TargetAsset(
-                    id = (row["target_id"] as? String)?.toUri(),
+                    id = (row["target_id"] as String).toUri(),
                 ),
                 action = Action.fromString(row["action"] as String).bind(),
                 assigner = row["assigner"] as? String,

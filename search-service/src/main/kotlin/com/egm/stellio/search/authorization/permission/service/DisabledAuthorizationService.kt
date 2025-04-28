@@ -1,4 +1,4 @@
-package com.egm.stellio.search.authorization.service
+package com.egm.stellio.search.authorization.permission.service
 
 import arrow.core.Either
 import arrow.core.Option

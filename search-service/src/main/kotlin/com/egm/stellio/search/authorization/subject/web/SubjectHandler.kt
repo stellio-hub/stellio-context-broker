@@ -1,7 +1,7 @@
 package com.egm.stellio.search.authorization.subject.web
 
 import arrow.core.raise.either
-import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
@@ -70,7 +70,7 @@ class SubjectHandler(
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
-            "/ngsi-ld/v1/entityAccessControl/groups",
+            "/ngsi-ld/v1/auth/subjects/groups",
             entitiesQuery.paginationQuery,
             params,
             mediaType,
@@ -117,7 +117,7 @@ class SubjectHandler(
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
-            "/ngsi-ld/v1/entityAccessControl/users",
+            "/ngsi-ld/v1/auth/subjects/users",
             entitiesQuery.paginationQuery,
             params,
             mediaType,

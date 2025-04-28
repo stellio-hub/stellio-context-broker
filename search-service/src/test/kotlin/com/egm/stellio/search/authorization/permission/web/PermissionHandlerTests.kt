@@ -76,9 +76,8 @@ class PermissionHandlerTests {
             .build()
     }
 
-    @SuppressWarnings("LongParameterList")
     fun giveMeRawPermission(
-        id: URI = "urn:ngsi-ld:Permission".toUri(),
+        id: URI = "urn:ngsi-ld:Permission:1".toUri(),
         type: String = AUTH_PERMISSION_TERM,
         target: TargetAsset = TargetAsset(id = "my:id".toUri()),
         assignee: Sub = MOCK_USER_SUB,
@@ -90,7 +89,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `get Permission by id should return 200 when it exists`() = runTest {
-        val permission = giveMeRawPermission(id = id)
+        val permission = giveMeRawPermission()
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
@@ -109,7 +108,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `get Permission by id should return 200 with sysAttrs when options query param specify it`() = runTest {
-        val permission = giveMeRawPermission(id = id)
+        val permission = giveMeRawPermission()
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
@@ -127,7 +126,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `get Permission by id should return the errors from the service`() = runTest {
-        val permission = giveMeRawPermission(id = id)
+        val permission = giveMeRawPermission()
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns ResourceNotFoundException("").left()
@@ -143,7 +142,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `get Permission by id should the permission if the subject it assigne to the permission`() = runTest {
-        val permission = giveMeRawPermission(id = id, assignee = userUuid)
+        val permission = giveMeRawPermission(assignee = userUuid)
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
@@ -160,7 +159,7 @@ class PermissionHandlerTests {
     @Test
     fun `get Permission by id should return unauthorized if the subject is nor the assignee nor the admin of the target entity`() =
         runTest {
-            val permission = giveMeRawPermission(id = id, assignee = "not-matching-sub")
+            val permission = giveMeRawPermission(assignee = "not-matching-sub")
 
             coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
             coEvery { permissionService.getById(any()) } returns permission.right()
@@ -176,7 +175,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `query Permission should return 200 whether a Permission exists or not`() = runTest {
-        val permission = giveMeRawPermission(id = id)
+        val permission = giveMeRawPermission()
 
         coEvery {
             permissionService.getPermissions(any(), any(), any())
@@ -195,7 +194,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `query Permission should return the count if it was asked`() = runTest {
-        val permission = giveMeRawPermission(id = id)
+        val permission = giveMeRawPermission()
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery {
@@ -255,7 +254,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `create Permission should return the errors from the service`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal_entities.json")
+        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal.json")
 
         coEvery { permissionService.create(any()) } returns AlreadyExistsException("").left()
         coEvery {
@@ -278,7 +277,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `create Permission should return a 204 if the creation succeeded`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal_entities.json")
+        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal.json")
 
         coEvery { permissionService.create(any()) } returns Unit.right()
         coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
@@ -362,7 +361,7 @@ class PermissionHandlerTests {
     }
 
     @Test
-    fun `update permission should return a 204 if JSON-LD payload is correct`() = runTest {
+    fun `update permission should return a 204 if update succeeded`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.jsonld")
         val permissionId = id
         val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
@@ -388,7 +387,6 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
 
-        @Suppress("MaxLineLength")
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$id")
             .bodyValue(jsonLdFile)
@@ -414,7 +412,6 @@ class PermissionHandlerTests {
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
 
-        @Suppress("MaxLineLength")
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$id")
             .headers {

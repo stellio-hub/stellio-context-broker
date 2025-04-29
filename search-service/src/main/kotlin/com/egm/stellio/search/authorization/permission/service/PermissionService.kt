@@ -346,44 +346,48 @@ class PermissionService(
          )
         """.trimIndent()
     }
-    companion object {
 
-        private fun buildWhereStatement(permissionFilters: PermissionFilters): String {
-            val idFilter = if (!permissionFilters.ids.isNullOrEmpty())
-                """
+    private suspend fun buildWhereStatement(
+        permissionFilters: PermissionFilters
+    ): Either<APIException, String> = either {
+        val assigneeUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+
+        val idFilter = if (!permissionFilters.ids.isNullOrEmpty())
+            """
                 (
                     target_id is null OR
                     target_id in ('${permissionFilters.ids.joinToString("', '")}')
                 )
-                """.trimIndent()
-            else null
+            """.trimIndent()
+        else null
 
-            val actionFilter = permissionFilters.action?.let { action ->
-                """
+        val actionFilter = permissionFilters.action?.let { action ->
+            """
                     action in ('${
-                    action.getIncludedIn()
-                        .joinToString("', '") { it.value }
-                }')
-                """.trimIndent()
-            }
+                action.getIncludedIn()
+                    .joinToString("', '") { it.value }
+            }')
+            """.trimIndent()
+        }
 
-            val assigneeFilter = permissionFilters.assignee?.let { assignee ->
-                """
+        val assigneeFilter = permissionFilters.assignee?.let { assignee ->
+            """
                 (
                     assignee is null OR
-                    assignee = '$assignee'
+                    assignee in ('${assigneeUuids.joinToString("', '")}'}')'
                 )
                 """
-            }
-
-            val assignerFilter = permissionFilters.assigner?.let { assigner ->
-                "assigner = '$assigner'"
-            }
-
-            val filters = listOfNotNull(idFilter, actionFilter, assigneeFilter, assignerFilter)
-
-            return if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
         }
+
+        val assignerFilter = permissionFilters.assigner?.let { assigner ->
+            "assigner = '$assigner'"
+        }
+
+        val filters = listOfNotNull(idFilter, actionFilter, assigneeFilter, assignerFilter)
+
+        if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
+    }
+    companion object {
 
         private fun rowToPermission(row: Map<String, Any>): Either<APIException, Permission> = either {
             Permission(

@@ -233,7 +233,8 @@ class EnabledAuthorizationServiceTests {
                 (entity_payload.entity_id IN (
                     SELECT target_id
                     FROM permission
-                    WHERE assignee IN ('$subjectUuid','$groupUuid')
+                    WHERE assignee is null
+                    OR assignee IN ('$subjectUuid','$groupUuid')
                 ))
             """.trimIndent(),
             accessRightFilter()

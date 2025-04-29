@@ -44,24 +44,6 @@ fun loadMinimalEntity(
         }
     """.trimIndent()
 
-fun loadMinimalEntityWithSap(
-    entityId: URI,
-    entityTypes: Set<String>,
-    specificAccessPolicy: AuthContextModel.SpecificAccessPolicy,
-    contexts: List<String> = NGSILD_TEST_CORE_CONTEXTS
-): String =
-    """
-        {
-            "id": "$entityId",
-            "type": [${entityTypes.joinToString(",") { "\"$it\"" }}],
-            "specificAccessPolicy": {
-                "type": "Property",
-                "value": "${specificAccessPolicy.name}"
-            },
-            "@context": [${contexts.joinToString(",") { "\"$it\"" }}]
-        }
-    """.trimIndent()
-
 suspend fun loadAndExpandMinimalEntity(
     id: String,
     type: String,

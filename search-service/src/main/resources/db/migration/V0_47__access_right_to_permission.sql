@@ -18,7 +18,7 @@ ALTER TABLE permission
 
 
 -- migrate specific access policy into permission
-INSERT INTO permission (id, action, target_id)
+INSERT INTO permission (action, target_id)
 SELECT specific_access_policy, entity_id
 FROM entity_payload
 WHERE specific_access_policy is not null;
@@ -26,15 +26,17 @@ WHERE specific_access_policy is not null;
 ALTER TABLE entity_payload
     DROP COLUMN specific_access_policy;
 
--- guess the permission creation date with the entity it target
 UPDATE permission
-SET created_at  = entity_payload.created_at,
-    modified_at = entity_payload.created_at
-FROM entity_payload
-WHERE permission.target_id = entity_payload.entity_id;
+SET created_at = '1970-01-01 00:00:00.033000'
+WHERE created_at is null;
 
 UPDATE permission
-set id = concat("urn:ngsi-ld:Permission:", gen_random_uuid());
+SET modified_at = '1970-01-01 00:00:00.033000'
+WHERE modified_at is null;
+
+UPDATE permission
+set id = concat('urn:ngsi-ld:Permission:', gen_random_uuid())
+WHERE id is null;
 
 UPDATE permission
 SET action = 'read'

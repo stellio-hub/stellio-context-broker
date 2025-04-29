@@ -26,7 +26,7 @@ dependencies {
     testFixturesImplementation("org.springframework.security:spring-security-oauth2-jose")
     testFixturesImplementation("org.springframework.security:spring-security-test")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-    testFixturesImplementation("io.arrow-kt:arrow-fx-coroutines:2.1.0")
+    testFixturesImplementation("io.arrow-kt:arrow-fx-coroutines:2.1.1")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-test") {
         // to ensure we are using mocks and spies from springmockk lib instead
         exclude(module = "mockito-core")

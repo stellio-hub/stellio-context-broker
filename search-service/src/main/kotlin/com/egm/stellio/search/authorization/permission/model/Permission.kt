@@ -91,6 +91,9 @@ data class Permission(
         fun notFoundMessage(id: URI) = "Could not find a Permission with id $id"
         fun alreadyExistsMessage(id: URI) = "A Permission with id : $id already exists"
         fun unauthorizedMessage(entityId: URI) = "User is not authorized to access Permission targeting $entityId"
+        val CHANGE_OWNER_EXCEPTION = BadRequestDataException("Adding a new owner to an entity is prohibited")
+        val EVERYONE_AS_ADMIN_EXCEPTION =
+            BadRequestDataException("Adding administration right for everyone is prohibited")
     }
 }
 

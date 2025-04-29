@@ -3,16 +3,10 @@ package com.egm.stellio.shared.util
 import arrow.core.Either
 import arrow.core.Option
 import arrow.core.getOrElse
-import arrow.core.left
-import arrow.core.right
 import arrow.core.toOption
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.NgsiLdAttribute
-import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import kotlinx.coroutines.reactive.awaitFirst
@@ -63,11 +57,6 @@ object AuthContextModel {
 
     const val AUTH_TERM_IS_MEMBER_OF = "isMemberOf"
     const val AUTH_REL_IS_MEMBER_OF: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_IS_MEMBER_OF
-
-    enum class SpecificAccessPolicy {
-        AUTH_READ,
-        AUTH_WRITE
-    }
 }
 
 // sub as per https://openid.net/specs/openid-connect-core-1_0.html#IDToken
@@ -93,23 +82,6 @@ fun String.extractSub(): Sub =
 
 // specific to authz terms where we know the compacted term is what is after the last # character
 fun ExpandedTerm.toCompactTerm(): String = this.substringAfterLast("#")
-
-fun NgsiLdEntity.getSpecificAccessPolicy(): Either<APIException, AuthContextModel.SpecificAccessPolicy>? =
-    this.properties.find { it.name == AuthContextModel.AUTH_PROP_SAP }?.getSpecificAccessPolicy()
-
-fun NgsiLdAttribute.getSpecificAccessPolicy(): Either<APIException, AuthContextModel.SpecificAccessPolicy> {
-    val ngsiLdAttributeInstances = this.getAttributeInstances()
-    if (ngsiLdAttributeInstances.size > 1)
-        return BadRequestDataException("Payload must contain a single attribute instance").left()
-    val ngsiLdAttributeInstance = ngsiLdAttributeInstances[0]
-    if (ngsiLdAttributeInstance !is NgsiLdPropertyInstance)
-        return BadRequestDataException("Payload must be a property").left()
-    return try {
-        AuthContextModel.SpecificAccessPolicy.valueOf(ngsiLdAttributeInstance.value.toString()).right()
-    } catch (e: java.lang.IllegalArgumentException) {
-        BadRequestDataException("Value must be one of AUTH_READ or AUTH_WRITE (${e.message})").left()
-    }
-}
 
 enum class SubjectType {
     USER,

@@ -23,6 +23,7 @@ import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.ENTITY_UPDATE_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.toStringValue
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -107,6 +108,19 @@ class EnabledAuthorizationService(
             }
         }.map { it.first() }
 
+    override suspend fun createGlobalPermission(
+        entityId: URI,
+        action: Action,
+        sub: Option<Sub>
+    ): Either<APIException, Unit> = permissionService.create(
+        Permission(
+            assignee = null,
+            assigner = sub.toStringValue(),
+            target = TargetAsset(id = entityId),
+            action = action
+        )
+    )
+
     override suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit> =
         permissionService.removePermissionsOnEntity(entityId)
 
@@ -163,7 +177,8 @@ class EnabledAuthorizationService(
                         (entity_payload.entity_id IN (
                             SELECT target_id
                             FROM permission
-                            WHERE assignee IN (${uuids.toListOfString()})
+                            WHERE assignee is null
+                            OR assignee IN (${uuids.toListOfString()})
                         ))
                     """.trimIndent()
                 }

@@ -2,6 +2,7 @@ package com.egm.stellio.search.authorization.permission.service
 
 import arrow.core.Either
 import arrow.core.Option
+import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.Sub
@@ -18,6 +19,7 @@ interface AuthorizationService {
 
     suspend fun createOwnerRight(entityId: URI, sub: Option<Sub>): Either<APIException, Unit>
     suspend fun createOwnerRights(entitiesId: List<URI>, sub: Option<Sub>): Either<APIException, Unit>
+    suspend fun createGlobalPermission(entityId: URI, action: Action, sub: Option<Sub>): Either<APIException, Unit>
     suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit>
 
     suspend fun getGroupsMemberships(

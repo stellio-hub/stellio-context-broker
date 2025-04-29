@@ -7,6 +7,8 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.CHANGE_OWNER_EXCEPTION
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.EVERYONE_AS_ADMIN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
@@ -71,6 +73,16 @@ class PermissionHandler(
 
         val permission = deserialize(body, contexts).bind().copy(assigner = sub.toStringValue())
         checkIsAdmin(permission).bind()
+
+        if (permission.action == Action.OWN) {
+            CHANGE_OWNER_EXCEPTION
+                .left().bind<APIException>()
+        }
+
+        if (permission.action == Action.ADMIN && permission.assignee == null) {
+            EVERYONE_AS_ADMIN_EXCEPTION.left()
+                .bind<APIException>()
+        }
 
         permissionService.create(permission).bind()
 
@@ -171,7 +183,22 @@ class PermissionHandler(
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         checkIsAdmin(permissionId).bind()
+        val oldPermission = permissionService.getById(permissionId).bind()
+
+        if (oldPermission.action == Action.OWN) {
+            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+        }
+
         val body = requestBody.awaitFirst().deserializeAsMap()
+
+        if (body["action"] == Action.OWN.value) {
+            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+        }
+        if (body["assignee"] == null &&
+            (oldPermission.action == Action.ADMIN || body["action"] == Action.ADMIN.value)
+        ) {
+            EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
+        }
 
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
         permissionService.update(permissionId, body, contexts).bind()

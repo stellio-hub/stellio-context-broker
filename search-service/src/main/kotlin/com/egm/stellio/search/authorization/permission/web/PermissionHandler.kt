@@ -15,23 +15,28 @@ import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.serialize
 import com.egm.stellio.search.authorization.permission.service.PermissionService
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
+import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
+import com.egm.stellio.shared.util.isURI
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.util.toStringValue
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -54,7 +59,7 @@ import reactor.core.publisher.Mono
 import java.net.URI
 
 @RestController
-@RequestMapping("/ngsi-ld/v1/auth/permissions")
+@RequestMapping("/ngsi-ld/v1/auth")
 @Validated
 class PermissionHandler(
     private val applicationProperties: ApplicationProperties,
@@ -62,7 +67,39 @@ class PermissionHandler(
     private val subjectReferentialService: SubjectReferentialService
 ) : BaseHandler() {
 
-    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @PostMapping(
+        path = ["permissionOperations/create"],
+        consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]
+    )
+    suspend fun batchCreate(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
+        val body = requestBody.awaitFirst().deserializeAsList()
+        val operationResult = BatchOperationResult()
+
+        body.map { permissionBody -> // can't do proper error handling if it is missing some id.
+            val id = permissionBody["id"] as? String
+            val asValidId = id?.isURI() ?: false
+            if (asValidId)
+                return BadRequestDataException("batch creation does not support null id").toErrorResponse()
+
+            id!!.toUri() to permissionBody
+        }.forEach { (id, permissionBody) ->
+            val creationResponse = either {
+                val contexts = checkAndGetContext(httpHeaders, permissionBody, applicationProperties.contexts.core)
+                    .bind()
+                val permission = deserialize(permissionBody, contexts).bind()
+                permissionService.create(permission).bind()
+            }
+
+            operationResult.addEither(creationResponse, id)
+        }
+
+        return operationResult.toEndpointResponse()
+    }
+
+    @PostMapping(path = ["permissions"], consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
@@ -94,7 +131,7 @@ class PermissionHandler(
         { it }
     )
 
-    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @GetMapping(path = ["permissions"], produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun query(
         @RequestHeader httpHeaders: HttpHeaders,
         @AllowedParameters(
@@ -144,7 +181,10 @@ class PermissionHandler(
         { it }
     )
 
-    @GetMapping("/{permissionId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @GetMapping(
+        "permissionspermissions/{permissionId}",
+        produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]
+    )
     suspend fun retrieve(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable permissionId: URI,
@@ -172,7 +212,7 @@ class PermissionHandler(
     )
 
     @PatchMapping(
-        "/{permissionId}",
+        "permissions/{permissionId}",
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
     suspend fun update(
@@ -209,7 +249,7 @@ class PermissionHandler(
         { it }
     )
 
-    @DeleteMapping("/{permissionId}")
+    @DeleteMapping("permissions/{permissionId}")
     suspend fun delete(
         @PathVariable permissionId: URI,
         @AllowedParameters // no query parameter is allowed

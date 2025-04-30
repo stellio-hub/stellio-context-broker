@@ -60,6 +60,7 @@ class PermissionHandlerTests {
     private lateinit var subjectReferentialService: SubjectReferentialService
 
     private val permissionUri = "/ngsi-ld/v1/auth/permissions"
+    private val batchCreatePermissionUri = "/ngsi-ld/v1/auth/permissionOperations/create"
     private val id = "urn:ngsi-ld:Permission:1".toUri()
     private val jwt = mockJwt().jwt { it.subject(MOCK_USER_SUB) }
     private val userUuid = "55e64faf-4bda-41cc-98b0-195874cefd29"
@@ -439,5 +440,66 @@ class PermissionHandlerTests {
             .expectStatus().isForbidden
 
         coVerify(exactly = 0) { permissionService.update(any(), any(), any()) }
+    }
+
+    @Test
+    fun `create batch Permission should not accept permission without id`() = runTest {
+        val jsonLdFile = """
+         [ {
+            "type": "Permission",
+            "target":{
+                "id": "urn:ngsi-ld:Vehicle:A456",
+                "type": "Vehicle"
+            },
+            "assignee": "55e64faf-4bda-41cc-98b0-195874cefd29",
+            "action": "read",
+            "@context": [
+            "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+            ]
+        }]
+        """.trimIndent()
+
+        coEvery { permissionService.create(any()) } returns Unit.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
+
+        webClient.post()
+            .uri(batchCreatePermissionUri)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isCreated
+            .expectHeader().exists("Location")
+
+        coVerify(exactly = 0) { permissionService.create(any()) }
+    }
+
+    @Test
+    fun `create batch Permission should accept permission without id`() = runTest {
+        val jsonLdFile = """
+         [ {
+            "id": "urn:ngsi-ld:Permission:1",
+            "type": "Permission",
+            "target":{
+                "id": "urn:ngsi-ld:Vehicle:A456",
+                "type": "Vehicle"
+            },
+            "assignee": "55e64faf-4bda-41cc-98b0-195874cefd29",
+            "action": "read",
+            "@context": [
+            "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+            ]
+        }]
+        """.trimIndent()
+
+        coEvery { permissionService.create(any()) } returns Unit.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
+
+        webClient.post()
+            .uri(batchCreatePermissionUri)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isCreated
+            .expectHeader().exists("Location")
+
+        coVerify(exactly = 0) { permissionService.create(any()) }
     }
 }

@@ -1,5 +1,6 @@
 package com.egm.stellio.search.authorization.permission.service
 
+import arrow.core.Option
 import arrow.core.Some
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
@@ -14,6 +15,7 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
@@ -23,6 +25,7 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -62,6 +65,11 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             subjectReferentialService.getSubjectAndGroupsUUID()
         } answers { listOf(userUuid).right() }
+        val capturedSub = slot<Option<Sub>>()
+
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(capture(capturedSub)) } answers {
+            listOfNotNull(capturedSub.captured.getOrNull()).right()
+        }
     }
 
     @AfterEach
@@ -214,15 +222,24 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `count on Permission should apply the filter`() = runTest {
         val permission = minimalPermission.copy(assignee = userUuid)
+        val invalidUser = "INVALID"
         permissionService.create(permission).shouldSucceed()
+
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
+        } returns listOf(userUuid).right()
 
         val count = permissionService.getPermissionsCount(
             PermissionFilters(assignee = userUuid)
         )
         assertEquals(1, count.getOrNull())
 
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID(Some(invalidUser))
+        } returns listOf(invalidUser).right()
+
         val countEmpty = permissionService.getPermissionsCount(
-            PermissionFilters(assignee = "INVALID")
+            filters = PermissionFilters(assignee = invalidUser)
         )
         assertEquals(0, countEmpty.getOrNull())
     }

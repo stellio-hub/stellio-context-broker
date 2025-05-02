@@ -6,20 +6,25 @@ import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.authorization.permission.service.PermissionService
+import com.egm.stellio.search.authorization.subject.model.SubjectReferential
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
+import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.sub
 import com.egm.stellio.shared.util.toUri
@@ -27,6 +32,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.confirmVerified
+import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -59,6 +65,9 @@ class PermissionHandlerTests {
     @MockkBean
     private lateinit var subjectReferentialService: SubjectReferentialService
 
+    @MockkBean
+    private lateinit var entityQueryService: EntityQueryService
+
     private val permissionUri = "/ngsi-ld/v1/auth/permissions"
     private val id = "urn:ngsi-ld:Permission:1".toUri()
     private val jwt = mockJwt().jwt { it.subject(MOCK_USER_SUB) }
@@ -76,7 +85,7 @@ class PermissionHandlerTests {
             .build()
     }
 
-    fun giveMeRawPermission(
+    fun gimmeRawPermission(
         id: URI = "urn:ngsi-ld:Permission:1".toUri(),
         type: String = AUTH_PERMISSION_TERM,
         target: TargetAsset = TargetAsset(id = "my:id".toUri()),
@@ -89,7 +98,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `get Permission by id should return 200 when it exists`() = runTest {
-        val permission = giveMeRawPermission()
+        val permission = gimmeRawPermission()
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
@@ -108,7 +117,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `get Permission by id should return 200 with sysAttrs when options query param specify it`() = runTest {
-        val permission = giveMeRawPermission()
+        val permission = gimmeRawPermission()
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
@@ -126,7 +135,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `get Permission by id should return the errors from the service`() = runTest {
-        val permission = giveMeRawPermission()
+        val permission = gimmeRawPermission()
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns ResourceNotFoundException("").left()
@@ -142,7 +151,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `get Permission by id should the permission if the subject it assigne to the permission`() = runTest {
-        val permission = giveMeRawPermission(assignee = userUuid)
+        val permission = gimmeRawPermission(assignee = userUuid)
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
@@ -159,7 +168,7 @@ class PermissionHandlerTests {
     @Test
     fun `get Permission by id should return unauthorized if the subject is nor the assignee nor the admin of the target entity`() =
         runTest {
-            val permission = giveMeRawPermission(assignee = "not-matching-sub")
+            val permission = gimmeRawPermission(assignee = "not-matching-sub")
 
             coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
             coEvery { permissionService.getById(any()) } returns permission.right()
@@ -175,7 +184,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `query Permission should return 200 whether a Permission exists or not`() = runTest {
-        val permission = giveMeRawPermission()
+        val permission = gimmeRawPermission()
 
         coEvery {
             permissionService.getPermissions(any(), any(), any())
@@ -193,8 +202,71 @@ class PermissionHandlerTests {
     }
 
     @Test
+    fun `query Permission with details=true should return entire entity and subject information`() = runTest {
+        val permission = gimmeRawPermission()
+        val expandedEntity = ExpandedEntity(
+            mapOf(
+                "@id" to "my:id".toString(),
+                "@type" to listOf(BEEHIVE_TYPE)
+            )
+        )
+
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery {
+            permissionService.getPermissions(any(), any(), any())
+        } returns listOf(permission).right()
+
+        coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns expandedEntity.right()
+        coEvery {
+            subjectReferentialService.retrieve(any())
+        } returns SubjectReferential(
+            userUuid, SubjectType.GROUP,
+            Json.of(
+                """
+                    {"type": "Property", "value": {"kind": "Group", "name": "Stellio Team"}}
+                """.trimIndent()
+            )
+        ).right()
+
+        coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
+
+        webClient.get()
+            .uri("$permissionUri?id=$id&details=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .json(
+                """
+                    [
+                    {
+                     "assignee" : {
+                        "kind" : "Group",
+                        "name" : "Stellio Team"
+                        },
+                     "action" : "read",
+                     "assigner" : {
+                        "kind" : "Group",
+                        "name" : "Stellio Team"
+                        },
+                      "target" : {
+                        "id" : "my:id",
+                        "type" : "https://ontology.eglobalmark.com/apic#BeeHive",
+                        "@context" : "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+                      }
+                      },
+                    ]                
+                """.trimIndent()
+            )
+            .returnResult().responseBody?.toString(Charsets.UTF_8)
+
+        coVerify { permissionService.getPermissions(any(), any()) }
+        coVerify { entityQueryService.queryEntity(any(), any()) }
+        coVerify { subjectReferentialService.retrieve(any()) }
+    }
+
+    @Test
     fun `query Permission should return the count if it was asked`() = runTest {
-        val permission = giveMeRawPermission()
+        val permission = gimmeRawPermission()
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery {
@@ -337,6 +409,7 @@ class PermissionHandlerTests {
         val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
         coEvery { permissionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
 
         webClient.patch()
@@ -356,6 +429,7 @@ class PermissionHandlerTests {
 
         coVerify { permissionService.isAdminOf(permissionId, sub) }
         coVerify { permissionService.update(eq(permissionId), parsedPermission, APIC_COMPOUND_CONTEXTS) }
+        coVerify { permissionService.getById(permissionId) }
 
         confirmVerified(permissionService)
     }
@@ -368,6 +442,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
@@ -377,6 +452,7 @@ class PermissionHandlerTests {
 
         coVerify { permissionService.isAdminOf(permissionId, sub) }
         coVerify { permissionService.update(eq(permissionId), parsedPermission, APIC_COMPOUND_CONTEXTS) }
+        coVerify { permissionService.getById(permissionId) }
 
         confirmVerified(permissionService)
     }
@@ -386,6 +462,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$id")
@@ -411,6 +488,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$id")

@@ -6,6 +6,7 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import arrow.core.toOption
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
@@ -225,7 +226,7 @@ class PermissionService(
         limit: Int = Int.MAX_VALUE,
         offset: Int = 0,
     ): Either<APIException, List<Permission>> = either {
-        val filterQuery = buildWhereStatement(filters)
+        val filterQuery = buildWhereStatement(filters).bind()
         val authorizationFilter = buildAuthorizationFilter().bind()
         val selectStatement =
             """
@@ -252,7 +253,7 @@ class PermissionService(
     suspend fun getPermissionsCount(
         filters: PermissionFilters = PermissionFilters(),
     ): Either<APIException, Int> = either {
-        val filterQuery = buildWhereStatement(filters)
+        val filterQuery = buildWhereStatement(filters).bind()
         val authorizationFilter = buildAuthorizationFilter().bind()
 
         val selectStatement =
@@ -350,7 +351,8 @@ class PermissionService(
     private suspend fun buildWhereStatement(
         permissionFilters: PermissionFilters
     ): Either<APIException, String> = either {
-        val assigneeUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+        val assigneeUuids =
+            subjectReferentialService.getSubjectAndGroupsUUID(permissionFilters.assignee.toOption()).bind()
 
         val idFilter = if (!permissionFilters.ids.isNullOrEmpty())
             """
@@ -363,9 +365,8 @@ class PermissionService(
 
         val actionFilter = permissionFilters.action?.let { action ->
             """
-                    action in ('${
-                action.getIncludedIn()
-                    .joinToString("', '") { it.value }
+            action in ('${
+                action.getIncludedIn().joinToString("', '") { it.value }
             }')
             """.trimIndent()
         }
@@ -374,7 +375,7 @@ class PermissionService(
             """
                 (
                     assignee is null OR
-                    assignee in ('${assigneeUuids.joinToString("', '")}'}')'
+                    assignee in ('${assigneeUuids.joinToString("', '")}')
                 )
                 """
         }

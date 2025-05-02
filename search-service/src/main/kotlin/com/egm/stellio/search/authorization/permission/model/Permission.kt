@@ -8,8 +8,6 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
-import com.egm.stellio.shared.util.DataTypes
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -17,8 +15,6 @@ import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
-import com.fasterxml.jackson.module.kotlin.convertValue
-import org.springframework.http.MediaType
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -45,20 +41,6 @@ data class Permission(
         this.copy(
             target = target.compact(contexts),
         )
-
-    fun serialize(
-        contexts: List<String>,
-        mediaType: MediaType = JSON_LD_MEDIA_TYPE,
-        includeSysAttrs: Boolean = false
-    ): String {
-        return DataTypes.mapper.writeValueAsString(
-            DataTypes.mapper.convertValue<Map<String, Any>>(
-                this.compact(contexts)
-            ).plus(
-                JSONLD_CONTEXT to contexts
-            ).let { DataTypes.toFinalRepresentation(it, mediaType, includeSysAttrs) }
-        )
-    }
 
     fun validate(): Either<APIException, Unit> = either {
         checkTypeIsPermission().bind()
@@ -96,11 +78,3 @@ data class Permission(
             BadRequestDataException("Adding administration right for everyone is prohibited")
     }
 }
-
-fun List<Permission>.serialize(
-    contexts: List<String>,
-    mediaType: MediaType = JSON_LD_MEDIA_TYPE,
-    includeSysAttrs: Boolean = false
-): String = this.map {
-    it.serialize(contexts, mediaType, includeSysAttrs)
-}.toString()

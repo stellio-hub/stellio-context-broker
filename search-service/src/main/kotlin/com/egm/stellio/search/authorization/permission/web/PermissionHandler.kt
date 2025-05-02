@@ -12,9 +12,9 @@ import com.egm.stellio.search.authorization.permission.model.Permission.Companio
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
-import com.egm.stellio.search.authorization.permission.model.serialize
 import com.egm.stellio.search.authorization.permission.service.PermissionService
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
+import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -22,8 +22,12 @@ import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkAndGetContext
@@ -33,6 +37,7 @@ import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.shared.web.BaseHandler
+import com.fasterxml.jackson.module.kotlin.convertValue
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -59,7 +64,8 @@ import java.net.URI
 class PermissionHandler(
     private val applicationProperties: ApplicationProperties,
     private val permissionService: PermissionService,
-    private val subjectReferentialService: SubjectReferentialService
+    private val subjectReferentialService: SubjectReferentialService,
+    private val entityQueryService: EntityQueryService
 ) : BaseHandler() {
 
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
@@ -101,10 +107,9 @@ class PermissionHandler(
             implemented = [
                 QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
                 QP.ACTION, QP.ASSIGNEE, QP.ASSIGNER,
-                QP.ID
+                QP.ID, QP.DETAILS
             ],
             notImplemented = [
-                QP.JOIN, QP.JOIN_LEVEL,
                 QP.TYPE, QP.SCOPEQ
             ]
         )
@@ -116,16 +121,24 @@ class PermissionHandler(
 
         val includeSysAttrs = queryParams.getOrDefault(QP.OPTIONS.key, emptyList())
             .contains(OptionsValue.SYS_ATTRS.value)
+        val includeDetails = queryParams.getFirst(QP.DETAILS.key)?.toBoolean() ?: false
+
         val paginationQuery = parsePaginationParameters(
             queryParams,
             applicationProperties.pagination.limitDefault,
             applicationProperties.pagination.limitMax
         ).bind()
-        val permissions = permissionService.getPermissions(
-            permissionFilters,
-            paginationQuery.limit,
-            paginationQuery.offset,
-        ).bind().serialize(contexts, mediaType, includeSysAttrs)
+        val permissions = serializePermissions(
+            permissionService.getPermissions(
+                permissionFilters,
+                paginationQuery.limit,
+                paginationQuery.offset,
+            ).bind(),
+            contexts,
+            mediaType,
+            includeSysAttrs,
+            includeDetails
+        ).bind()
         val permissionsCount = permissionService.getPermissionsCount(
             permissionFilters
         ).bind()
@@ -148,11 +161,13 @@ class PermissionHandler(
     suspend fun retrieve(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable permissionId: URI,
-        @AllowedParameters(implemented = [QP.OPTIONS])
+        @AllowedParameters(implemented = [QP.OPTIONS, QP.DETAILS])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val options = queryParams.getFirst(QP.OPTIONS.key)
         val includeSysAttrs = options?.contains(OptionsValue.SYS_ATTRS.value) ?: false
+        val includeDetails = queryParams.getFirst(QP.DETAILS.key)?.toBoolean() ?: false
+
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
@@ -165,7 +180,7 @@ class PermissionHandler(
         }
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .body(permission.serialize(contexts, mediaType, includeSysAttrs))
+            .body(serializePermission(permission, contexts, mediaType, includeSysAttrs, includeDetails).bind())
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -246,4 +261,45 @@ class PermissionHandler(
                 else
                     Unit.right()
             }
+
+    private suspend fun serializePermission(
+        permission: Permission,
+        contexts: List<String>,
+        mediaType: MediaType = JSON_LD_MEDIA_TYPE,
+        includeSysAttrs: Boolean = false,
+        includeDetails: Boolean = false
+    ): Either<APIException, String> = either {
+        val permissionMap = DataTypes.mapper.convertValue<Map<String, Any>>(permission.compact(contexts)).plus(
+            JSONLD_CONTEXT to contexts
+        ).let { DataTypes.toFinalRepresentation(it, mediaType, includeSysAttrs) }.toMutableMap()
+
+        if (includeDetails) {
+            permission.assignee?.let { assignee ->
+                permissionMap["assignee"] = subjectReferentialService.retrieve(assignee).bind().getSubjectInfoValue()
+            }
+            permission.assigner?.let { assigner ->
+                permissionMap["assigner"] = subjectReferentialService.retrieve(assigner).bind().getSubjectInfoValue()
+            }
+            permission.target.id.let { id ->
+                permissionMap["target"] = compactEntity(
+                    entityQueryService.queryEntity(id, getSubFromSecurityContext().getOrNull()).bind(),
+                    contexts
+                )
+            }
+        }
+
+        DataTypes.mapper.writeValueAsString(permissionMap)
+    }
+
+    private suspend fun serializePermissions(
+        permissions: List<Permission>,
+        contexts: List<String>,
+        mediaType: MediaType = JSON_LD_MEDIA_TYPE,
+        includeSysAttrs: Boolean,
+        includeDetails: Boolean
+    ): Either<APIException, String> = either {
+        permissions.map {
+            serializePermission(it, contexts, mediaType, includeSysAttrs, includeDetails).bind()
+        }.toString()
+    }
 }

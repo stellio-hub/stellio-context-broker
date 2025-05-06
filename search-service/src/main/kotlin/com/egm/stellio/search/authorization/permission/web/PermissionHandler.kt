@@ -30,9 +30,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.buildQueryResponse
-import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
-import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
+import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault
+import com.egm.stellio.shared.util.getAuthzContextFromRequestOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.util.toStringValue
@@ -74,7 +74,7 @@ class PermissionHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
         val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
+        val contexts = getAuthzContextFromRequestOrDefault(httpHeaders, body, applicationProperties.contexts).bind()
         val sub = getSubFromSecurityContext()
 
         val permission = deserialize(body, contexts).bind().copy(assigner = sub.toStringValue())
@@ -115,7 +115,7 @@ class PermissionHandler(
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
+        val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val permissionFilters = PermissionFilters.fromQueryParameters(queryParams, contexts).bind()
 
@@ -168,7 +168,7 @@ class PermissionHandler(
         val includeSysAttrs = options?.contains(OptionsValue.SYS_ATTRS.value) ?: false
         val includeDetails = queryParams.getFirst(QP.DETAILS.key)?.toBoolean() ?: false
 
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
+        val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val subjects = subjectReferentialService.getSubjectAndGroupsUUID().bind()
@@ -215,7 +215,7 @@ class PermissionHandler(
             EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
         }
 
-        val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
+        val contexts = getAuthzContextFromRequestOrDefault(httpHeaders, body, applicationProperties.contexts).bind()
         permissionService.update(permissionId, body, contexts).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

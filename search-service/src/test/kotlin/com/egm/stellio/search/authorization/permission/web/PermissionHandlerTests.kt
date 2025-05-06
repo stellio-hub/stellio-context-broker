@@ -206,7 +206,7 @@ class PermissionHandlerTests {
         val permission = gimmeRawPermission()
         val expandedEntity = ExpandedEntity(
             mapOf(
-                "@id" to "my:id".toString(),
+                "@id" to "my:id",
                 "@type" to listOf(BEEHIVE_TYPE)
             )
         )
@@ -239,11 +239,11 @@ class PermissionHandlerTests {
                 """
                     [
                     {
+                     "action" : "read",
                      "assignee" : {
                         "kind" : "Group",
                         "name" : "Stellio Team"
                         },
-                     "action" : "read",
                      "assigner" : {
                         "kind" : "Group",
                         "name" : "Stellio Team"
@@ -251,7 +251,7 @@ class PermissionHandlerTests {
                       "target" : {
                         "id" : "my:id",
                         "type" : "https://ontology.eglobalmark.com/apic#BeeHive",
-                        "@context" : "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+                        "@context" : "http://localhost:8093/jsonld-contexts/authorization-compound.jsonld"
                       }
                       },
                     ]                

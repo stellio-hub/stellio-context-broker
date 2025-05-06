@@ -3,6 +3,7 @@ package com.egm.stellio.shared.util
 import arrow.core.Either
 import arrow.core.Option
 import arrow.core.getOrElse
+import arrow.core.raise.either
 import arrow.core.toOption
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
@@ -97,6 +98,15 @@ enum class GlobalRole(val key: String) {
         fun forKey(key: String): Option<GlobalRole> =
             entries.find { it.key == key }.toOption()
     }
+}
+
+fun getAuthzContextFromRequestOrDefault(
+    httpHeaders: HttpHeaders,
+    body: Map<String, Any>,
+    contexts: ApplicationProperties.Contexts
+): Either<APIException, List<String>> = either {
+    checkAndGetContext(httpHeaders, body, contexts.core).bind()
+        .replaceDefaultContextToAuthzContext(contexts)
 }
 
 fun getAuthzContextFromLinkHeaderOrDefault(

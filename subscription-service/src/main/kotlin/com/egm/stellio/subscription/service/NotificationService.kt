@@ -17,6 +17,7 @@ import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.mqtt.Mqtt
@@ -32,12 +33,14 @@ import org.springframework.web.reactive.function.client.awaitExchange
 @Service
 class NotificationService(
     private val subscriptionService: SubscriptionService,
+    private val coreAPIService: CoreAPIService,
     private val mqttNotificationService: MqttNotificationService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
     suspend fun notifyMatchingSubscribers(
+        tenantName: String,
         previousAndUpdatedExpandedEntities: Pair<ExpandedEntity, ExpandedEntity>,
         updatedAttributes: Set<ExpandedTerm>,
         notificationTrigger: NotificationTrigger
@@ -48,45 +51,59 @@ class NotificationService(
             notificationTrigger
         ).bind()
             .map {
-                // using the "previous" entity (it is actually the previous only for deleted entity events)
-                // to be able to send deleted attributes in case of a entityDeleted event
-                val filteredEntity = previousAndUpdatedExpandedEntities.first.filterAttributes(
-                    it.notification.attributes?.toSet().orEmpty(),
-                    it.datasetId?.toSet().orEmpty()
-                )
-                val entityRepresentation =
-                    EntityRepresentation.forMediaType(acceptToMediaType(it.notification.endpoint.accept.accept))
-                val attributeRepresentation =
-                    if (it.notification.format == NotificationParams.FormatType.KEY_VALUES)
-                        AttributeRepresentation.SIMPLIFIED
-                    else AttributeRepresentation.NORMALIZED
+                val compactedEntities =
+                    if (it.notification.join == JoinType.FLAT || it.notification.join == JoinType.INLINE) {
+                        coreAPIService.retrieveLinkedEntities(
+                            tenantName,
+                            previousAndUpdatedExpandedEntities.first.id,
+                            it.notification,
+                            subscriptionService.getContextsLink(it)
+                        )
+                    } else {
+                        // using the "previous" entity (it is actually the previous only for deleted entity events)
+                        // to be able to send deleted attributes in case of a entityDeleted event
+                        val filteredEntity = previousAndUpdatedExpandedEntities.first.filterAttributes(
+                            it.notification.attributes?.toSet().orEmpty(),
+                            it.datasetId?.toSet().orEmpty()
+                        )
+                        val entityRepresentation =
+                            EntityRepresentation.forMediaType(acceptToMediaType(it.notification.endpoint.accept.accept))
+                        val attributeRepresentation =
+                            if (
+                                it.notification.format == NotificationParams.FormatType.KEY_VALUES ||
+                                it.notification.format == NotificationParams.FormatType.SIMPLIFIED
+                            )
+                                AttributeRepresentation.SIMPLIFIED
+                            else AttributeRepresentation.NORMALIZED
 
-                val contexts = it.jsonldContext?.let { listOf(it.toString()) } ?: it.contexts
+                        val contexts = it.jsonldContext?.let { listOf(it.toString()) } ?: it.contexts
 
-                val compactedEntity = compactEntity(
-                    filteredEntity,
-                    contexts
-                ).toFinalRepresentation(
-                    NgsiLdDataRepresentation(
-                        entityRepresentation,
-                        attributeRepresentation,
-                        it.notification.sysAttrs,
-                        it.lang
-                    )
-                )
-                callSubscriber(it, compactedEntity)
+                        compactEntity(
+                            filteredEntity,
+                            contexts
+                        ).toFinalRepresentation(
+                            NgsiLdDataRepresentation(
+                                entityRepresentation,
+                                attributeRepresentation,
+                                it.notification.sysAttrs,
+                                it.lang
+                            )
+                        ).let { listOf(it) }
+                    }
+
+                callSubscriber(it, compactedEntities)
             }
     }
 
     suspend fun callSubscriber(
         subscription: Subscription,
-        entity: Map<String, Any?>
+        entities: List<Map<String, Any?>>
     ): Triple<Subscription, Notification, Boolean> {
         val mediaType = MediaType.valueOf(subscription.notification.endpoint.accept.accept)
         val tenantName = getTenantFromContext()
         val notification = Notification(
             subscriptionId = subscription.id,
-            data = listOf(entity)
+            data = entities
         )
         val uri = subscription.notification.endpoint.uri.toString()
         logger.info("Notification is about to be sent to $uri for subscription ${subscription.id}")

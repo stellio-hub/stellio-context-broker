@@ -42,6 +42,7 @@ import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
+import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationParams.StatusType
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
@@ -412,6 +413,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                         listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
                     ) &&
                     it.notification.sysAttrs &&
+                    it.notification.join == JoinType.FLAT &&
+                    it.notification.joinLevel == 2 &&
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
                     it.throttling == 60 &&
                     it.lang == "fr,en" &&

@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.DEFAULT_JOIN_LEVEL
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.ZonedDateTime
@@ -17,11 +18,16 @@ data class NotificationParams(
     val lastFailure: ZonedDateTime? = null,
     val lastSuccess: ZonedDateTime? = null,
     @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
-    val sysAttrs: Boolean = false
+    val sysAttrs: Boolean = false,
+    val join: JoinType? = JoinType.NONE,
+    val joinLevel: Int? = DEFAULT_JOIN_LEVEL
 ) {
     enum class FormatType(val format: String) {
         @JsonProperty("keyValues")
         KEY_VALUES("keyValues"),
+
+        @JsonProperty("simplified")
+        SIMPLIFIED("simplified"),
 
         @JsonProperty("normalized")
         NORMALIZED("normalized")
@@ -33,5 +39,16 @@ data class NotificationParams(
 
         @JsonProperty("failed")
         FAILED("failed")
+    }
+
+    enum class JoinType(val join: String) {
+        @JsonProperty("flat")
+        FLAT("flat"),
+
+        @JsonProperty("inline")
+        INLINE("inline"),
+
+        @JsonProperty("@none")
+        NONE("@none")
     }
 }

@@ -22,8 +22,10 @@ import com.egm.stellio.shared.util.NGSILD_NAME_TERM
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.expandJsonLdEntity
+import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
@@ -67,6 +69,9 @@ class NotificationServiceTests {
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
+
+    @MockkBean
+    private lateinit var coreAPIService: CoreAPIService
 
     @MockkBean
     private lateinit var mqttNotificationService: MqttNotificationService
@@ -136,6 +141,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
@@ -155,6 +161,53 @@ class NotificationServiceTests {
         }
         coVerify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
         confirmVerified(subscriptionService)
+    }
+
+    @Test
+    fun `it should call entity service to get linked entities if join is asked`() = runTest {
+        val subscription = gimmeRawSubscription(contexts = APIC_COMPOUND_CONTEXTS)
+            .copy(
+                notification = NotificationParams(
+                    attributes = emptyList(),
+                    endpoint = Endpoint(
+                        uri = "http://localhost:8089/notification".toUri(),
+                        accept = Endpoint.AcceptType.JSONLD
+                    ),
+                    join = NotificationParams.JoinType.FLAT,
+                    joinLevel = 1
+                )
+            )
+        val expandedEntity = expandJsonLdEntity(rawEntity)
+
+        coEvery {
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
+        } returns listOf(subscription).right()
+        coEvery { subscriptionService.getContextsLink(any()) } returns APIC_COMPOUND_CONTEXT
+        coEvery {
+            coreAPIService.retrieveLinkedEntities(any(), any(), any(), any())
+        } returns listOf(rawEntity.deserializeAsMap())
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
+            Pair(expandedEntity, expandedEntity),
+            setOf(NGSILD_NAME_PROPERTY),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceed()
+
+        coVerify {
+            coreAPIService.retrieveLinkedEntities(
+                DEFAULT_TENANT_NAME,
+                apiaryId.toUri(),
+                subscription.notification,
+                APIC_COMPOUND_CONTEXT
+            )
+        }
     }
 
     @Test
@@ -179,6 +232,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
@@ -224,6 +278,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
@@ -265,6 +320,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_TERM),
             ATTRIBUTE_UPDATED
@@ -295,6 +351,7 @@ class NotificationServiceTests {
             )
 
             notificationService.notifyMatchingSubscribers(
+                DEFAULT_TENANT_NAME,
                 Pair(expandedEntity, expandedEntity),
                 setOf(NGSILD_NAME_PROPERTY),
                 ATTRIBUTE_UPDATED
@@ -333,6 +390,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_DELETED
@@ -379,6 +437,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_CREATED
@@ -423,7 +482,7 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
+        notificationService.callSubscriber(subscription, listOf(rawEntity.deserializeAsMap()))
 
         val link = buildContextLinkHeader(subscription.contexts[0])
         verify(
@@ -454,7 +513,7 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
+        notificationService.callSubscriber(subscription, listOf(rawEntity.deserializeAsMap()))
 
         val link = buildContextLinkHeader(subscription.jsonldContext.toString())
         verify(
@@ -485,7 +544,7 @@ class NotificationServiceTests {
         )
 
         mono {
-            notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
+            notificationService.callSubscriber(subscription, listOf(rawEntity.deserializeAsMap()))
         }.contextWrite { context ->
             context.put(NGSILD_TENANT_HEADER, "urn:ngsi-ld:tenant:01")
         }.awaitSingle()
@@ -510,7 +569,7 @@ class NotificationServiceTests {
 
         val notificationResult = notificationService.callSubscriber(
             subscription,
-            rawEntity.deserializeAsMap()
+            listOf(rawEntity.deserializeAsMap())
         )
 
         assertEquals(subscription.id, notificationResult.first.id)
@@ -540,6 +599,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
@@ -582,6 +642,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
             setOf(NGSILD_NAME_PROPERTY),
             ATTRIBUTE_UPDATED
@@ -641,6 +702,7 @@ class NotificationServiceTests {
         )
 
         notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
             setOf(FRIENDLYNAME_LANGUAGEPROPERTY),
             ATTRIBUTE_UPDATED
@@ -674,7 +736,7 @@ class NotificationServiceTests {
 
         coEvery { mqttNotificationService.notify(any(), any(), any()) } returns true
 
-        notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
+        notificationService.callSubscriber(subscription, listOf(rawEntity.deserializeAsMap()))
 
         coVerify(exactly = 1) { mqttNotificationService.notify(any(), any(), any()) }
     }
@@ -699,7 +761,7 @@ class NotificationServiceTests {
         coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
 
-        notificationService.callSubscriber(subscription, rawEntity.deserializeAsMap())
+        notificationService.callSubscriber(subscription, listOf(rawEntity.deserializeAsMap()))
 
         coVerify {
             mqttNotificationService.notify(

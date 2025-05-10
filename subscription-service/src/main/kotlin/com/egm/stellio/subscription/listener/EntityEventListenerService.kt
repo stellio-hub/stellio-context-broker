@@ -103,6 +103,7 @@ class EntityEventListenerService(
         val expandedEntityForNotification = ExpandedEntity(previousAndUpdatedPayloads.second.deserializeAsMap())
         mono {
             notificationService.notifyMatchingSubscribers(
+                tenantName,
                 Pair(expandedEntityForMatching, expandedEntityForNotification),
                 updatedAttributes,
                 notificationTrigger

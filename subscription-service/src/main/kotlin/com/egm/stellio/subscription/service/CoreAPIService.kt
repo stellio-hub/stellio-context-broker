@@ -67,7 +67,7 @@ class CoreAPIService(
         params.append("&${QueryParameter.OPTIONS.key}=$optionsParam")
 
         if (notificationParams.join != null && notificationParams.join != NotificationParams.JoinType.NONE) {
-            params.append("&${QueryParameter.JOIN.key}=${notificationParams.join}")
+            params.append("&${QueryParameter.JOIN.key}=${notificationParams.join.join}")
             notificationParams.joinLevel?.let {
                 params.append("&${QueryParameter.JOIN_LEVEL.key}=$it")
             }

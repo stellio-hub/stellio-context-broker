@@ -338,6 +338,64 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    fun `it should not allow a subscription with an invalid join level when join is flat or inline`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       },
+                       "join": "flat",
+                       "joinLevel": 0
+                    }
+                }
+            """.trimIndent()
+
+        val subscription = ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList())
+            .shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "The value of 'joinLevel' must be greater than zero (int) if 'join' is asked"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with an invalid join value`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       },
+                       "join": "unknown"
+                    }
+                }
+            """.trimIndent()
+
+        ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList())
+            .shouldFailWith {
+                it is BadRequestDataException
+            }
+    }
+
+    @Test
     fun `it should load a subscription with minimal required info - entities`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()

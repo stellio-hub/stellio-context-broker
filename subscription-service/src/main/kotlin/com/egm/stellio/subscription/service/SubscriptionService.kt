@@ -34,6 +34,7 @@ import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.GeoQ
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.mergeEntitySelectorsOnSubscriptions
@@ -95,6 +96,7 @@ class SubscriptionService(
         checkIdPatternIsValid(subscription).bind()
         checkNotificationTriggersAreValid(subscription).bind()
         checkJsonLdContextIsValid(subscription).bind()
+        checkJoinParametersAreValid(subscription).bind()
     }
 
     private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
@@ -181,6 +183,19 @@ class SubscriptionService(
         }
     }
 
+    private fun checkJoinParametersAreValid(subscription: Subscription): Either<BadRequestDataException, Unit> {
+        if (subscription.notification.join != null && subscription.notification.join != JoinType.NONE) {
+            subscription.notification.joinLevel?.let {
+                if (it < 1)
+                    return BadRequestDataException(
+                        "The value of 'joinLevel' must be greater than zero (int) if 'join' is asked"
+                    ).left()
+            }
+        }
+
+        return Unit.right()
+    }
+
     @Transactional
     suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> = either {
         validateNewSubscription(subscription).bind()
@@ -233,7 +248,7 @@ class SubscriptionService(
             .bind("datasetId", subscription.datasetId?.toTypedArray())
             .bind("jsonld_context", subscription.jsonldContext)
             .bind("join_type", subscription.notification.join?.name)
-            .bind("join_level", subscription.notification.joinLevel?.toInt())
+            .bind("join_level", subscription.notification.joinLevel)
             .execute().bind()
 
         geoQuery?.let {
@@ -728,8 +743,8 @@ class SubscriptionService(
                 lastFailure = toNullableZonedDateTime(row["last_failure"]),
                 lastSuccess = toNullableZonedDateTime(row["last_success"]),
                 sysAttrs = row["sys_attrs"] as Boolean,
-                join = toOptionalEnum<NotificationParams.JoinType>(row["join_type"]),
-                joinLevel = row["join_level"] as Int
+                join = toOptionalEnum<JoinType>(row["join_type"]),
+                joinLevel = row["join_level"] as? Int
             ),
             isActive = toBoolean(row["is_active"]),
             contexts = toList(row["contexts"]!!),
@@ -765,8 +780,8 @@ class SubscriptionService(
                 lastFailure = null,
                 lastSuccess = null,
                 sysAttrs = row["sys_attrs"] as Boolean,
-                join = toOptionalEnum<NotificationParams.JoinType>(row["join_type"]),
-                joinLevel = row["join_level"] as Int
+                join = toOptionalEnum<JoinType>(row["join_type"]),
+                joinLevel = row["join_level"] as? Int
             ),
             contexts = toList(row["contexts"]!!),
             throttling = toNullableInt(row["throttling"]),

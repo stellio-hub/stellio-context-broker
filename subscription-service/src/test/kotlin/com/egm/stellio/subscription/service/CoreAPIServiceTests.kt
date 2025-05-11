@@ -97,7 +97,7 @@ class CoreAPIServiceTests {
     }
 
     @Test
-    fun `it should call the core API using the notification parameters from the subscription`() {
+    fun `it should ask to retrieve linked entitiies using the notification parameters from the subscription`() {
         stubFor(
             get(urlPathEqualTo("/ngsi-ld/v1/entities/$beehiveTestCId"))
                 .willReturn(

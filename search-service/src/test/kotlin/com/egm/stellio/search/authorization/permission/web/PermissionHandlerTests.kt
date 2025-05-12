@@ -5,6 +5,7 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.permission.service.PermissionService
 import com.egm.stellio.search.authorization.subject.model.SubjectReferential
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
@@ -67,6 +68,9 @@ class PermissionHandlerTests {
 
     @MockkBean
     private lateinit var entityQueryService: EntityQueryService
+
+    @MockkBean
+    private lateinit var authorizationService: AuthorizationService
 
     private val permissionUri = "/ngsi-ld/v1/auth/permissions"
     private val id = "urn:ngsi-ld:Permission:1".toUri()
@@ -409,6 +413,7 @@ class PermissionHandlerTests {
         val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
         coEvery { permissionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
 
@@ -441,6 +446,7 @@ class PermissionHandlerTests {
         val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
 
@@ -462,6 +468,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
 
         webClient.patch()
@@ -487,6 +494,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
 

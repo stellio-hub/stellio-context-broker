@@ -34,11 +34,9 @@ import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.shared.util.toUri
-import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
-import org.springframework.data.relational.core.query.Update
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Component
@@ -178,22 +176,29 @@ class PermissionService(
                     it.key == "target" -> {
                         val target = input["target"] as Map<String, Any>
                         target["id"]?.let { entityId ->
-                            checkHasPermissionOnEntity(
-                                sub,
-                                (entityId as String).toUri(),
-                                Action.ADMIN
-                            ).bind()
-
                             updatePermissionAttribute(permissionId, "target_id", entityId).bind()
                         }
                     }
 
+                    it.key == "action" -> {
+                        updatePermissionAttribute(
+                            permissionId,
+                            it.key,
+                            it.value as String
+                        ).bind()
+                    }
+
+                    it.key == NGSILD_MODIFIED_AT_TERM -> {
+                        updatePermissionAttribute(
+                            permissionId,
+                            "modified_at",
+                            it.value
+                        ).bind()
+                    }
                     listOf(
                         "id",
                         "assignee",
-                        "action",
                         AUTH_ASSIGNER_TERM,
-                        NGSILD_MODIFIED_AT_TERM
                     ).contains(it.key) -> {
                         val columnName = it.key
                         val value = it.value
@@ -213,12 +218,15 @@ class PermissionService(
         columnName: String,
         value: Any?
     ): Either<APIException, Unit> {
-        val updateStatement = Update.update(columnName, value)
-        return r2dbcEntityTemplate.update(Permission::class.java)
-            .matching(query(where("id").`is`(permissionId)))
-            .apply(updateStatement)
-            .map { Unit.right() }
-            .awaitFirst()
+        val updateStatement =
+            """
+            UPDATE permission
+            SET $columnName = '$value'
+            WHERE permission.id = '$permissionId'
+            """.trimIndent()
+
+        return databaseClient.sql(updateStatement)
+            .execute()
     }
 
     suspend fun getPermissions(
@@ -304,9 +312,9 @@ class PermissionService(
         databaseClient
             .sql(
                 """
-                SELECT COUNT(assignee) as count
+                SELECT COUNT(id) as count
                 FROM permission
-                WHERE assignee IN(:uuids)
+                WHERE (assignee is null OR assignee IN(:uuids))
                 AND target_id = :entity_id
                 AND action IN(:actions)
                 """.trimIndent()
@@ -337,7 +345,8 @@ class PermissionService(
 
         """
         (
-            assignee IN ($uuids)
+            assignee is null
+            OR assignee IN ($uuids)
             OR target_id in (
                     SELECT target_id
                     FROM permission
@@ -351,9 +360,6 @@ class PermissionService(
     private suspend fun buildWhereStatement(
         permissionFilters: PermissionFilters
     ): Either<APIException, String> = either {
-        val assigneeUuids =
-            subjectReferentialService.getSubjectAndGroupsUUID(permissionFilters.assignee.toOption()).bind()
-
         val idFilter = if (!permissionFilters.ids.isNullOrEmpty())
             """
                 (
@@ -371,14 +377,17 @@ class PermissionService(
             """.trimIndent()
         }
 
-        val assigneeFilter = permissionFilters.assignee?.let { assignee ->
+        val assigneeFilter = if (permissionFilters.assignee != null) {
+            val assignee = permissionFilters.assignee.toOption()
+
+            val assigneeUuids = subjectReferentialService.getSubjectAndGroupsUUID(assignee).bind()
             """
                 (
                     assignee is null OR
                     assignee in ('${assigneeUuids.joinToString("', '")}')
                 )
                 """
-        }
+        } else null
 
         val assignerFilter = permissionFilters.assigner?.let { assigner ->
             "assigner = '$assigner'"

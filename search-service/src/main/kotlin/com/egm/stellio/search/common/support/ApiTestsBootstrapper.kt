@@ -53,15 +53,18 @@ class ApiTestsBootstrapper(
                 apiTestUserId1!!,
                 userSubject(
                     subjectId = apiTestUserId1!!,
-                    username = apiTestUsername1!!,
-                    groupMembership = apiTestGroupId1
+                    username = apiTestUsername1!!
                 )
             )
 
             if (!apiTestUserId2.isNullOrEmpty()) {
                 createSubject(
-                    apiTestUserId2!!,
-                    userSubject(subjectId = apiTestUserId2!!, username = apiTestUsername2!!)
+                    subjectId = apiTestUserId2!!,
+                    userSubject(
+                        subjectId = apiTestUserId2!!,
+                        username = apiTestUsername2!!,
+                        groupMembership = apiTestGroupId1
+                    ),
                 )
             }
 

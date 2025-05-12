@@ -12,6 +12,7 @@ import com.egm.stellio.search.authorization.permission.model.Permission.Companio
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.permission.service.PermissionService
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -36,6 +37,7 @@ import com.egm.stellio.shared.util.getAuthzContextFromRequestOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.util.toStringValue
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
 import com.fasterxml.jackson.module.kotlin.convertValue
 import kotlinx.coroutines.reactive.awaitFirst
@@ -65,7 +67,8 @@ class PermissionHandler(
     private val applicationProperties: ApplicationProperties,
     private val permissionService: PermissionService,
     private val subjectReferentialService: SubjectReferentialService,
-    private val entityQueryService: EntityQueryService
+    private val entityQueryService: EntityQueryService,
+    private val authorizationService: AuthorizationService
 ) : BaseHandler() {
 
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
@@ -214,9 +217,22 @@ class PermissionHandler(
         ) {
             EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
         }
+        body["target"]?.let {
+            val target = it as Map<String, Any>
+            target["id"]?.let { entityId ->
+                val entityUri = (entityId as String).toUri()
+                authorizationService.userCanAdminEntity(entityUri, getSubFromSecurityContext()).bind()
+            }
+        }
+        if (body["target"] != null &&
+            (oldPermission.action == Action.ADMIN || body["action"] == Action.ADMIN.value)
+        ) {
+            EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
+        }
 
         val contexts = getAuthzContextFromRequestOrDefault(httpHeaders, body, applicationProperties.contexts).bind()
-        permissionService.update(permissionId, body, contexts).bind()
+        val response = permissionService.update(permissionId, body, contexts)
+        response.bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

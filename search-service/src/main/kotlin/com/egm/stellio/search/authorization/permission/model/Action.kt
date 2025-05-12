@@ -29,8 +29,9 @@ enum class Action(val value: String, private val includedIn: Set<Action> = empty
     companion object {
         fun fromString(action: String): Either<APIException, Action> =
             Action.entries.find { it.value == action }?.right()
-                ?: BadRequestDataException("""Invalid action provided, must be "own", "admin","write" or "read".""")
-                    .left()
+                ?: BadRequestDataException(
+                    """Invalid action provided: "$action", must be "own", "admin","write" or "read"."""
+                ).left()
     }
 }
 

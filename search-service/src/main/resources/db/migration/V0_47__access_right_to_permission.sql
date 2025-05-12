@@ -4,6 +4,9 @@ ALTER TABLE entity_access_rights
 ALTER TABLE permission
     RENAME COLUMN subject_id TO assignee;
 
+alter table permission
+    alter column assignee drop not null;
+
 ALTER TABLE permission
     RENAME COLUMN access_right TO action;
 

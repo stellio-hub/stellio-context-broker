@@ -34,10 +34,10 @@
     <ID>UnusedParameter:PermissionFilters.kt$PermissionFilters.Companion$contexts: List&lt;String&gt;</ID>
     <ID>UnusedParameter:PermissionService.kt$PermissionService$contexts: List&lt;String&gt;</ID>
     <ID>UnusedParameter:TargetAsset.kt$TargetAsset$contexts: List&lt;String&gt;</ID>
-      <ID>UseLet:PermissionService.kt$PermissionService$if (permissionFilters.assignee != null) { val assignee =
-          permissionFilters.assignee.toOption() val assigneeUuids =
-          subjectReferentialService.getSubjectAndGroupsUUID(assignee).bind() """ ( assignee is null OR assignee in
-          ('${assigneeUuids.joinToString("', '")}') ) """ } else null
-      </ID>
+    <ID>UseLet:PermissionService.kt$PermissionService$if (permissionFilters.assignee != null) { val assignee =
+      permissionFilters.assignee.toOption() val assigneeUuids =
+      subjectReferentialService.getSubjectAndGroupsUUID(assignee).bind() """ ( assignee is null OR assignee in
+      ('${assigneeUuids.joinToString("', '")}') ) """ } else null
+    </ID>
   </CurrentIssues>
 </SmellBaseline>

@@ -337,7 +337,7 @@ class PermissionService(
                 """.trimIndent()
             )
             .bind("sub", subjectId)
-            .allToMappedList { toUri(it["entity_id"]) }
+            .allToMappedList { toUri(it["target_id"]) }
     }
 
     private suspend fun buildAuthorizationFilter(): Either<APIException, String> = either {

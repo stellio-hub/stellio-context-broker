@@ -34,6 +34,7 @@ import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.GeoQ
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.mergeEntitySelectorsOnSubscriptions
@@ -95,6 +96,7 @@ class SubscriptionService(
         checkIdPatternIsValid(subscription).bind()
         checkNotificationTriggersAreValid(subscription).bind()
         checkJsonLdContextIsValid(subscription).bind()
+        checkJoinParametersAreValid(subscription).bind()
     }
 
     private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
@@ -181,6 +183,19 @@ class SubscriptionService(
         }
     }
 
+    private fun checkJoinParametersAreValid(subscription: Subscription): Either<BadRequestDataException, Unit> {
+        if (subscription.notification.join != null && subscription.notification.join != JoinType.NONE) {
+            subscription.notification.joinLevel?.let {
+                if (it < 1)
+                    return BadRequestDataException(
+                        "The value of 'joinLevel' must be greater than zero (int) if 'join' is asked"
+                    ).left()
+            }
+        }
+
+        return Unit.right()
+    }
+
     @Transactional
     suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> = either {
         validateNewSubscription(subscription).bind()
@@ -196,12 +211,12 @@ class SubscriptionService(
                 watched_attributes, notification_trigger, time_interval, q, scope_q, notif_attributes,
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info,
                 times_sent, is_active, expires_at, sub, contexts, throttling, sys_attrs, lang, datasetId,
-                jsonld_context)
+                jsonld_context, join_type, join_level)
             VALUES(:id, :type, :subscription_name, :created_at, :modified_at, :description,
                 :watched_attributes, :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes,
                 :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info,
                 :times_sent, :is_active, :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId,
-                :jsonld_context)
+                :jsonld_context, :join_type, :join_level)
             """.trimIndent()
 
         databaseClient.sql(insertStatement)
@@ -232,6 +247,8 @@ class SubscriptionService(
             .bind("lang", subscription.lang)
             .bind("datasetId", subscription.datasetId?.toTypedArray())
             .bind("jsonld_context", subscription.jsonldContext)
+            .bind("join_type", subscription.notification.join?.name)
+            .bind("join_level", subscription.notification.joinLevel)
             .execute().bind()
 
         geoQuery?.let {
@@ -303,7 +320,7 @@ class SubscriptionService(
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id, 
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
                 pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context
+                datasetId, jsonld_context, join_type, join_level
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -397,18 +414,9 @@ class SubscriptionService(
                         updateSubscriptionAttribute(subscriptionId, it.key.toSqlColumnName(), value).bind()
                     }
                     listOf(
-                        "subscriptionName",
-                        "description",
-                        "notificationTrigger",
-                        "timeInterval",
-                        "q",
-                        "scopeQ",
-                        "isActive",
-                        "modifiedAt",
-                        "throttling",
-                        "lang",
-                        "datasetId",
-                        "jsonldContext"
+                        "subscriptionName", "description", "notificationTrigger", "timeInterval", "q", "scopeQ",
+                        "isActive", "modifiedAt", "throttling", "lang", "datasetId", "jsonldContext",
+                        "join", "jointLevel"
                     ).contains(it.key) -> {
                         val columnName = it.key.toSqlColumnName()
                         val value = it.value.toSqlValue(it.key)
@@ -550,7 +558,7 @@ class SubscriptionService(
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
                 pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context
+                datasetId, jsonld_context, join_type, join_level
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -593,7 +601,7 @@ class SubscriptionService(
                    entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
                    geoproperty, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, 
                    endpoint_receiver_info, endpoint_notifier_info, contexts, throttling, sys_attrs, lang, 
-                   datasetId, jsonld_context
+                   datasetId, jsonld_context, join_type, join_level
             FROM subscription 
             LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
             LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
@@ -734,7 +742,9 @@ class SubscriptionService(
                 lastNotification = toNullableZonedDateTime(row["last_notification"]),
                 lastFailure = toNullableZonedDateTime(row["last_failure"]),
                 lastSuccess = toNullableZonedDateTime(row["last_success"]),
-                sysAttrs = row["sys_attrs"] as Boolean
+                sysAttrs = row["sys_attrs"] as Boolean,
+                join = toOptionalEnum<JoinType>(row["join_type"]),
+                joinLevel = row["join_level"] as? Int
             ),
             isActive = toBoolean(row["is_active"]),
             contexts = toList(row["contexts"]!!),
@@ -769,7 +779,9 @@ class SubscriptionService(
                 lastNotification = null,
                 lastFailure = null,
                 lastSuccess = null,
-                sysAttrs = row["sys_attrs"] as Boolean
+                sysAttrs = row["sys_attrs"] as Boolean,
+                join = toOptionalEnum<JoinType>(row["join_type"]),
+                joinLevel = row["join_level"] as? Int
             ),
             contexts = toList(row["contexts"]!!),
             throttling = toNullableInt(row["throttling"]),
@@ -810,7 +822,7 @@ class SubscriptionService(
                 endpoint_notifier_info, status, times_sent, last_notification, last_failure, last_success, is_active, 
                 entity_selector.id as entity_id, id_pattern, entity_selector.type_selection as type_selection, georel,
                 geometry, coordinates, pgis_geometry, geoproperty, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context
+                datasetId, jsonld_context, join_type, join_level
             FROM subscription
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id

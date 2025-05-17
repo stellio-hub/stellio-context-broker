@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.listener
 import arrow.core.right
 import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
@@ -36,7 +37,7 @@ class EntityEventListenerServiceTests {
         val mockedNotification = mockkClass(Notification::class)
 
         coEvery {
-            notificationService.notifyMatchingSubscribers(any(), any(), any())
+            notificationService.notifyMatchingSubscribers(DEFAULT_TENANT_NAME, any(), any(), any())
         } returns listOf(
             Triple(mockedSubscription, mockedNotification, true),
             Triple(mockedSubscription, mockedNotification, false)
@@ -46,6 +47,7 @@ class EntityEventListenerServiceTests {
 
         coVerify(timeout = 1000L) {
             notificationService.notifyMatchingSubscribers(
+                DEFAULT_TENANT_NAME,
                 any(),
                 setOf(NGSILD_NAME_PROPERTY),
                 NotificationTrigger.ATTRIBUTE_UPDATED

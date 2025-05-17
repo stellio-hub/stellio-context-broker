@@ -42,6 +42,7 @@ import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
+import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationParams.StatusType
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
@@ -337,6 +338,64 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    fun `it should not allow a subscription with an invalid join level when join is flat or inline`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       },
+                       "join": "flat",
+                       "joinLevel": 0
+                    }
+                }
+            """.trimIndent()
+
+        val subscription = ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList())
+            .shouldSucceedAndResult()
+        subscriptionService.validateNewSubscription(subscription)
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "The value of 'joinLevel' must be greater than zero (int) if 'join' is asked"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with an invalid join value`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       },
+                       "join": "unknown"
+                    }
+                }
+            """.trimIndent()
+
+        ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList())
+            .shouldFailWith {
+                it is BadRequestDataException
+            }
+    }
+
+    @Test
     fun `it should load a subscription with minimal required info - entities`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
@@ -412,6 +471,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                         listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
                     ) &&
                     it.notification.sysAttrs &&
+                    it.notification.join == JoinType.FLAT &&
+                    it.notification.joinLevel == 2 &&
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
                     it.throttling == 60 &&
                     it.lang == "fr,en" &&

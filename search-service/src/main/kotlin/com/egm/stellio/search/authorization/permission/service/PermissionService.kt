@@ -207,7 +207,7 @@ class PermissionService(
 
                     else -> {
                         BadRequestDataException("invalid permission parameter  ${it.key}")
-                            .left().bind<Unit>()
+                            .left().bind()
                     }
                 }
             }
@@ -246,7 +246,8 @@ class PermissionService(
                 modified_at,
                 assigner
             FROM permission
-            WHERE $filterQuery AND $authorizationFilter
+            WHERE $filterQuery 
+            AND $authorizationFilter
             ORDER BY permission.created_at
             LIMIT :limit
             OFFSET :offset
@@ -268,8 +269,10 @@ class PermissionService(
             """
             SELECT count(distinct permission.id)
             FROM permission
-            WHERE $filterQuery AND $authorizationFilter
+            WHERE $filterQuery 
+            AND $authorizationFilter
             """.trimIndent()
+
         databaseClient.sql(selectStatement)
             .oneToResult { toInt(it["count"]) }.bind()
     }
@@ -348,11 +351,11 @@ class PermissionService(
             assignee is null
             OR assignee IN ($uuids)
             OR target_id in (
-                    SELECT target_id
-                    FROM permission
-                    WHERE assignee IN ($uuids)
-                    AND action IN ('admin', 'own')
-                )
+                SELECT target_id
+                FROM permission
+                WHERE assignee IN ($uuids)
+                AND action IN ('admin', 'own')
+            )
          )
         """.trimIndent()
     }
@@ -377,7 +380,7 @@ class PermissionService(
             """.trimIndent()
         }
 
-        val assigneeFilter = if (permissionFilters.assignee != null) {
+        val assigneeFilter = permissionFilters.assignee?.let {
             val assignee = permissionFilters.assignee.toOption()
 
             val assigneeUuids = subjectReferentialService.getSubjectAndGroupsUUID(assignee).bind()
@@ -386,8 +389,8 @@ class PermissionService(
                     assignee is null OR
                     assignee in ('${assigneeUuids.joinToString("', '")}')
                 )
-                """
-        } else null
+            """
+        }
 
         val assignerFilter = permissionFilters.assigner?.let { assigner ->
             "assigner = '$assigner'"
@@ -397,6 +400,7 @@ class PermissionService(
 
         if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
     }
+
     companion object {
 
         private fun rowToPermission(row: Map<String, Any>): Either<APIException, Permission> = either {

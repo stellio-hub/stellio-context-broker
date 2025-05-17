@@ -205,7 +205,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `query on Permissions should not return a permission if the subject is nor the assignee nor the administrator of the target`() =
+    fun `query on Permissions should return nothing if subject is nor assignee nor administrator of the target`() =
         runTest {
             val permission = minimalPermission
                 .copy(assignee = "not-the-subject", assigner = userUuid)

@@ -38,6 +38,9 @@ enum class QueryParameter(
 
     // authz
     INCLUDE_DELETED("includeDeleted"),
+    ACTION("action"),
+    ASSIGNEE("assignee"),
+    ASSIGNER("assigner"),
 
     // pagination
     COUNT("count"),

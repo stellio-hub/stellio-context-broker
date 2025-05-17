@@ -3,9 +3,6 @@
         "Client": "https://ontology.eglobalmark.com/authorization#Client",
         "Group": "https://ontology.eglobalmark.com/authorization#Group",
         "User": "https://ontology.eglobalmark.com/authorization#User",
-        "canAdmin": "https://ontology.eglobalmark.com/authorization#canAdmin",
-        "canRead": "https://ontology.eglobalmark.com/authorization#canRead",
-        "canWrite": "https://ontology.eglobalmark.com/authorization#canWrite",
         "clientId": "https://ontology.eglobalmark.com/authorization#clientId",
         "familyName": "https://ontology.eglobalmark.com/authorization#familyName",
         "givenName": "https://ontology.eglobalmark.com/authorization#givenName",
@@ -15,11 +12,15 @@
         "kind": "https://ontology.eglobalmark.com/authorization#kind",
         "name": "https://schema.org/name",
         "profile": "https://ontology.eglobalmark.com/authorization#profile",
-        "right": "https://ontology.eglobalmark.com/authorization#right",
         "roles": "https://ontology.eglobalmark.com/authorization#roles",
         "serviceAccountId": "https://ontology.eglobalmark.com/authorization#serviceAccountId",
         "specificAccessPolicy": "https://ontology.eglobalmark.com/authorization#specificAccessPolicy",
         "subjectInfo": "https://ontology.eglobalmark.com/authorization#subjectInfo",
-        "username": "https://ontology.eglobalmark.com/authorization#username"
+        "username": "https://ontology.eglobalmark.com/authorization#username",
+        "Permission": "odrl:Permission",
+        "target": "odrl:target",
+        "action": "odrl:action",
+        "assignee": "odrl:assignee",
+        "assigner": "odrl:assigner"
     }
 }

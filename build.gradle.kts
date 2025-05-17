@@ -91,7 +91,7 @@ subprojects {
         compilerOptions {
             // https://kotlinlang.org/docs/whatsnew2020.html#data-class-copy-function-to-have-the-same-visibility-as-constructor
             freeCompilerArgs.addAll("-Xjsr305=strict", "-Xconsistent-data-class-copy-visibility")
-            apiVersion.set(KotlinVersion.KOTLIN_2_0)
+            apiVersion.set(KotlinVersion.KOTLIN_2_1)
             jvmTarget.set(JvmTarget.JVM_21)
         }
         jvmToolchain(21)

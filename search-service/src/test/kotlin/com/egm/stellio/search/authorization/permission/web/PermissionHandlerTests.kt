@@ -154,7 +154,7 @@ class PermissionHandlerTests {
     }
 
     @Test
-    fun `get Permission by id should the permission if the subject it assigne to the permission`() = runTest {
+    fun `get Permission by id should return the permission if the subject is assigned to the permission`() = runTest {
         val permission = gimmeRawPermission(assignee = userUuid)
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
@@ -170,7 +170,7 @@ class PermissionHandlerTests {
     }
 
     @Test
-    fun `get Permission by id should return unauthorized if the subject is nor the assignee nor the admin of the target entity`() =
+    fun `get Permission by id should return 403 if the subject is nor the assignee nor the admin of target entity`() =
         runTest {
             val permission = gimmeRawPermission(assignee = "not-matching-sub")
 
@@ -187,7 +187,7 @@ class PermissionHandlerTests {
         }
 
     @Test
-    fun `query Permission should return 200 whether a Permission exists or not`() = runTest {
+    fun `query Permissions should return 200 whether a Permission exists or not`() = runTest {
         val permission = gimmeRawPermission()
 
         coEvery {
@@ -206,7 +206,7 @@ class PermissionHandlerTests {
     }
 
     @Test
-    fun `query Permission with details=true should return entire entity and subject information`() = runTest {
+    fun `query Permissions with details=true should return entire entity and subject information`() = runTest {
         val permission = gimmeRawPermission()
         val expandedEntity = ExpandedEntity(
             mapOf(
@@ -374,7 +374,7 @@ class PermissionHandlerTests {
     }
 
     @Test
-    fun `create Permission with context in payload should succeed`() = runTest {
+    fun `create Permission with JSON-LD payload should succeed`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission.jsonld")
 
         coEvery { permissionService.create(any()) } returns Unit.right()

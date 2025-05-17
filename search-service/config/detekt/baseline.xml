@@ -25,15 +25,10 @@
     <ID>LongParameterList:PermissionHandlerTests.kt$PermissionHandlerTests$( id: URI = "urn:ngsi-ld:Permission:1".toUri(), type: String = AUTH_PERMISSION_TERM, target: TargetAsset = TargetAsset(id = "my:id".toUri()), assignee: Sub = MOCK_USER_SUB, action: Action = Action.READ, createdAt: ZonedDateTime = ngsiLdDateTime(), modifiedAt: ZonedDateTime = createdAt, assigner: Sub = MOCK_USER_SUB, )</ID>
     <ID>LongParameterList:TemporalEntityHandler.kt$TemporalEntityHandler$( @RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: URI, @PathVariable attrId: String, @PathVariable instanceId: URI, @RequestBody requestBody: Mono&lt;String&gt;, @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA]) @RequestParam queryParams: MultiValueMap&lt;String, String&gt; )</ID>
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
-    <ID>MaxLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$fun</ID>
-    <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$fun</ID>
-    <ID>MaximumLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$ </ID>
-    <ID>MaximumLineLength:PermissionServiceTests.kt$PermissionServiceTests$ </ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>SwallowedException:TemporalQueryUtils.kt$e: IllegalArgumentException</ID>
     <ID>UnusedParameter:PermissionFilters.kt$PermissionFilters.Companion$contexts: List&lt;String&gt;</ID>
     <ID>UnusedParameter:PermissionService.kt$PermissionService$contexts: List&lt;String&gt;</ID>
     <ID>UnusedParameter:TargetAsset.kt$TargetAsset$contexts: List&lt;String&gt;</ID>
-    <ID>UseLet:PermissionService.kt$PermissionService$if (permissionFilters.assignee != null) { val assignee = permissionFilters.assignee.toOption() val assigneeUuids = subjectReferentialService.getSubjectAndGroupsUUID(assignee).bind() """ ( assignee is null OR assignee in ('${assigneeUuids.joinToString("', '")}') ) """ } else null</ID>
   </CurrentIssues>
 </SmellBaseline>

@@ -67,12 +67,14 @@ data class Permission(
                     .expand(contexts)
             }.fold(
                 { it.right() },
-                { it.toAPIException("Failed to parse Permission caused by :\n ${it.message}").left() }
+                { it.toAPIException("Failed to parse Permission caused by : ${it.message}").left() }
             )
 
         fun notFoundMessage(id: URI) = "Could not find a Permission with id $id"
-        fun alreadyExistsMessage(id: URI) = "A Permission with id : $id already exists"
-        fun unauthorizedMessage(entityId: URI) = "User is not authorized to access Permission targeting $entityId"
+        fun alreadyExistsMessage(id: URI) = "A Permission with id $id already exists"
+        fun unauthorizedEditMessage(permissionId: URI) = "User is not authorized to edit Permission $permissionId"
+        fun unauthorizedCreateMessage(entityId: URI) = "User is not authorized to add Permission targeting $entityId"
+        fun unauthorizedRetrieveMessage(permissionId: URI) = "User is not authorized to read Permission $permissionId"
         val CHANGE_OWNER_EXCEPTION = BadRequestDataException("Adding a new owner to an entity is prohibited")
         val EVERYONE_AS_ADMIN_EXCEPTION =
             BadRequestDataException("Adding administration right for everyone is prohibited")

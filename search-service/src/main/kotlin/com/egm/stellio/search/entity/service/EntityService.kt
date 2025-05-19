@@ -67,7 +67,7 @@ class EntityService(
     private val entityAttributeService: EntityAttributeService,
     private val scopeService: ScopeService,
     private val entityEventService: EntityEventService,
-    private val authorizationService: AuthorizationService,
+    private val authorizationService: AuthorizationService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -108,7 +108,7 @@ class EntityService(
                     ngsiLdEntity.id,
                     action = specificAccessPolicy,
                     sub = sub.toOption()
-                )
+                ).bind()
             }
         authorizationService.createOwnerRight(ngsiLdEntity.id, sub.toOption()).bind()
 

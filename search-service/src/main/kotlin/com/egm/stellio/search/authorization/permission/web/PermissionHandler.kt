@@ -10,7 +10,9 @@ import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.CHANGE_OWNER_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.EVERYONE_AS_ADMIN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedMessage
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedCreateMessage
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedEditMessage
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedRetrieveMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.permission.service.PermissionService
@@ -178,8 +180,8 @@ class PermissionHandler(
 
         val permission = permissionService.getById(permissionId).bind()
 
-        if (permission.assignee !in subjects) {
-            checkIsAdmin(permissionId).bind()
+        if (permission.assignee !in subjects && checkIsAdmin(permissionId).isLeft()) {
+            AccessDeniedException(unauthorizedRetrieveMessage(permissionId)).left().bind<String>()
         }
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
@@ -201,9 +203,9 @@ class PermissionHandler(
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         checkIsAdmin(permissionId).bind()
-        val oldPermission = permissionService.getById(permissionId).bind()
+        val currentPermission = permissionService.getById(permissionId).bind()
 
-        if (oldPermission.action == Action.OWN) {
+        if (currentPermission.action == Action.OWN) {
             CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
         }
 
@@ -212,11 +214,16 @@ class PermissionHandler(
         if (body["action"] == Action.OWN.value) {
             CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
         }
-        if (body["assignee"] == null &&
-            (oldPermission.action == Action.ADMIN || body["action"] == Action.ADMIN.value)
-        ) {
+
+        val newAssigneeIsEveryone =
+            !body.containsKey("assignee") && currentPermission.assignee == null ||
+                body.containsKey("assignee") && body["assignee"] == null
+        val newActionIsAdmin = !body.containsKey("action") && currentPermission.action == Action.ADMIN ||
+            body["action"] == Action.ADMIN.value
+        if (newActionIsAdmin && newAssigneeIsEveryone) {
             EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
         }
+
         body["target"]?.let {
             val target = it as Map<String, Any>
             target["id"]?.let { entityId ->
@@ -224,15 +231,9 @@ class PermissionHandler(
                 authorizationService.userCanAdminEntity(entityUri, getSubFromSecurityContext()).bind()
             }
         }
-        if (body["target"] != null &&
-            (oldPermission.action == Action.ADMIN || body["action"] == Action.ADMIN.value)
-        ) {
-            EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
-        }
 
         val contexts = getAuthzContextFromRequestOrDefault(httpHeaders, body, applicationProperties.contexts).bind()
-        val response = permissionService.update(permissionId, body, contexts)
-        response.bind()
+        permissionService.update(permissionId, body, contexts).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -261,7 +262,7 @@ class PermissionHandler(
             .flatMap {
                 if (!it)
                     AccessDeniedException(
-                        unauthorizedMessage(permissionId)
+                        unauthorizedEditMessage(permissionId)
                     ).left()
                 else
                     Unit.right()
@@ -272,7 +273,7 @@ class PermissionHandler(
             .flatMap {
                 if (!it)
                     AccessDeniedException(
-                        unauthorizedMessage(permission.target.id)
+                        unauthorizedCreateMessage(permission.target.id)
                     ).left()
                 else
                     Unit.right()

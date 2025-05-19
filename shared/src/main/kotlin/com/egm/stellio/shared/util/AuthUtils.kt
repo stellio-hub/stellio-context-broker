@@ -33,8 +33,6 @@ object AuthContextModel {
     const val CLIENT_ENTITY_PREFIX = "urn:ngsi-ld:Client:"
     const val GROUP_ENTITY_PREFIX = "urn:ngsi-ld:Group:"
 
-    const val DATASET_ID_PREFIX = "urn:ngsi-ld:Dataset:"
-
     const val AUTH_PERMISSION_TERM = "Permission"
     const val AUTH_ASSIGNER_TERM = "assigner"
     const val AUTH_TERM_SUB = "sub"

@@ -89,6 +89,26 @@ class DataRepresentationUtilsTests {
     }
 
     @Test
+    fun `it should validate an entity with special characters in the value of a JsonProperty`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Property",
+                "dateObserved": {
+                    "type": "JsonProperty",
+                    "json": {
+                        "key with space": "KeyWithSpace",
+                        "key with <": 12
+                    }
+                }
+            }
+            """.trimIndent()
+
+        rawEntity.deserializeAsMap().checkNamesAreNgsiLdSupported().shouldSucceed()
+    }
+
+    @Test
     fun `it should not validate an entity with an invalid attribute name`() = runTest {
         val rawEntity =
             """

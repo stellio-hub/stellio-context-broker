@@ -76,8 +76,8 @@ object JsonUtils {
 
     fun Map<String, Any>.getAllKeys(): Set<String> =
         this.entries.fold(emptySet()) { acc, entry ->
-            // what is inside the value of a property is not a key
-            if (entry.key == JSONLD_VALUE_TERM)
+            // what is inside the value of a Property or a JsonProperty is not a key
+            if (entry.key == JSONLD_VALUE_TERM || entry.key == JSONLD_JSON_TERM)
                 acc.plus(entry.key)
             else {
                 val valueKeys = when (entry.value) {

@@ -134,6 +134,14 @@ object JsonLdUtils {
             NGSILD_CREATED_AT_TERM,
             NGSILD_MODIFIED_AT_TERM
         )
+    val NGSILD_COMPACTED_ATTRIBUTES_VALUES =
+        setOf(
+            JSONLD_VALUE_TERM,
+            JSONLD_OBJECT,
+            JSONLD_JSON_TERM,
+            JSONLD_LANGUAGEMAP_TERM,
+            JSONLD_VOCAB_TERM
+        )
 
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_UNIT_CODE_TERM = "unitCode"

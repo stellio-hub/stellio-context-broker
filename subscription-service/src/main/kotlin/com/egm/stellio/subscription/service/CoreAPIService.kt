@@ -3,7 +3,8 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.encode
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.NotificationParams
@@ -28,7 +29,7 @@ class CoreAPIService(
             .header(NGSILD_TENANT_HEADER, tenantName)
             .retrieve()
             .bodyToMono(String::class.java)
-            .map { JsonUtils.deserializeListOfObjects(it) }
+            .map { deserializeListOfObjects(it) }
             .awaitFirst()
 
     suspend fun retrieveLinkedEntities(
@@ -45,7 +46,12 @@ class CoreAPIService(
             .header(NGSILD_TENANT_HEADER, tenantName)
             .retrieve()
             .bodyToMono(String::class.java)
-            .map { JsonUtils.deserializeListOfObjects(it) }
+            .map {
+                // flaky way to know if the response is a single entity or a list of entities
+                if (it.startsWith("["))
+                    deserializeListOfObjects(it)
+                else listOf(deserializeObject(it))
+            }
             .awaitFirst()
     }
 

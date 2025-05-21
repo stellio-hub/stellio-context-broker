@@ -136,16 +136,16 @@ class PermissionService(
             .oneToResult { rowToPermission(it).bind() }
     }
 
-    suspend fun isAdminOf(id: URI, sub: Option<Sub>): Either<APIException, Boolean> = either {
+    suspend fun isAdminOf(entityId: URI, sub: Option<Sub>): Either<APIException, Boolean> = either {
         val selectStatement =
             """
             SELECT target_id
             FROM permission
-            WHERE id = :id
+            WHERE id = :entity_id
             """.trimIndent()
 
         val targetEntityId = databaseClient.sql(selectStatement)
-            .bind("id", id)
+            .bind("entity_id", entityId)
             .oneToResult { it["target_id"] as String }.bind()
         checkHasPermissionOnEntity(sub, targetEntityId.toUri(), Action.ADMIN).bind()
     }

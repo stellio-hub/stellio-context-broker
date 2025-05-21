@@ -12,6 +12,7 @@ import com.egm.stellio.search.authorization.subject.service.SubjectReferentialSe
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -93,7 +94,7 @@ class PermissionHandlerTests {
         id: URI = "urn:ngsi-ld:Permission:1".toUri(),
         type: String = AUTH_PERMISSION_TERM,
         target: TargetAsset = TargetAsset(id = "my:id".toUri()),
-        assignee: Sub = MOCK_USER_SUB,
+        assignee: Sub? = MOCK_USER_SUB,
         action: Action = Action.READ,
         createdAt: ZonedDateTime = ngsiLdDateTime(),
         modifiedAt: ZonedDateTime = createdAt,
@@ -242,22 +243,22 @@ class PermissionHandlerTests {
             .json(
                 """
                     [
-                    {
-                     "action" : "read",
-                     "assignee" : {
-                        "kind" : "Group",
-                        "name" : "Stellio Team"
+                      {
+                         "action" : "read",
+                         "assignee" : {
+                            "kind" : "Group",
+                            "name" : "Stellio Team"
+                            },
+                         "assigner" : {
+                            "kind" : "Group",
+                            "name" : "Stellio Team"
+                            },
+                          "target" : {
+                            "id" : "my:id",
+                            "type" : "https://ontology.eglobalmark.com/apic#BeeHive",
+                            "@context" : "http://localhost:8093/jsonld-contexts/authorization-compound.jsonld"
+                          }
                         },
-                     "assigner" : {
-                        "kind" : "Group",
-                        "name" : "Stellio Team"
-                        },
-                      "target" : {
-                        "id" : "my:id",
-                        "type" : "https://ontology.eglobalmark.com/apic#BeeHive",
-                        "@context" : "http://localhost:8093/jsonld-contexts/authorization-compound.jsonld"
-                      }
-                      },
                     ]                
                 """.trimIndent()
             )
@@ -523,6 +524,80 @@ class PermissionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isForbidden
+
+        coVerify(exactly = 0) { permissionService.update(any(), any(), any()) }
+    }
+
+    @Test
+    fun `update permission should refuse to edit the target to an entity the subject does not administrate`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
+        val newId = "urn:ngsi-ld:Vehicle:A456".toUri()
+        val permissionId = id
+
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
+        coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission().right()
+        coEvery { authorizationService.userCanAdminEntity(newId, any()) } returns
+            AccessDeniedException("errorMessage").left()
+
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
+            .headers {
+                it.accept = listOf(MediaType.APPLICATION_JSON)
+                it.contentType = MediaType.APPLICATION_JSON
+                it.add(HttpHeaders.LINK, AQUAC_HEADER_LINK)
+            }
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+
+        coVerify(exactly = 0) { permissionService.update(any(), any(), any()) }
+    }
+
+
+    @Test
+    fun `update permission should refuse to upgrade action to admin if permission is assigne to everyone`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update_action_to_admin.json")
+        val permissionId = id
+
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
+        coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission(assignee = null).right()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
+            .headers {
+                it.accept = listOf(MediaType.APPLICATION_JSON)
+                it.contentType = MediaType.APPLICATION_JSON
+                it.add(HttpHeaders.LINK, AQUAC_HEADER_LINK)
+            }
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+
+        coVerify(exactly = 0) { permissionService.update(any(), any(), any()) }
+    }
+
+    @Test
+    fun `update permission should refuse to edit an owner permission`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
+        val permissionId = id
+
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
+        coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission(action = Action.OWN).right()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
+            .headers {
+                it.accept = listOf(MediaType.APPLICATION_JSON)
+                it.contentType = MediaType.APPLICATION_JSON
+                it.add(HttpHeaders.LINK, AQUAC_HEADER_LINK)
+            }
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
 
         coVerify(exactly = 0) { permissionService.update(any(), any(), any()) }
     }

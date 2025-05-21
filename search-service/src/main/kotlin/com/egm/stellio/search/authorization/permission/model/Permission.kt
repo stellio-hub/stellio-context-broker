@@ -75,7 +75,7 @@ data class Permission(
         fun unauthorizedEditMessage(permissionId: URI) = "User is not authorized to edit Permission $permissionId"
         fun unauthorizedCreateMessage(entityId: URI) = "User is not authorized to add Permission targeting $entityId"
         fun unauthorizedRetrieveMessage(permissionId: URI) = "User is not authorized to read Permission $permissionId"
-        val CHANGE_OWNER_EXCEPTION = BadRequestDataException("Adding a new owner to an entity is prohibited")
+        val CHANGE_OWNER_EXCEPTION = BadRequestDataException("Changing owner of an entity is prohibited")
         val EVERYONE_AS_ADMIN_EXCEPTION =
             BadRequestDataException("Adding administration right for everyone is prohibited")
     }

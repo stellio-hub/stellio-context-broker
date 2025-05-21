@@ -34,7 +34,9 @@
         { "key": "Authorization-token", "value": "Authorization-token-value" }
       ]
     },
-    "sysAttrs": true
+    "sysAttrs": true,
+    "join": "flat",
+    "joinLevel": 2
   },
   "expiresAt": "2100-01-01T00:00:00Z",
   "throttling": 60,

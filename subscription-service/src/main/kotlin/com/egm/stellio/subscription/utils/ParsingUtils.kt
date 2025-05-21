@@ -34,7 +34,7 @@ object ParsingUtils {
                 .expand(contexts)
         }.fold(
             { it.right() },
-            { it.toAPIException("Failed to parse subscription").left() }
+            { it.toAPIException("Failed to parse subscription: ${it.message}").left() }
         )
 
     fun convertToMap(input: Any): Map<String, Any> =

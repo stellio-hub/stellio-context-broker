@@ -15,17 +15,16 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
-import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.sub
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -46,6 +45,7 @@ import org.springframework.http.MediaType
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.json.JsonCompareMode
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
 
@@ -74,6 +74,23 @@ class PermissionHandlerTests {
     private val id = "urn:ngsi-ld:Permission:1".toUri()
     private val jwt = mockJwt().jwt { it.subject(MOCK_USER_SUB) }
     private val userUuid = "55e64faf-4bda-41cc-98b0-195874cefd29"
+    private val entity = """
+            {
+                "id": "my:id",
+                "type": "Beehive",
+                "attr1": {
+                    "type": "Property",
+                    "value": "some value 1"
+                },
+                "attr2": {
+                    "type": "Property",
+                    "value": "some value 2"
+                },
+                "@context" : [
+                     "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+                ]
+            }
+    """.trimIndent()
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -203,22 +220,12 @@ class PermissionHandlerTests {
     @Test
     fun `query Permissions with details=true should return entire entity and subject information`() = runTest {
         val permission = gimmeRawPermission()
-        val expandedEntity = ExpandedEntity(
-            mapOf(
-                "@id" to "my:id",
-                "@type" to listOf(BEEHIVE_TYPE)
-            )
-        )
+        val expandedEntity = expandJsonLdEntity(entity)
 
         coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
-        coEvery {
-            permissionService.getPermissions(any(), any(), any())
-        } returns listOf(permission).right()
-
+        coEvery { permissionService.getPermissions(any(), any(), any()) } returns listOf(permission).right()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns expandedEntity.right()
-        coEvery {
-            subjectReferentialService.retrieve(any())
-        } returns SubjectReferential(
+        coEvery { subjectReferentialService.retrieve(any()) } returns SubjectReferential(
             userUuid, SubjectType.GROUP,
             Json.of(
                 """
@@ -231,6 +238,7 @@ class PermissionHandlerTests {
 
         webClient.get()
             .uri("$permissionUri?id=$id&details=true")
+            .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -250,13 +258,81 @@ class PermissionHandlerTests {
                           "name" : "Stellio Team"
                         },
                         "target" : {
-                          "id" : "my:id",
-                          "type" : "https://ontology.eglobalmark.com/apic#BeeHive",
-                          "@context" : "http://localhost:8093/jsonld-contexts/authorization-compound.jsonld"
+                            "id": "my:id",
+                            "type": "Beehive",
+                            "attr1": {
+                                "type": "Property",
+                                "value": "some value 1"
+                            },
+                            "attr2": {
+                                "type": "Property",
+                                "value": "some value 2"
+                            }                               
                         }
                       },
                     ]                
+                """.trimIndent(),
+                JsonCompareMode.STRICT
+            )
+            .returnResult().responseBody?.toString(Charsets.UTF_8)
+
+        coVerify { permissionService.getPermissions(any(), any()) }
+        coVerify { entityQueryService.queryEntity(any(), any()) }
+        coVerify { subjectReferentialService.retrieve(any()) }
+    }
+
+    @Test
+    fun `query Permissions with details=true and pickDetails should only returned the picked attributes`() = runTest {
+        val permission = gimmeRawPermission()
+        val expandedEntity = expandJsonLdEntity(entity)
+
+        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.getPermissions(any(), any(), any()) } returns listOf(permission).right()
+        coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns expandedEntity.right()
+        coEvery { subjectReferentialService.retrieve(any()) } returns SubjectReferential(
+            userUuid, SubjectType.GROUP,
+            Json.of(
+                """
+                    {"type": "Property", "value": {"kind": "Group", "name": "Stellio Team"}}
                 """.trimIndent()
+            )
+        ).right()
+
+        coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
+
+        webClient.get()
+            .uri("$permissionUri?id=$id&details=true&detailsPick=attr1")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .json(
+                """
+                    [
+                      {
+                        "id": "${permission.id}",
+                        "type": "Permission",
+                        "action" : "read",
+                        "assignee" : {
+                          "kind" : "Group",
+                          "name" : "Stellio Team"
+                        },
+                        "assigner" : {
+                          "kind" : "Group",
+                          "name" : "Stellio Team"
+                        },
+                        "target" : {
+                            "id": "my:id",
+                            "type": "Beehive",
+                            "attr1": {
+                                "type": "Property",
+                                "value": "some value 1"
+                            },
+                        }
+                      },
+                    ]                
+                """.trimIndent(),
+                JsonCompareMode.STRICT
             )
             .returnResult().responseBody?.toString(Charsets.UTF_8)
 
@@ -536,7 +612,6 @@ class PermissionHandlerTests {
         coEvery { authorizationService.userCanAdminEntity(newId, any()) } returns
             AccessDeniedException("errorMessage").left()
 
-
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
             .headers {
@@ -550,7 +625,6 @@ class PermissionHandlerTests {
 
         coVerify(exactly = 0) { permissionService.update(any(), any(), any()) }
     }
-
 
     @Test
     fun `update permission should refuse to upgrade action to admin if permission is assigne to everyone`() = runTest {

@@ -21,8 +21,18 @@
     <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( entityId: URI, attributeName: ExpandedTerm, attributeMetadata: AttributeMetadata, createdAt: ZonedDateTime, attributePayload: ExpandedAttributeInstance, sub: Sub? )</ID>
     <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( entityUri: URI, ngsiLdAttributes: List&lt;NgsiLdAttribute&gt;, expandedAttributes: ExpandedAttributes, createdAt: ZonedDateTime, observedAt: ZonedDateTime?, sub: Sub? )</ID>
     <ID>LongParameterList:EntityAttributeService.kt$EntityAttributeService$( entityUri: URI, ngsiLdAttributes: List&lt;NgsiLdAttribute&gt;, expandedAttributes: ExpandedAttributes, disallowOverwrite: Boolean, createdAt: ZonedDateTime, sub: Sub? )</ID>
+    <ID>LongParameterList:PermissionHandler.kt$PermissionHandler$( permission: Permission, contexts: List&lt;String&gt;,
+      mediaType: MediaType = JSON_LD_MEDIA_TYPE, includeSysAttrs: Boolean = false, includeDetails: Boolean = false,
+      pickAttributes: Set&lt;String&gt; = emptySet() )
+    </ID>
+    <ID>LongParameterList:PermissionHandler.kt$PermissionHandler$( permissions: List&lt;Permission&gt;, contexts: List&lt;String&gt;,
+      mediaType: MediaType = JSON_LD_MEDIA_TYPE, includeSysAttrs: Boolean, includeDetails: Boolean,
+      pickDetailsAttributes: Set&lt;String&gt; = emptySet() )
+    </ID>
     <ID>LongParameterList:TemporalEntityHandler.kt$TemporalEntityHandler$( @RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: URI, @PathVariable attrId: String, @PathVariable instanceId: URI, @RequestBody requestBody: Mono&lt;String&gt;, @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA]) @RequestParam queryParams: MultiValueMap&lt;String, String&gt; )</ID>
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
+    <ID>MaxLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$fun</ID>
+    <ID>MaximumLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$</ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>SwallowedException:TemporalQueryUtils.kt$e: IllegalArgumentException</ID>
     <ID>UnusedParameter:PermissionFilters.kt$PermissionFilters.Companion$contexts: List&lt;String&gt;</ID>

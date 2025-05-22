@@ -25,6 +25,7 @@ import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ACTION_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNEE_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
@@ -42,6 +43,7 @@ import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getAuthzContextFromRequestOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
+import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.shared.util.toUri
@@ -117,7 +119,7 @@ class PermissionHandler(
             implemented = [
                 QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
                 QP.ACTION, QP.ASSIGNEE, QP.ASSIGNER,
-                QP.ID, QP.DETAILS
+                QP.ID, QP.DETAILS, QP.DETAILS_PICK
             ],
             notImplemented = [
                 QP.TYPE, QP.SCOPEQ
@@ -128,11 +130,13 @@ class PermissionHandler(
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val permissionFilters = PermissionFilters.fromQueryParameters(queryParams, contexts).bind()
-
         val includeSysAttrs = queryParams.getOrDefault(QP.OPTIONS.key, emptyList())
             .contains(OptionsValue.SYS_ATTRS.value)
         val includeDetails = queryParams.getFirst(QP.DETAILS.key)?.toBoolean() ?: false
-
+        val pickDetailsAttributes = parseAndExpandQueryParameter(
+            queryParams.getFirst(QueryParameter.DETAILS_PICK.key),
+            contexts
+        )
         val paginationQuery = parsePaginationParameters(
             queryParams,
             applicationProperties.pagination.limitDefault,
@@ -147,7 +151,8 @@ class PermissionHandler(
             contexts,
             mediaType,
             includeSysAttrs,
-            includeDetails
+            includeDetails,
+            pickDetailsAttributes
         ).bind()
         val permissionsCount = permissionService.getPermissionsCount(
             permissionFilters
@@ -171,14 +176,17 @@ class PermissionHandler(
     suspend fun retrieve(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable permissionId: URI,
-        @AllowedParameters(implemented = [QP.OPTIONS, QP.DETAILS])
+        @AllowedParameters(implemented = [QP.OPTIONS, QP.DETAILS, QP.DETAILS_PICK])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val options = queryParams.getFirst(QP.OPTIONS.key)
         val includeSysAttrs = options?.contains(OptionsValue.SYS_ATTRS.value) ?: false
         val includeDetails = queryParams.getFirst(QP.DETAILS.key)?.toBoolean() ?: false
-
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
+        val pickDetailsAttributes = parseAndExpandQueryParameter(
+            queryParams.getFirst(QueryParameter.DETAILS_PICK.key),
+            contexts
+        )
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val subjects = subjectReferentialService.getSubjectAndGroupsUUID().bind()
@@ -190,7 +198,16 @@ class PermissionHandler(
         }
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .body(serializePermission(permission, contexts, mediaType, includeSysAttrs, includeDetails).bind())
+            .body(
+                serializePermission(
+                    permission,
+                    contexts,
+                    mediaType,
+                    includeSysAttrs,
+                    includeDetails,
+                    pickDetailsAttributes
+                ).bind()
+            )
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -289,7 +306,8 @@ class PermissionHandler(
         contexts: List<String>,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE,
         includeSysAttrs: Boolean = false,
-        includeDetails: Boolean = false
+        includeDetails: Boolean = false,
+        pickAttributes: Set<String> = emptySet()
     ): Either<APIException, String> = either {
         val permissionMap = DataTypes.mapper.convertValue<Map<String, Any>>(permission.compact(contexts)).plus(
             JSONLD_CONTEXT to contexts
@@ -306,9 +324,10 @@ class PermissionHandler(
             }
             permission.target.id.let { id ->
                 permissionMap[AUTH_TARGET_TERM] = compactEntity(
-                    entityQueryService.queryEntity(id, getSubFromSecurityContext().getOrNull()).bind(),
+                    entityQueryService.queryEntity(id, getSubFromSecurityContext().getOrNull()).bind()
+                        .filterAttributes(pickAttributes, emptySet()),
                     contexts
-                )
+                ).minus(JSONLD_CONTEXT)
             }
         }
 
@@ -320,10 +339,11 @@ class PermissionHandler(
         contexts: List<String>,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE,
         includeSysAttrs: Boolean,
-        includeDetails: Boolean
+        includeDetails: Boolean,
+        pickDetailsAttributes: Set<String> = emptySet()
     ): Either<APIException, String> = either {
         permissions.map {
-            serializePermission(it, contexts, mediaType, includeSysAttrs, includeDetails).bind()
+            serializePermission(it, contexts, mediaType, includeSysAttrs, includeDetails, pickDetailsAttributes).bind()
         }.toString()
     }
 }

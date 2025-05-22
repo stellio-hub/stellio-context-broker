@@ -38,6 +38,9 @@ SET modified_at = '1970-01-01 00:00:00.033000'
 WHERE modified_at is null;
 
 UPDATE permission
+set id = concat('urn:ngsi-ld:Permission:', gen_random_uuid());
+
+UPDATE permission
 set id = concat('urn:ngsi-ld:Permission:', gen_random_uuid())
 WHERE id is null;
 
@@ -58,3 +61,20 @@ WHERE action = 'canAdmin';
 UPDATE permission
 SET action = 'own'
 WHERE action = 'isOwner';
+
+-- guess the permission assigner with the entity creator of the target
+UPDATE permission
+SET assigner = owner_permission.assignee
+FROM permission as owner_permission
+WHERE permission.target_id = owner_permission.target_id
+  AND owner_permission.action = 'own';
+
+
+-- if there is still a null assigner replace it with the stellio_team client
+UPDATE permission
+SET assigner = subject_referential.subject_id
+FROM subject_referential
+WHERE permission.assigner is null
+  AND subject_type = 'CLIENT'
+  AND global_roles @> '{"stellio-admin"}'
+  AND subject_info -> 'value' ->> 'clientId' = 'stellio-team'

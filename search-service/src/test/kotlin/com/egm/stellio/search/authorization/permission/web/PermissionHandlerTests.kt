@@ -19,7 +19,6 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -27,7 +26,6 @@ import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.sub
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -50,7 +48,6 @@ import org.springframework.security.test.web.reactive.server.SecurityMockServerC
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
-import java.time.ZonedDateTime
 
 @ActiveProfiles("test")
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
@@ -90,16 +87,13 @@ class PermissionHandlerTests {
             .build()
     }
 
-    fun gimmeRawPermission(
+    private fun gimmeRawPermission(
         id: URI = "urn:ngsi-ld:Permission:1".toUri(),
-        type: String = AUTH_PERMISSION_TERM,
         target: TargetAsset = TargetAsset(id = "my:id".toUri()),
         assignee: Sub? = MOCK_USER_SUB,
         action: Action = Action.READ,
-        createdAt: ZonedDateTime = ngsiLdDateTime(),
-        modifiedAt: ZonedDateTime = createdAt,
         assigner: Sub = MOCK_USER_SUB,
-    ) = Permission(id, type, target, assignee, action, createdAt, modifiedAt, assigner)
+    ) = Permission(id, target = target, assignee = assignee, action = action, assigner = assigner)
 
     @Test
     fun `get Permission by id should return 200 when it exists`() = runTest {
@@ -114,8 +108,8 @@ class PermissionHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$..createdAt").doesNotExist()
-            .jsonPath("$..modifiedAt").doesNotExist()
+            .jsonPath("$.createdAt").doesNotExist()
+            .jsonPath("$.modifiedAt").doesNotExist()
 
         coVerify { permissionService.getById(id) }
     }
@@ -133,7 +127,7 @@ class PermissionHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody()
-            .jsonPath("$..createdAt").exists()
+            .jsonPath("$.createdAt").exists()
 
         coVerify { permissionService.getById(id) }
     }
@@ -244,21 +238,23 @@ class PermissionHandlerTests {
                 """
                     [
                       {
-                         "action" : "read",
-                         "assignee" : {
-                            "kind" : "Group",
-                            "name" : "Stellio Team"
-                            },
-                         "assigner" : {
-                            "kind" : "Group",
-                            "name" : "Stellio Team"
-                            },
-                          "target" : {
-                            "id" : "my:id",
-                            "type" : "https://ontology.eglobalmark.com/apic#BeeHive",
-                            "@context" : "http://localhost:8093/jsonld-contexts/authorization-compound.jsonld"
-                          }
+                        "id": "${permission.id}",
+                        "type": "Permission",
+                        "action" : "read",
+                        "assignee" : {
+                          "kind" : "Group",
+                          "name" : "Stellio Team"
                         },
+                        "assigner" : {
+                          "kind" : "Group",
+                          "name" : "Stellio Team"
+                        },
+                        "target" : {
+                          "id" : "my:id",
+                          "type" : "https://ontology.eglobalmark.com/apic#BeeHive",
+                          "@context" : "http://localhost:8093/jsonld-contexts/authorization-compound.jsonld"
+                        }
+                      },
                     ]                
                 """.trimIndent()
             )

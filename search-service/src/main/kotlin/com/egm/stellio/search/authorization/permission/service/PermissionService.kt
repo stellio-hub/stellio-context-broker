@@ -24,9 +24,13 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_ACTION_TERM
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNEE_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TARGET_TERM
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.util.Sub
@@ -173,14 +177,14 @@ class PermissionService(
         }.plus(NGSILD_MODIFIED_AT_TERM to ngsiLdDateTime()).plus(AUTH_ASSIGNER_TERM to sub.toStringValue())
             .forEach {
                 when {
-                    it.key == "target" -> {
-                        val target = input["target"] as Map<String, Any>
-                        target["id"]?.let { entityId ->
+                    it.key == AUTH_TARGET_TERM -> {
+                        val target = input[AUTH_TARGET_TERM] as Map<String, Any>
+                        target[JSONLD_ID_TERM]?.let { entityId ->
                             updatePermissionAttribute(permissionId, "target_id", entityId).bind()
                         }
                     }
 
-                    it.key == "action" -> {
+                    it.key == AUTH_ACTION_TERM -> {
                         updatePermissionAttribute(
                             permissionId,
                             it.key,
@@ -196,8 +200,8 @@ class PermissionService(
                         ).bind()
                     }
                     listOf(
-                        "id",
-                        "assignee",
+                        JSONLD_ID_TERM,
+                        AUTH_ASSIGNEE_TERM,
                         AUTH_ASSIGNER_TERM,
                     ).contains(it.key) -> {
                         val columnName = it.key

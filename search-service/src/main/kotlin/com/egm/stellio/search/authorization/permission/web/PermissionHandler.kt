@@ -25,11 +25,16 @@ import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_ACTION_TERM
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNEE_TERM
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TARGET_TERM
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.buildQueryResponse
@@ -211,22 +216,22 @@ class PermissionHandler(
 
         val body = requestBody.awaitFirst().deserializeAsMap()
 
-        if (body["action"] == Action.OWN.value) {
+        if (body[AUTH_ACTION_TERM] == Action.OWN.value) {
             CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
         }
 
         val newAssigneeIsEveryone =
-            !body.containsKey("assignee") && currentPermission.assignee == null ||
-                body.containsKey("assignee") && body["assignee"] == null
-        val newActionIsAdmin = !body.containsKey("action") && currentPermission.action == Action.ADMIN ||
-            body["action"] == Action.ADMIN.value
+            !body.containsKey(AUTH_ASSIGNEE_TERM) && currentPermission.assignee == null ||
+                body.containsKey(AUTH_ASSIGNEE_TERM) && body[AUTH_ASSIGNEE_TERM] == null
+        val newActionIsAdmin = !body.containsKey(AUTH_ACTION_TERM) && currentPermission.action == Action.ADMIN ||
+            body[AUTH_ACTION_TERM] == Action.ADMIN.value
         if (newActionIsAdmin && newAssigneeIsEveryone) {
             EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
         }
 
-        body["target"]?.let {
+        body[AUTH_TARGET_TERM]?.let {
             val target = it as Map<String, Any>
-            target["id"]?.let { entityId ->
+            target[JSONLD_ID_TERM]?.let { entityId ->
                 val entityUri = (entityId as String).toUri()
                 authorizationService.userCanAdminEntity(entityUri, getSubFromSecurityContext()).bind()
             }
@@ -292,13 +297,15 @@ class PermissionHandler(
 
         if (includeDetails) {
             permission.assignee?.let { assignee ->
-                permissionMap["assignee"] = subjectReferentialService.retrieve(assignee).bind().getSubjectInfoValue()
+                permissionMap[AUTH_ASSIGNEE_TERM] = subjectReferentialService.retrieve(assignee)
+                    .bind().getSubjectInfoValue()
             }
             permission.assigner?.let { assigner ->
-                permissionMap["assigner"] = subjectReferentialService.retrieve(assigner).bind().getSubjectInfoValue()
+                permissionMap[AUTH_ASSIGNER_TERM] = subjectReferentialService.retrieve(assigner)
+                    .bind().getSubjectInfoValue()
             }
             permission.target.id.let { id ->
-                permissionMap["target"] = compactEntity(
+                permissionMap[AUTH_TARGET_TERM] = compactEntity(
                     entityQueryService.queryEntity(id, getSubFromSecurityContext().getOrNull()).bind(),
                     contexts
                 )

@@ -67,6 +67,26 @@ class ActionTests {
         }
 
     @Test
+    fun `it should accept AUTH_READ as a specific access policy`() =
+        runTest {
+            val requestPayload =
+                """
+                {
+                    "type": "Property",
+                    "value": "AUTH_READ"
+                }
+                """.trimIndent()
+
+            val ngsiLdAttribute =
+                expandAttribute(AUTH_TERM_SAP, requestPayload, authContexts)
+                    .toNgsiLdAttribute()
+                    .shouldSucceedAndResult()
+
+            ngsiLdAttribute.getSpecificAccessPolicy()
+                .shouldSucceedWith { assertEquals(Action.READ, it) }
+        }
+
+    @Test
     fun `it should return a 400 if the value is not one of the supported`() = runTest {
         val requestPayload =
             """

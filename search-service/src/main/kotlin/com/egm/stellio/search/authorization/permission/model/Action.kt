@@ -45,10 +45,15 @@ fun NgsiLdAttribute.getSpecificAccessPolicy(): Either<APIException, Action> {
     val ngsiLdAttributeInstance = ngsiLdAttributeInstances[0]
     if (ngsiLdAttributeInstance !is NgsiLdPropertyInstance)
         return BadRequestDataException("Payload must be a property").left()
-    return Action.fromString(ngsiLdAttributeInstance.value.toString())
-        .onRight {
-            if (it !in setOf(Action.READ, Action.WRITE))
-                BadRequestDataException("Only read and write are accepted as global policy").left()
-            else it.right()
-        }
+
+    return when (ngsiLdAttributeInstance.value.toString()) {
+        "AUTH_READ" -> Action.READ.right()
+        "AUTH_WRITE" -> Action.WRITE.right()
+        else -> Action.fromString(ngsiLdAttributeInstance.value.toString())
+            .onRight {
+                if (it !in setOf(Action.READ, Action.WRITE))
+                    BadRequestDataException("Only read and write are accepted as global policy").left()
+                else it.right()
+            }
+    }
 }

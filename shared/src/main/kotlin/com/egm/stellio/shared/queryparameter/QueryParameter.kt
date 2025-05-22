@@ -40,6 +40,7 @@ enum class QueryParameter(
     ACTION("action"),
     ASSIGNEE("assignee"),
     ASSIGNER("assigner"),
+    DETAILS_PICK("detailsPick"),
 
     // pagination
     COUNT("count"),

@@ -38,9 +38,6 @@ SET modified_at = '1970-01-01 00:00:00.033000'
 WHERE modified_at is null;
 
 UPDATE permission
-set id = concat('urn:ngsi-ld:Permission:', gen_random_uuid());
-
-UPDATE permission
 set id = concat('urn:ngsi-ld:Permission:', gen_random_uuid())
 WHERE id is null;
 
@@ -76,5 +73,4 @@ SET assigner = subject_referential.subject_id
 FROM subject_referential
 WHERE permission.assigner is null
   AND subject_type = 'CLIENT'
-  AND global_roles @> '{"stellio-admin"}'
   AND subject_info -> 'value' ->> 'clientId' = 'stellio-team'

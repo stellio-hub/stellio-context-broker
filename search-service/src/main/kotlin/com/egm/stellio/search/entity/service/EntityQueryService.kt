@@ -8,7 +8,6 @@ import arrow.core.right
 import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.util.allToMappedList
-import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.wrapToAndClause
@@ -41,7 +40,7 @@ class EntityQueryService(
         val entity = retrieve(entityId).bind()
         authorizationService.userCanReadEntity(entityId, sub.toOption()).bind()
 
-        toJsonLdEntity(entity)
+        entity.toExpandedEntity()
     }
 
     suspend fun queryEntities(
@@ -57,14 +56,9 @@ class EntityQueryService(
         if (entitiesIds.isEmpty())
             return@either Pair<List<ExpandedEntity>, Int>(emptyList(), count)
 
-        val entitiesPayloads = retrieve(entitiesIds).map { toJsonLdEntity(it) }
+        val entitiesPayloads = retrieve(entitiesIds).map { it.toExpandedEntity() }
 
         Pair(entitiesPayloads, count).right().bind()
-    }
-
-    private fun toJsonLdEntity(entity: Entity): ExpandedEntity {
-        val deserializedEntity = entity.payload.deserializeAsMap()
-        return ExpandedEntity(deserializedEntity)
     }
 
     suspend fun queryEntities(

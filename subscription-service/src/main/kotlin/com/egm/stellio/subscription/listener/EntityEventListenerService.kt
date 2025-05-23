@@ -9,7 +9,6 @@ import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.OperationNotSupportedException
@@ -63,14 +62,6 @@ class EntityEventListenerService(
                     Pair(entityEvent.getEntity(), entityEvent.getEntity()),
                     NotificationTrigger.ENTITY_CREATED
                 )
-                is EntityReplaceEvent -> entityEvent.operationPayload.getUpdatedAttributes().forEach { attribute ->
-                    handleEntityEvent(
-                        tenantName,
-                        setOf(attribute),
-                        Pair(entityEvent.getEntity(), entityEvent.getEntity()),
-                        NotificationTrigger.ATTRIBUTE_CREATED
-                    )
-                }
                 is EntityDeleteEvent -> handleEntityEvent(
                     tenantName,
                     emptySet(),
@@ -112,6 +103,7 @@ class EntityEventListenerService(
         val expandedEntityForNotification = ExpandedEntity(previousAndUpdatedPayloads.second.deserializeAsMap())
         mono {
             notificationService.notifyMatchingSubscribers(
+                tenantName,
                 Pair(expandedEntityForMatching, expandedEntityForNotification),
                 updatedAttributes,
                 notificationTrigger

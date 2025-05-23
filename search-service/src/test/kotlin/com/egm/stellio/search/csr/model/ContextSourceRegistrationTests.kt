@@ -1,6 +1,6 @@
 package com.egm.stellio.search.csr.model
 
-import com.egm.stellio.search.csr.model.ContextSourceRegistration.RegistrationInfo
+import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.net.URI
 
 class ContextSourceRegistrationTests {
 
@@ -135,13 +136,13 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `getAssociatedAttributes should check properties and relationship separately`() = runTest {
+    fun `getAttributesMatchingCSFAndEntity should get the matching attributes`() = runTest {
         val entity = expandJsonLdEntity(entityPayload)
         val registrationInfoFilter = CSRFilters(
             ids = setOf(entity.id),
             types = entity.types.toSet()
         )
-        val entityInfo = ContextSourceRegistration.EntityInfo(entity.id, types = entity.types)
+        val entityInfo = EntityInfo(entity.id, types = entity.types)
         val information = RegistrationInfo(
             entities = listOf(entityInfo),
             propertyNames = listOf(NGSILD_NAME_PROPERTY),
@@ -153,33 +154,19 @@ class ContextSourceRegistrationTests {
             information = listOf(information)
         )
 
-        val attrs = csr.getAssociatedAttributes(registrationInfoFilter, entity)
+        val attrs = csr.getAttributesMatchingCSFAndEntity(registrationInfoFilter, entity)
         assertThat(attrs).contains(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
-
-        val invertedCsr = ContextSourceRegistration(
-            endpoint = "http://my:csr".toUri(),
-            information = listOf(
-                RegistrationInfo(
-                    entities = listOf(entityInfo),
-                    propertyNames = listOf(MANAGED_BY_RELATIONSHIP),
-                    relationshipNames = listOf(NGSILD_NAME_PROPERTY)
-                )
-            )
-        )
-        val inversedAttrs = invertedCsr.getAssociatedAttributes(registrationInfoFilter, entity)
-
-        assertThat(inversedAttrs).doesNotContain(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
     }
 
     @Test
-    fun `getAssociatedAttributes should not get Attributes for non matching registrationInfo`() = runTest {
+    fun `getAttributesMatchingCSFAndEntity should not get attributes for non matching registrationInfo`() = runTest {
         val entity = expandJsonLdEntity(entityPayload)
 
         val registrationInfoFilter = CSRFilters(
             ids = setOf(entity.id),
             types = entity.types.toSet()
         )
-        val nonMatchingEntityInfo = ContextSourceRegistration.EntityInfo(types = listOf(BEEHIVE_TYPE))
+        val nonMatchingEntityInfo = EntityInfo(types = listOf(BEEHIVE_TYPE))
         val nonMatchingInformation = RegistrationInfo(
             entities = listOf(nonMatchingEntityInfo),
             propertyNames = listOf(NGSILD_NAME_PROPERTY),
@@ -191,7 +178,81 @@ class ContextSourceRegistrationTests {
             information = listOf(nonMatchingInformation)
         )
 
-        val attrs = csr.getAssociatedAttributes(registrationInfoFilter, entity)
+        val attrs = csr.getAttributesMatchingCSFAndEntity(registrationInfoFilter, entity)
         assertThat(attrs).doesNotContain(NGSILD_NAME_PROPERTY, MANAGED_BY_RELATIONSHIP)
+    }
+
+    @Test
+    fun `toSingleEntityInfoCSRList should return a list of csr with one entityInfo each`() = runTest {
+        val registrationInformations = listOf(
+            RegistrationInfo(
+                entities = listOf(
+                    EntityInfo(id = "urn:1".toUri(), types = listOf(BEEHIVE_TYPE)),
+                    EntityInfo(id = "urn:2".toUri(), types = listOf(BEEHIVE_TYPE))
+                )
+            ),
+            RegistrationInfo(
+                entities = listOf(
+                    EntityInfo(id = "urn:3".toUri(), types = listOf(BEEHIVE_TYPE)),
+                    EntityInfo(id = "urn:4".toUri(), types = listOf(BEEHIVE_TYPE))
+                )
+            )
+        )
+        val csr = gimmeRawCSR(information = registrationInformations)
+
+        val csrs = csr.toSingleEntityInfoCSRList(CSRFilters())
+        assertThat(csrs).hasSize(4)
+            .extracting<URI> { it.information[0].entities?.get(0)?.id }
+            .contains("urn:1".toUri(), "urn:2".toUri(), "urn:3".toUri(), "urn:4".toUri())
+    }
+
+    @Test
+    fun `toSingleEntityInfoCSRList should filter the entityInfo`() = runTest {
+        val registrationInformations = listOf(
+            RegistrationInfo(
+                entities = listOf(
+                    EntityInfo(id = "urn:1".toUri(), types = listOf(BEEHIVE_TYPE)),
+                    EntityInfo(id = "urn:2".toUri(), types = listOf(BEEHIVE_TYPE))
+                )
+            ),
+            RegistrationInfo(
+                entities = listOf(
+                    EntityInfo(id = "urn:3".toUri(), types = listOf(BEEHIVE_TYPE)),
+                    EntityInfo(id = "urn:4".toUri(), types = listOf(BEEHIVE_TYPE))
+                )
+            )
+        )
+        val csr = gimmeRawCSR(information = registrationInformations)
+
+        val csrs = csr.toSingleEntityInfoCSRList(CSRFilters(ids = setOf("urn:3".toUri())))
+        assertThat(csrs).hasSize(1)
+            .first()
+            .matches { it.information[0].entities?.get(0)?.id == "urn:3".toUri() }
+    }
+
+    @Test
+    fun `toSingleEntityInfoCSRList should keep registrationInfo without entityInfo`() = runTest {
+        val registrationInformations = listOf(
+            RegistrationInfo(
+                propertyNames = listOf(MANAGED_BY_RELATIONSHIP, NGSILD_NAME_PROPERTY)
+            ),
+            RegistrationInfo(
+                relationshipNames = listOf(MANAGED_BY_RELATIONSHIP)
+            ),
+            RegistrationInfo(
+                propertyNames = listOf(NGSILD_NAME_PROPERTY)
+            ),
+            RegistrationInfo(
+                relationshipNames = listOf(NGSILD_NAME_PROPERTY)
+            )
+        )
+        val csr = gimmeRawCSR(information = registrationInformations)
+
+        val csrs = csr.toSingleEntityInfoCSRList(CSRFilters(attrs = setOf(MANAGED_BY_RELATIONSHIP)))
+        assertThat(csrs).hasSize(2)
+            .allMatch {
+                it.information[0].propertyNames == listOf(MANAGED_BY_RELATIONSHIP, NGSILD_NAME_PROPERTY) ||
+                    it.information[0].relationshipNames == listOf(MANAGED_BY_RELATIONSHIP)
+            }
     }
 }

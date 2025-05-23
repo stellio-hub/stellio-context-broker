@@ -5,27 +5,24 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.encode
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.service.CoreAPIService
 import com.egm.stellio.subscription.service.NotificationService
 import com.egm.stellio.subscription.service.SubscriptionService
-import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
-import org.springframework.http.HttpHeaders
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.client.WebClient
 
 @Component
 class TimeIntervalNotificationJob(
     private val subscriptionService: SubscriptionService,
     private val notificationService: NotificationService,
-    private val webClient: WebClient,
+    private val coreAPIService: CoreAPIService,
     private val applicationProperties: ApplicationProperties
 ) {
 
@@ -69,7 +66,7 @@ class TimeIntervalNotificationJob(
     ): Triple<Subscription, Notification, Boolean> =
         notificationService.callSubscriber(
             subscription,
-            compactedEntity
+            listOf(compactedEntity)
         )
 
     suspend fun getEntitiesToNotify(
@@ -81,7 +78,7 @@ class TimeIntervalNotificationJob(
         // because it can't have a "watchedAttributes" member
         subscription.entities!!
             .map {
-                getEntities(
+                coreAPIService.getEntities(
                     tenantName,
                     prepareQueryParams(it, subscription.q, subscription.notification.attributes),
                     contextLink
@@ -97,18 +94,4 @@ class TimeIntervalNotificationJob(
                         tenantName
                     )
             }
-
-    suspend fun getEntities(
-        tenantName: String,
-        paramRequest: String,
-        contextLink: String
-    ): List<CompactedEntity> =
-        webClient.get()
-            .uri("/ngsi-ld/v1/entities$paramRequest")
-            .header(HttpHeaders.LINK, contextLink)
-            .header(NGSILD_TENANT_HEADER, tenantName)
-            .retrieve()
-            .bodyToMono(String::class.java)
-            .map { JsonUtils.deserializeListOfObjects(it) }
-            .awaitFirst()
 }

@@ -94,6 +94,7 @@ object JsonLdUtils {
     const val NGSILD_NONE_TERM = "@none"
     const val NGSILD_DATASET_TERM = "dataset"
     const val NGSILD_ENTITY_TERM = "entity"
+    const val NGSILD_TITLE_TERM = "title"
     const val NGSILD_NULL = "urn:ngsi-ld:null"
     val NGSILD_LOCAL = "urn:ngsi-ld:local".toUri()
 
@@ -133,6 +134,14 @@ object JsonLdUtils {
             NGSILD_CREATED_AT_TERM,
             NGSILD_MODIFIED_AT_TERM
         )
+    val NGSILD_COMPACTED_ATTRIBUTES_VALUES =
+        setOf(
+            JSONLD_VALUE_TERM,
+            JSONLD_OBJECT,
+            JSONLD_JSON_TERM,
+            JSONLD_LANGUAGEMAP_TERM,
+            JSONLD_VOCAB_TERM
+        )
 
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_UNIT_CODE_TERM = "unitCode"
@@ -142,8 +151,6 @@ object JsonLdUtils {
     const val NGSILD_OBSERVATION_SPACE_PROPERTY = "https://uri.etsi.org/ngsi-ld/observationSpace"
     const val NGSILD_OPERATION_SPACE_TERM = "operationSpace"
     const val NGSILD_OPERATION_SPACE_PROPERTY = "https://uri.etsi.org/ngsi-ld/operationSpace"
-    val NGSILD_GEO_PROPERTIES_TERMS =
-        setOf(NGSILD_LOCATION_TERM, NGSILD_OBSERVATION_SPACE_TERM, NGSILD_OPERATION_SPACE_TERM)
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
     const val NGSILD_DATASET_ID_TERM = "datasetId"
 
@@ -180,7 +187,7 @@ object JsonLdUtils {
     ): Map<String, Any> =
         doJsonLdExpansion(deserializedPayload, contexts)
 
-    suspend fun expandJsonLdEntityF(
+    suspend fun expandJsonLdEntitySafe(
         input: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, ExpandedEntity> =
@@ -198,11 +205,6 @@ object JsonLdUtils {
 
     suspend fun expandJsonLdEntity(input: String, contexts: List<String>): ExpandedEntity =
         expandJsonLdEntity(input.deserializeAsMap(), contexts)
-
-    fun expandJsonLdTerms(terms: List<String>, contexts: List<String>): List<ExpandedTerm> =
-        terms.map {
-            expandJsonLdTerm(it, contexts)
-        }
 
     fun expandJsonLdTerm(term: String, context: String): String =
         expandJsonLdTerm(term, listOf(context))

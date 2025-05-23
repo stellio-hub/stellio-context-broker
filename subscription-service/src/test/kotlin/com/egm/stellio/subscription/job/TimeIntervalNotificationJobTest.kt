@@ -12,15 +12,10 @@ import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.subscription.config.WebClientConfig
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.service.CoreAPIService
 import com.egm.stellio.subscription.service.NotificationService
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.support.gimmeRawSubscription
-import com.github.tomakehurst.wiremock.client.WireMock.get
-import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
-import com.github.tomakehurst.wiremock.client.WireMock.okJson
-import com.github.tomakehurst.wiremock.client.WireMock.stubFor
-import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
-import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -54,6 +49,9 @@ class TimeIntervalNotificationJobTest {
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
+
+    @MockkBean
+    private lateinit var coreAPIService: CoreAPIService
 
     @MockkBean
     private lateinit var applicationProperties: ApplicationProperties
@@ -111,58 +109,6 @@ class TimeIntervalNotificationJobTest {
     }
 
     @Test
-    fun `it should return one entity if the query sent to entity service matches one entity`() {
-        val encodedQuery = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
-        stubFor(
-            get(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
-                .willReturn(
-                    okJson(
-                        listOf(
-                            loadSampleData("beehive.jsonld")
-                        ).toString()
-                    )
-                )
-        )
-
-        val query = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
-        runBlocking {
-            val compactedEntities = timeIntervalNotificationJob.getEntities(
-                DEFAULT_TENANT_NAME,
-                query,
-                APIC_HEADER_LINK
-            )
-            assertEquals(1, compactedEntities.size)
-            assertEquals("urn:ngsi-ld:BeeHive:TESTC", compactedEntities[0]["id"])
-        }
-    }
-
-    @Test
-    fun `it should return a list of 2 entities if the query sent to entity service matches two entities`() {
-        stubFor(
-            get(urlEqualTo("/ngsi-ld/v1/entities?type=BeeHive"))
-                .willReturn(
-                    okJson(
-                        listOf(
-                            loadSampleData("beehive.jsonld"),
-                            loadSampleData("beehive2.jsonld")
-                        ).toString()
-                    )
-                )
-        )
-
-        runBlocking {
-            val compactedEntities = timeIntervalNotificationJob.getEntities(
-                DEFAULT_TENANT_NAME,
-                "?type=BeeHive",
-                APIC_HEADER_LINK
-            )
-            assertEquals(2, compactedEntities.size)
-            assertEquals("urn:ngsi-ld:BeeHive:TESTC", compactedEntities[0]["id"])
-            assertEquals("urn:ngsi-ld:BeeHive:TESTD", compactedEntities[1]["id"])
-        }
-    }
-
-    @Test
     fun `it should not return twice the same entity if there is overlap between 2 entity infos`() {
         val subscription = gimmeRawSubscription(withEndpointReceiverInfo = false).copy(
             entities = setOf(
@@ -176,27 +122,14 @@ class TimeIntervalNotificationJobTest {
             q = null
         )
 
-        stubFor(
-            get(urlEqualTo("/ngsi-ld/v1/entities?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC"))
-                .willReturn(
-                    okJson(
-                        listOf(
-                            loadSampleData("beehive.jsonld")
-                        ).toString()
-                    )
-                )
-        )
-
-        stubFor(
-            get(urlEqualTo("/ngsi-ld/v1/entities?type=BeeHive"))
-                .willReturn(
-                    okJson(
-                        listOf(
-                            loadSampleData("beehive.jsonld"),
-                            loadSampleData("beehive2.jsonld")
-                        ).toString()
-                    )
-                )
+        coEvery {
+            coreAPIService.getEntities(any(), any(), any())
+        } returnsMany listOf(
+            listOf(loadSampleData("beehive.jsonld").deserializeAsMap()),
+            listOf(
+                loadSampleData("beehive.jsonld").deserializeAsMap(),
+                loadSampleData("beehive2.jsonld").deserializeAsMap()
+            )
         )
 
         runBlocking {
@@ -225,7 +158,7 @@ class TimeIntervalNotificationJobTest {
 
         timeIntervalNotificationJob.sendNotification(compactedEntity, subscription)
 
-        coVerify(exactly = 1) { notificationService.callSubscriber(subscription, compactedEntity) }
+        coVerify(exactly = 1) { notificationService.callSubscriber(subscription, listOf(compactedEntity)) }
         confirmVerified()
     }
 
@@ -242,38 +175,21 @@ class TimeIntervalNotificationJobTest {
             )
         )
 
-        val encodedQuery = "?type=https%3A%2F%2Furi.fiware.org%2Fns%2Fdata-models%23BeeHive" +
-            "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
-
         every {
             applicationProperties.tenants
         } returns listOf(TenantConfiguration(DEFAULT_TENANT_NAME, "", "public"))
         coEvery { subscriptionService.getRecurringSubscriptionsToNotify() } returns listOf(subscription)
         coEvery { subscriptionService.getContextsLink(any()) } returns NGSILD_TEST_CORE_CONTEXT
+        coEvery { coreAPIService.getEntities(any(), any(), any()) } returns listOf(entity.deserializeAsMap())
         coEvery {
             notificationService.callSubscriber(any(), any())
         } returns Triple(subscription, mockkClass(Notification::class), true)
 
-        stubFor(
-            get(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
-                .willReturn(
-                    okJson(
-                        listOf(
-                            entity
-                        ).toString()
-                    )
-                )
-        )
-
         timeIntervalNotificationJob.sendTimeIntervalNotification()
 
         coVerify(exactly = 1, timeout = 1000L) {
-            notificationService.callSubscriber(subscription, entity.deserializeAsMap())
+            notificationService.callSubscriber(subscription, listOf(entity.deserializeAsMap()))
         }
         confirmVerified(notificationService)
-
-        verify(
-            getRequestedFor(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
-        )
     }
 }

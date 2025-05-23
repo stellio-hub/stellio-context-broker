@@ -508,14 +508,14 @@ class CompactedEntityTests {
                             60.07966
                          ]
                       }
-                   },
-                    "@context": [
-                        "https://example.org/ngsi-ld/latest/commonTerms.jsonld",
-                        "https://example.org/ngsi-ld/latest/vehicle.jsonld",
-                        "https://example.org/ngsi-ld/latest/parking.jsonld",
-                        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
-                    ]
-                }
+                   }
+                },
+                "@context": [
+                    "https://example.org/ngsi-ld/latest/commonTerms.jsonld",
+                    "https://example.org/ngsi-ld/latest/vehicle.jsonld",
+                    "https://example.org/ngsi-ld/latest/parking.jsonld",
+                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+                ]
             }
             """.trimIndent().deserializeAsMap()
 
@@ -549,14 +549,14 @@ class CompactedEntityTests {
                     "location": {
                         "type": "Point",
                         "coordinates": [ 24.30623, 60.07966 ]
-                    },
-                    "@context": [
-                        "https://example.org/ngsi-ld/latest/commonTerms.jsonld",
-                        "https://example.org/ngsi-ld/latest/vehicle.jsonld",
-                        "https://example.org/ngsi-ld/latest/parking.jsonld",
-                        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
-                    ]
-                }
+                    }
+                },
+                "@context": [
+                    "https://example.org/ngsi-ld/latest/commonTerms.jsonld",
+                    "https://example.org/ngsi-ld/latest/vehicle.jsonld",
+                    "https://example.org/ngsi-ld/latest/parking.jsonld",
+                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+                ]
             }
             """.trimIndent().deserializeAsMap()
 
@@ -581,7 +581,8 @@ class CompactedEntityTests {
                 "brandName": {
                     "type": "Property",
                     "value": "Mercedes"
-                }
+                },
+                "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
             }
         """.trimIndent().deserializeAsMap()
 
@@ -593,7 +594,8 @@ class CompactedEntityTests {
                 "properties": {
                     "type": "Vehicle",
                     "brandName": "Mercedes"
-                }
+                },
+                "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
             }
         """.trimIndent().deserializeAsMap()
 
@@ -621,42 +623,36 @@ class CompactedEntityTests {
                         "type": "Point",
                         "coordinates": [ 24.30623, 60.07966 ]
                     }
-                }
+                },
+                "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
             }
         """.trimIndent().deserializeAsMap()
 
+        val expectedEntityAsFeature = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [ 24.30623, 60.07966 ]
+                },
+                "properties": {
+                    "type": "Vehicle",
+                    "location": {
+                        "type": "Point",
+                        "coordinates": [ 24.30623, 60.07966 ]
+                    }
+                },
+                "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+            }
+        """.trimIndent()
         val expectedEntities = """
             {
                 "type": "FeatureCollection",
-                "features": [{
-                    "id": "urn:ngsi-ld:Vehicle:A4567",
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [ 24.30623, 60.07966 ]
-                    },
-                    "properties": {
-                        "type": "Vehicle",
-                        "location": {
-                            "type": "Point",
-                            "coordinates": [ 24.30623, 60.07966 ]
-                        }
-                    }
-                }, {
-                    "id": "urn:ngsi-ld:Vehicle:A4567",
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [ 24.30623, 60.07966 ]
-                    },
-                    "properties": {
-                        "type": "Vehicle",
-                        "location": {
-                            "type": "Point",
-                            "coordinates": [ 24.30623, 60.07966 ]
-                        }                        
-                    }
-                }]
+                "features": [
+                    $expectedEntityAsFeature,
+                    $expectedEntityAsFeature
+                ]
             }
         """.trimIndent().deserializeAsMap()
 

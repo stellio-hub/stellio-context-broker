@@ -19,14 +19,14 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.4.4" apply false
+    id("org.springframework.boot") version "3.4.6" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("org.graalvm.buildtools.native") version "0.10.6"
     kotlin("jvm") version "2.1.20" apply false
     kotlin("plugin.spring") version "2.1.20" apply false
     id("com.google.cloud.tools.jib") version "3.4.5" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
-    id("org.sonarqube") version "6.1.0.5360"
+    id("org.sonarqube") version "6.2.0.5505"
     jacoco
 }
 
@@ -69,7 +69,7 @@ subprojects {
         implementation("com.apicatalog:titanium-json-ld:1.6.0")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:2.0.1")
+        implementation("io.arrow-kt:arrow-fx-coroutines:2.1.2")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.20.0")
 
@@ -82,7 +82,7 @@ subprojects {
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("com.ninja-squad:springmockk:4.0.2")
-        testImplementation("io.mockk:mockk:1.13.17")
+        testImplementation("io.mockk:mockk:1.14.2")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
@@ -91,7 +91,7 @@ subprojects {
         compilerOptions {
             // https://kotlinlang.org/docs/whatsnew2020.html#data-class-copy-function-to-have-the-same-visibility-as-constructor
             freeCompilerArgs.addAll("-Xjsr305=strict", "-Xconsistent-data-class-copy-visibility")
-            apiVersion.set(KotlinVersion.KOTLIN_2_0)
+            apiVersion.set(KotlinVersion.KOTLIN_2_1)
             jvmTarget.set(JvmTarget.JVM_21)
         }
         jvmToolchain(21)

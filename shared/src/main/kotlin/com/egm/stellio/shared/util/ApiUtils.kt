@@ -5,12 +5,12 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
-import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.NotAcceptableException
+import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
@@ -89,12 +89,9 @@ fun checkAndGetContext(
     }
 }
 
-suspend fun checkContentType(httpHeaders: HttpHeaders, body: List<Map<String, Any>>): Either<APIException, Unit> =
-    either {
-        body.parMap {
-            checkContentType(httpHeaders, it).bind()
-        }
-    }.map { Unit.right() }
+fun CompactedEntity.checkContentType(httpHeaders: HttpHeaders): Either<APIException, Map<String, Any>> =
+    checkContentType(httpHeaders, this)
+        .map { this }
 
 fun checkContentType(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<APIException, Unit> {
     if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
@@ -117,6 +114,19 @@ fun checkContentType(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<A
             ).left()
     }
     return Unit.right()
+}
+
+/**
+ * Checks the Link header with respect to Content-Type and rules defined 6.3.5
+ */
+fun checkLinkHeader(httpHeaders: HttpHeaders): Either<APIException, String?> = either {
+    val linkHeader = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
+    if (httpHeaders.contentType == JSON_LD_MEDIA_TYPE && linkHeader != null)
+        BadRequestDataException(
+            "JSON-LD Link header must not be provided for a request having an application/ld+json content type"
+        ).left().bind()
+    else
+        linkHeader
 }
 
 /**
@@ -147,6 +157,17 @@ fun Map<String, Any>.extractContexts(): List<String> =
         emptyList()
 
 private val coreContextRegex = ".*ngsi-ld-core-context-v\\d+.\\d+.jsonld$".toRegex()
+
+/**
+ * Functional wrapper around #addCoreContextIfMissing, to return an Either and not throw an exception.
+ */
+fun addCoreContextIfMissingSafe(contexts: List<String>, coreContext: String): Either<APIException, List<String>> =
+    runCatching {
+        addCoreContextIfMissing(contexts, coreContext)
+    }.fold(
+        { it.right() },
+        { it.toAPIException().left() }
+    )
 
 fun addCoreContextIfMissing(contexts: List<String>, coreContext: String): List<String> =
     when {

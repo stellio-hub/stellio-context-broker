@@ -8,6 +8,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.deserializeExpandedPayload
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
@@ -39,6 +40,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.addSysAttrs
+import com.egm.stellio.shared.model.flattenOnAttributeAndDatasetId
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
@@ -92,7 +94,7 @@ class EntityService(
 
         createEntityPayload(ngsiLdEntity, expandedEntity, createdAt).bind()
         scopeService.createHistory(ngsiLdEntity, createdAt, sub).bind()
-        entityAttributeService.createAttributes(
+        val attrsOperationResult = entityAttributeService.createAttributes(
             ngsiLdEntity,
             expandedEntity,
             attributesMetadata,
@@ -105,6 +107,11 @@ class EntityService(
             sub,
             ngsiLdEntity.id,
             ngsiLdEntity.types
+        )
+        entityEventService.publishAttributeChangeEvents(
+            sub,
+            ngsiLdEntity.id,
+            attrsOperationResult.getSucceededOperations()
         )
     }
 
@@ -168,17 +175,7 @@ class EntityService(
         ).bind()
 
         val operationResult = coreOperationResult.plus(attrsOperationResult)
-        // update modifiedAt in entity if at least one attribute has been merged
-        if (operationResult.hasSuccessfulResult()) {
-            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, mergedAt, attributes).bind()
-
-            entityEventService.publishAttributeChangeEvents(
-                sub,
-                entityId,
-                operationResult.getSucceededOperations()
-            )
-        }
+        handleSuccessOperationActions(operationResult, entityId, mergedAt, sub).bind()
 
         UpdateResult(operationResult)
     }
@@ -189,31 +186,66 @@ class EntityService(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity,
         sub: Sub? = null
-    ): Either<APIException, Unit> = either {
+    ): Either<APIException, UpdateResult> = either {
         entityQueryService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
-        val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Replacing entity {}", ngsiLdEntity.id)
 
-        entityAttributeService.deleteAttributes(entityId, ngsiLdDateTime()).bind()
-
         val replacedAt = ngsiLdDateTime()
+        val currentEntityAttributes = entityQueryService.retrieve(entityId).bind()
+            .toExpandedEntity()
+            .getAttributes()
+            .flattenOnAttributeAndDatasetId()
+        val newEntityAttributes = expandedEntity
+            .getAttributes()
+            .flattenOnAttributeAndDatasetId()
+
+        // all attributes not present in the new entity are to be deleted
+        val attributesToDelete = currentEntityAttributes.filter { (currentAttributeName, currentDatasetId, _) ->
+            newEntityAttributes.none { (newAttributeName, newDatasetId, _) ->
+                currentAttributeName == newAttributeName && currentDatasetId == newDatasetId
+            }
+        }
+
+        val deleteOperationResults = attributesToDelete.flatMap { (attributeName, datasetId, _) ->
+            entityAttributeService.deleteAttribute(
+                entityId,
+                attributeName,
+                datasetId,
+                false,
+                replacedAt
+            ).bind()
+        }
+
+        // all attributes in the new entity are to be created or updated (if they already exist)
+        // both create or update operations are handled by the appendAttributes
+        val createOrReplaceOperationResult = newEntityAttributes
+            .flatMap { (attributeName, _, expandedAttributeInstance) ->
+                val expandedAttributes = mapOf(attributeName to listOf(expandedAttributeInstance))
+                entityAttributeService.appendAttributes(
+                    entityId,
+                    expandedAttributes.toNgsiLdAttributes().bind(),
+                    expandedAttributes,
+                    false,
+                    replacedAt,
+                    sub
+                ).bind()
+            }
+
         replaceEntityPayload(ngsiLdEntity, expandedEntity, replacedAt).bind()
         scopeService.replace(ngsiLdEntity, replacedAt, sub).bind()
-        entityAttributeService.createAttributes(
-            ngsiLdEntity,
-            expandedEntity,
-            attributesMetadata,
-            replacedAt,
-            sub
-        ).bind()
 
-        entityEventService.publishEntityReplaceEvent(
-            sub,
-            ngsiLdEntity.id,
-            ngsiLdEntity.types
-        )
+        val operationResult = deleteOperationResults.plus(createOrReplaceOperationResult)
+        operationResult.filterIsInstance<SucceededAttributeOperationResult>()
+            .forEach {
+                if (it.operationStatus == OperationStatus.DELETED)
+                    entityEventService.publishAttributeDeleteEvent(sub, entityId, it)
+                else
+                    entityEventService.publishAttributeChangeEvents(sub, entityId, listOf(it))
+            }
+
+        UpdateResult(operationResult)
     }
 
     @Transactional
@@ -274,7 +306,7 @@ class EntityService(
                     logger.warn("Ignoring unhandled core property: {}", expandedTerm)
                     FailedAttributeOperationResult(
                         attributeName = expandedTerm,
-                        operationStatus = OperationStatus.IGNORED,
+                        operationStatus = OperationStatus.FAILED,
                         errorMessage = "Ignoring unhandled core property: $expandedTerm"
                     ).right().bind()
                 }
@@ -300,12 +332,7 @@ class EntityService(
             )
 
         val updatedTypes = currentTypes.union(newTypes)
-        val updatedPayload = entityPayload.payload.deserializeExpandedPayload()
-            .mapValues {
-                if (it.key == JSONLD_TYPE)
-                    updatedTypes
-                else it
-            }
+        val updatedPayload = entityPayload.payload.deserializeAsMap().plus(JSONLD_TYPE to updatedTypes)
 
         databaseClient.sql(
             """
@@ -540,9 +567,15 @@ class EntityService(
         val deletedAt = ngsiLdDateTime()
         val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(deletedAt)
         val previousEntity = deleteEntityPayload(entityId, deletedAt, deletedEntityPayload).bind()
-        entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
+        val deleteOperationResult = entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
         scopeService.addHistoryEntry(entityId, emptyList(), TemporalProperty.DELETED_AT, deletedAt, sub).bind()
 
+        entityEventService.publishAttributeDeletesOnEntityDeleteEvent(
+            sub,
+            entityId,
+            deletedEntityPayload,
+            deleteOperationResult.getSucceededOperations()
+        )
         entityEventService.publishEntityDeleteEvent(sub, previousEntity, deletedEntityPayload)
     }
 

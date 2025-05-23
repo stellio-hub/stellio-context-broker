@@ -3,6 +3,7 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_COMPACTED_ATTRIBUTES_VALUES
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -76,8 +77,8 @@ object JsonUtils {
 
     fun Map<String, Any>.getAllKeys(): Set<String> =
         this.entries.fold(emptySet()) { acc, entry ->
-            // what is inside the value of a property is not a key
-            if (entry.key == JSONLD_VALUE_TERM)
+            // what is inside the value of a Property or a JsonProperty is not a key
+            if (entry.key in NGSILD_COMPACTED_ATTRIBUTES_VALUES)
                 acc.plus(entry.key)
             else {
                 val valueKeys = when (entry.value) {

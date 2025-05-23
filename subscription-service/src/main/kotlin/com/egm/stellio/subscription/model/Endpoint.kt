@@ -16,6 +16,9 @@ data class Endpoint(
         JSON("application/json"),
 
         @JsonProperty("application/ld+json")
-        JSONLD("application/ld+json")
+        JSONLD("application/ld+json"),
+
+        @JsonProperty("application/geo+json")
+        GEOJSON("application/geo+json")
     }
 }

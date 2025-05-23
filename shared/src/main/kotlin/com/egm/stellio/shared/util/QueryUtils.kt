@@ -47,7 +47,7 @@ fun String.prepareDateValue() =
 fun String.quote(): String =
     "\"".plus(this).plus("\"")
 
-fun String.escapeSimpleQuotes(): String =
+fun String.escapeSingleQuotes(): String =
     this.replace("'", "''")
 
 fun String.isRange(): Boolean =
@@ -92,6 +92,8 @@ fun String.escapeRegexpPattern(): String =
 fun String.unescapeRegexPattern(): String =
     this.replace("##", "(")
         .replace("§§", ")")
+
+fun Iterable<String>.toTypeSelection() = this.joinToString(",")
 
 fun buildTypeQuery(rawQuery: String, columnName: String = "types", target: List<ExpandedTerm>? = null): String =
     rawQuery.replace(typeSelectionRegex) { matchResult ->
@@ -144,7 +146,7 @@ fun buildQQuery(rawQuery: String, contexts: List<String>, target: ExpandedEntity
                 it.replace("#{TARGET}#", "entity_payload.payload")
             else
                 // escape single quotes in the serialized entity to not crash the SQL query
-                it.replace("#{TARGET}#", "'" + serializeObject(target.members).replace("'", "''") + "'")
+                it.replace("#{TARGET}#", "'" + serializeObject(target.members).escapeSingleQuotes() + "'")
         }
 }
 
@@ -159,7 +161,7 @@ private fun transformQQueryToSqlJsonPath(
         """
         jsonb_path_exists(#{TARGET}#,
             '$.$jsonAttributePath.**{0 to 2}."$JSONLD_VALUE" ? (@ $operator ${'$'}value)',
-            '{ "value": ${value.escapeSimpleQuotes()}}')
+            '{ "value": ${value.escapeSingleQuotes()}}')
         """.trimIndent()
     }
     mainAttributePath.size > 1 && value.isURI() -> {
@@ -180,18 +182,18 @@ private fun transformQQueryToSqlJsonPath(
         jsonb_path_exists(#{TARGET}#,
             '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE".$jsonTrailingPath.**{0 to 1}."$JSONLD_VALUE" ? 
                 (@ $operator ${'$'}value)',
-            '{ "value": ${value.escapeSimpleQuotes()} }')
+            '{ "value": ${value.escapeSingleQuotes()} }')
         """.trimIndent()
     }
     operator == "like_regex" ->
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex ${value.escapeSimpleQuotes()})')
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex ${value.escapeSingleQuotes()})')
         """.trimIndent()
     operator == "not_like_regex" ->
         """
         NOT (jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex ${value.escapeSimpleQuotes()})'))
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex ${value.escapeSingleQuotes()})'))
         """.trimIndent()
     value.isURI() ->
         """
@@ -215,14 +217,14 @@ private fun transformQQueryToSqlJsonPath(
             .joinToString(separator = " JSONPATH_OR_FILTER ") { "@ == $it" }
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (${valuesFilter.escapeSimpleQuotes()})')
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (${valuesFilter.escapeSingleQuotes()})')
         """.trimIndent()
     }
     else ->
         """
         jsonb_path_exists(#{TARGET}#,
             '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ $operator ${'$'}value)',
-            '{ "value": ${value.escapeSimpleQuotes()} }')
+            '{ "value": ${value.escapeSingleQuotes()} }')
         """.trimIndent()
 }
 

@@ -17,11 +17,16 @@ data class NotificationParams(
     val lastFailure: ZonedDateTime? = null,
     val lastSuccess: ZonedDateTime? = null,
     @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
-    val sysAttrs: Boolean = false
+    val sysAttrs: Boolean = false,
+    val join: JoinType? = null,
+    val joinLevel: Int? = null
 ) {
     enum class FormatType(val format: String) {
         @JsonProperty("keyValues")
         KEY_VALUES("keyValues"),
+
+        @JsonProperty("simplified")
+        SIMPLIFIED("simplified"),
 
         @JsonProperty("normalized")
         NORMALIZED("normalized")
@@ -33,5 +38,16 @@ data class NotificationParams(
 
         @JsonProperty("failed")
         FAILED("failed")
+    }
+
+    enum class JoinType(val join: String) {
+        @JsonProperty("flat")
+        FLAT("flat"),
+
+        @JsonProperty("inline")
+        INLINE("inline"),
+
+        @JsonProperty("@none")
+        NONE("@none")
     }
 }

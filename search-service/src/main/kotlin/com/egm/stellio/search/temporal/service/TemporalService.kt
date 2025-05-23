@@ -5,7 +5,7 @@ import arrow.core.Either.Left
 import arrow.core.Either.Right
 import arrow.core.raise.either
 import arrow.core.toOption
-import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.APIException

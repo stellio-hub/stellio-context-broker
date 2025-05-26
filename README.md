@@ -32,7 +32,7 @@ The NGSI-LD Specification is regularly updated and published by ETSI. The latest
 
 -  An Excel file detailing the current compatibility of the  development version of the Stellio Context Broker against the features of the 1.8.1 specification can be downloaded [here](https://docs.google.com/spreadsheets/d/e/2PACX-1vRxOjsDf3lqhwuypJ---pZN2OlqFRl0jyoTV0ewQ1WFnpe7xQary3uxRjunbgJkwQ/pub?output=xlsx)
 
-| :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/orgs/stellio/repositories) | :dart: [Roadmap](./docs/roadmap.md) |
+| :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/u/stellio) | :dart: [Roadmap](./docs/roadmap.md) |
 |---------------------------------------------------|------------------------------------------------------------------------|-------------------------------------|
 
 ## Overview

@@ -27,8 +27,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASS=${POSTGRES_PASS}
       - POSTGRES_DBNAME=${POSTGRES_DBNAME}
-      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,timescaledb,pgcrypto,pg_stat_statements
-      - SHARED_PRELOAD_LIBRARIES=pg_cron,timescaledb,pg_stat_statements
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,timescaledb,pgcrypto
       - ACCEPT_TIMESCALE_TUNING=TRUE
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -40,61 +39,61 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
-#  api-gateway:
-#    container_name: "${CONTAINER_NAME_PREFIX}stellio-api-gateway"
-#    image: stellio/stellio-api-gateway:${STELLIO_DOCKER_TAG}
-#    environment:
-#      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
-#    ports:
-#      - "${API_GATEWAY_PORT:-8080}:8080"
-#  search-service:
-#    container_name: "${CONTAINER_NAME_PREFIX}stellio-search-service"
-#    image: stellio/stellio-search-service:${STELLIO_DOCKER_TAG}
-#    environment:
-#      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
-#      - SPRING_R2DBC_URL=r2dbc:pool:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
-#      - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
-#      - SPRING_R2DBC_USERNAME=${POSTGRES_USER}
-#      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASS}
-#      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
-#      - APPLICATION_TENANTS_0_ISSUER=${APPLICATION_TENANTS_0_ISSUER}
-#      - APPLICATION_TENANTS_0_NAME=${APPLICATION_TENANTS_0_NAME}
-#      - APPLICATION_TENANTS_0_DBSCHEMA=${APPLICATION_TENANTS_0_DBSCHEMA}
-#      - APPLICATION_PAGINATION_LIMIT-DEFAULT=${APPLICATION_PAGINATION_LIMIT_DEFAULT}
-#      - APPLICATION_PAGINATION_LIMIT-MAX=${APPLICATION_PAGINATION_LIMIT_MAX}
-#      - APPLICATION_PAGINATION_TEMPORAL-LIMIT=${APPLICATION_PAGINATION_TEMPORAL_LIMIT}
-#
-#    ports:
-#      - "${SEARCH_SERVICE_PORT:-8083}:8083"
-#    depends_on:
-#      postgres:
-#        condition: service_healthy
-#      kafka:
-#        condition: service_started
-#  subscription-service:
-#    container_name: "${CONTAINER_NAME_PREFIX}stellio-subscription-service"
-#    image: stellio/stellio-subscription-service:${STELLIO_DOCKER_TAG}
-#    environment:
-#      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
-#      - SPRING_R2DBC_URL=r2dbc:pool:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
-#      - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
-#      - SPRING_R2DBC_USERNAME=${POSTGRES_USER}
-#      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASS}
-#      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
-#      - APPLICATION_TENANTS_0_ISSUER=${APPLICATION_TENANTS_0_ISSUER}
-#      - APPLICATION_TENANTS_0_NAME=${APPLICATION_TENANTS_0_NAME}
-#      - APPLICATION_TENANTS_0_DBSCHEMA=${APPLICATION_TENANTS_0_DBSCHEMA}
-#      - SUBSCRIPTION_ENTITY-SERVICE-URL=${SUBSCRIPTION_ENTITY_SERVICE_URL}
-#      - SUBSCRIPTION_STELLIO_URL=${SUBSCRIPTION_STELLIO_URL}
-#      - APPLICATION_PAGINATION_LIMIT-DEFAULT=${APPLICATION_PAGINATION_LIMIT_DEFAULT}
-#      - APPLICATION_PAGINATION_LIMIT-MAX=${APPLICATION_PAGINATION_LIMIT_MAX}
-#    ports:
-#      - "${SUBSCRIPTION_SERVICE_PORT:-8084}:8084"
-#    depends_on:
-#      postgres:
-#        condition: service_healthy
-#      kafka:
-#        condition: service_started
+  api-gateway:
+    container_name: "${CONTAINER_NAME_PREFIX}stellio-api-gateway"
+    image: stellio/stellio-api-gateway:${STELLIO_DOCKER_TAG}
+    environment:
+      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+    ports:
+      - "${API_GATEWAY_PORT:-8080}:8080"
+  search-service:
+    container_name: "${CONTAINER_NAME_PREFIX}stellio-search-service"
+    image: stellio/stellio-search-service:${STELLIO_DOCKER_TAG}
+    environment:
+      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+      - SPRING_R2DBC_URL=r2dbc:pool:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
+      - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASS}
+      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
+      - APPLICATION_TENANTS_0_ISSUER=${APPLICATION_TENANTS_0_ISSUER}
+      - APPLICATION_TENANTS_0_NAME=${APPLICATION_TENANTS_0_NAME}
+      - APPLICATION_TENANTS_0_DBSCHEMA=${APPLICATION_TENANTS_0_DBSCHEMA}
+      - APPLICATION_PAGINATION_LIMIT-DEFAULT=${APPLICATION_PAGINATION_LIMIT_DEFAULT}
+      - APPLICATION_PAGINATION_LIMIT-MAX=${APPLICATION_PAGINATION_LIMIT_MAX}
+      - APPLICATION_PAGINATION_TEMPORAL-LIMIT=${APPLICATION_PAGINATION_TEMPORAL_LIMIT}
+
+    ports:
+      - "${SEARCH_SERVICE_PORT:-8083}:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+  subscription-service:
+    container_name: "${CONTAINER_NAME_PREFIX}stellio-subscription-service"
+    image: stellio/stellio-subscription-service:${STELLIO_DOCKER_TAG}
+    environment:
+      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+      - SPRING_R2DBC_URL=r2dbc:pool:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
+      - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASS}
+      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
+      - APPLICATION_TENANTS_0_ISSUER=${APPLICATION_TENANTS_0_ISSUER}
+      - APPLICATION_TENANTS_0_NAME=${APPLICATION_TENANTS_0_NAME}
+      - APPLICATION_TENANTS_0_DBSCHEMA=${APPLICATION_TENANTS_0_DBSCHEMA}
+      - SUBSCRIPTION_ENTITY-SERVICE-URL=${SUBSCRIPTION_ENTITY_SERVICE_URL}
+      - SUBSCRIPTION_STELLIO_URL=${SUBSCRIPTION_STELLIO_URL}
+      - APPLICATION_PAGINATION_LIMIT-DEFAULT=${APPLICATION_PAGINATION_LIMIT_DEFAULT}
+      - APPLICATION_PAGINATION_LIMIT-MAX=${APPLICATION_PAGINATION_LIMIT_MAX}
+    ports:
+      - "${SUBSCRIPTION_SERVICE_PORT:-8084}:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
 volumes:
   stellio-postgres-storage:

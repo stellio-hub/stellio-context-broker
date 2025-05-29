@@ -164,6 +164,9 @@ enum class NotificationTrigger(val notificationTrigger: String) {
                 ATTRIBUTE_UPDATED.notificationTrigger,
                 ATTRIBUTE_DELETED.notificationTrigger
             ).joinToString(",")
+
+        fun forTrigger(trigger: String): NotificationTrigger? =
+            entries.find { it.notificationTrigger == trigger }
     }
 }
 

@@ -7,6 +7,7 @@ import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.support.WithMosquittoContainer
 import com.ninjasquad.springmockk.SpykBean
@@ -98,6 +99,7 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
         message = MqttNotificationData.MqttMessage(
             Notification(
                 subscriptionId = URI("1"),
+                triggerReason = ATTRIBUTE_CREATED,
                 data = listOf(mapOf("hello" to "world"))
             ),
             emptyMap(),
@@ -106,6 +108,7 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
 
     private fun getNotificationForSubscription(subscription: Subscription) = Notification(
         subscriptionId = subscription.id,
+        triggerReason = ATTRIBUTE_CREATED,
         data = listOf(mapOf("hello" to "world"))
     )
 

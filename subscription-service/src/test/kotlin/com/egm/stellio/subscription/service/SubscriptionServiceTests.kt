@@ -494,7 +494,12 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val notifiedAt = ngsiLdDateTime()
         subscriptionService.updateSubscriptionNotification(
             subscription,
-            Notification(subscriptionId = subscription.id, notifiedAt = notifiedAt, data = emptyList()),
+            Notification(
+                subscriptionId = subscription.id,
+                notifiedAt = notifiedAt,
+                triggerReason = ATTRIBUTE_CREATED,
+                data = emptyList()
+            ),
             true
         )
 
@@ -1332,7 +1337,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
         subscriptionService.updateSubscriptionNotification(
             subscription,
-            Notification(subscriptionId = subscription.id, data = emptyList()),
+            Notification(subscriptionId = subscription.id, triggerReason = ATTRIBUTE_CREATED, data = emptyList()),
             true
         )
 
@@ -1364,7 +1369,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.create(subscription, mockUserSub).shouldSucceed()
         subscriptionService.updateSubscriptionNotification(
             subscription,
-            Notification(subscriptionId = subscription.id, data = emptyList()),
+            Notification(subscriptionId = subscription.id, triggerReason = ATTRIBUTE_CREATED, data = emptyList()),
             true
         )
 
@@ -1464,7 +1469,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.create(subscription2, mockUserSub).shouldSucceed()
 
         val persistedSubscription = subscriptionService.getById(subscription.id)
-        val notification = Notification(subscriptionId = subscription.id, data = emptyList())
+        val notification = Notification(
+            subscriptionId = subscription.id,
+            triggerReason = ATTRIBUTE_CREATED,
+            data = emptyList()
+        )
 
         subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
 
@@ -1495,10 +1504,18 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.create(subscription2, mockUserSub).shouldSucceed()
 
         val persistedSubscription = subscriptionService.getById(subscription.id)
-        val notification = Notification(subscriptionId = subscription.id, data = emptyList())
+        val notification = Notification(
+            subscriptionId = subscription.id,
+            triggerReason = ATTRIBUTE_CREATED,
+            data = emptyList()
+        )
 
         val persistedSubscription2 = subscriptionService.getById(subscription2.id)
-        val notification2 = Notification(subscriptionId = subscription2.id, data = emptyList())
+        val notification2 = Notification(
+            subscriptionId = subscription2.id,
+            triggerReason = ATTRIBUTE_CREATED,
+            data = emptyList()
+        )
 
         subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
 

@@ -19,6 +19,7 @@ import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.search.temporal.web.Range
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -36,7 +37,8 @@ class TemporalQueryService(
     private val scopeService: ScopeService,
     private val attributeInstanceService: AttributeInstanceService,
     private val entityAttributeService: EntityAttributeService,
-    private val authorizationService: AuthorizationService
+    private val authorizationService: AuthorizationService,
+    private val applicationProperties: ApplicationProperties
 ) {
 
     suspend fun queryTemporalEntity(
@@ -74,7 +76,8 @@ class TemporalQueryService(
 
         TemporalEntityBuilder.buildTemporalEntity(
             EntityTemporalResult(entity, scopeHistory, paginatedAttributesWithInstances),
-            temporalEntitiesQuery
+            temporalEntitiesQuery,
+            applicationProperties.contexts.core
         ) to range
     }
 
@@ -170,7 +173,8 @@ class TemporalQueryService(
         Triple(
             TemporalEntityBuilder.buildTemporalEntities(
                 attributeInstancesPerEntityAndAttribute,
-                temporalEntitiesQuery
+                temporalEntitiesQuery,
+                applicationProperties.contexts.core
             ),
             count,
             range

@@ -21,13 +21,17 @@ import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.AUTHZ_TEST_CONTEXT
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.loadSampleData
@@ -36,6 +40,7 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -44,6 +49,7 @@ import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.fail
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -74,9 +80,23 @@ class TemporalQueryServiceTests {
     @MockkBean
     private lateinit var authorizationService: AuthorizationService
 
+    @MockkBean
+    private lateinit var applicationProperties: ApplicationProperties
+
     private val now = ngsiLdDateTime()
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+
+    @BeforeEach
+    fun mockApplicationProperties() {
+        every {
+            applicationProperties.contexts
+        } returns ApplicationProperties.Contexts(
+            NGSILD_TEST_CORE_CONTEXT,
+            AUTHZ_TEST_CONTEXT,
+            AUTHZ_TEST_COMPOUND_CONTEXT
+        )
+    }
 
     @Test
     fun `it should return an API exception if the entity does not exist`() = runTest {

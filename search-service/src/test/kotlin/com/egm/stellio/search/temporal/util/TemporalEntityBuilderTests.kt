@@ -8,7 +8,6 @@ import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult.AggregateResult
-import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.EntityTemporalResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
@@ -33,40 +32,6 @@ import java.time.ZonedDateTime
 class TemporalEntityBuilderTests {
 
     private val now = ngsiLdDateTime()
-
-    @Test
-    fun `it should return a temporal entity with an empty array of instances if it has no temporal history`() {
-        val attribute = Attribute(
-            entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
-            attributeName = OUTGOING_PROPERTY,
-            attributeValueType = Attribute.AttributeValueType.STRING,
-            createdAt = now,
-            payload = EMPTY_JSON_PAYLOAD
-        )
-        val attributeAndResultsMap = mapOf(
-            attribute to emptyList<AttributeInstanceResult>()
-        )
-        val entity = Entity(
-            entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
-            types = listOf(BEEHIVE_TYPE),
-            createdAt = now,
-            payload = EMPTY_JSON_PAYLOAD
-        )
-        val temporalEntity = TemporalEntityBuilder.buildTemporalEntity(
-            EntityTemporalResult(entity, emptyList(), attributeAndResultsMap),
-            TemporalEntitiesQueryFromGet(
-                entitiesQuery = buildDefaultQueryParams(),
-                temporalQuery = buildDefaultTestTemporalQuery(),
-                temporalRepresentation = TemporalRepresentation.NORMALIZED,
-                withAudit = false
-            )
-        )
-        assertJsonPayloadsAreEqual(
-            loadSampleData("expectations/beehive_empty_outgoing.jsonld"),
-            serializeObject(temporalEntity.members),
-            setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
-        )
-    }
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.temporal.util.TemporalEntityParameterizedSource#rawResultsProvider")

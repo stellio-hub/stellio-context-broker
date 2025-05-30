@@ -27,12 +27,8 @@ import com.egm.stellio.shared.util.APIARY_TYPE
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
-import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -308,7 +304,7 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should return an empty list for an attribute if it has no temporal values`() = runTest {
+    fun `it should not return any entity if no attribute is matching the temporal query`() = runTest {
         val attribute = Attribute(
             entityId = entityUri,
             attributeName = INCOMING_PROPERTY,
@@ -327,7 +323,7 @@ class TemporalQueryServiceTests {
             attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns emptyList<AttributeInstanceResult>().right()
         coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
-        coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 1.right()
+        coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 0.right()
 
         temporalQueryService.queryTemporalEntities(
             TemporalEntitiesQueryFromGet(
@@ -346,39 +342,9 @@ class TemporalQueryServiceTests {
             )
         )
             .fold({
-                fail("it should have returned an empty list")
+                fail("it should not have thrown an error")
             }, {
-                assertThat(it.first).hasSize(1)
-                assertJsonPayloadsAreEqual(
-                    """
-                    {
-                        "@id": "urn:ngsi-ld:BeeHive:TESTC",
-                        "@type": [
-                            "https://ontology.eglobalmark.com/apic#BeeHive"
-                        ],
-                        "https://uri.etsi.org/ngsi-ld/createdAt": [
-                            {
-                                "@type": "https://uri.etsi.org/ngsi-ld/DateTime",
-                                "@value": "$now"
-                            }
-                        ],
-                        "https://ontology.eglobalmark.com/apic#incoming":[
-                            {
-                                "@type": [
-                                    "https://uri.etsi.org/ngsi-ld/Property"
-                                ],
-                                "https://uri.etsi.org/ngsi-ld/avg":[
-                                    {
-                                        "@list":[]
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                    """.trimIndent(),
-                    JsonUtils.serializeObject(it.first[0].members),
-                    setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
-                )
+                assertThat(it.first).isEmpty()
             })
     }
 

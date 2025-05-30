@@ -13,7 +13,6 @@
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun mergePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun partialUpdatePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:TemporalQueryServiceTests.kt$TemporalQueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
-    <ID>LongMethod:TemporalQueryServiceTests.kt$TemporalQueryServiceTests$@Test fun `it should return an empty list for an attribute if it has no temporal values`()</ID>
     <ID>LongMethod:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( attributeUuid: UUID, instanceId: URI = generateRandomInstanceId(), timeAndProperty: Pair&lt;ZonedDateTime, TemporalProperty&gt;, value: Triple&lt;String?, Double?, WKTCoordinates?&gt;, payload: ExpandedAttributeInstance, sub: String? )</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( attributeUuid: UUID, instanceId: URI = generateRandomInstanceId(), timeProperty: TemporalProperty? = TemporalProperty.OBSERVED_AT, modifiedAt: ZonedDateTime? = null, attributeMetadata: AttributeMetadata, payload: ExpandedAttributeInstance, time: ZonedDateTime, sub: String? = null )</ID>

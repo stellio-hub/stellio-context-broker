@@ -26,9 +26,11 @@ import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
+import com.egm.stellio.shared.util.JsonLdUtils.expandGeoPropertyFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.wktToGeoJson
+import kotlinx.coroutines.runBlocking
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
 typealias AttributesWithInstances = Map<Attribute, List<AttributeInstanceResult>>
@@ -168,6 +170,15 @@ object TemporalEntityBuilder {
                                 ),
                                 mapOf(JSONLD_VALUE to attributeInstanceResult.time)
                             )
+                        }
+                        Attribute.AttributeType.GeoProperty -> {
+                            runBlocking {
+                                val expendedGeoProperty = expandGeoPropertyFragment(
+                                    attributeInstanceResult.value as Map<String, Any>,
+                                    listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.8.jsonld")
+                                )
+                                listOf(expendedGeoProperty)
+                            }
                         }
                         else -> {
                             listOf(

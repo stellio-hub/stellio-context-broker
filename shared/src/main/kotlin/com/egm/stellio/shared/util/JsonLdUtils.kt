@@ -231,6 +231,9 @@ object JsonLdUtils {
     suspend fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, List<Any>> =
         doJsonLdExpansion(fragment, contexts) as Map<String, List<Any>>
 
+    suspend fun expandGeoPropertyFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, List<Any>> =
+        doJsonLdExpansion(fragment, contexts, false) as Map<String, List<Any>>
+
     suspend fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, List<Any>> =
         expandJsonLdFragment(fragment.deserializeAsMap(), contexts)
 
@@ -267,12 +270,20 @@ object JsonLdUtils {
     ): ExpandedAttributes =
         doJsonLdExpansion(fragment, contexts) as ExpandedAttributes
 
-    private suspend fun doJsonLdExpansion(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> {
+    private suspend fun doJsonLdExpansion(
+        fragment: Map<String, Any>,
+        contexts: List<String>,
+        doGeoPropertyTransformation: Boolean = true
+    ): Map<String, Any> {
         // transform the GeoJSON value of geo properties into WKT format before JSON-LD expansion
         // since JSON-LD expansion breaks the data (e.g., flattening the lists of lists)
-        val preparedFragment = fragment
-            .mapValues(transformGeoPropertyToWKT())
-            .plus(JSONLD_CONTEXT to contexts)
+        val preparedFragment =
+            if (doGeoPropertyTransformation)
+                fragment
+                    .mapValues(transformGeoPropertyToWKT())
+                    .plus(JSONLD_CONTEXT to contexts)
+            else
+                fragment.plus(JSONLD_CONTEXT to contexts)
 
         try {
             val expandedFragment = JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))

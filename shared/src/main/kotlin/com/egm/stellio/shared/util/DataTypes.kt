@@ -32,7 +32,7 @@ object DataTypes {
             else dataType
         }.let {
             if (!includeSysAttrs)
-                dataType.minus(NGSILD_SYSATTRS_TERMS)
-            else dataType
+                it.minus(NGSILD_SYSATTRS_TERMS)
+            else it
         }
 }

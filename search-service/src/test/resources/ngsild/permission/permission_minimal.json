@@ -1,0 +1,10 @@
+{
+  "id": "urn:ngsi-ld:Permission:1",
+  "type": "Permission",
+  "target": {
+    "id": "urn:ngsi-ld:BeeHive:A456"
+  },
+  "assignee": "55e64faf-4bda-41cc-98b0-195874cefd29",
+  "assigner": "55e64faf-4bda-41cc-98b0-195874cefd29",
+  "action": "read"
+}

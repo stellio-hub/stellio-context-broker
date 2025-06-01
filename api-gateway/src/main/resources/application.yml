@@ -1,29 +1,31 @@
 spring:
   cloud:
     gateway:
-      routes:
-        - id: search_service_actuator
-          uri: http://search-service:8083
-          predicates:
-            - Path=/search-service/actuator/**
-          filters:
-            - RewritePath=/search-service/actuator, /actuator
-        - id: subscription_service_actuator
-          uri: http://subscription-service:8084
-          predicates:
-            - Path=/subscription-service/actuator/**
-          filters:
-            - RewritePath=/subscription-service/actuator, /actuator
-      globalcors:
-        corsConfigurations:
-          '[/ngsi-ld/v1/**]':
-            allowedOrigins: ${APPLICATION_CORS_ALLOWED_ORIGINS:http://localhost:3000}
-            allowedMethods:
-              - GET
-              - POST
-              - PATCH
-              - DELETE
-            allowedHeaders: "*"
+      server:
+        webflux:
+          routes:
+            - id: search_service_actuator
+              uri: http://search-service:8083
+              predicates:
+                - Path=/search-service/actuator/**
+              filters:
+                - RewritePath=/search-service/actuator, /actuator
+            - id: subscription_service_actuator
+              uri: http://subscription-service:8084
+              predicates:
+                - Path=/subscription-service/actuator/**
+              filters:
+                - RewritePath=/subscription-service/actuator, /actuator
+        globalcors:
+          cors-configurations:
+            '[/ngsi-ld/v1/**]':
+              allowedOrigins: ${APPLICATION_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+              allowedMethods:
+                - GET
+                - POST
+                - PATCH
+                - DELETE
+              allowedHeaders: "*"
 
 application:
   search-service:

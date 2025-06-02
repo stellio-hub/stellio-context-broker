@@ -21,7 +21,7 @@ services:
       KAFKA_LOG4J_ROOT_LOGLEVEL: INFO
       CLUSTER_ID: ZGE2MTQ4NDk4NGU3NDE2Mm
   postgres:
-    image: stellio/stellio-timescale-postgis:16-2.17.2-3.5
+    image: stellio/stellio-timescale-postgis:16-2.20.2-3.5
     container_name: "${CONTAINER_NAME_PREFIX}stellio-postgres"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}

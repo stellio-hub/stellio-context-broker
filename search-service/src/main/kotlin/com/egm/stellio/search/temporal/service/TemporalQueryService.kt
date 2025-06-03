@@ -72,11 +72,8 @@ class TemporalQueryService(
             temporalEntitiesQuery
         )
 
-        val attributesWithInstances =
-            fillWithAttributesWithEmptyInstances(attributes, paginatedAttributesWithInstances)
-
         TemporalEntityBuilder.buildTemporalEntity(
-            EntityTemporalResult(entity, scopeHistory, attributesWithInstances),
+            EntityTemporalResult(entity, scopeHistory, paginatedAttributesWithInstances),
             temporalEntitiesQuery
         ) to range
     }
@@ -130,7 +127,7 @@ class TemporalQueryService(
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
-            return@either Triple<List<ExpandedEntity>, Int, Range?>(emptyList(), count, null)
+            return@either Triple(emptyList(), count, null)
 
         val attributes = entityAttributeService.getForEntities(
             entitiesIds,
@@ -149,11 +146,9 @@ class TemporalQueryService(
             attributesWithMatchingInstances,
             temporalEntitiesQuery
         )
-        val attributesWithInstances =
-            fillWithAttributesWithEmptyInstances(attributes, paginatedAttributesWithInstances)
 
         val attributeInstancesPerEntityAndAttribute =
-            attributesWithInstances
+            paginatedAttributesWithInstances
                 .toList()
                 .groupBy {
                     // then, group them by entity
@@ -218,20 +213,5 @@ class TemporalQueryService(
                 }!!
             }
             .mapValues { it.value.sorted() }
-    }
-
-    private fun fillWithAttributesWithEmptyInstances(
-        attributes: List<Attribute>,
-        attributesWithInstances: AttributesWithInstances
-    ): AttributesWithInstances {
-        // filter the temporal entity attributes for which there are no attribute instances
-        val attributesWithoutInstances =
-            attributes.filter {
-                !attributesWithInstances.keys.contains(it)
-            }
-        // add them in the result set accompanied by an empty list
-        return attributesWithInstances.plus(
-            attributesWithoutInstances.map { it to emptyList() }
-        )
     }
 }

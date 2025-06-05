@@ -16,16 +16,16 @@ spring:
                 - Path=/subscription-service/actuator/**
               filters:
                 - RewritePath=/subscription-service/actuator, /actuator
-        globalcors:
-          corsConfigurations:
-            '[/ngsi-ld/v1/**]':
-              allowedOrigins: ${APPLICATION_CORS_ALLOWED_ORIGINS:http://localhost:3000}
-              allowedMethods:
-                - GET
-                - POST
-                - PATCH
-                - DELETE
-              allowedHeaders: "*"
+          globalcors:
+            cors-configurations:
+              '[/ngsi-ld/v1/**]':
+                allowedOrigins: ${APPLICATION_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PATCH
+                  - DELETE
+                allowedHeaders: "*"
 
 application:
   search-service:

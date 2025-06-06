@@ -148,6 +148,7 @@ class NotificationServiceTests {
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             assertEquals(subscription.id, it[0].second.subscriptionId)
+            assertEquals(ATTRIBUTE_UPDATED, it[0].second.triggerReason)
             assertEquals(1, it[0].second.data.size)
             assertTrue(it[0].third)
         }
@@ -482,7 +483,7 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        notificationService.callSubscriber(subscription, listOf(rawEntity.deserializeAsMap()))
+        notificationService.callSubscriber(subscription, ATTRIBUTE_CREATED, listOf(rawEntity.deserializeAsMap()))
 
         val link = buildContextLinkHeader(subscription.contexts[0])
         verify(
@@ -513,7 +514,7 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        notificationService.callSubscriber(subscription, listOf(rawEntity.deserializeAsMap()))
+        notificationService.callSubscriber(subscription, ATTRIBUTE_CREATED, listOf(rawEntity.deserializeAsMap()))
 
         val link = buildContextLinkHeader(subscription.jsonldContext.toString())
         verify(
@@ -544,7 +545,7 @@ class NotificationServiceTests {
         )
 
         mono {
-            notificationService.callSubscriber(subscription, listOf(rawEntity.deserializeAsMap()))
+            notificationService.callSubscriber(subscription, ATTRIBUTE_CREATED, listOf(rawEntity.deserializeAsMap()))
         }.contextWrite { context ->
             context.put(NGSILD_TENANT_HEADER, "urn:ngsi-ld:tenant:01")
         }.awaitSingle()
@@ -569,6 +570,7 @@ class NotificationServiceTests {
 
         val notificationResult = notificationService.callSubscriber(
             subscription,
+            ATTRIBUTE_CREATED,
             listOf(rawEntity.deserializeAsMap())
         )
 
@@ -736,7 +738,7 @@ class NotificationServiceTests {
 
         coEvery { mqttNotificationService.notify(any(), any(), any()) } returns true
 
-        notificationService.callSubscriber(subscription, listOf(rawEntity.deserializeAsMap()))
+        notificationService.callSubscriber(subscription, ATTRIBUTE_CREATED, listOf(rawEntity.deserializeAsMap()))
 
         coVerify(exactly = 1) { mqttNotificationService.notify(any(), any(), any()) }
     }
@@ -761,7 +763,7 @@ class NotificationServiceTests {
         coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
 
-        notificationService.callSubscriber(subscription, listOf(rawEntity.deserializeAsMap()))
+        notificationService.callSubscriber(subscription, ATTRIBUTE_CREATED, listOf(rawEntity.deserializeAsMap()))
 
         coVerify {
             mqttNotificationService.notify(

@@ -1,0 +1,61 @@
+{
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
+  ],
+  "https://uri.etsi.org/ngsi-ld/location": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/GeoProperty"
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValues": [
+        {
+          "@list": [
+            {
+              "@list": [
+                {
+                  "@type": [
+                    "https://purl.org/geojson/vocab#Point"
+                  ],
+                  "https://purl.org/geojson/vocab#coordinates": [
+                    {
+                      "@list": [
+                        {
+                          "@value": 100.0
+                        },
+                        {
+                          "@value": 50.0
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "@list": [
+                {
+                  "@type": [
+                    "https://purl.org/geojson/vocab#Point"
+                  ],
+                  "https://purl.org/geojson/vocab#coordinates": [
+                    {
+                      "@list": [
+                        {
+                          "@value": 110.0
+                        },
+                        {
+                          "@value": 60.0
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

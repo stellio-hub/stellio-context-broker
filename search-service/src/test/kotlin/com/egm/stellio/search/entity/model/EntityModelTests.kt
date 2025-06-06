@@ -1,5 +1,6 @@
 package com.egm.stellio.search.entity.model
 
+import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
@@ -34,7 +35,7 @@ class EntityModelTests {
     @Test
     fun `it should serialize entityPayload with SAP if present`() {
         val entityPayloadWithSAP =
-            entity.copy(specificAccessPolicy = AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
+            entity.copy(specificAccessPolicy = Action.WRITE)
         val serializedEntity = entityPayloadWithSAP.serializeProperties()
         assertTrue(serializedEntity.contains(AuthContextModel.AUTH_PROP_SAP))
     }

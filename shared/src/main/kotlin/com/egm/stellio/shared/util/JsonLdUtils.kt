@@ -32,6 +32,7 @@ import jakarta.json.JsonArray
 import jakarta.json.JsonObject
 import jakarta.json.JsonString
 import jakarta.json.JsonStructure
+import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
@@ -231,6 +232,12 @@ object JsonLdUtils {
     suspend fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, List<Any>> =
         doJsonLdExpansion(fragment, contexts) as Map<String, List<Any>>
 
+    fun expandGeoPropertyFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, List<Any>> =
+        // as it is called from a non-corouting context (when building temporal entities), wrap it in a blocking call
+        runBlocking {
+            doJsonLdExpansion(fragment, contexts, doGeoPropertyTransformation = false) as Map<String, List<Any>>
+        }
+
     suspend fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, List<Any>> =
         expandJsonLdFragment(fragment.deserializeAsMap(), contexts)
 
@@ -267,12 +274,20 @@ object JsonLdUtils {
     ): ExpandedAttributes =
         doJsonLdExpansion(fragment, contexts) as ExpandedAttributes
 
-    private suspend fun doJsonLdExpansion(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> {
+    private suspend fun doJsonLdExpansion(
+        fragment: Map<String, Any>,
+        contexts: List<String>,
+        doGeoPropertyTransformation: Boolean = true
+    ): Map<String, Any> {
         // transform the GeoJSON value of geo properties into WKT format before JSON-LD expansion
         // since JSON-LD expansion breaks the data (e.g., flattening the lists of lists)
-        val preparedFragment = fragment
-            .mapValues(transformGeoPropertyToWKT())
-            .plus(JSONLD_CONTEXT to contexts)
+        val preparedFragment =
+            if (doGeoPropertyTransformation)
+                fragment
+                    .mapValues(transformGeoPropertyToWKT())
+                    .plus(JSONLD_CONTEXT to contexts)
+            else
+                fragment.plus(JSONLD_CONTEXT to contexts)
 
         try {
             val expandedFragment = JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))

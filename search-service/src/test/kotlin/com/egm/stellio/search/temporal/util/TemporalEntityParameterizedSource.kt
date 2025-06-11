@@ -7,6 +7,7 @@ import com.egm.stellio.search.scope.SimplifiedScopeInstanceResult
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.SAMPLE_JSON_PROPERTY_PAYLOAD
 import com.egm.stellio.search.support.SAMPLE_LANGUAGE_PROPERTY_PAYLOAD
+import com.egm.stellio.search.support.SAMPLE_LOCATION_PROPERTY_PAYLOAD
 import com.egm.stellio.search.support.SAMPLE_VOCAB_PROPERTY_PAYLOAD
 import com.egm.stellio.search.support.buildAttributeInstancePayload
 import com.egm.stellio.search.temporal.model.AttributeInstance
@@ -672,6 +673,43 @@ class TemporalEntityParameterizedSource {
                 loadSampleData("expectations/beehive_vocab_property_temporal_values.jsonld")
             )
 
+        private val beehiveLocationPropertyTemporalValues =
+            Arguments.arguments(
+                emptyList<ScopeInstanceResult>(),
+                mapOf(
+                    Attribute(
+                        entityId = entityId,
+                        attributeName = "https://uri.etsi.org/ngsi-ld/location",
+                        attributeType = Attribute.AttributeType.GeoProperty,
+                        attributeValueType = Attribute.AttributeValueType.GEOMETRY,
+                        datasetId = null,
+                        createdAt = now,
+                        payload = SAMPLE_LOCATION_PROPERTY_PAYLOAD
+                    ) to
+                        listOf(
+                            SimplifiedAttributeInstanceResult(
+                                attributeUuid = UUID.randomUUID(),
+                                value = mapOf(
+                                    "type" to "Point",
+                                    "coordinates" to listOf(100.0, 50.0)
+                                ),
+                                time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                            ),
+                            SimplifiedAttributeInstanceResult(
+                                attributeUuid = UUID.randomUUID(),
+                                value = mapOf(
+                                    "type" to "Point",
+                                    "coordinates" to listOf(110.0, 60.0)
+                                ),
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                            )
+                        )
+                ),
+                TemporalRepresentation.TEMPORAL_VALUES,
+                false,
+                loadSampleData("expectations/beehive_location_property_temporal_values.jsonld")
+            )
+
         @JvmStatic
         fun rawResultsProvider(): Stream<Arguments> {
             return Stream.of(
@@ -690,7 +728,8 @@ class TemporalEntityParameterizedSource {
                 beehiveScopeMultiInstances,
                 beehiveJsonPropertyTemporalValues,
                 beehiveLanguagePropertyTemporalValues,
-                beehiveVocabPropertyTemporalValues
+                beehiveVocabPropertyTemporalValues,
+                beehiveLocationPropertyTemporalValues
             )
         }
     }

@@ -26,6 +26,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
+import com.egm.stellio.shared.util.JsonLdUtils.expandGeoPropertyFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.wktToGeoJson
@@ -37,19 +38,22 @@ object TemporalEntityBuilder {
 
     fun buildTemporalEntities(
         queryResult: List<EntityTemporalResult>,
-        temporalEntitiesQuery: TemporalEntitiesQuery
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        coreContext: String
     ): List<ExpandedEntity> =
         queryResult.map {
-            buildTemporalEntity(it, temporalEntitiesQuery)
+            buildTemporalEntity(it, temporalEntitiesQuery, coreContext)
         }
 
     fun buildTemporalEntity(
         entityTemporalResult: EntityTemporalResult,
-        temporalEntitiesQuery: TemporalEntitiesQuery
+        temporalEntitiesQuery: TemporalEntitiesQuery,
+        coreContext: String
     ): ExpandedEntity {
         val temporalAttributes = buildTemporalAttributes(
             entityTemporalResult.attributesWithInstances,
-            temporalEntitiesQuery
+            temporalEntitiesQuery,
+            coreContext
         )
 
         val scopeAttributeInstances = TemporalScopeBuilder.buildScopeAttributeInstances(
@@ -67,9 +71,10 @@ object TemporalEntityBuilder {
     private fun buildTemporalAttributes(
         attributeAndResultsMap: AttributesWithInstances,
         temporalEntitiesQuery: TemporalEntitiesQuery,
+        coreContext: String
     ): Map<String, Any> =
         if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES) {
-            val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
+            val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap, coreContext)
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
         } else if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES) {
             val attributes = buildAttributesAggregatedRepresentation(
@@ -119,7 +124,8 @@ object TemporalEntityBuilder {
      * of the temporal entity attribute.
      */
     private fun buildAttributesSimplifiedRepresentation(
-        attributeAndResultsMap: AttributesWithInstances
+        attributeAndResultsMap: AttributesWithInstances,
+        coreContext: String
     ): Map<Attribute, SimplifiedTemporalAttribute> =
         attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
@@ -168,6 +174,13 @@ object TemporalEntityBuilder {
                                 ),
                                 mapOf(JSONLD_VALUE to attributeInstanceResult.time)
                             )
+                        }
+                        Attribute.AttributeType.GeoProperty -> {
+                            val expendedGeoProperty = expandGeoPropertyFragment(
+                                attributeInstanceResult.value as Map<String, Any>,
+                                listOf(coreContext)
+                            )
+                            listOf(expendedGeoProperty)
                         }
                         else -> {
                             listOf(

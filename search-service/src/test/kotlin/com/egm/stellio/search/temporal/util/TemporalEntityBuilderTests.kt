@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
@@ -56,7 +57,8 @@ class TemporalEntityBuilderTests {
                 temporalQuery = buildDefaultTestTemporalQuery(),
                 temporalRepresentation,
                 withAudit
-            )
+            ),
+            NGSILD_TEST_CORE_CONTEXT
         )
         assertJsonPayloadsAreEqual(
             expectation,
@@ -80,7 +82,8 @@ class TemporalEntityBuilderTests {
                 temporalQuery = buildDefaultTestTemporalQuery(),
                 temporalRepresentation,
                 withAudit
-            )
+            ),
+            NGSILD_TEST_CORE_CONTEXT
         )
         assertJsonPayloadsAreEqual(
             expectation,
@@ -158,7 +161,8 @@ class TemporalEntityBuilderTests {
                 temporalQuery = temporalQuery,
                 temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
                 withAudit = false
-            )
+            ),
+            NGSILD_TEST_CORE_CONTEXT
         )
 
         assertJsonPayloadsAreEqual(

@@ -130,3 +130,36 @@ val SAMPLE_VOCAB_PROPERTY_PAYLOAD = Json.of(
     }
     """.trimIndent()
 )
+
+val SAMPLE_LOCATION_PROPERTY_PAYLOAD = Json.of(
+    """
+    {
+      "https://uri.etsi.org/ngsi-ld/location": [
+        {
+          "@type": [
+            "https://uri.etsi.org/ngsi-ld/GeoProperty"
+          ],
+          "https://uri.etsi.org/ngsi-ld/hasValue": [
+            {
+              "https://purl.org/geojson/vocab#coordinates": [
+                {
+                  "@list": [
+                    {
+                      "@value": 1
+                    },
+                    {
+                      "@value": 1
+                    }
+                  ]
+                }
+              ],
+              "@type": [
+                "https://purl.org/geojson/vocab#Point"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    """.trimIndent()
+)

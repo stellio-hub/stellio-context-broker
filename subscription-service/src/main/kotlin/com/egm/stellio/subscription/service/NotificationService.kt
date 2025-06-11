@@ -91,18 +91,20 @@ class NotificationService(
                         ).let { listOf(it) }
                     }
 
-                callSubscriber(it, compactedEntities)
+                callSubscriber(it, notificationTrigger, compactedEntities)
             }
     }
 
     suspend fun callSubscriber(
         subscription: Subscription,
+        triggerReason: NotificationTrigger,
         entities: List<Map<String, Any?>>
     ): Triple<Subscription, Notification, Boolean> {
         val mediaType = MediaType.valueOf(subscription.notification.endpoint.accept.accept)
         val tenantName = getTenantFromContext()
         val notification = Notification(
             subscriptionId = subscription.id,
+            triggerReason = triggerReason,
             data = entities
         )
         val uri = subscription.notification.endpoint.uri.toString()

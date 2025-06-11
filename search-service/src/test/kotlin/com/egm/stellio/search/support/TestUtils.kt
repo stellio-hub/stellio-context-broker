@@ -5,10 +5,6 @@ import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Aggregate
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.NgsiLdAttribute
-import com.egm.stellio.shared.model.toNgsiLdAttributes
-import com.egm.stellio.shared.util.AuthContextModel
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
@@ -17,11 +13,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.shouldSucceedAndResult
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.ZonedDateTime
@@ -77,11 +71,6 @@ fun buildAttributeInstancePayload(
             put(NGSILD_RELATIONSHIP_OBJECT, listOf(mapOf(JSONLD_ID to value.toString())))
     }
 )
-
-suspend fun buildSapAttribute(specificAccessPolicy: AuthContextModel.SpecificAccessPolicy): NgsiLdAttribute =
-    mapOf(AUTH_PROP_SAP to buildExpandedPropertyValue(specificAccessPolicy))
-        .toNgsiLdAttributes()
-        .shouldSucceedAndResult()[0]
 
 const val EMPTY_PAYLOAD = "{}"
 val EMPTY_JSON_PAYLOAD = Json.of(EMPTY_PAYLOAD)

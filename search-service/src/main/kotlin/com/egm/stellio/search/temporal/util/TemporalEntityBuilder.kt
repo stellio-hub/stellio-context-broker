@@ -57,7 +57,6 @@ object TemporalEntityBuilder {
         )
 
         val scopeAttributeInstances = TemporalScopeBuilder.buildScopeAttributeInstances(
-            entityTemporalResult.entity,
             entityTemporalResult.scopeHistory,
             temporalEntitiesQuery
         )

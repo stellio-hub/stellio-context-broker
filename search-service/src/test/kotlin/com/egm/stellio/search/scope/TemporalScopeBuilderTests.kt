@@ -2,7 +2,6 @@ package com.egm.stellio.search.scope
 
 import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
-import com.egm.stellio.search.support.gimmeEntityPayload
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
@@ -24,7 +23,6 @@ class TemporalScopeBuilderTests {
 
     @Test
     fun `it should build an aggregated temporal representation of scopes`() {
-        val entityPayload = gimmeEntityPayload(entityId)
         val scopeInstances = listOf(
             AggregatedScopeInstanceResult(
                 entityId = entityId,
@@ -69,7 +67,6 @@ class TemporalScopeBuilderTests {
         )
 
         val scopeHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
-            entityPayload,
             scopeInstances,
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
@@ -87,7 +84,6 @@ class TemporalScopeBuilderTests {
 
     @Test
     fun `it should build a temporal values representation of scopes`() {
-        val entityPayload = gimmeEntityPayload(entityId)
         val scopeInstances = listOf(
             SimplifiedScopeInstanceResult(
                 entityId = entityId,
@@ -106,7 +102,6 @@ class TemporalScopeBuilderTests {
         )
 
         val scopeHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
-            entityPayload,
             scopeInstances,
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
@@ -124,7 +119,6 @@ class TemporalScopeBuilderTests {
 
     @Test
     fun `it should build a full representation of scopes`() {
-        val entityPayload = gimmeEntityPayload(entityId)
         val scopeInstances = listOf(
             FullScopeInstanceResult(
                 entityId = entityId,
@@ -145,7 +139,6 @@ class TemporalScopeBuilderTests {
         )
 
         val scopeHistory = TemporalScopeBuilder.buildScopeAttributeInstances(
-            entityPayload,
             scopeInstances,
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),

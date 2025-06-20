@@ -9,6 +9,7 @@ import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUB
@@ -274,4 +275,23 @@ object TemporalEntityBuilder {
                     simplifiedTemporalAttribute
                 }
             }
+
+    /**
+     * After some discussion (see https://github.com/stellio-hub/stellio-context-broker/issues/1143),
+     * it has been decided that, since there are other cases where single objects are forced to be wrapped as arrays,
+     * such temporal instances should always be returned as arrays
+     * (even if there is only one element and if it is kind of overwriting of normal JSON-LD compaction).
+     */
+    fun CompactedEntity.wrapSingleValuesToList(temporalRepresentation: TemporalRepresentation): CompactedEntity =
+        if (temporalRepresentation == TemporalRepresentation.NORMALIZED) {
+            this.mapValues { (_, value) ->
+                if (value is Map<*, *>) listOf(value)
+                else value
+            }
+        } else this
+
+    fun List<CompactedEntity>.wrapSingleValuesToList(
+        temporalRepresentation: TemporalRepresentation
+    ): List<CompactedEntity> =
+        this.map { it.wrapSingleValuesToList(temporalRepresentation) }
 }

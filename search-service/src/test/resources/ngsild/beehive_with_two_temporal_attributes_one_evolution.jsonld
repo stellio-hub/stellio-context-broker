@@ -1,0 +1,25 @@
+{
+  "id": "urn:ngsi-ld:BeeHive:TESTC",
+  "type": "BeeHive",
+  "incoming": {
+    "type": "Property",
+    "value": 1543,
+    "observedAt": "2020-01-24T13:01:22.066Z",
+    "observedBy": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+    }
+  },
+  "outgoing": {
+    "type": "Property",
+    "value": 1543,
+    "observedAt": "2020-01-24T13:01:22.066Z",
+    "observedBy": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+    }
+  },
+  "@context": [
+    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+  ]
+}

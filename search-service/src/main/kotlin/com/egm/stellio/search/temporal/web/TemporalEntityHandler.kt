@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.service.TemporalService
+import com.egm.stellio.search.temporal.util.TemporalEntityBuilder.wrapSingleValuesToList
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntityTemporalResponse
@@ -162,6 +163,7 @@ class TemporalEntityHandler(
         ).bind()
 
         val compactedEntities = compactEntities(temporalEntities, contexts)
+            .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
         buildEntitiesTemporalResponse(
             compactedEntities,
@@ -208,6 +210,7 @@ class TemporalEntityHandler(
         ).bind()
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
+            .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         buildEntityTemporalResponse(mediaType, contexts, temporalEntitiesQuery, range)

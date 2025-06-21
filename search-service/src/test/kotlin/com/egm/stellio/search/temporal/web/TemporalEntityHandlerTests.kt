@@ -608,6 +608,26 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .jsonPath("$.outgoing.values.length()").isEqualTo(2)
     }
 
+    @Test
+    fun `it should wrap single instance normalized attributes to a list of one instance`() = runTest {
+        val temporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_one_evolution.jsonld")
+        coEvery {
+            temporalQueryService.queryTemporalEntity(any(), any(), any())
+        } returns (temporalEntity to null).right()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
+            )
+            .header("Link", APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().jsonPath("$").isMap
+            .jsonPath("$.incoming.length()").isEqualTo(1)
+            .jsonPath("$.outgoing.length()").isEqualTo(1)
+    }
+
     private suspend fun mockWithIncomingAndOutgoingTemporalProperties(withTemporalValues: Boolean) {
         val entityFileName = if (withTemporalValues)
             "beehive_with_two_temporal_attributes_evolution_temporal_values.jsonld"

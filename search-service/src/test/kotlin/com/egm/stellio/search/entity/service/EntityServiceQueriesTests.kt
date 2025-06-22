@@ -71,7 +71,6 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
 
     val entity01Uri = "urn:ngsi-ld:BeeHive:01".toUri()
     val entity02Uri = "urn:ngsi-ld:BeeHive:02".toUri()
-    val entity03Uri = "urn:ngsi-ld:MultiTypes:03".toUri()
     val entity04Uri = "urn:ngsi-ld:Beekeeper:04".toUri()
     val entity05Uri = "urn:ngsi-ld:Apiary:05".toUri()
 
@@ -259,7 +258,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     @CsvSource(
         "integer==213, 1, urn:ngsi-ld:BeeHive:01",
         "relationship==urn:ngsi-ld:AnotherEntity:01, 1, urn:ngsi-ld:BeeHive:01",
+        "relationship==\"urn:ngsi-ld:AnotherEntity:01\", 1, urn:ngsi-ld:BeeHive:01",
         "relationship==urn:ngsi-ld:YetAnotherEntity:01, 0, ",
+        "relationship==\"urn:ngsi-ld:YetAnotherEntity:01\", 0, ",
         "(float==21.34|float==44.75), 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "integer==213;boolean==true, 1, urn:ngsi-ld:BeeHive:01",
         "(integer>200|integer<100);observedProperty.observedAt<2023-02-25T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",

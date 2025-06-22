@@ -195,12 +195,18 @@ private fun transformQQueryToSqlJsonPath(
         NOT (jsonb_path_exists(#{TARGET}#,
             '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ like_regex ${value.escapeSingleQuotes()})'))
         """.trimIndent()
-    value.isURI() ->
+    value.isURI() || value.replace("\"", "").isURI() -> {
+        // for queries on relationships, values can be quoted or not, handle both cases
+        val preparedValue = if (value.isURI()) value.quote() else value
         """
         jsonb_path_exists(#{TARGET}#,
             '$."${mainAttributePath[0]}"."$NGSILD_RELATIONSHIP_OBJECT"."$JSONLD_ID" ? (@ $operator ${'$'}value)',
-            '{ "value": ${value.quote()} }')
+            '{ "value": $preparedValue }') OR
+        jsonb_path_exists(#{TARGET}#,
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE" ? (@ $operator ${'$'}value)',
+            '{ "value": $preparedValue }')
         """.trimIndent()
+    }
     value.isRange() -> {
         val (min, max) = value.rangeInterval()
         """

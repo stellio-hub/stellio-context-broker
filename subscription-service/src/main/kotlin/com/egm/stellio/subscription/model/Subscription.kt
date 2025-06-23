@@ -2,19 +2,19 @@ package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.DataTypes.convertTo
+import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.compactTypeSelection
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.toFinalRepresentation
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
-import com.egm.stellio.subscription.utils.ParsingUtils.convertToMap
-import com.egm.stellio.subscription.utils.ParsingUtils.serializeSubscription
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.data.annotation.Id
@@ -103,21 +103,21 @@ data class Subscription(
             watchedAttributes = this.watchedAttributes?.map { compactTerm(it, contexts) }
         )
 
-    fun serialize(
+    fun prepareForRendering(
         contexts: List<String>,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE,
         includeSysAttrs: Boolean = false
     ): String =
-        convertToMap(this.compact(contexts))
+        convertTo<Map<String, Any>>(this.compact(contexts))
             .toFinalRepresentation(mediaType, includeSysAttrs)
-            .let { serializeSubscription(it) }
+            .let { serialize(it) }
 
-    fun serialize(
+    fun prepareForRendering(
         context: String,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE,
         includeSysAttrs: Boolean = false
     ): String =
-        serialize(listOf(context), mediaType, includeSysAttrs)
+        prepareForRendering(listOf(context), mediaType, includeSysAttrs)
 }
 
 // Default for booleans is false, so add a simple filter to only include "isActive" is it is false
@@ -167,30 +167,16 @@ enum class NotificationTrigger(val notificationTrigger: String) {
     }
 }
 
-fun Map<String, Any>.toFinalRepresentation(
-    mediaType: MediaType = JSON_LD_MEDIA_TYPE,
-    includeSysAttrs: Boolean = false
-): Map<String, Any> =
-    this.let {
-        if (mediaType == MediaType.APPLICATION_JSON)
-            it.minus(JSONLD_CONTEXT)
-        else it
-    }.let {
-        if (!includeSysAttrs)
-            it.minus(NGSILD_SYSATTRS_TERMS)
-        else it
-    }
-
-fun List<Subscription>.serialize(
+fun List<Subscription>.prepareForRendering(
     contexts: List<String>,
     mediaType: MediaType = JSON_LD_MEDIA_TYPE,
     includeSysAttrs: Boolean = false
 ): String =
     this.map {
-        convertToMap(it.compact(contexts))
+        convertTo<Map<String, Any>>(it.compact(contexts))
             .toFinalRepresentation(mediaType, includeSysAttrs)
     }.let {
-        serializeSubscription(it)
+        serialize(it)
     }
 
 fun List<Subscription>.mergeEntitySelectorsOnSubscriptions() =

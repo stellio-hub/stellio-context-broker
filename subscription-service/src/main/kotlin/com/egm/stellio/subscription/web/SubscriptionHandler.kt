@@ -30,7 +30,7 @@ import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.web.BaseHandler
 import com.egm.stellio.subscription.model.Subscription
-import com.egm.stellio.subscription.model.serialize
+import com.egm.stellio.subscription.model.prepareForRendering
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import kotlinx.coroutines.reactive.awaitFirst
@@ -112,7 +112,7 @@ class SubscriptionHandler(
             applicationProperties.pagination.limitMax
         ).bind()
         val subscriptions = subscriptionService.getSubscriptions(paginationQuery.limit, paginationQuery.offset, sub)
-            .serialize(contexts, mediaType, includeSysAttrs)
+            .prepareForRendering(contexts, mediaType, includeSysAttrs)
         val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).bind()
 
         buildQueryResponse(
@@ -153,7 +153,7 @@ class SubscriptionHandler(
         val subscription = subscriptionService.getById(subscriptionId)
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .body(subscription.serialize(contexts, mediaType, includeSysAttrs))
+            .body(subscription.prepareForRendering(contexts, mediaType, includeSysAttrs))
     }.fold(
         { it.toErrorResponse() },
         { it }

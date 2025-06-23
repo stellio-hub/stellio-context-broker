@@ -117,10 +117,10 @@ class SubscriptionTest {
     }
 
     @Test
-    fun `it should serialize a subscription as JSON and add the status attribute`() {
+    fun `it should prepare a subscription as JSON and add the status attribute`() {
         val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
-        val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = false)
+        val serializedSub = subscription.prepareForRendering(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = false)
 
         val deserializedSub = deserializeObject(serializedSub)
 
@@ -129,10 +129,10 @@ class SubscriptionTest {
     }
 
     @Test
-    fun `it should serialize a subscription as JSON without createdAt and modifiedAt if not specified`() {
+    fun `it should prepare a subscription as JSON without createdAt and modifiedAt if not specified`() {
         val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
-        val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = false)
+        val serializedSub = subscription.prepareForRendering(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = false)
 
         val deserializedSub = deserializeObject(serializedSub)
 
@@ -141,10 +141,10 @@ class SubscriptionTest {
     }
 
     @Test
-    fun `it should serialize a subscription as JSON with createdAt and modifiedAt if specified`() {
+    fun `it should prepare a subscription as JSON with createdAt and modifiedAt if specified`() {
         val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
-        val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = true)
+        val serializedSub = subscription.prepareForRendering(NGSILD_TEST_CORE_CONTEXT, includeSysAttrs = true)
 
         val deserializedSub = deserializeObject(serializedSub)
 
@@ -152,10 +152,10 @@ class SubscriptionTest {
     }
 
     @Test
-    fun `it should serialize a subscription with a context if JSON-LD media type is asked`() {
+    fun `it should prepare a subscription with a context if JSON-LD media type is asked`() {
         val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
-        val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, mediaType = JSON_LD_MEDIA_TYPE)
+        val serializedSub = subscription.prepareForRendering(NGSILD_TEST_CORE_CONTEXT, mediaType = JSON_LD_MEDIA_TYPE)
 
         val deserializedSub = deserializeObject(serializedSub)
 
@@ -163,10 +163,13 @@ class SubscriptionTest {
     }
 
     @Test
-    fun `it should serialize a subscription without context if JSON media type is asked`() {
+    fun `it should prepare a subscription without context if JSON media type is asked`() {
         val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
-        val serializedSub = subscription.serialize(NGSILD_TEST_CORE_CONTEXT, mediaType = MediaType.APPLICATION_JSON)
+        val serializedSub = subscription.prepareForRendering(
+            NGSILD_TEST_CORE_CONTEXT,
+            mediaType = MediaType.APPLICATION_JSON
+        )
 
         val deserializedSub = deserializeObject(serializedSub)
 
@@ -174,12 +177,15 @@ class SubscriptionTest {
     }
 
     @Test
-    fun `it should serialize a list of subscriptions as JSON-LD with sysAttrs`() {
+    fun `it should prepare a list of subscriptions as JSON-LD with sysAttrs`() {
         val subscription = subscription.copy()
         val otherSubscription = subscription.copy(id = "urn:ngsi-ld:Subscription:02".toUri())
 
         val serializedSubs =
-            listOf(subscription, otherSubscription).serialize(NGSILD_TEST_CORE_CONTEXTS, includeSysAttrs = true)
+            listOf(subscription, otherSubscription).prepareForRendering(
+                NGSILD_TEST_CORE_CONTEXTS,
+                includeSysAttrs = true
+            )
 
         val deserializedSubs = deserializeListOfObjects(serializedSubs)
 
@@ -192,12 +198,12 @@ class SubscriptionTest {
     }
 
     @Test
-    fun `it should serialize a list of subscriptions as JSON without sysAttrs`() {
+    fun `it should prepare a list of subscriptions as JSON without sysAttrs`() {
         val subscription = subscription.copy()
         val otherSubscription = subscription.copy(id = "urn:ngsi-ld:Subscription:02".toUri())
 
         val serializedSubs = listOf(subscription, otherSubscription)
-            .serialize(NGSILD_TEST_CORE_CONTEXTS, mediaType = MediaType.APPLICATION_JSON)
+            .prepareForRendering(NGSILD_TEST_CORE_CONTEXTS, mediaType = MediaType.APPLICATION_JSON)
 
         val deserializedSubs = deserializeListOfObjects(serializedSubs)
 

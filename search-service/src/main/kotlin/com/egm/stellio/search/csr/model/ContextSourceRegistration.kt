@@ -9,7 +9,9 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.toAPIException
-import com.egm.stellio.shared.util.DataTypes
+import com.egm.stellio.shared.util.DataTypes.convertTo
+import com.egm.stellio.shared.util.DataTypes.serialize
+import com.egm.stellio.shared.util.DataTypes.toFinalRepresentation
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CSR_TERM
@@ -21,7 +23,6 @@ import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.module.kotlin.convertValue
 import org.springframework.http.MediaType
 import java.net.URI
 import java.time.ZonedDateTime
@@ -75,12 +76,12 @@ data class ContextSourceRegistration(
         mediaType: MediaType = JSON_LD_MEDIA_TYPE,
         includeSysAttrs: Boolean = false
     ): String {
-        return DataTypes.mapper.writeValueAsString(
-            DataTypes.mapper.convertValue<Map<String, Any>>(
+        return serialize(
+            convertTo<Map<String, Any>>(
                 this.compact(contexts)
             ).plus(
                 JSONLD_CONTEXT to contexts
-            ).let { DataTypes.toFinalRepresentation(it, mediaType, includeSysAttrs) }
+            ).let { toFinalRepresentation(it, mediaType, includeSysAttrs) }
         )
     }
 

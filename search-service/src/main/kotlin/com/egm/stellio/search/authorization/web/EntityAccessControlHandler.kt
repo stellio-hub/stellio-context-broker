@@ -13,6 +13,7 @@ import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.NgsiLdRelationship
 import com.egm.stellio.shared.model.toFinalRepresentation
@@ -29,7 +30,6 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.ENTITY_REMOVE_OWNERSHIP_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
@@ -334,7 +334,7 @@ class EntityAccessControlHandler(
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
             .replaceDefaultContextToAuthzContext(applicationProperties.contexts)
-        val expandedAttribute = expandAttribute(AUTH_TERM_SAP, body.minus(JSONLD_CONTEXT), contexts)
+        val expandedAttribute = expandAttribute(AUTH_TERM_SAP, body.minus(JSONLD_CONTEXT_KW), contexts)
         if (expandedAttribute.first != AUTH_PROP_SAP)
             BadRequestDataException("${expandedAttribute.first} is not authorized property name")
                 .left().bind<ResponseEntity<*>>()

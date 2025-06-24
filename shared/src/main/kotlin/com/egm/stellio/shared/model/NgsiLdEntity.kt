@@ -7,29 +7,6 @@ import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import arrow.core.right
 import arrow.fx.coroutines.parMap
-import com.egm.stellio.shared.util.AttributeType
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.Locale
@@ -45,14 +22,14 @@ class NgsiLdEntity private constructor(
             expandedEntity: ExpandedEntity
         ): Either<APIException, NgsiLdEntity> = either {
             val parsedKeys = expandedEntity.members
-            ensure(parsedKeys.containsKey(JSONLD_ID)) {
+            ensure(parsedKeys.containsKey(JSONLD_ID_KW)) {
                 BadRequestDataException("The provided NGSI-LD entity does not contain an id property")
             }
 
-            ensure(parsedKeys.containsKey(JSONLD_TYPE)) {
+            ensure(parsedKeys.containsKey(JSONLD_TYPE_KW)) {
                 BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
             }
-            val types = parsedKeys[JSONLD_TYPE]!! as List<String>
+            val types = parsedKeys[JSONLD_TYPE_KW]!! as List<String>
 
             val scopes = (parsedKeys as Map<String, List<Any>>).getScopes()
 
@@ -250,8 +227,8 @@ class NgsiLdPropertyInstance private constructor(
                 BadRequestDataException("Property $name has an instance without a value")
             }
 
-            val unitCode = values.getMemberValueAsString(NGSILD_UNIT_CODE_PROPERTY)
-            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
+            val unitCode = values.getMemberValueAsString(NGSILD_UNIT_CODE_IRI)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
             checkAttributeHasNoForbiddenMembers(name, values, NGSILD_PROPERTIES_FORBIDDEN_MEMBERS).bind()
@@ -284,7 +261,7 @@ class NgsiLdRelationshipInstance private constructor(
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdRelationshipInstance> = either {
             val objectId = values.getRelationshipObject(name).bind()
-            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
             checkAttributeHasNoForbiddenMembers(name, values, NGSILD_RELATIONSHIPS_FORBIDDEN_MEMBERS).bind()
@@ -319,7 +296,7 @@ class NgsiLdGeoPropertyInstance(
             ensureNotNull(wktValue) {
                 BadRequestDataException("GeoProperty $name has an instance without a value")
             }
-            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
             checkAttributeHasNoForbiddenMembers(name, values, NGSILD_GEOPROPERTIES_FORBIDDEN_MEMBERS).bind()
@@ -350,7 +327,7 @@ class NgsiLdJsonPropertyInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdJsonPropertyInstance> = either {
-            val json = values.getMemberValue(NGSILD_JSONPROPERTY_VALUE)
+            val json = values.getMemberValue(NGSILD_JSONPROPERTY_JSON)
             ensureNotNull(json) {
                 BadRequestDataException("JsonProperty $name has an instance without a json member")
             }
@@ -360,7 +337,7 @@ class NgsiLdJsonPropertyInstance private constructor(
                 )
             }
 
-            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
             checkAttributeHasNoForbiddenMembers(name, values, NGSILD_JSONPROPERTIES_FORBIDDEN_MEMBERS).bind()
@@ -391,7 +368,7 @@ class NgsiLdLanguagePropertyInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdLanguagePropertyInstance> = either {
-            val languageMap = values[NGSILD_LANGUAGEPROPERTY_VALUE]
+            val languageMap = values[NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP]
             ensureNotNull(languageMap) {
                 BadRequestDataException("LanguageProperty $name has an instance without a languageMap member")
             }
@@ -399,7 +376,7 @@ class NgsiLdLanguagePropertyInstance private constructor(
                 BadRequestDataException("LanguageProperty $name has an invalid languageMap member")
             }
 
-            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
             checkAttributeHasNoForbiddenMembers(name, values, NGSILD_LANGUAGEPROPERTIES_FORBIDDEN_MEMBERS).bind()
@@ -420,12 +397,15 @@ class NgsiLdLanguagePropertyInstance private constructor(
                 it is Map<*, *> &&
                     isValidStructure(it) &&
                     isValidLangValue(it.values) &&
-                    isValidLanguageTag(it[JSONLD_LANGUAGE] as? String)
+                    isValidLanguageTag(it[JSONLD_LANGUAGE_KW] as? String)
             }
 
         private fun isValidStructure(langEntry: Map<*, *>): Boolean =
-            langEntry.size == 2 && langEntry.containsKey(JSONLD_VALUE) && langEntry.containsKey(JSONLD_LANGUAGE) ||
-                langEntry.size == 1 && langEntry.containsKey(JSONLD_VALUE)
+            langEntry.size == 2 &&
+                langEntry.containsKey(JSONLD_VALUE_KW) &&
+                langEntry.containsKey(JSONLD_LANGUAGE_KW) ||
+                langEntry.size == 1 &&
+                langEntry.containsKey(JSONLD_VALUE_KW)
 
         private fun isValidLangValue(values: Collection<Any?>): Boolean =
             values.all { value -> value is String || value is List<*> }
@@ -448,17 +428,17 @@ class NgsiLdVocabPropertyInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdVocabPropertyInstance> = either {
-            val vocab = values[NGSILD_VOCABPROPERTY_VALUE]
+            val vocab = values[NGSILD_VOCABPROPERTY_VOCAB]
             ensureNotNull(vocab) {
                 BadRequestDataException("VocabProperty $name has an instance without a vocab member")
             }
-            ensure(vocab.all { it is Map<*, *> && it.size == 1 && it.containsKey(JSONLD_ID) }) {
+            ensure(vocab.all { it is Map<*, *> && it.size == 1 && it.containsKey(JSONLD_ID_KW) }) {
                 BadRequestDataException(
                     "VocabProperty $name has a vocab member that is not a string, nor an array of string"
                 )
             }
 
-            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
             checkAttributeHasNoForbiddenMembers(name, values, NGSILD_VOCABPROPERTIES_FORBIDDEN_MEMBERS).bind()
@@ -479,6 +459,16 @@ class NgsiLdVocabPropertyInstance private constructor(
 }
 
 @JvmInline
+value class AttributeType(val uri: String)
+
+val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
+val NGSILD_GEOPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/GeoProperty")
+val NGSILD_RELATIONSHIP_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Relationship")
+val NGSILD_JSONPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/JsonProperty")
+val NGSILD_LANGUAGEPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/LanguageProperty")
+val NGSILD_VOCABPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/VocabProperty")
+
+@JvmInline
 value class WKTCoordinates(val value: String)
 
 /**
@@ -486,9 +476,9 @@ value class WKTCoordinates(val value: String)
  * (i.e. property, geo property, json property, language property or relationship)
  */
 fun isAttributeOfType(attributeInstance: ExpandedAttributeInstance, type: AttributeType): Boolean =
-    attributeInstance.containsKey(JSONLD_TYPE) &&
-        attributeInstance[JSONLD_TYPE] is List<*> &&
-        attributeInstance.getOrElse(JSONLD_TYPE) { emptyList() }[0] == type.uri
+    attributeInstance.containsKey(JSONLD_TYPE_KW) &&
+        attributeInstance[JSONLD_TYPE_KW] is List<*> &&
+        attributeInstance.getOrElse(JSONLD_TYPE_KW) { emptyList() }[0] == type.uri
 
 private suspend fun parseAttributes(
     attributes: Map<String, Any>
@@ -497,7 +487,7 @@ private suspend fun parseAttributes(
         .mapValues { castAttributeValue(it.value) }
         .toList()
         .map {
-            when (val attributeType = (it.second[0][JSONLD_TYPE] as? List<String>)?.get(0)) {
+            when (val attributeType = (it.second[0][JSONLD_TYPE_KW] as? List<String>)?.get(0)) {
                 NGSILD_PROPERTY_TYPE.uri -> NgsiLdProperty.create(it.first, it.second)
                 NGSILD_RELATIONSHIP_TYPE.uri -> NgsiLdRelationship.create(it.first, it.second)
                 NGSILD_GEOPROPERTY_TYPE.uri -> NgsiLdGeoProperty.create(it.first, it.second)
@@ -595,29 +585,29 @@ fun List<NgsiLdAttribute>.flatOnInstances(): List<Pair<NgsiLdAttribute, NgsiLdAt
     }
 
 val NGSILD_ENTITY_CORE_MEMBERS = listOf(
-    JSONLD_ID,
-    JSONLD_TYPE,
-    NGSILD_SCOPE_PROPERTY,
-    NGSILD_CREATED_AT_PROPERTY,
-    NGSILD_MODIFIED_AT_PROPERTY
+    JSONLD_ID_KW,
+    JSONLD_TYPE_KW,
+    NGSILD_SCOPE_IRI,
+    NGSILD_CREATED_AT_IRI,
+    NGSILD_MODIFIED_AT_IRI
 )
 
 val NGSILD_ATTRIBUTES_CORE_MEMBERS = listOf(
-    JSONLD_TYPE,
-    NGSILD_CREATED_AT_PROPERTY,
-    NGSILD_MODIFIED_AT_PROPERTY,
-    NGSILD_OBSERVED_AT_PROPERTY,
-    NGSILD_DATASET_ID_PROPERTY
+    JSONLD_TYPE_KW,
+    NGSILD_CREATED_AT_IRI,
+    NGSILD_MODIFIED_AT_IRI,
+    NGSILD_OBSERVED_AT_IRI,
+    NGSILD_DATASET_ID_IRI
 )
 
 val NGSILD_PROPERTIES_CORE_MEMBERS = listOf(
     NGSILD_PROPERTY_VALUE,
-    NGSILD_UNIT_CODE_PROPERTY
+    NGSILD_UNIT_CODE_IRI
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
 val NGSILD_PROPERTIES_FORBIDDEN_MEMBERS = listOf(
     NGSILD_RELATIONSHIP_OBJECT,
-    NGSILD_JSONPROPERTY_VALUE,
+    NGSILD_JSONPROPERTY_JSON,
 )
 
 val NGSILD_RELATIONSHIPS_CORE_MEMBERS = listOf(
@@ -626,8 +616,8 @@ val NGSILD_RELATIONSHIPS_CORE_MEMBERS = listOf(
 
 val NGSILD_RELATIONSHIPS_FORBIDDEN_MEMBERS = listOf(
     NGSILD_PROPERTY_VALUE,
-    NGSILD_JSONPROPERTY_VALUE,
-    NGSILD_UNIT_CODE_PROPERTY
+    NGSILD_JSONPROPERTY_JSON,
+    NGSILD_UNIT_CODE_IRI
 )
 
 val NGSILD_GEOPROPERTIES_CORE_MEMBERS = listOf(
@@ -636,36 +626,36 @@ val NGSILD_GEOPROPERTIES_CORE_MEMBERS = listOf(
 
 val NGSILD_GEOPROPERTIES_FORBIDDEN_MEMBERS = listOf(
     NGSILD_RELATIONSHIP_OBJECT,
-    NGSILD_JSONPROPERTY_VALUE,
-    NGSILD_UNIT_CODE_PROPERTY
+    NGSILD_JSONPROPERTY_JSON,
+    NGSILD_UNIT_CODE_IRI
 )
 
 val NGSILD_JSONPROPERTIES_CORE_MEMBERS = listOf(
-    NGSILD_JSONPROPERTY_VALUE
+    NGSILD_JSONPROPERTY_JSON
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
 val NGSILD_JSONPROPERTIES_FORBIDDEN_MEMBERS = listOf(
     NGSILD_RELATIONSHIP_OBJECT,
     NGSILD_PROPERTY_VALUE,
-    NGSILD_UNIT_CODE_PROPERTY
+    NGSILD_UNIT_CODE_IRI
 )
 
 val NGSILD_LANGUAGEPROPERTIES_CORE_MEMBERS = listOf(
-    NGSILD_LANGUAGEPROPERTY_VALUE
+    NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
 val NGSILD_LANGUAGEPROPERTIES_FORBIDDEN_MEMBERS = listOf(
     NGSILD_RELATIONSHIP_OBJECT,
     NGSILD_PROPERTY_VALUE,
-    NGSILD_UNIT_CODE_PROPERTY
+    NGSILD_UNIT_CODE_IRI
 )
 
 val NGSILD_VOCABPROPERTIES_CORE_MEMBERS = listOf(
-    NGSILD_VOCABPROPERTY_VALUE
+    NGSILD_VOCABPROPERTY_VOCAB
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
 val NGSILD_VOCABPROPERTIES_FORBIDDEN_MEMBERS = listOf(
     NGSILD_RELATIONSHIP_OBJECT,
     NGSILD_PROPERTY_VALUE,
-    NGSILD_UNIT_CODE_PROPERTY
+    NGSILD_UNIT_CODE_IRI
 )

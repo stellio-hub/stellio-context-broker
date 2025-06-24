@@ -13,23 +13,23 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.gimmeEntityPayload
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
+import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.APIARY_COMPACT_TYPE
-import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIARY_IRI
+import com.egm.stellio.shared.util.APIARY_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
-import com.egm.stellio.shared.util.MANAGED_BY_COMPACT_RELATIONSHIP
-import com.egm.stellio.shared.util.MANAGED_BY_RELATIONSHIP
-import com.egm.stellio.shared.util.OUTGOING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
-import com.egm.stellio.shared.util.SENSOR_COMPACT_TYPE
-import com.egm.stellio.shared.util.SENSOR_TYPE
-import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.INCOMING_TERM
+import com.egm.stellio.shared.util.MANAGED_BY_IRI
+import com.egm.stellio.shared.util.MANAGED_BY_TERM
+import com.egm.stellio.shared.util.OUTGOING_IRI
+import com.egm.stellio.shared.util.OUTGOING_TERM
+import com.egm.stellio.shared.util.SENSOR_IRI
+import com.egm.stellio.shared.util.SENSOR_TERM
+import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.attributeNotFoundMessage
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedWith
@@ -65,30 +65,30 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
-    private val entityPayload1 = gimmeEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_TYPE, SENSOR_TYPE))
-    private val entityPayload2 = gimmeEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE))
-    private val entityPayload3 = gimmeEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_TYPE))
+    private val entityPayload1 = gimmeEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_IRI, SENSOR_IRI))
+    private val entityPayload2 = gimmeEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_IRI))
+    private val entityPayload3 = gimmeEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_IRI))
     private val attribute1 = newAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
-        INCOMING_PROPERTY,
+        INCOMING_IRI,
         Attribute.AttributeType.Property,
         Attribute.AttributeValueType.NUMBER
     )
     private val attribute2 = newAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
-        MANAGED_BY_RELATIONSHIP,
+        MANAGED_BY_IRI,
         Attribute.AttributeType.Relationship,
         Attribute.AttributeValueType.STRING
     )
     private val attribute3 = newAttribute(
         "urn:ngsi-ld:Apiary:TESTC",
-        NGSILD_LOCATION_PROPERTY,
+        NGSILD_LOCATION_IRI,
         Attribute.AttributeType.GeoProperty,
         Attribute.AttributeValueType.GEOMETRY
     )
     private val attribute4 = newAttribute(
         "urn:ngsi-ld:Sensor:TESTB",
-        OUTGOING_PROPERTY,
+        OUTGOING_IRI,
         Attribute.AttributeType.Property,
         Attribute.AttributeValueType.GEOMETRY
     )
@@ -115,9 +115,9 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val attributeNames = attributeService.getAttributeList(APIC_COMPOUND_CONTEXTS)
         assertTrue(
             attributeNames.attributeList == listOf(
-                INCOMING_COMPACT_PROPERTY,
-                OUTGOING_COMPACT_PROPERTY,
-                MANAGED_BY_COMPACT_RELATIONSHIP,
+                INCOMING_TERM,
+                OUTGOING_TERM,
+                MANAGED_BY_TERM,
                 NGSILD_LOCATION_TERM
             )
         )
@@ -139,24 +139,24 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             attributeDetails.containsAll(
                 listOf(
                     AttributeDetails(
-                        id = INCOMING_PROPERTY.toUri(),
-                        attributeName = INCOMING_COMPACT_PROPERTY,
-                        typeNames = setOf(BEEHIVE_COMPACT_TYPE, SENSOR_COMPACT_TYPE)
+                        id = INCOMING_IRI.toUri(),
+                        attributeName = INCOMING_TERM,
+                        typeNames = setOf(BEEHIVE_TERM, SENSOR_TERM)
                     ),
                     AttributeDetails(
-                        id = OUTGOING_PROPERTY.toUri(),
-                        attributeName = OUTGOING_COMPACT_PROPERTY,
-                        typeNames = setOf(SENSOR_COMPACT_TYPE)
+                        id = OUTGOING_IRI.toUri(),
+                        attributeName = OUTGOING_TERM,
+                        typeNames = setOf(SENSOR_TERM)
                     ),
                     AttributeDetails(
-                        id = MANAGED_BY_RELATIONSHIP.toUri(),
-                        attributeName = MANAGED_BY_COMPACT_RELATIONSHIP,
-                        typeNames = setOf(BEEHIVE_COMPACT_TYPE, SENSOR_COMPACT_TYPE)
+                        id = MANAGED_BY_IRI.toUri(),
+                        attributeName = MANAGED_BY_TERM,
+                        typeNames = setOf(BEEHIVE_TERM, SENSOR_TERM)
                     ),
                     AttributeDetails(
-                        id = NGSILD_LOCATION_PROPERTY.toUri(),
+                        id = NGSILD_LOCATION_IRI.toUri(),
                         attributeName = NGSILD_LOCATION_TERM,
-                        typeNames = setOf(APIARY_COMPACT_TYPE)
+                        typeNames = setOf(APIARY_TERM)
                     )
                 )
             )
@@ -174,15 +174,15 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should return an attribute Information by specific attribute`() = runTest {
         val attributeTypeInfo =
-            attributeService.getAttributeTypeInfoByAttribute(INCOMING_PROPERTY, APIC_COMPOUND_CONTEXTS)
+            attributeService.getAttributeTypeInfoByAttribute(INCOMING_IRI, APIC_COMPOUND_CONTEXTS)
 
         attributeTypeInfo.shouldSucceedWith {
             AttributeTypeInfo(
-                id = toUri(INCOMING_PROPERTY),
-                attributeName = INCOMING_COMPACT_PROPERTY,
+                id = toUri(INCOMING_IRI),
+                attributeName = INCOMING_TERM,
                 attributeCount = 1,
                 attributeTypes = setOf(AttributeType.Property),
-                typeNames = setOf(BEEHIVE_COMPACT_TYPE)
+                typeNames = setOf(BEEHIVE_TERM)
             )
         }
     }
@@ -190,10 +190,10 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should error when type doesn't exist`() = runTest {
         val attributeTypeInfo =
-            attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_PROPERTY, APIC_COMPOUND_CONTEXTS)
+            attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_IRI, APIC_COMPOUND_CONTEXTS)
 
         attributeTypeInfo.shouldFail {
-            assertEquals(ResourceNotFoundException(attributeNotFoundMessage(TEMPERATURE_PROPERTY)), it)
+            assertEquals(ResourceNotFoundException(attributeNotFoundMessage(TEMPERATURE_IRI)), it)
         }
     }
 

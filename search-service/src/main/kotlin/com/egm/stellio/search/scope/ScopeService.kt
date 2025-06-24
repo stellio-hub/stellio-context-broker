@@ -29,12 +29,12 @@ import com.egm.stellio.search.temporal.util.WHOLE_TIME_RANGE_DURATION
 import com.egm.stellio.search.temporal.util.composeAggregationSelectClause
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.getSubFromSecurityContext
@@ -208,7 +208,7 @@ class ScopeService(
     private fun Json.replaceScopeValue(newScopeValue: Any): Map<String, Any> =
         this.deserializeExpandedPayload()
             .mapValues {
-                if (it.key == NGSILD_SCOPE_PROPERTY) newScopeValue
+                if (it.key == NGSILD_SCOPE_IRI) newScopeValue
                 else it.value
             }
 
@@ -256,7 +256,7 @@ class ScopeService(
         operationType: OperationType,
         sub: Sub? = null
     ): Either<APIException, AttributeOperationResult> = either {
-        val scopes = mapOf(NGSILD_SCOPE_PROPERTY to expandedAttributeInstances).getScopes()!!
+        val scopes = mapOf(NGSILD_SCOPE_IRI to expandedAttributeInstances).getScopes()!!
         val (currentScopes, currentPayload) = retrieve(entityId).bind()
 
         val (updatedScopes, updatedPayload) = when (operationType) {
@@ -265,14 +265,14 @@ class ScopeService(
                     val updatedPayload = currentPayload.replaceScopeValue(expandedAttributeInstances)
                     Pair(scopes, updatedPayload)
                 } else return@either FailedAttributeOperationResult(
-                    attributeName = NGSILD_SCOPE_PROPERTY,
+                    attributeName = NGSILD_SCOPE_IRI,
                     operationStatus = OperationStatus.FAILED,
                     errorMessage = "Scope does not exist and operation does not allow creating it"
                 )
             }
             OperationType.APPEND_ATTRIBUTES, OperationType.MERGE_ENTITY -> {
                 val newScopes = (currentScopes ?: emptyList()).toSet().plus(scopes).toList()
-                val newPayload = newScopes.map { mapOf(JsonLdUtils.JSONLD_VALUE to it) }
+                val newPayload = newScopes.map { mapOf(JSONLD_VALUE_KW to it) }
                 val updatedPayload = currentPayload.replaceScopeValue(newPayload)
                 Pair(newScopes, updatedPayload)
             }
@@ -300,7 +300,7 @@ class ScopeService(
                 addHistoryEntry(entityId, it, TemporalProperty.OBSERVED_AT, modifiedAt, sub).bind()
             operationResult
         } ?: FailedAttributeOperationResult(
-            attributeName = NGSILD_SCOPE_PROPERTY,
+            attributeName = NGSILD_SCOPE_IRI,
             operationStatus = OperationStatus.FAILED,
             errorMessage = "Unrecognized operation type on scope: $operationType"
         )
@@ -329,9 +329,9 @@ class ScopeService(
             .execute()
             .map {
                 SucceededAttributeOperationResult(
-                    attributeName = NGSILD_SCOPE_PROPERTY,
+                    attributeName = NGSILD_SCOPE_IRI,
                     operationStatus = OperationStatus.CREATED,
-                    newExpandedValue = mapOf(NGSILD_SCOPE_PROPERTY to scopes.toList())
+                    newExpandedValue = mapOf(NGSILD_SCOPE_IRI to scopes.toList())
                 )
             }.bind()
     }
@@ -351,7 +351,7 @@ class ScopeService(
             """
             UPDATE entity_payload
             SET scopes = null,
-                payload = payload - '$NGSILD_SCOPE_PROPERTY'
+                payload = payload - '$NGSILD_SCOPE_IRI'
             WHERE entity_id = :entity_id
             """.trimIndent()
         )
@@ -369,10 +369,10 @@ class ScopeService(
 
         listOf(
             SucceededAttributeOperationResult(
-                NGSILD_SCOPE_PROPERTY,
+                NGSILD_SCOPE_IRI,
                 null,
                 OperationStatus.DELETED,
-                mapOf(NGSILD_SCOPE_PROPERTY to listOf())
+                mapOf(NGSILD_SCOPE_IRI to listOf())
             )
         )
     }

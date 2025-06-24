@@ -3,15 +3,15 @@ package com.egm.stellio.search.entity.model
 import com.egm.stellio.search.common.util.deserializeExpandedPayload
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import io.r2dbc.postgresql.codec.Json
@@ -30,19 +30,19 @@ data class Entity(
 ) {
     fun serializeProperties(): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
-        resultEntity[JSONLD_ID] = entityId.toString()
-        resultEntity[JSONLD_TYPE] = types
+        resultEntity[JSONLD_ID_KW] = entityId.toString()
+        resultEntity[JSONLD_TYPE_KW] = types
         scopes?.run {
-            resultEntity[NGSILD_SCOPE_PROPERTY] = this.map {
-                mapOf(JSONLD_VALUE to it)
+            resultEntity[NGSILD_SCOPE_IRI] = this.map {
+                mapOf(JSONLD_VALUE_KW to it)
             }
         }
         specificAccessPolicy?.run {
             resultEntity[AuthContextModel.AUTH_PROP_SAP] = buildExpandedPropertyValue(this)
         }
 
-        resultEntity[NGSILD_CREATED_AT_PROPERTY] = buildNonReifiedTemporalValue(createdAt)
-        resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = buildNonReifiedTemporalValue(modifiedAt)
+        resultEntity[NGSILD_CREATED_AT_IRI] = buildNonReifiedTemporalValue(createdAt)
+        resultEntity[NGSILD_MODIFIED_AT_IRI] = buildNonReifiedTemporalValue(modifiedAt)
 
         return resultEntity
     }
@@ -52,11 +52,11 @@ data class Entity(
     ): ExpandedEntity =
         ExpandedEntity(
             members = mapOf(
-                JSONLD_ID to entityId,
-                JSONLD_TYPE to types,
-                NGSILD_CREATED_AT_PROPERTY to buildNonReifiedTemporalValue(createdAt),
-                NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt),
-                NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt),
+                JSONLD_ID_KW to entityId,
+                JSONLD_TYPE_KW to types,
+                NGSILD_CREATED_AT_IRI to buildNonReifiedTemporalValue(createdAt),
+                NGSILD_MODIFIED_AT_IRI to buildNonReifiedTemporalValue(modifiedAt),
+                NGSILD_DELETED_AT_IRI to buildNonReifiedTemporalValue(deletedAt),
             )
         )
 

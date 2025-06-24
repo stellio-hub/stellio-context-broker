@@ -1,9 +1,5 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
@@ -157,7 +153,7 @@ class NgsiLdEntityTests {
             valueMap.keys
         )
         assertEquals(
-            listOf(mapOf(JSONLD_VALUE to "open")),
+            listOf(mapOf(JSONLD_VALUE_KW to "open")),
             valueMap["https://uri.etsi.org/ngsi-ld/default-context/state1"]
         )
     }
@@ -564,7 +560,7 @@ class NgsiLdEntityTests {
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
             .shouldSucceedAndResult()
 
-        val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
+        val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_IRI }
         assertNotNull(location)
         assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
         assertEquals(1, location?.instances?.size)
@@ -607,7 +603,7 @@ class NgsiLdEntityTests {
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
             .shouldSucceedAndResult()
 
-        val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
+        val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_IRI }
         assertNotNull(location)
         assertEquals(1, location?.instances?.size)
         assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
@@ -646,7 +642,7 @@ class NgsiLdEntityTests {
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
             .shouldSucceedAndResult()
 
-        val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
+        val location = ngsiLdEntity.geoProperties.find { it.name == NGSILD_LOCATION_IRI }
         assertNotNull(location)
         assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
         assertEquals(1, location?.instances?.size)
@@ -1040,8 +1036,8 @@ class NgsiLdEntityTests {
         val vocabPropertyInstance = vocabProperty.instances[0]
         assertEquals(
             listOf(
-                mapOf(JSONLD_ID to "${NGSILD_DEFAULT_VOCAB}stellio"),
-                mapOf(JSONLD_ID to "${NGSILD_DEFAULT_VOCAB}egm")
+                mapOf(JSONLD_ID_KW to "${NGSILD_DEFAULT_VOCAB}stellio"),
+                mapOf(JSONLD_ID_KW to "${NGSILD_DEFAULT_VOCAB}egm")
             ),
             vocabPropertyInstance.vocab
         )
@@ -1071,7 +1067,7 @@ class NgsiLdEntityTests {
         val vocabPropertyInstance = vocabProperty.instances[0]
         assertEquals(
             listOf(
-                mapOf(JSONLD_ID to "${NGSILD_DEFAULT_VOCAB}stellio")
+                mapOf(JSONLD_ID_KW to "${NGSILD_DEFAULT_VOCAB}stellio")
             ),
             vocabPropertyInstance.vocab
         )

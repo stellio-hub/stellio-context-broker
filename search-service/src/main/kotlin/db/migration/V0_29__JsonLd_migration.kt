@@ -5,10 +5,15 @@ import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.util.guessPropertyValueType
 import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.temporal.model.AttributeInstance
+import com.egm.stellio.shared.model.EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NgsiLdAttributeInstance
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdJsonPropertyInstance
@@ -22,11 +27,6 @@ import com.egm.stellio.shared.model.getMemberValueAsString
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.expandDeserializedPayload
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -125,7 +125,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             val entityCreationDate =
                 try {
                     (expandedEntity as Map<String, List<Any>>).getMemberValueAsDateTime(
-                        NGSILD_CREATED_AT_PROPERTY
+                        NGSILD_CREATED_AT_IRI
                     ) ?: defaultZonedDateTime
                 } catch (e: DateTimeParseException) {
                     logger.warn(
@@ -167,8 +167,8 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                             val attributePayloadFiltered = attributePayload
                                 .filterKeys { attributeName ->
                                     // remove createdAt and modifiedAt from attribute payload
-                                    attributeName != NGSILD_CREATED_AT_PROPERTY &&
-                                        attributeName != NGSILD_MODIFIED_AT_PROPERTY
+                                    attributeName != NGSILD_CREATED_AT_IRI &&
+                                        attributeName != NGSILD_MODIFIED_AT_IRI
                                 }
 
                             if (entityHasAttribute(entityId, attributeName, datasetId)) {
@@ -222,8 +222,8 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                 logger.warn("Unable to process attribute $attributeName ($datasetId) from entity $entityId")
             is Either.Right -> {
                 val createdAt =
-                    attributePayload.getMemberValueAsDateTime(NGSILD_CREATED_AT_PROPERTY) ?: defaultCreatedAt
-                val modifiedAt = attributePayload.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_PROPERTY)
+                    attributePayload.getMemberValueAsDateTime(NGSILD_CREATED_AT_IRI) ?: defaultCreatedAt
+                val modifiedAt = attributePayload.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_IRI)
                 val atributeType = temporalAttributesMetadata.value.type
                 val attributeValueType = temporalAttributesMetadata.value.valueType
                 val serializedAttributePayload = serializeObject(attributePayload)
@@ -275,8 +275,8 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
         defaultCreatedAt: ZonedDateTime
     ) {
         val createdAt =
-            attributePayload.getMemberValueAsDateTime(NGSILD_CREATED_AT_PROPERTY) ?: defaultCreatedAt
-        val modifiedAt = attributePayload.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_PROPERTY)
+            attributePayload.getMemberValueAsDateTime(NGSILD_CREATED_AT_IRI) ?: defaultCreatedAt
+        val modifiedAt = attributePayload.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_IRI)
         val serializedAttributePayload = serializeObject(attributePayload)
 
         val valueType = when (ngsiLdAttributeInstance) {
@@ -336,9 +336,9 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
 internal fun Map<String, Any>.keepOnlyOneInstanceByDatasetId(): Map<String, Any> =
     this.mapValues {
         val instance =
-            if (!JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key) && it.value is List<*>) {
+            if (!EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key) && it.value is List<*>) {
                 (it.value as List<Map<String, Any>>).distinctBy {
-                    it[NGSILD_DATASET_ID_PROPERTY]
+                    it[NGSILD_DATASET_ID_IRI]
                 }
             } else it.value
         instance

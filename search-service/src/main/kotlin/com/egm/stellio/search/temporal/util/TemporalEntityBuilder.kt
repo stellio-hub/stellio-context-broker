@@ -12,17 +12,17 @@ import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_JSON_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
+import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
+import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_PREFIX
+import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUB
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
@@ -102,8 +102,8 @@ object TemporalEntityBuilder {
         }
 
     private fun convertGeoProperty(instancePayload: Map<String, Any>): Map<String, Any> =
-        if (instancePayload[JSONLD_TYPE] == NGSILD_GEOPROPERTY_TYPE.uri)
-            instancePayload.plus(JSONLD_VALUE to wktToGeoJson(instancePayload[JSONLD_VALUE_TERM]!! as String))
+        if (instancePayload[JSONLD_TYPE_KW] == NGSILD_GEOPROPERTY_TYPE.uri)
+            instancePayload.plus(JSONLD_VALUE_KW to wktToGeoJson(instancePayload[NGSILD_VALUE_TERM]!! as String))
         else instancePayload
 
     private fun injectSub(
@@ -129,10 +129,10 @@ object TemporalEntityBuilder {
     ): Map<Attribute, SimplifiedTemporalAttribute> =
         attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
-                JSONLD_TYPE to listOf(it.key.attributeType.toExpandedName())
+                JSONLD_TYPE_KW to listOf(it.key.attributeType.toExpandedName())
             )
             it.key.datasetId?.let { datasetId ->
-                attributeInstance[NGSILD_DATASET_ID_PROPERTY] = buildNonReifiedPropertyValue(datasetId.toString())
+                attributeInstance[NGSILD_DATASET_ID_IRI] = buildNonReifiedPropertyValue(datasetId.toString())
             }
             val valuesKey = it.key.attributeType.toSimplifiedRepresentationKey()
             attributeInstance[valuesKey] =
@@ -147,32 +147,32 @@ object TemporalEntityBuilder {
                                 else deserializeObject(attributeInstanceResult.value)
                             listOf(
                                 mapOf(
-                                    NGSILD_JSONPROPERTY_VALUE to listOf(
+                                    NGSILD_JSONPROPERTY_JSON to listOf(
                                         mapOf(
-                                            JSONLD_TYPE to JSONLD_JSON,
-                                            JSONLD_VALUE to deserializedJsonValue
+                                            JSONLD_TYPE_KW to JSONLD_JSON_KW,
+                                            JSONLD_VALUE_KW to deserializedJsonValue
                                         )
                                     )
                                 ),
-                                mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
                             )
                         }
                         Attribute.AttributeType.LanguageProperty -> {
                             listOf(
                                 mapOf(
-                                    NGSILD_LANGUAGEPROPERTY_VALUE to
+                                    NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP to
                                         deserializeListOfObjects(attributeInstanceResult.value as String)
                                 ),
-                                mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
                             )
                         }
                         Attribute.AttributeType.VocabProperty -> {
                             listOf(
                                 mapOf(
-                                    NGSILD_VOCABPROPERTY_VALUE to
+                                    NGSILD_VOCABPROPERTY_VOCAB to
                                         deserializeListOfObjects(attributeInstanceResult.value as String)
                                 ),
-                                mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
                             )
                         }
                         Attribute.AttributeType.GeoProperty -> {
@@ -184,8 +184,8 @@ object TemporalEntityBuilder {
                         }
                         else -> {
                             listOf(
-                                mapOf(JSONLD_VALUE to attributeInstanceResult.value),
-                                mapOf(JSONLD_VALUE to attributeInstanceResult.time)
+                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.value),
+                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
                             )
                         }
                     }
@@ -207,10 +207,10 @@ object TemporalEntityBuilder {
     ): Map<Attribute, SimplifiedTemporalAttribute> {
         return attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
-                JSONLD_TYPE to listOf(it.key.attributeType.toExpandedName())
+                JSONLD_TYPE_KW to listOf(it.key.attributeType.toExpandedName())
             )
             it.key.datasetId?.let { datasetId ->
-                attributeInstance[NGSILD_DATASET_ID_PROPERTY] = buildNonReifiedPropertyValue(datasetId.toString())
+                attributeInstance[NGSILD_DATASET_ID_IRI] = buildNonReifiedPropertyValue(datasetId.toString())
             }
 
             val aggregatedResultsForAttributes = it.value
@@ -227,9 +227,9 @@ object TemporalEntityBuilder {
                 attributeInstance[NGSILD_PREFIX + aggregate.method] =
                     buildExpandedTemporalValue(resultsForAggregate) { aggregateResult ->
                         listOf(
-                            mapOf(JSONLD_VALUE to aggregateResult.value),
-                            mapOf(JSONLD_VALUE to aggregateResult.startDateTime),
-                            mapOf(JSONLD_VALUE to aggregateResult.endDateTime)
+                            mapOf(JSONLD_VALUE_KW to aggregateResult.value),
+                            mapOf(JSONLD_VALUE_KW to aggregateResult.startDateTime),
+                            mapOf(JSONLD_VALUE_KW to aggregateResult.endDateTime)
                         )
                     }
             }

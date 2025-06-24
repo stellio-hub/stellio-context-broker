@@ -1,0 +1,40 @@
+package com.egm.stellio.shared.model
+
+val EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE_KW, NGSILD_SCOPE_IRI)
+
+val NGSILD_SYSATTRS_TERMS = setOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM, NGSILD_DELETED_AT_TERM)
+val NGSILD_SYSATTRS_IRIS = setOf(
+    NGSILD_CREATED_AT_IRI,
+    NGSILD_MODIFIED_AT_IRI,
+    NGSILD_DELETED_AT_IRI
+)
+
+// List of members that are part of a core entity base definition (i.e., without attributes)
+val EXPANDED_ENTITY_CORE_MEMBERS =
+    setOf(
+        JSONLD_ID_KW,
+        JSONLD_TYPE_KW,
+        JSONLD_CONTEXT_KW,
+        NGSILD_SCOPE_IRI,
+        NGSILD_CREATED_AT_IRI,
+        NGSILD_MODIFIED_AT_IRI
+    )
+
+val COMPACTED_ENTITY_CORE_MEMBERS =
+    setOf(
+        NGSILD_ID_TERM,
+        NGSILD_TYPE_TERM,
+        JSONLD_CONTEXT_KW,
+        NGSILD_SCOPE_TERM,
+        NGSILD_CREATED_AT_TERM,
+        NGSILD_MODIFIED_AT_TERM
+    )
+
+val COMPACTED_ATTRIBUTES_TERMS =
+    setOf(
+        NGSILD_VALUE_TERM,
+        NGSILD_OBJECT_TERM,
+        NGSILD_JSON_TERM,
+        NGSILD_LANGUAGEMAP_TERM,
+        NGSILD_VOCAB_TERM
+    )

@@ -14,30 +14,30 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.gimmeEntityPayload
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
+import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.APIARY_COMPACT_TYPE
-import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIARY_IRI
+import com.egm.stellio.shared.util.APIARY_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.CATEGORY_COMPACT_VOCABPROPERTY
-import com.egm.stellio.shared.util.CATEGORY_VOCAPPROPERTY
-import com.egm.stellio.shared.util.FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY
-import com.egm.stellio.shared.util.FRIENDLYNAME_LANGUAGEPROPERTY
-import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
-import com.egm.stellio.shared.util.LUMINOSITY_COMPACT_JSONPROPERTY
-import com.egm.stellio.shared.util.LUMINOSITY_JSONPROPERTY
-import com.egm.stellio.shared.util.MANAGED_BY_COMPACT_RELATIONSHIP
-import com.egm.stellio.shared.util.MANAGED_BY_RELATIONSHIP
-import com.egm.stellio.shared.util.OUTGOING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
-import com.egm.stellio.shared.util.SENSOR_COMPACT_TYPE
-import com.egm.stellio.shared.util.SENSOR_TYPE
-import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.CATEGORY_IRI
+import com.egm.stellio.shared.util.CATEGORY_TERM
+import com.egm.stellio.shared.util.FRIENDLYNAME_IRI
+import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
+import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.INCOMING_TERM
+import com.egm.stellio.shared.util.LUMINOSITY_IRI
+import com.egm.stellio.shared.util.LUMINOSITY_TERM
+import com.egm.stellio.shared.util.MANAGED_BY_IRI
+import com.egm.stellio.shared.util.MANAGED_BY_TERM
+import com.egm.stellio.shared.util.OUTGOING_IRI
+import com.egm.stellio.shared.util.OUTGOING_TERM
+import com.egm.stellio.shared.util.SENSOR_IRI
+import com.egm.stellio.shared.util.SENSOR_TERM
+import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedWith
@@ -72,48 +72,48 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     private val now = ngsiLdDateTime()
 
-    private val entityPayload1 = gimmeEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_TYPE, SENSOR_TYPE))
-    private val entityPayload2 = gimmeEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_TYPE))
-    private val entityPayload3 = gimmeEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_TYPE))
+    private val entityPayload1 = gimmeEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_IRI, SENSOR_IRI))
+    private val entityPayload2 = gimmeEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_IRI))
+    private val entityPayload3 = gimmeEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_IRI))
     private val incomingProperty = newAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
-        INCOMING_PROPERTY,
+        INCOMING_IRI,
         Attribute.AttributeType.Property,
         Attribute.AttributeValueType.NUMBER
     )
     private val managedByRelationship = newAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
-        MANAGED_BY_RELATIONSHIP,
+        MANAGED_BY_IRI,
         Attribute.AttributeType.Relationship,
         Attribute.AttributeValueType.STRING
     )
     private val locationGeoProperty = newAttribute(
         "urn:ngsi-ld:Apiary:TESTC",
-        NGSILD_LOCATION_PROPERTY,
+        NGSILD_LOCATION_IRI,
         Attribute.AttributeType.GeoProperty,
         Attribute.AttributeValueType.GEOMETRY
     )
     private val outgoingProperty = newAttribute(
         "urn:ngsi-ld:Sensor:TESTB",
-        OUTGOING_PROPERTY,
+        OUTGOING_IRI,
         Attribute.AttributeType.Property,
         Attribute.AttributeValueType.GEOMETRY
     )
     private val luminosityJsonProperty = newAttribute(
         "urn:ngsi-ld:Sensor:TESTB",
-        LUMINOSITY_JSONPROPERTY,
+        LUMINOSITY_IRI,
         Attribute.AttributeType.JsonProperty,
         Attribute.AttributeValueType.JSON
     )
     private val friendlyNameLanguageProperty = newAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
-        FRIENDLYNAME_LANGUAGEPROPERTY,
+        FRIENDLYNAME_IRI,
         Attribute.AttributeType.LanguageProperty,
         Attribute.AttributeValueType.OBJECT
     )
     private val categoryVocabProperty = newAttribute(
         "urn:ngsi-ld:Apiary:TESTC",
-        CATEGORY_VOCAPPROPERTY,
+        CATEGORY_IRI,
         Attribute.AttributeType.VocabProperty,
         Attribute.AttributeValueType.ARRAY
     )
@@ -142,7 +142,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun `it should return a list of all known entity types`() = runTest {
         val entityTypes = entityTypeService.getEntityTypeList(APIC_COMPOUND_CONTEXTS)
 
-        assertEquals(listOf(APIARY_COMPACT_TYPE, BEEHIVE_COMPACT_TYPE, SENSOR_COMPACT_TYPE), entityTypes.typeList)
+        assertEquals(listOf(APIARY_TERM, BEEHIVE_TERM, SENSOR_TERM), entityTypes.typeList)
     }
 
     @Test
@@ -162,31 +162,31 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             .containsAll(
                 listOf(
                     EntityType(
-                        id = toUri(APIARY_TYPE),
-                        typeName = APIARY_COMPACT_TYPE,
+                        id = toUri(APIARY_IRI),
+                        typeName = APIARY_TERM,
                         attributeNames = listOf(
-                            CATEGORY_COMPACT_VOCABPROPERTY,
+                            CATEGORY_TERM,
                             NGSILD_LOCATION_TERM
                         )
                     ),
                     EntityType(
-                        id = toUri(BEEHIVE_TYPE),
-                        typeName = BEEHIVE_COMPACT_TYPE,
+                        id = toUri(BEEHIVE_IRI),
+                        typeName = BEEHIVE_TERM,
                         attributeNames = listOf(
-                            FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY,
-                            INCOMING_COMPACT_PROPERTY,
-                            MANAGED_BY_COMPACT_RELATIONSHIP
+                            FRIENDLYNAME_TERM,
+                            INCOMING_TERM,
+                            MANAGED_BY_TERM
                         )
                     ),
                     EntityType(
-                        id = toUri(SENSOR_TYPE),
-                        typeName = SENSOR_COMPACT_TYPE,
+                        id = toUri(SENSOR_IRI),
+                        typeName = SENSOR_TERM,
                         attributeNames = listOf(
-                            FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY,
-                            INCOMING_COMPACT_PROPERTY,
-                            LUMINOSITY_COMPACT_JSONPROPERTY,
-                            MANAGED_BY_COMPACT_RELATIONSHIP,
-                            OUTGOING_COMPACT_PROPERTY
+                            FRIENDLYNAME_TERM,
+                            INCOMING_TERM,
+                            LUMINOSITY_TERM,
+                            MANAGED_BY_TERM,
+                            OUTGOING_TERM
                         )
                     )
                 )
@@ -203,38 +203,38 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should return entity type info for a specific type`() = runTest {
-        val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(SENSOR_TYPE, APIC_COMPOUND_CONTEXTS)
+        val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(SENSOR_IRI, APIC_COMPOUND_CONTEXTS)
 
         entityTypeInfo.shouldSucceedWith {
             assertEquals(
                 EntityTypeInfo(
-                    id = SENSOR_TYPE.toUri(),
-                    typeName = SENSOR_COMPACT_TYPE,
+                    id = SENSOR_IRI.toUri(),
+                    typeName = SENSOR_TERM,
                     entityCount = 2,
                     attributeDetails = listOf(
                         AttributeInfo(
-                            id = toUri(FRIENDLYNAME_LANGUAGEPROPERTY),
-                            attributeName = FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY,
+                            id = toUri(FRIENDLYNAME_IRI),
+                            attributeName = FRIENDLYNAME_TERM,
                             attributeTypes = listOf(AttributeType.LanguageProperty)
                         ),
                         AttributeInfo(
-                            id = toUri(INCOMING_PROPERTY),
-                            attributeName = INCOMING_COMPACT_PROPERTY,
+                            id = toUri(INCOMING_IRI),
+                            attributeName = INCOMING_TERM,
                             attributeTypes = listOf(AttributeType.Property)
                         ),
                         AttributeInfo(
-                            id = toUri(LUMINOSITY_JSONPROPERTY),
-                            attributeName = LUMINOSITY_COMPACT_JSONPROPERTY,
+                            id = toUri(LUMINOSITY_IRI),
+                            attributeName = LUMINOSITY_TERM,
                             attributeTypes = listOf(AttributeType.JsonProperty)
                         ),
                         AttributeInfo(
-                            id = toUri(MANAGED_BY_RELATIONSHIP),
-                            attributeName = MANAGED_BY_COMPACT_RELATIONSHIP,
+                            id = toUri(MANAGED_BY_IRI),
+                            attributeName = MANAGED_BY_TERM,
                             attributeTypes = listOf(AttributeType.Relationship)
                         ),
                         AttributeInfo(
-                            id = toUri(OUTGOING_PROPERTY),
-                            attributeName = OUTGOING_COMPACT_PROPERTY,
+                            id = toUri(OUTGOING_IRI),
+                            attributeName = OUTGOING_TERM,
                             attributeTypes = listOf(AttributeType.Property)
                         )
                     )
@@ -246,9 +246,9 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should return an error when entity type doesn't exist`() = runTest {
-        entityTypeService.getEntityTypeInfoByType(TEMPERATURE_PROPERTY, APIC_COMPOUND_CONTEXTS)
+        entityTypeService.getEntityTypeInfoByType(TEMPERATURE_IRI, APIC_COMPOUND_CONTEXTS)
             .shouldFail {
-                assertEquals(ResourceNotFoundException(typeNotFoundMessage(TEMPERATURE_PROPERTY)), it)
+                assertEquals(ResourceNotFoundException(typeNotFoundMessage(TEMPERATURE_IRI)), it)
             }
     }
 

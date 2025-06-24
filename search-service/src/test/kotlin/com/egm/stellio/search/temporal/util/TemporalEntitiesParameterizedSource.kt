@@ -7,8 +7,8 @@ import com.egm.stellio.search.support.buildAttributeInstancePayload
 import com.egm.stellio.search.temporal.model.EntityTemporalResult
 import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
@@ -29,7 +29,7 @@ class TemporalEntitiesParameterizedSource {
                 EntityTemporalResult(
                     Entity(
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                        types = listOf(BEEHIVE_TYPE),
+                        types = listOf(BEEHIVE_IRI),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ),
@@ -53,7 +53,7 @@ class TemporalEntitiesParameterizedSource {
                 EntityTemporalResult(
                     Entity(
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
-                        types = listOf(BEEHIVE_TYPE),
+                        types = listOf(BEEHIVE_IRI),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ),
@@ -81,7 +81,7 @@ class TemporalEntitiesParameterizedSource {
                 EntityTemporalResult(
                     Entity(
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                        types = listOf(BEEHIVE_TYPE),
+                        types = listOf(BEEHIVE_IRI),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ),
@@ -103,7 +103,7 @@ class TemporalEntitiesParameterizedSource {
                                     "urn:ngsi-ld:Instance:45678".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = "sub"
                             )
                         )
@@ -112,7 +112,7 @@ class TemporalEntitiesParameterizedSource {
                 EntityTemporalResult(
                     Entity(
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
-                        types = listOf(BEEHIVE_TYPE),
+                        types = listOf(BEEHIVE_IRI),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ),
@@ -134,7 +134,7 @@ class TemporalEntitiesParameterizedSource {
                                     "urn:ngsi-ld:Instance:45679".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             )
                         )
@@ -147,7 +147,7 @@ class TemporalEntitiesParameterizedSource {
                 EntityTemporalResult(
                     Entity(
                         entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                        types = listOf(BEEHIVE_TYPE),
+                        types = listOf(BEEHIVE_IRI),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ),
@@ -185,7 +185,7 @@ class TemporalEntitiesParameterizedSource {
                 EntityTemporalResult(
                     Entity(
                         entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
-                        types = listOf(BEEHIVE_TYPE),
+                        types = listOf(BEEHIVE_IRI),
                         createdAt = now,
                         payload = EMPTY_JSON_PAYLOAD
                     ),

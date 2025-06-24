@@ -7,13 +7,13 @@ import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_TERM
+import com.egm.stellio.shared.model.NGSILD_CREATED_AT_TERM
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_TERM
+import com.egm.stellio.shared.model.NGSILD_ID_TERM
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_TERM
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
+import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
+import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.toUri
@@ -38,22 +38,22 @@ class ContextSourceUtilsTests {
     private val moreRecentTime = "2020-01-01T01:01:01.01Z"
     private val evenMoreRecentTime = "2030-01-01T01:01:01.01Z"
     private val nameAttribute: CompactedAttributeInstance = mapOf(
-        JSONLD_TYPE_TERM to "Property",
-        JSONLD_VALUE_TERM to "name",
+        NGSILD_TYPE_TERM to "Property",
+        NGSILD_VALUE_TERM to "name",
         NGSILD_DATASET_ID_TERM to "1",
         NGSILD_OBSERVED_AT_TERM to time
     )
 
     private val moreRecentAttribute: CompactedAttributeInstance = mapOf(
-        JSONLD_TYPE_TERM to "Property",
-        JSONLD_VALUE_TERM to "moreRecentName",
+        NGSILD_TYPE_TERM to "Property",
+        NGSILD_VALUE_TERM to "moreRecentName",
         NGSILD_DATASET_ID_TERM to "1",
         NGSILD_OBSERVED_AT_TERM to moreRecentTime
     )
 
     private val evenMoreRecentAttribute: CompactedAttributeInstance = mapOf(
-        JSONLD_TYPE_TERM to "Property",
-        JSONLD_VALUE_TERM to "evenMoreRecentName",
+        NGSILD_TYPE_TERM to "Property",
+        NGSILD_VALUE_TERM to "evenMoreRecentName",
         NGSILD_DATASET_ID_TERM to "1",
         NGSILD_OBSERVED_AT_TERM to evenMoreRecentTime
     )
@@ -98,7 +98,7 @@ class ContextSourceUtilsTests {
             minimalEntity,
             listOf(multipleTypeEntity to auxiliaryCSR, baseEntity to inclusiveCSR)
         ).getOrNull()
-        assertThat(mergedEntity?.get(JSONLD_TYPE_TERM) as List<*>)
+        assertThat(mergedEntity?.get(NGSILD_TYPE_TERM) as List<*>)
             .hasSize(3)
             .contains("Sensor", "BeeHive", "Beekeeper")
     }
@@ -106,8 +106,8 @@ class ContextSourceUtilsTests {
     @Test
     fun `merge entity should keep both attribute instances if they have different datasetId `() = runTest {
         val nameAttribute2: CompactedAttributeInstance = mapOf(
-            JSONLD_TYPE_TERM to "Property",
-            JSONLD_VALUE_TERM to "name2",
+            NGSILD_TYPE_TERM to "Property",
+            NGSILD_VALUE_TERM to "name2",
             NGSILD_DATASET_ID_TERM to "2"
         )
         val entityWithDifferentName = minimalEntity.toMutableMap() + (name to nameAttribute2)
@@ -130,7 +130,7 @@ class ContextSourceUtilsTests {
             evenMoreRecentTime,
             (mergedEntity?.get(name) as CompactedAttributeInstance)[NGSILD_OBSERVED_AT_TERM]
         )
-        assertEquals("evenMoreRecentName", (mergedEntity[name] as CompactedAttributeInstance)[JSONLD_VALUE_TERM])
+        assertEquals("evenMoreRecentName", (mergedEntity[name] as CompactedAttributeInstance)[NGSILD_VALUE_TERM])
     }
 
     @Test
@@ -143,7 +143,7 @@ class ContextSourceUtilsTests {
             time,
             (mergedEntity?.get(name) as CompactedAttributeInstance)[NGSILD_OBSERVED_AT_TERM]
         )
-        assertEquals("name", (mergedEntity[name] as CompactedAttributeInstance)[JSONLD_VALUE_TERM])
+        assertEquals("name", (mergedEntity[name] as CompactedAttributeInstance)[NGSILD_VALUE_TERM])
     }
 
     @Test
@@ -254,8 +254,8 @@ class ContextSourceUtilsTests {
 
     @Test
     fun `merge entitiesList should add entities with the different ids`() = runTest {
-        val entityWithDifferentId = minimalEntity.toMutableMap() + (JSONLD_ID_TERM to "differentId")
-        val entityWithAnotherDifferentId = minimalEntity.toMutableMap() + (JSONLD_ID_TERM to "anotherDifferentId")
+        val entityWithDifferentId = minimalEntity.toMutableMap() + (NGSILD_ID_TERM to "differentId")
+        val entityWithAnotherDifferentId = minimalEntity.toMutableMap() + (NGSILD_ID_TERM to "anotherDifferentId")
         val mergedEntity = ContextSourceUtils.mergeEntitiesLists(
             listOf(entityWithName),
             listOf(listOf(entityWithDifferentId) to inclusiveCSR, listOf(entityWithAnotherDifferentId) to inclusiveCSR)

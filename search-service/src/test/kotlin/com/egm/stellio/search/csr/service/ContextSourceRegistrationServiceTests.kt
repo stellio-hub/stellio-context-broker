@@ -11,11 +11,11 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.DEVICE_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.DEVICE_IRI
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.LUMINOSITY_JSONPROPERTY
-import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.LUMINOSITY_IRI
+import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
@@ -296,12 +296,12 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
         contextSourceRegistrationService.create(csr, mockUserSub).shouldSucceed()
         val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
-            CSRFilters(typeSelection = BEEHIVE_TYPE)
+            CSRFilters(typeSelection = BEEHIVE_IRI)
         )
         assertEquals(listOf(csr), oneCsrMatching)
 
         val multipleTypesOneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
-            CSRFilters(typeSelection = "$BEEHIVE_TYPE|$DEVICE_TYPE")
+            CSRFilters(typeSelection = "$BEEHIVE_IRI|$DEVICE_IRI")
         )
         assertEquals(listOf(csr), multipleTypesOneCsrMatching)
 
@@ -334,19 +334,19 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
                 .copy(
                     information = listOf(
-                        RegistrationInfo(null, listOf(TEMPERATURE_PROPERTY), null)
+                        RegistrationInfo(null, listOf(TEMPERATURE_IRI), null)
                     )
                 )
 
         contextSourceRegistrationService.create(newCsr, mockUserSub).shouldSucceed()
 
         val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
-            CSRFilters(attrs = setOf(TEMPERATURE_PROPERTY))
+            CSRFilters(attrs = setOf(TEMPERATURE_IRI))
         )
         assertEquals(listOf(newCsr), oneCsrMatching)
 
         val notMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
-            CSRFilters(attrs = setOf(LUMINOSITY_JSONPROPERTY))
+            CSRFilters(attrs = setOf(LUMINOSITY_IRI))
         )
         assertThat(notMatchingCsr).isEmpty()
     }

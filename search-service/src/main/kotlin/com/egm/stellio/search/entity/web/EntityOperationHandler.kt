@@ -13,6 +13,8 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
@@ -23,8 +25,6 @@ import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntitySafe
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
@@ -315,17 +315,17 @@ class EntityOperationHandler(
                     val coreContext = applicationProperties.contexts.core
                     if (httpHeaders.contentType == JSON_LD_MEDIA_TYPE)
                         addCoreContextIfMissingSafe(it.extractContexts(), coreContext).flatMap { contexts ->
-                            expandJsonLdEntitySafe(it.minus(JSONLD_CONTEXT), contexts)
+                            expandJsonLdEntitySafe(it.minus(JSONLD_CONTEXT_KW), contexts)
                         }
                     else
                         addCoreContextIfMissingSafe(listOfNotNull(context), coreContext).flatMap { contexts ->
                             expandJsonLdEntitySafe(it, contexts)
                         }
                 }
-                .mapLeft { apiException -> Pair(compactedEntity[JSONLD_ID_TERM] as String, apiException) }
+                .mapLeft { apiException -> Pair(compactedEntity[NGSILD_ID_TERM] as String, apiException) }
                 .flatMap { jsonLdEntity ->
                     jsonLdEntity.toNgsiLdEntity()
-                        .mapLeft { apiException -> Pair(compactedEntity[JSONLD_ID_TERM] as String, apiException) }
+                        .mapLeft { apiException -> Pair(compactedEntity[NGSILD_ID_TERM] as String, apiException) }
                         .map { ngsiLdEntity -> Pair(jsonLdEntity, ngsiLdEntity) }
                 }
         }.fold(BatchEntityPreparation()) { acc, entry ->

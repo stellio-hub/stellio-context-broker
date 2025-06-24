@@ -2,10 +2,10 @@ package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.compactTypeSelection
@@ -22,7 +22,7 @@ import org.springframework.data.annotation.Transient
 import org.springframework.http.MediaType
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
 val defaultNotificationTriggers = listOf(
     ATTRIBUTE_CREATED.notificationTrigger,
@@ -50,7 +50,7 @@ data class Subscription(
     // creation time contexts:
     //  - used to compact entities in notifications
     //  - used when needed to serve contexts in JSON notifications
-    @JsonProperty(value = JSONLD_CONTEXT)
+    @JsonProperty(value = JSONLD_CONTEXT_KW)
     val contexts: List<ExpandedTerm>,
     val throttling: Int? = null,
     val lang: String? = null,

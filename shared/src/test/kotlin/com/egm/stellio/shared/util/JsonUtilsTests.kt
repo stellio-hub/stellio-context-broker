@@ -105,7 +105,7 @@ class JsonUtilsTests {
                 "0123456789-1234-5678-987654321",
                 DEFAULT_TENANT_NAME,
                 entityId,
-                listOf(BEEHIVE_TYPE),
+                listOf(BEEHIVE_IRI),
                 serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS))
             )
         )
@@ -119,7 +119,7 @@ class JsonUtilsTests {
                 null,
                 DEFAULT_TENANT_NAME,
                 entityId,
-                listOf(BEEHIVE_TYPE),
+                listOf(BEEHIVE_IRI),
                 serializeObject(expandJsonLdFragment(entityPayload, APIC_COMPOUND_CONTEXTS)),
                 serializeObject(
                     loadAndExpandDeletedEntity(

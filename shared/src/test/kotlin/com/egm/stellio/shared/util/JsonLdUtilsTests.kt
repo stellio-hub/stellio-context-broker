@@ -1,14 +1,14 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.LdContextNotAvailableException
+import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
+import com.egm.stellio.shared.model.NGSILD_OBSERVATION_SPACE_IRI
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.model.getMemberValueAsString
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
@@ -225,7 +225,7 @@ class JsonLdUtilsTests {
         val expandedEntity = expandJsonLdEntitySafe(payload.deserializeAsMap(), NGSILD_TEST_CORE_CONTEXTS)
             .shouldSucceedAndResult()
 
-        val location = expandedEntity.getAttributes().getAttributeFromExpandedAttributes(NGSILD_LOCATION_PROPERTY, null)
+        val location = expandedEntity.getAttributes().getAttributeFromExpandedAttributes(NGSILD_LOCATION_IRI, null)
         assertNotNull(location)
         assertEquals(
             "POINT (100.12 0.23)",
@@ -233,7 +233,7 @@ class JsonLdUtilsTests {
         )
 
         val observationSpace = expandedEntity.getAttributes()
-            .getAttributeFromExpandedAttributes(NGSILD_OBSERVATION_SPACE_PROPERTY, null)
+            .getAttributeFromExpandedAttributes(NGSILD_OBSERVATION_SPACE_IRI, null)
         assertNotNull(observationSpace)
         assertEquals(
             "POLYGON ((100.12 0.23, 101.12 0.23, 101.12 1.23, 100.12 1.23, 100.12 0.23))",
@@ -276,7 +276,7 @@ class JsonLdUtilsTests {
             .shouldSucceedAndResult()
         val compactedEntity = compactEntity(expandedEntity, NGSILD_TEST_CORE_CONTEXTS)
         assertJsonPayloadsAreEqual(
-            serializeObject(deserializedPayload.plus(JSONLD_CONTEXT to NGSILD_TEST_CORE_CONTEXT)),
+            serializeObject(deserializedPayload.plus(JSONLD_CONTEXT_KW to NGSILD_TEST_CORE_CONTEXT)),
             serializeObject(compactedEntity)
         )
     }
@@ -312,7 +312,7 @@ class JsonLdUtilsTests {
 
         val compactedEntity = compactEntity(expandedEntity, NGSILD_TEST_CORE_CONTEXTS)
         assertJsonPayloadsAreEqual(
-            serializeObject(deserializedPayload.plus(JSONLD_CONTEXT to NGSILD_TEST_CORE_CONTEXT)),
+            serializeObject(deserializedPayload.plus(JSONLD_CONTEXT_KW to NGSILD_TEST_CORE_CONTEXT)),
             serializeObject(compactedEntity)
         )
     }
@@ -320,16 +320,16 @@ class JsonLdUtilsTests {
     @Test
     fun `it should correctly compact a term if it is in the provided contexts`() = runTest {
         assertEquals(
-            INCOMING_COMPACT_PROPERTY,
-            compactTerm(INCOMING_PROPERTY, APIC_COMPOUND_CONTEXTS)
+            INCOMING_TERM,
+            compactTerm(INCOMING_IRI, APIC_COMPOUND_CONTEXTS)
         )
     }
 
     @Test
     fun `it should return the input term if it was not able to compact it`() = runTest {
         assertEquals(
-            INCOMING_PROPERTY,
-            compactTerm(INCOMING_PROPERTY, NGSILD_TEST_CORE_CONTEXTS)
+            INCOMING_IRI,
+            compactTerm(INCOMING_IRI, NGSILD_TEST_CORE_CONTEXTS)
         )
     }
 }

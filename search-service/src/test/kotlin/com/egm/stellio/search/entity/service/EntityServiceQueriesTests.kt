@@ -12,15 +12,15 @@ import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.PaginationQuery
-import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.BEEKEEPER_TYPE
-import com.egm.stellio.shared.util.DEVICE_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.BEEKEEPER_IRI
+import com.egm.stellio.shared.util.DEVICE_IRI
 import com.egm.stellio.shared.util.MOCK_USER_SUB
-import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.SENSOR_TYPE
+import com.egm.stellio.shared.util.NAME_IRI
+import com.egm.stellio.shared.util.SENSOR_IRI
 import com.egm.stellio.shared.util.geoJsonToWkt
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.sampleDataToNgsiLdEntity
@@ -102,15 +102,15 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @ParameterizedTest
     @CsvSource(
-        "$BEEHIVE_TYPE, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
-        "'$APIARY_TYPE|$BEEKEEPER_TYPE', 3, 'urn:ngsi-ld:Apiary:05,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
-        "'$APIARY_TYPE,$BEEKEEPER_TYPE', 3, 'urn:ngsi-ld:Apiary:05,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
-        "$BEEKEEPER_TYPE, 2, 'urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
-        "'$BEEKEEPER_TYPE;$SENSOR_TYPE', 1, urn:ngsi-ld:MultiTypes:03",
-        "'$BEEKEEPER_TYPE;$DEVICE_TYPE', 0, ",
-        "$DEVICE_TYPE, 0, ",
-        "$SENSOR_TYPE, 1, urn:ngsi-ld:MultiTypes:03",
-        "'($BEEKEEPER_TYPE;$SENSOR_TYPE),$DEVICE_TYPE', 1, urn:ngsi-ld:MultiTypes:03"
+        "$BEEHIVE_IRI, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "'$APIARY_IRI|$BEEKEEPER_IRI', 3, 'urn:ngsi-ld:Apiary:05,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
+        "'$APIARY_IRI,$BEEKEEPER_IRI', 3, 'urn:ngsi-ld:Apiary:05,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
+        "$BEEKEEPER_IRI, 2, 'urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
+        "'$BEEKEEPER_IRI;$SENSOR_IRI', 1, urn:ngsi-ld:MultiTypes:03",
+        "'$BEEKEEPER_IRI;$DEVICE_IRI', 0, ",
+        "$DEVICE_IRI, 0, ",
+        "$SENSOR_IRI, 1, urn:ngsi-ld:MultiTypes:03",
+        "'($BEEKEEPER_IRI;$SENSOR_IRI),$DEVICE_IRI', 1, urn:ngsi-ld:MultiTypes:03"
     )
     fun `it should retrieve entities according types selection languages`(
         types: String,
@@ -148,7 +148,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
-                    typeSelection = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_IRI,
                     scopeQ = scopeQ,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
@@ -166,7 +166,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
                     ids = setOf(entity02Uri),
-                    typeSelection = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 )
@@ -182,7 +182,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
                     ids = setOf(entity02Uri, entity05Uri),
-                    typeSelection = "$APIARY_TYPE|$BEEHIVE_TYPE",
+                    typeSelection = "$APIARY_IRI|$BEEHIVE_IRI",
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 )
@@ -197,9 +197,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
-                    typeSelection = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
-                    attrs = setOf(NGSILD_NAME_PROPERTY),
+                    attrs = setOf(NAME_IRI),
                     contexts = APIC_COMPOUND_CONTEXTS
                 )
             ) { null }
@@ -214,7 +214,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
                     ids = setOf(entity02Uri),
-                    typeSelection = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 )
@@ -229,7 +229,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
-                    typeSelection = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 )
@@ -243,7 +243,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
-                    typeSelection = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_IRI,
                     idPattern = ".*urn:ngsi-ld:BeeHive:01.*",
                     paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
@@ -366,7 +366,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
                     entitySelectors = listOf(
-                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_TYPE)
+                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI)
                     ),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
@@ -400,11 +400,11 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
                     entitySelectors = listOf(
-                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_TYPE),
+                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI),
                         EntitySelector(
                             id = null,
                             idPattern = "urn:ngsi-ld:Beekeeper:*",
-                            typeSelection = BEEKEEPER_TYPE
+                            typeSelection = BEEKEEPER_IRI
                         )
                     ),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
@@ -423,11 +423,11 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
                     entitySelectors = listOf(
-                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_TYPE),
+                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI),
                         EntitySelector(
                             id = entity05Uri,
                             idPattern = null,
-                            typeSelection = APIARY_TYPE
+                            typeSelection = APIARY_IRI
                         )
                     ),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
@@ -446,11 +446,11 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
                     entitySelectors = listOf(
-                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_TYPE),
+                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI),
                         EntitySelector(
                             id = entity05Uri,
                             idPattern = null,
-                            typeSelection = BEEKEEPER_TYPE
+                            typeSelection = BEEKEEPER_IRI
                         )
                     ),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
@@ -468,7 +468,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
-                    typeSelection = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 )
@@ -493,7 +493,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
-                    typeSelection = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 )
@@ -520,7 +520,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
-                    typeSelection = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 )
@@ -544,7 +544,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     fun `it should retrieve the count of entities`() = runTest {
         entityQueryService.queryEntitiesCount(
             EntitiesQueryFromGet(
-                typeSelection = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_IRI,
                 paginationQuery = PaginationQuery(limit = 30, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
             )
@@ -556,7 +556,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         entityQueryService.queryEntitiesCount(
             EntitiesQueryFromGet(
                 ids = setOf(entity02Uri, entity01Uri),
-                typeSelection = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_IRI,
                 paginationQuery = PaginationQuery(limit = 30, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
             )
@@ -584,7 +584,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
-                    typeSelection = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 2, offset = 10),
                     attrs = setOf("unknownAttribute"),
                     contexts = APIC_COMPOUND_CONTEXTS

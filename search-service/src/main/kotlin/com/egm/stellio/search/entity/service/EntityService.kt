@@ -33,19 +33,19 @@ import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.EXPANDED_ENTITY_SPECIFIC_MEMBERS
 import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.addSysAttrs
 import com.egm.stellio.shared.model.flattenOnAttributeAndDatasetId
 import com.egm.stellio.shared.model.toNgsiLdAttributes
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityAlreadyExistsMessage
@@ -159,8 +159,8 @@ class EntityService(
         val (coreAttrs, otherAttrs) =
             expandedAttributes.toList()
                 // remove @id if it is present (optional as per 5.4)
-                .filter { it.first != JSONLD_ID }
-                .partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
+                .filter { it.first != JSONLD_ID_KW }
+                .partition { EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         val mergedAt = ngsiLdDateTime()
         logger.debug("Merging entity {}", entityId)
 
@@ -298,9 +298,9 @@ class EntityService(
     ): Either<APIException, List<AttributeOperationResult>> = either {
         coreAttrs.map { (expandedTerm, expandedAttributeInstances) ->
             when (expandedTerm) {
-                JSONLD_TYPE ->
+                JSONLD_TYPE_KW ->
                     updateTypes(entityId, expandedAttributeInstances as List<ExpandedTerm>, modifiedAt).bind()
-                NGSILD_SCOPE_PROPERTY ->
+                NGSILD_SCOPE_IRI ->
                     scopeService.update(entityId, expandedAttributeInstances, modifiedAt, operationType).bind()
                 else -> {
                     logger.warn("Ignoring unhandled core property: {}", expandedTerm)
@@ -326,13 +326,13 @@ class EntityService(
         // when dealing with an entity update, list of types can be empty if no change of type is requested
         if (currentTypes.sorted() == newTypes.sorted() || newTypes.isEmpty() && allowEmptyListOfTypes)
             return@either SucceededAttributeOperationResult(
-                attributeName = JSONLD_TYPE,
+                attributeName = JSONLD_TYPE_KW,
                 operationStatus = OperationStatus.CREATED,
-                newExpandedValue = mapOf(JSONLD_TYPE to currentTypes.toList())
+                newExpandedValue = mapOf(JSONLD_TYPE_KW to currentTypes.toList())
             )
 
         val updatedTypes = currentTypes.union(newTypes)
-        val updatedPayload = entityPayload.payload.deserializeAsMap().plus(JSONLD_TYPE to updatedTypes)
+        val updatedPayload = entityPayload.payload.deserializeAsMap().plus(JSONLD_TYPE_KW to updatedTypes)
 
         databaseClient.sql(
             """
@@ -350,9 +350,9 @@ class EntityService(
             .execute()
             .map {
                 SucceededAttributeOperationResult(
-                    attributeName = JSONLD_TYPE,
+                    attributeName = JSONLD_TYPE_KW,
                     operationStatus = OperationStatus.CREATED,
-                    newExpandedValue = mapOf(JSONLD_TYPE to updatedTypes.toList())
+                    newExpandedValue = mapOf(JSONLD_TYPE_KW to updatedTypes.toList())
                 )
             }.bind()
     }
@@ -368,7 +368,7 @@ class EntityService(
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
         val (coreAttrs, otherAttrs) =
-            expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
+            expandedAttributes.toList().partition { EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         val createdAt = ngsiLdDateTime()
 
         val operationType =
@@ -400,7 +400,7 @@ class EntityService(
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
         val (coreAttrs, otherAttrs) =
-            expandedAttributes.toList().partition { JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
+            expandedAttributes.toList().partition { EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         val createdAt = ngsiLdDateTime()
 
         val coreOperationResult = updateCoreAttributes(entityId, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()
@@ -652,7 +652,7 @@ class EntityService(
     ): Either<APIException, Unit> = either {
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
-        val deleteAttributeResults = if (attributeName == NGSILD_SCOPE_PROPERTY) {
+        val deleteAttributeResults = if (attributeName == NGSILD_SCOPE_IRI) {
             scopeService.delete(entityId).bind()
         } else {
             entityAttributeService.checkEntityAndAttributeExistence(
@@ -691,7 +691,7 @@ class EntityService(
     ): Either<APIException, Unit> = either {
         authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
 
-        if (attributeName == NGSILD_SCOPE_PROPERTY) {
+        if (attributeName == NGSILD_SCOPE_IRI) {
             scopeService.permanentlyDelete(entityId).bind()
         } else {
             entityAttributeService.checkEntityAndAttributeExistence(

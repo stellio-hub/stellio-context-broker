@@ -23,6 +23,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.EntityTypeSelection
+import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.AccessRight
@@ -40,7 +41,6 @@ import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
@@ -356,7 +356,7 @@ class EntityAccessRightsService(
                             }
 
                             val subjectInfo = toJsonString(record["subject_info"])
-                                .deserializeAsMap()[JSONLD_VALUE_TERM] as Map<String, String>
+                                .deserializeAsMap()[NGSILD_VALUE_TERM] as Map<String, String>
                             val subjectSpecificInfo = when (subjectType) {
                                 SubjectType.USER -> Pair(AUTH_TERM_USERNAME, subjectInfo[AUTH_TERM_USERNAME]!!)
                                 SubjectType.GROUP -> Pair(AUTH_TERM_NAME, subjectInfo[AUTH_TERM_NAME]!!)

@@ -1,7 +1,7 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.fasterxml.jackson.annotation.JsonIgnore
 import org.springframework.data.relational.core.mapping.Table
 
@@ -12,7 +12,7 @@ data class GeoQ(
     val coordinates: String,
     @JsonIgnore
     val pgisGeometry: String?,
-    val geoproperty: String = NGSILD_LOCATION_PROPERTY
+    val geoproperty: String = NGSILD_LOCATION_IRI
 ) {
     // representation passed to function checking for the correctness of geo-queries
     fun toMap(): Map<String, String> =

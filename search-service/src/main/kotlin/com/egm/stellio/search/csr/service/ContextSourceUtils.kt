@@ -13,14 +13,14 @@ import com.egm.stellio.search.csr.model.RevalidationFailedWarning
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedAttributeInstances
 import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_TERM
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_CREATED_AT_TERM
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_TERM
+import com.egm.stellio.shared.model.NGSILD_ID_TERM
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_TERM
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
+import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
+import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.util.isDateTime
 import java.time.ZonedDateTime
 import kotlin.random.Random.Default.nextBoolean
@@ -35,12 +35,12 @@ object ContextSourceUtils {
         localEntities: List<CompactedEntity>,
         remoteEntitiesWithCSR: List<CompactedEntitiesWithCSR>
     ): IorNel<NGSILDWarning, List<CompactedEntity>> {
-        val mergedEntityMap = localEntities.map { it.toMutableMap() }.associateBy { it[JSONLD_ID_TERM] }.toMutableMap()
+        val mergedEntityMap = localEntities.map { it.toMutableMap() }.associateBy { it[NGSILD_ID_TERM] }.toMutableMap()
 
         val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }.mapNotNull { (entities, csr) ->
             either {
                 entities.forEach { entity ->
-                    val id = entity[JSONLD_ID_TERM]
+                    val id = entity[NGSILD_ID_TERM]
                     mergedEntityMap[id]
                         ?.let { it.putAll(getMergeNewValues(it, entity, csr).bind()) }
                         ?: run { mergedEntityMap[id] = entity.toMutableMap() }
@@ -79,8 +79,8 @@ object ContextSourceUtils {
             val currentValue = currentEntity[key]
             when {
                 currentValue == null -> value
-                key == JSONLD_ID_TERM || key == JSONLD_CONTEXT -> currentValue
-                key == JSONLD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
+                key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW -> currentValue
+                key == NGSILD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
                     mergeTypeOrScope(currentValue, value)
                 key == NGSILD_CREATED_AT_TERM ->
                     if ((value as String?).isBefore(currentValue as String?)) value

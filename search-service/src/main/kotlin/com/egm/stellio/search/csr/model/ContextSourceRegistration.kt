@@ -8,13 +8,13 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_CSR_TERM
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.DataTypes.toFinalRepresentation
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CSR_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.invalidUriMessage
@@ -80,7 +80,7 @@ data class ContextSourceRegistration(
             convertTo<Map<String, Any>>(
                 this.compact(contexts)
             ).plus(
-                JSONLD_CONTEXT to contexts
+                JSONLD_CONTEXT_KW to contexts
             ).let { toFinalRepresentation(it, mediaType, includeSysAttrs) }
         )
     }
@@ -136,7 +136,7 @@ data class ContextSourceRegistration(
             contexts: List<String>
         ): Either<APIException, ContextSourceRegistration> =
             runCatching {
-                deserializeAs<ContextSourceRegistration>(serializeObject(input.plus(JSONLD_CONTEXT to contexts)))
+                deserializeAs<ContextSourceRegistration>(serializeObject(input.plus(JSONLD_CONTEXT_KW to contexts)))
                     .expand(contexts)
             }.fold(
                 { it.right() },

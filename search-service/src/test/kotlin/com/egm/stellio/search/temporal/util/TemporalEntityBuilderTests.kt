@@ -11,12 +11,12 @@ import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult.A
 import com.egm.stellio.search.temporal.model.EntityTemporalResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -45,7 +45,7 @@ class TemporalEntityBuilderTests {
     ) {
         val entity = Entity(
             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-            types = listOf(BEEHIVE_TYPE),
+            types = listOf(BEEHIVE_IRI),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
         )
@@ -63,7 +63,7 @@ class TemporalEntityBuilderTests {
         assertJsonPayloadsAreEqual(
             expectation,
             serializeObject(temporalEntity.members),
-            setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
+            setOf(NGSILD_CREATED_AT_IRI, NGSILD_MODIFIED_AT_IRI)
         )
     }
 
@@ -88,7 +88,7 @@ class TemporalEntityBuilderTests {
         assertJsonPayloadsAreEqual(
             expectation,
             serializeObject(temporalEntity.map { it.members }),
-            setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
+            setOf(NGSILD_CREATED_AT_IRI, NGSILD_MODIFIED_AT_IRI)
         )
     }
 
@@ -97,7 +97,7 @@ class TemporalEntityBuilderTests {
     fun `it should return a temporal entity with values aggregated`() {
         val attribute = Attribute(
             entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
-            attributeName = OUTGOING_PROPERTY,
+            attributeName = OUTGOING_IRI,
             attributeValueType = Attribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
@@ -149,7 +149,7 @@ class TemporalEntityBuilderTests {
         )
         val entity = Entity(
             entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
-            types = listOf(BEEHIVE_TYPE),
+            types = listOf(BEEHIVE_IRI),
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
         )
@@ -168,7 +168,7 @@ class TemporalEntityBuilderTests {
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/beehive_aggregated_outgoing.jsonld"),
             serializeObject(temporalEntity.members),
-            setOf(NGSILD_CREATED_AT_PROPERTY, NGSILD_MODIFIED_AT_PROPERTY)
+            setOf(NGSILD_CREATED_AT_IRI, NGSILD_MODIFIED_AT_IRI)
         )
     }
 }

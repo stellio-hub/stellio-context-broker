@@ -14,17 +14,17 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.TooManyResultsException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
-import com.egm.stellio.shared.util.TEMPERATURE_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_IRI
+import com.egm.stellio.shared.util.TEMPERATURE_TERM
 import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.loadAndExpandSampleData
@@ -686,7 +686,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                     temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
                         entitiesQueryFromGet.ids.isEmpty() &&
-                        entitiesQueryFromGet.typeSelection == BEEHIVE_TYPE &&
+                        entitiesQueryFromGet.typeSelection == BEEHIVE_IRI &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.NORMALIZED
                 },
@@ -952,7 +952,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         coEvery { temporalService.modifyAttributeInstance(any(), any(), any(), any()) } returns Unit.right()
 
         webClient.patch()
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_TERM/$attributeInstanceId")
             .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
@@ -980,7 +980,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
 
         webClient.patch()
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_TERM/$attributeInstanceId")
             .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
@@ -1007,7 +1007,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         webClient.patch()
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_TERM/$attributeInstanceId")
             .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
@@ -1037,7 +1037,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         ).left()
 
         webClient.patch()
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY/$attributeInstanceId")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_TERM/$attributeInstanceId")
             .header("Link", APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(instanceTemporalFragment))
@@ -1165,7 +1165,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_TERM")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -1175,7 +1175,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         coVerify {
             temporalService.deleteAttribute(
                 eq(entityUri),
-                eq(TEMPERATURE_PROPERTY),
+                eq(TEMPERATURE_IRI),
                 null,
                 eq(false),
                 eq(sub.value)
@@ -1190,7 +1190,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY?deleteAll=true")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_TERM?deleteAll=true")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -1200,7 +1200,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         coVerify {
             temporalService.deleteAttribute(
                 eq(entityUri),
-                eq(TEMPERATURE_PROPERTY),
+                eq(TEMPERATURE_IRI),
                 null,
                 eq(true),
                 eq(sub.value)
@@ -1216,7 +1216,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY?datasetId=$datasetId")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_TERM?datasetId=$datasetId")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -1226,7 +1226,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         coVerify {
             temporalService.deleteAttribute(
                 eq(entityUri),
-                eq(TEMPERATURE_PROPERTY),
+                eq(TEMPERATURE_IRI),
                 eq(datasetId.toUri()),
                 eq(false),
                 eq(sub.value)
@@ -1241,7 +1241,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_TERM")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -1264,7 +1264,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         } returns ResourceNotFoundException("Attribute Not Found").left()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY?deleteAll=true")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_TERM?deleteAll=true")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -1287,7 +1287,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         } returns BadRequestDataException("Something is wrong with the request").left()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_TERM")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -1306,7 +1306,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 400 if the provided id is not a valid URI`() {
         webClient.delete()
-            .uri("/ngsi-ld/v1/temporal/entities/beehive/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/temporal/entities/beehive/attrs/$TEMPERATURE_TERM")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -1323,7 +1323,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     @Test
     fun `delete attribute temporal should return a 400 if entity id is missing`() {
         webClient.delete()
-            .uri("/ngsi-ld/v1/temporal/entities//attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/temporal/entities//attrs/$TEMPERATURE_TERM")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -1361,7 +1361,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         } returns AccessDeniedException("User forbidden write access to entity $entityUri").left()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs/$TEMPERATURE_TERM")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()

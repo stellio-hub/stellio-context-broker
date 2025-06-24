@@ -25,7 +25,7 @@ import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_RE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.CREATION_ROLES
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -351,7 +351,7 @@ class EnabledAuthorizationServiceTests {
         } returns listOf(
             EntityAccessRights(
                 id = entityId01,
-                types = listOf(BEEHIVE_TYPE),
+                types = listOf(BEEHIVE_IRI),
                 right = CAN_WRITE
             )
         ).right()
@@ -364,7 +364,7 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             EntitiesQueryFromGet(
-                typeSelection = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_IRI,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
             ),
@@ -375,7 +375,7 @@ class EnabledAuthorizationServiceTests {
             assertEquals(1, it.first)
             it.second.forEach { jsonLdEntity ->
                 assertEquals(1, jsonLdEntity.types.size)
-                assertEquals(BEEHIVE_TYPE, jsonLdEntity.types[0])
+                assertEquals(BEEHIVE_IRI, jsonLdEntity.types[0])
             }
         }
 
@@ -394,12 +394,12 @@ class EnabledAuthorizationServiceTests {
         } returns listOf(
             EntityAccessRights(
                 id = entityId01,
-                types = listOf(BEEHIVE_TYPE),
+                types = listOf(BEEHIVE_IRI),
                 right = CAN_ADMIN
             ),
             EntityAccessRights(
                 id = entityId02,
-                types = listOf(BEEHIVE_TYPE),
+                types = listOf(BEEHIVE_IRI),
                 right = CAN_WRITE
             )
         ).right()
@@ -421,7 +421,7 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             EntitiesQueryFromGet(
-                typeSelection = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_IRI,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
             ),
@@ -449,7 +449,7 @@ class EnabledAuthorizationServiceTests {
     fun `it should return serialized access control entities with other rigths if user is owner`() = runTest {
         coEvery {
             entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any())
-        } returns listOf(EntityAccessRights(id = entityId01, types = listOf(BEEHIVE_TYPE), right = IS_OWNER)).right()
+        } returns listOf(EntityAccessRights(id = entityId01, types = listOf(BEEHIVE_IRI), right = IS_OWNER)).right()
         coEvery {
             entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any(), any())
         } returns Either.Right(1)
@@ -474,7 +474,7 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             EntitiesQueryFromGet(
-                typeSelection = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_IRI,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
             ),

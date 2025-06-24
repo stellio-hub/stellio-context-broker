@@ -1,9 +1,10 @@
 package com.egm.stellio.search.entity.model
 
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
+import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.util.AuthContextModel
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -17,7 +18,7 @@ class EntityModelTests {
 
     private val entity = Entity(
         entityId = "urn:ngsi-ld:beehive:01".toUri(),
-        types = listOf(BEEHIVE_TYPE),
+        types = listOf(BEEHIVE_IRI),
         createdAt = now,
         modifiedAt = now,
         payload = EMPTY_JSON_PAYLOAD
@@ -26,8 +27,8 @@ class EntityModelTests {
     @Test
     fun `it should serialize entityPayload with createdAt and modifiedAt`() {
         val serializedEntity = entity.serializeProperties()
-        assertTrue(serializedEntity.contains(JsonLdUtils.NGSILD_CREATED_AT_PROPERTY))
-        assertTrue(serializedEntity.contains(JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY))
+        assertTrue(serializedEntity.contains(NGSILD_CREATED_AT_IRI))
+        assertTrue(serializedEntity.contains(NGSILD_MODIFIED_AT_IRI))
         assertFalse(serializedEntity.contains(AuthContextModel.AUTH_PROP_SAP))
     }
 

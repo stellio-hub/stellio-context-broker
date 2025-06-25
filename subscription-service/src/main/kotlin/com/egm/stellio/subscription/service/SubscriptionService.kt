@@ -14,6 +14,7 @@ import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
+import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
@@ -38,12 +39,8 @@ import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.mergeEntitySelectorsOnSubscriptions
-import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoMapToString
-import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoToString
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEndpointInfo
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEntitySelector
-import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
-import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
 import com.egm.stellio.subscription.utils.allToMappedList
 import com.egm.stellio.subscription.utils.execute
 import com.egm.stellio.subscription.utils.oneToResult
@@ -57,6 +54,8 @@ import com.egm.stellio.subscription.utils.toNullableList
 import com.egm.stellio.subscription.utils.toNullableUri
 import com.egm.stellio.subscription.utils.toNullableZonedDateTime
 import com.egm.stellio.subscription.utils.toOptionalEnum
+import com.egm.stellio.subscription.utils.toSqlColumnName
+import com.egm.stellio.subscription.utils.toSqlValue
 import com.egm.stellio.subscription.utils.toUri
 import com.egm.stellio.subscription.utils.toZonedDateTime
 import com.egm.stellio.subscription.web.invalidSubscriptionAttributeMessage
@@ -235,8 +234,8 @@ class SubscriptionService(
             .bind("notif_format", subscription.notification.format.name)
             .bind("endpoint_uri", endpoint.uri)
             .bind("endpoint_accept", endpoint.accept.name)
-            .bind("endpoint_receiver_info", Json.of(endpointInfoToString(endpoint.receiverInfo)))
-            .bind("endpoint_notifier_info", Json.of(endpointInfoToString(endpoint.notifierInfo)))
+            .bind("endpoint_receiver_info", Json.of(serialize(endpoint.receiverInfo)))
+            .bind("endpoint_notifier_info", Json.of(serialize(endpoint.notifierInfo)))
             .bind("times_sent", subscription.notification.timesSent)
             .bind("is_active", subscription.isActive)
             .bind("expires_at", subscription.expiresAt)
@@ -514,8 +513,8 @@ class SubscriptionService(
                 listOf(
                     Pair("endpoint_uri", endpoint["uri"]),
                     Pair("endpoint_accept", accept),
-                    Pair("endpoint_receiver_info", Json.of(endpointInfoMapToString(endpointReceiverInfo))),
-                    Pair("endpoint_notifier_info", Json.of(endpointInfoMapToString(endpointNotifierInfo)))
+                    Pair("endpoint_receiver_info", Json.of(serialize(endpointReceiverInfo))),
+                    Pair("endpoint_notifier_info", Json.of(serialize(endpointNotifierInfo)))
                 )
             }
 

@@ -33,7 +33,7 @@ class NgsiLdEntity private constructor(
 
             val scopes = (parsedKeys as Map<String, List<Any>>).getScopes()
 
-            val rawAttributes = getNonCoreMembers(parsedKeys, NGSILD_ENTITY_CORE_MEMBERS)
+            val rawAttributes = getNonCoreMembers(parsedKeys, EXPANDED_ENTITY_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
 
             NgsiLdEntity(expandedEntity.id, types, scopes, attributes)
@@ -231,9 +231,9 @@ class NgsiLdPropertyInstance private constructor(
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
-            checkAttributeHasNoForbiddenMembers(name, values, NGSILD_PROPERTIES_FORBIDDEN_MEMBERS).bind()
+            checkAttributeHasNoForbiddenMembers(name, values, PROPERTIES_FORBIDDEN_MEMBERS).bind()
 
-            val rawAttributes = getNonCoreMembers(values, NGSILD_PROPERTIES_CORE_MEMBERS)
+            val rawAttributes = getNonCoreMembers(values, PROPERTIES_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
 
             NgsiLdPropertyInstance(
@@ -264,9 +264,9 @@ class NgsiLdRelationshipInstance private constructor(
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
-            checkAttributeHasNoForbiddenMembers(name, values, NGSILD_RELATIONSHIPS_FORBIDDEN_MEMBERS).bind()
+            checkAttributeHasNoForbiddenMembers(name, values, RELATIONSHIPS_FORBIDDEN_MEMBERS).bind()
 
-            val rawAttributes = getNonCoreMembers(values, NGSILD_RELATIONSHIPS_CORE_MEMBERS)
+            val rawAttributes = getNonCoreMembers(values, RELATIONSHIPS_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
 
             NgsiLdRelationshipInstance(
@@ -299,9 +299,9 @@ class NgsiLdGeoPropertyInstance(
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
-            checkAttributeHasNoForbiddenMembers(name, values, NGSILD_GEOPROPERTIES_FORBIDDEN_MEMBERS).bind()
+            checkAttributeHasNoForbiddenMembers(name, values, GEOPROPERTIES_FORBIDDEN_MEMBERS).bind()
 
-            val rawAttributes = getNonCoreMembers(values, NGSILD_GEOPROPERTIES_CORE_MEMBERS)
+            val rawAttributes = getNonCoreMembers(values, GEOPROPERTIES_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
 
             NgsiLdGeoPropertyInstance(
@@ -340,9 +340,9 @@ class NgsiLdJsonPropertyInstance private constructor(
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
-            checkAttributeHasNoForbiddenMembers(name, values, NGSILD_JSONPROPERTIES_FORBIDDEN_MEMBERS).bind()
+            checkAttributeHasNoForbiddenMembers(name, values, JSONPROPERTIES_FORBIDDEN_MEMBERS).bind()
 
-            val rawAttributes = getNonCoreMembers(values, NGSILD_JSONPROPERTIES_CORE_MEMBERS)
+            val rawAttributes = getNonCoreMembers(values, JSONPROPERTIES_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
 
             NgsiLdJsonPropertyInstance(
@@ -379,9 +379,9 @@ class NgsiLdLanguagePropertyInstance private constructor(
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
-            checkAttributeHasNoForbiddenMembers(name, values, NGSILD_LANGUAGEPROPERTIES_FORBIDDEN_MEMBERS).bind()
+            checkAttributeHasNoForbiddenMembers(name, values, LANGUAGEPROPERTIES_FORBIDDEN_MEMBERS).bind()
 
-            val rawAttributes = getNonCoreMembers(values, NGSILD_LANGUAGEPROPERTIES_CORE_MEMBERS)
+            val rawAttributes = getNonCoreMembers(values, LANGUAGEPROPERTIES_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
 
             NgsiLdLanguagePropertyInstance(
@@ -441,9 +441,9 @@ class NgsiLdVocabPropertyInstance private constructor(
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
-            checkAttributeHasNoForbiddenMembers(name, values, NGSILD_VOCABPROPERTIES_FORBIDDEN_MEMBERS).bind()
+            checkAttributeHasNoForbiddenMembers(name, values, VOCABPROPERTIES_FORBIDDEN_MEMBERS).bind()
 
-            val rawAttributes = getNonCoreMembers(values, NGSILD_VOCABPROPERTIES_CORE_MEMBERS)
+            val rawAttributes = getNonCoreMembers(values, VOCABPROPERTIES_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
 
             NgsiLdVocabPropertyInstance(
@@ -500,7 +500,7 @@ private suspend fun parseAttributes(
             either { l.bindAll() }
         }
 
-private fun getNonCoreMembers(parsedKeys: Map<String, Any>, keysToFilter: List<String>): Map<String, Any> =
+private fun getNonCoreMembers(parsedKeys: Map<String, Any>, keysToFilter: Set<String>): Map<String, Any> =
     parsedKeys.filterKeys {
         !keysToFilter.contains(it)
     }
@@ -539,7 +539,7 @@ fun checkAttributeDuplicateDatasetId(
 fun checkAttributeHasNoForbiddenMembers(
     name: ExpandedTerm,
     instance: ExpandedAttributeInstance,
-    forbiddenMembers: List<ExpandedTerm>
+    forbiddenMembers: Set<ExpandedTerm>
 ): Either<APIException, Unit> = either {
     forbiddenMembers.find {
         instance.getMemberValue(it) != null
@@ -583,79 +583,3 @@ fun List<NgsiLdAttribute>.flatOnInstances(): List<Pair<NgsiLdAttribute, NgsiLdAt
     this.flatMap { ngsiLdAttribute ->
         ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) }
     }
-
-val NGSILD_ENTITY_CORE_MEMBERS = listOf(
-    JSONLD_ID_KW,
-    JSONLD_TYPE_KW,
-    NGSILD_SCOPE_IRI,
-    NGSILD_CREATED_AT_IRI,
-    NGSILD_MODIFIED_AT_IRI
-)
-
-val NGSILD_ATTRIBUTES_CORE_MEMBERS = listOf(
-    JSONLD_TYPE_KW,
-    NGSILD_CREATED_AT_IRI,
-    NGSILD_MODIFIED_AT_IRI,
-    NGSILD_OBSERVED_AT_IRI,
-    NGSILD_DATASET_ID_IRI
-)
-
-val NGSILD_PROPERTIES_CORE_MEMBERS = listOf(
-    NGSILD_PROPERTY_VALUE,
-    NGSILD_UNIT_CODE_IRI
-).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
-
-val NGSILD_PROPERTIES_FORBIDDEN_MEMBERS = listOf(
-    NGSILD_RELATIONSHIP_OBJECT,
-    NGSILD_JSONPROPERTY_JSON,
-)
-
-val NGSILD_RELATIONSHIPS_CORE_MEMBERS = listOf(
-    NGSILD_RELATIONSHIP_OBJECT
-).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
-
-val NGSILD_RELATIONSHIPS_FORBIDDEN_MEMBERS = listOf(
-    NGSILD_PROPERTY_VALUE,
-    NGSILD_JSONPROPERTY_JSON,
-    NGSILD_UNIT_CODE_IRI
-)
-
-val NGSILD_GEOPROPERTIES_CORE_MEMBERS = listOf(
-    NGSILD_GEOPROPERTY_VALUE
-).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
-
-val NGSILD_GEOPROPERTIES_FORBIDDEN_MEMBERS = listOf(
-    NGSILD_RELATIONSHIP_OBJECT,
-    NGSILD_JSONPROPERTY_JSON,
-    NGSILD_UNIT_CODE_IRI
-)
-
-val NGSILD_JSONPROPERTIES_CORE_MEMBERS = listOf(
-    NGSILD_JSONPROPERTY_JSON
-).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
-
-val NGSILD_JSONPROPERTIES_FORBIDDEN_MEMBERS = listOf(
-    NGSILD_RELATIONSHIP_OBJECT,
-    NGSILD_PROPERTY_VALUE,
-    NGSILD_UNIT_CODE_IRI
-)
-
-val NGSILD_LANGUAGEPROPERTIES_CORE_MEMBERS = listOf(
-    NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
-).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
-
-val NGSILD_LANGUAGEPROPERTIES_FORBIDDEN_MEMBERS = listOf(
-    NGSILD_RELATIONSHIP_OBJECT,
-    NGSILD_PROPERTY_VALUE,
-    NGSILD_UNIT_CODE_IRI
-)
-
-val NGSILD_VOCABPROPERTIES_CORE_MEMBERS = listOf(
-    NGSILD_VOCABPROPERTY_VOCAB
-).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
-
-val NGSILD_VOCABPROPERTIES_FORBIDDEN_MEMBERS = listOf(
-    NGSILD_RELATIONSHIP_OBJECT,
-    NGSILD_PROPERTY_VALUE,
-    NGSILD_UNIT_CODE_IRI
-)

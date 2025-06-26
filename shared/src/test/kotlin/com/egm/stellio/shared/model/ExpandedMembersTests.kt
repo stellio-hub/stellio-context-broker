@@ -1,10 +1,6 @@
 package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedRelationshipValue
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
@@ -29,9 +25,9 @@ class ExpandedMembersTests {
         val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), null)
 
         assertThat(attrPayloadWithSysAttrs)
-            .containsKey(NGSILD_CREATED_AT_PROPERTY)
-            .doesNotContainKey(NGSILD_MODIFIED_AT_PROPERTY)
-            .doesNotContainKey(NGSILD_DELETED_AT_PROPERTY)
+            .containsKey(NGSILD_CREATED_AT_IRI)
+            .doesNotContainKey(NGSILD_MODIFIED_AT_IRI)
+            .doesNotContainKey(NGSILD_DELETED_AT_IRI)
     }
 
     @Test
@@ -41,9 +37,9 @@ class ExpandedMembersTests {
         val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), ngsiLdDateTime())
 
         assertThat(attrPayloadWithSysAttrs)
-            .containsKey(NGSILD_CREATED_AT_PROPERTY)
-            .containsKey(NGSILD_MODIFIED_AT_PROPERTY)
-            .doesNotContainKey(NGSILD_DELETED_AT_PROPERTY)
+            .containsKey(NGSILD_CREATED_AT_IRI)
+            .containsKey(NGSILD_MODIFIED_AT_IRI)
+            .doesNotContainKey(NGSILD_DELETED_AT_IRI)
     }
 
     @Test
@@ -54,9 +50,9 @@ class ExpandedMembersTests {
             attrPayload.addSysAttrs(true, ngsiLdDateTime(), ngsiLdDateTime(), ngsiLdDateTime())
 
         assertThat(attrPayloadWithSysAttrs)
-            .containsKey(NGSILD_CREATED_AT_PROPERTY)
-            .containsKey(NGSILD_MODIFIED_AT_PROPERTY)
-            .containsKey(NGSILD_DELETED_AT_PROPERTY)
+            .containsKey(NGSILD_CREATED_AT_IRI)
+            .containsKey(NGSILD_MODIFIED_AT_IRI)
+            .containsKey(NGSILD_DELETED_AT_IRI)
     }
 
     @Test

@@ -2,7 +2,6 @@ package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedEntity
 import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedMultiAttributeEntity
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
@@ -524,7 +523,7 @@ class CompactedEntityTests {
                 EntityRepresentation.GEO_JSON,
                 AttributeRepresentation.NORMALIZED,
                 includeSysAttrs = false,
-                geometryProperty = JsonLdUtils.NGSILD_LOCATION_TERM
+                geometryProperty = NGSILD_LOCATION_TERM
             )
         )
 
@@ -565,7 +564,7 @@ class CompactedEntityTests {
                 EntityRepresentation.GEO_JSON,
                 AttributeRepresentation.SIMPLIFIED,
                 includeSysAttrs = false,
-                geometryProperty = JsonLdUtils.NGSILD_LOCATION_TERM
+                geometryProperty = NGSILD_LOCATION_TERM
             )
         )
 
@@ -604,7 +603,7 @@ class CompactedEntityTests {
                 EntityRepresentation.GEO_JSON,
                 AttributeRepresentation.SIMPLIFIED,
                 includeSysAttrs = false,
-                geometryProperty = JsonLdUtils.NGSILD_LOCATION_TERM
+                geometryProperty = NGSILD_LOCATION_TERM
             )
         )
 
@@ -661,7 +660,7 @@ class CompactedEntityTests {
                 EntityRepresentation.GEO_JSON,
                 AttributeRepresentation.SIMPLIFIED,
                 includeSysAttrs = false,
-                geometryProperty = JsonLdUtils.NGSILD_LOCATION_TERM
+                geometryProperty = NGSILD_LOCATION_TERM
             )
         )
 

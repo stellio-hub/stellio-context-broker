@@ -16,7 +16,7 @@ import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.OperationNotSupportedException
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedWith
@@ -489,7 +489,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         val attribute = Attribute(
             id = attributeUuid,
             entityId = entityId,
-            attributeName = INCOMING_PROPERTY,
+            attributeName = INCOMING_IRI,
             attributeValueType = attributeValueType,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD

@@ -1,15 +1,12 @@
 package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
+import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
-import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.NAME_IRI
+import com.egm.stellio.shared.util.OUTGOING_IRI
+import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.loadAndExpandSampleData
@@ -26,10 +23,10 @@ class ExpandedEntityTests {
     @Test
     fun `it should find an expanded attribute contained in the entity`() {
         val expandedEntity = ExpandedEntity(
-            mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to "")
+            mapOf(INCOMING_IRI to "", OUTGOING_IRI to "")
         )
 
-        val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, INCOMING_PROPERTY))
+        val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_IRI, INCOMING_IRI))
 
         checkResult.fold({
             fail("it should have found one of the requested attributes")
@@ -39,10 +36,10 @@ class ExpandedEntityTests {
     @Test
     fun `it should not find an expanded attribute contained in the entity`() {
         val expandedEntity = ExpandedEntity(
-            mapOf(INCOMING_PROPERTY to "", OUTGOING_PROPERTY to "", JSONLD_ID to "urn:ngsi-ld:Entity:01".toUri())
+            mapOf(INCOMING_IRI to "", OUTGOING_IRI to "", JSONLD_ID_KW to "urn:ngsi-ld:Entity:01".toUri())
         )
 
-        val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, NGSILD_NAME_PROPERTY))
+        val checkResult = expandedEntity.checkContainsAnyOf(setOf(TEMPERATURE_IRI, NAME_IRI))
 
         checkResult.fold({
             assertEquals(
@@ -72,7 +69,7 @@ class ExpandedEntityTests {
         val expandedAttributes = expandJsonLdEntity(entity).getAttributes()
         assertThat(expandedAttributes)
             .hasSize(1)
-            .containsKey(NGSILD_NAME_PROPERTY)
+            .containsKey(NAME_IRI)
     }
 
     @Test
@@ -183,7 +180,7 @@ class ExpandedEntityTests {
             }
         """.trimIndent()
 
-        val filteredEntity = entity.filterAttributes(emptySet(), setOf(NGSILD_NONE_TERM))
+        val filteredEntity = entity.filterAttributes(emptySet(), setOf(JSONLD_NONE_KW))
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
@@ -205,7 +202,7 @@ class ExpandedEntityTests {
         """.trimIndent()
 
         val attributesToMatch: Set<String> = parseAndExpandQueryParameter("name", listOf(APIC_COMPOUND_CONTEXT))
-        val filteredEntity = entity.filterAttributes(attributesToMatch, setOf(NGSILD_NONE_TERM))
+        val filteredEntity = entity.filterAttributes(attributesToMatch, setOf(JSONLD_NONE_KW))
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
@@ -299,9 +296,9 @@ class ExpandedEntityTests {
         """.trimIndent()
 
         val expandedEntity = expandJsonLdEntity(entity).populateCreationTimeDate(ngsiLdDateTime())
-        assertThat(expandedEntity.members).containsKey(NGSILD_CREATED_AT_PROPERTY)
-        val nameAttributeInstances = expandedEntity.members[NGSILD_NAME_PROPERTY] as ExpandedAttributeInstances
+        assertThat(expandedEntity.members).containsKey(NGSILD_CREATED_AT_IRI)
+        val nameAttributeInstances = expandedEntity.members[NAME_IRI] as ExpandedAttributeInstances
         assertThat(nameAttributeInstances).hasSize(1)
-        assertThat(nameAttributeInstances[0]).containsKey(NGSILD_CREATED_AT_PROPERTY)
+        assertThat(nameAttributeInstances[0]).containsKey(NGSILD_CREATED_AT_IRI)
     }
 }

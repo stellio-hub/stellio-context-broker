@@ -5,10 +5,10 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.DataTypes.deserializeAs
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.subscription.model.EndpointInfo
@@ -18,7 +18,7 @@ object ParsingUtils {
 
     fun parseSubscription(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
         runCatching {
-            deserializeAs<Subscription>(serializeObject(input.plus(JSONLD_CONTEXT to contexts)))
+            deserializeAs<Subscription>(serializeObject(input.plus(JSONLD_CONTEXT_KW to contexts)))
                 .expand(contexts)
         }.fold(
             { it.right() },

@@ -18,7 +18,7 @@ import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
@@ -26,7 +26,7 @@ import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
-import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.toUri
@@ -201,8 +201,8 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 information = listOf(
                     RegistrationInfo(
                         listOf(
-                            EntityInfo(types = listOf(APIARY_TYPE)),
-                            EntityInfo(id = id, types = listOf(APIARY_TYPE)),
+                            EntityInfo(types = listOf(APIARY_IRI)),
+                            EntityInfo(id = id, types = listOf(APIARY_IRI)),
                         )
                     )
                 )
@@ -210,16 +210,16 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
             val secondCSR = gimmeRawCSR(
                 information = listOf(
                     RegistrationInfo(
-                        listOf(EntityInfo(idPattern = idPattern, types = listOf(APIARY_TYPE)))
+                        listOf(EntityInfo(idPattern = idPattern, types = listOf(APIARY_IRI)))
                     ),
                     RegistrationInfo(
-                        listOf(EntityInfo(id = id, types = listOf(APIARY_TYPE)))
+                        listOf(EntityInfo(id = id, types = listOf(APIARY_IRI)))
                     )
                 )
             )
             val thirdCSR = gimmeRawCSR(
                 information = listOf(
-                    RegistrationInfo(propertyNames = listOf(TEMPERATURE_PROPERTY)),
+                    RegistrationInfo(propertyNames = listOf(TEMPERATURE_IRI)),
                 )
             )
 
@@ -242,11 +242,11 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 headers,
                 queryParams
             )
-            val typeParams = MultiValueMap.fromSingleValue(mapOf(QP.TYPE.key to APIARY_TYPE))
-            val idParams = MultiValueMap.fromSingleValue(mapOf(QP.TYPE.key to APIARY_TYPE, QP.ID.key to id.toString()))
+            val typeParams = MultiValueMap.fromSingleValue(mapOf(QP.TYPE.key to APIARY_IRI))
+            val idParams = MultiValueMap.fromSingleValue(mapOf(QP.TYPE.key to APIARY_IRI, QP.ID.key to id.toString()))
             val idPatternParams = MultiValueMap.fromSingleValue(
                 mapOf(
-                    QP.TYPE.key to APIARY_TYPE,
+                    QP.TYPE.key to APIARY_IRI,
                     QP.ID_PATTERN.key to idPattern
                 )
             )

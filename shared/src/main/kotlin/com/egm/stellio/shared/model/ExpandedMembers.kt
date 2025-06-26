@@ -4,19 +4,6 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.toUri
@@ -38,7 +25,7 @@ fun ExpandedAttributes.addCoreMembers(
     entityId: URI,
     entityTypes: List<ExpandedTerm>
 ): Map<String, Any> =
-    this.plus(listOf(JSONLD_ID to entityId, JSONLD_TYPE to entityTypes))
+    this.plus(listOf(JSONLD_ID_KW to entityId, JSONLD_TYPE_KW to entityTypes))
 
 fun ExpandedAttributes.getAttributeFromExpandedAttributes(
     expandedAttributeName: ExpandedTerm,
@@ -47,7 +34,7 @@ fun ExpandedAttributes.getAttributeFromExpandedAttributes(
     this[expandedAttributeName]?.let { expandedAttributeInstances ->
         expandedAttributeInstances.find { expandedAttributeInstance ->
             if (datasetId == null)
-                !expandedAttributeInstance.containsKey(NGSILD_DATASET_ID_PROPERTY)
+                !expandedAttributeInstance.containsKey(NGSILD_DATASET_ID_IRI)
             else
                 expandedAttributeInstance.getDatasetId() == datasetId
         }
@@ -103,15 +90,15 @@ fun ExpandedAttributeInstance.addSysAttrs(
     deletedAt: ZonedDateTime? = null
 ): ExpandedAttributeInstance =
     if (withSysAttrs)
-        this.plus(NGSILD_CREATED_AT_PROPERTY to buildNonReifiedTemporalValue(createdAt))
+        this.plus(NGSILD_CREATED_AT_IRI to buildNonReifiedTemporalValue(createdAt))
             .let {
                 if (modifiedAt != null)
-                    it.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
+                    it.plus(NGSILD_MODIFIED_AT_IRI to buildNonReifiedTemporalValue(modifiedAt))
                 else it
             }
             .let {
                 if (deletedAt != null)
-                    it.plus(NGSILD_DELETED_AT_PROPERTY to buildNonReifiedTemporalValue(deletedAt))
+                    it.plus(NGSILD_DELETED_AT_IRI to buildNonReifiedTemporalValue(deletedAt))
                 else it
             }
     else this
@@ -142,25 +129,25 @@ fun ExpandedAttributeInstance.getMemberValue(memberName: ExpandedTerm): Any? {
     val intermediateList = this[memberName] as List<Map<String, Any>>
     return if (intermediateList.size == 1) {
         val firstListEntry = intermediateList[0]
-        val finalValueType = firstListEntry[JSONLD_TYPE]
+        val finalValueType = firstListEntry[JSONLD_TYPE_KW]
         when {
             finalValueType != null -> {
-                val finalValue = String::class.safeCast(firstListEntry[JSONLD_VALUE])
+                val finalValue = String::class.safeCast(firstListEntry[JSONLD_VALUE_KW])
                 when (finalValueType) {
                     NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue)
                     NGSILD_DATE_TYPE -> LocalDate.parse(finalValue)
                     NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
-                    else -> firstListEntry[JSONLD_VALUE]
+                    else -> firstListEntry[JSONLD_VALUE_KW]
                 }
             }
 
-            firstListEntry[JSONLD_VALUE] != null ->
-                firstListEntry[JSONLD_VALUE]
+            firstListEntry[JSONLD_VALUE_KW] != null ->
+                firstListEntry[JSONLD_VALUE_KW]
 
-            firstListEntry[JSONLD_ID] != null -> {
+            firstListEntry[JSONLD_ID_KW] != null -> {
                 // Used to get the value of datasetId property,
                 // since it is mapped to "@id" key rather than "@value"
-                firstListEntry[JSONLD_ID]
+                firstListEntry[JSONLD_ID_KW]
             }
 
             else -> {
@@ -171,7 +158,7 @@ fun ExpandedAttributeInstance.getMemberValue(memberName: ExpandedTerm): Any? {
         }
     } else {
         intermediateList.map {
-            it[JSONLD_VALUE]
+            it[JSONLD_VALUE_KW]
         }
     }
 }
@@ -200,7 +187,7 @@ fun ExpandedAttributeInstance.getRelationshipObject(name: String): Either<BadReq
         .flatMap {
             if (it !is Map<*, *>)
                 BadRequestDataException("Relationship $name has an invalid object type: ${it.javaClass}").left()
-            else it[JSONLD_ID].right()
+            else it[JSONLD_ID_KW].right()
         }
         .flatMap {
             if (it !is String)
@@ -209,13 +196,13 @@ fun ExpandedAttributeInstance.getRelationshipObject(name: String): Either<BadReq
         }
 
 fun ExpandedAttributeInstance.getDatasetId(): URI? =
-    (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
+    (this[NGSILD_DATASET_ID_IRI]?.get(0) as? Map<String, String>)?.get(JSONLD_ID_KW)?.toUri()
 
 fun ExpandedAttributeInstance.getRelationshipId(): URI? =
-    (this[NGSILD_RELATIONSHIP_OBJECT]?.get(0) as? Map<String, String>)?.get(JSONLD_ID)?.toUri()
+    (this[NGSILD_RELATIONSHIP_OBJECT]?.get(0) as? Map<String, String>)?.get(JSONLD_ID_KW)?.toUri()
 
 fun ExpandedAttributeInstance.getScopes(): List<String>? =
-    when (val rawScopes = this.getMemberValue(NGSILD_SCOPE_PROPERTY)) {
+    when (val rawScopes = this.getMemberValue(NGSILD_SCOPE_IRI)) {
         is String -> listOf(rawScopes)
         is List<*> -> rawScopes as List<String>
         else -> null

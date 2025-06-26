@@ -13,12 +13,12 @@ import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.ENTITY_ALREADY_EXISTS_MESSAGE
 import com.egm.stellio.shared.util.ENTITY_DOES_NOT_EXIST_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
@@ -551,7 +551,7 @@ class EntityOperationHandlerTests {
             {
                 "type": "Query",
                 "entities": [{
-                    "type": "$BEEHIVE_TYPE"
+                    "type": "$BEEHIVE_IRI"
                 }],
                 "attrs": ["attr1", "attr2"]
             }
@@ -569,7 +569,7 @@ class EntityOperationHandlerTests {
                     it.paginationQuery.limit == 10 &&
                         it.paginationQuery.offset == 20 &&
                         it is EntitiesQueryFromPost &&
-                        it.entitySelectors!![0].typeSelection == BEEHIVE_TYPE &&
+                        it.entitySelectors!![0].typeSelection == BEEHIVE_IRI &&
                         it.attrs == setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2")
                 },
                 any<Sub>()

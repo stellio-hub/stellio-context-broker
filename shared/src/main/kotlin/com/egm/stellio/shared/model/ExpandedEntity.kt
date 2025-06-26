@@ -5,13 +5,6 @@ import arrow.core.left
 import arrow.core.mapValuesNotNull
 import arrow.core.right
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
@@ -30,15 +23,15 @@ data class ExpandedEntity(
 
     fun hasNonCoreAttributes(): Boolean =
         members.keys.any {
-            !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it)
+            !EXPANDED_ENTITY_CORE_MEMBERS.contains(it)
         }
 
     fun getAttributes(): ExpandedAttributes =
-        members.filter { !JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key) }
+        members.filter { !EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key) }
             .mapValues { castAttributeValue(it.value) }
 
     fun getModifiableMembers(): ExpandedAttributes =
-        members.filter { !listOf(JSONLD_ID, JSONLD_CONTEXT).contains(it.key) }
+        members.filter { !listOf(JSONLD_ID_KW, JSONLD_CONTEXT_KW).contains(it.key) }
             .mapValues { castAttributeValue(it.value) }
 
     fun getScopes(): List<String>? =
@@ -50,16 +43,16 @@ data class ExpandedEntity(
     fun populateCreationTimeDate(createdAt: ZonedDateTime): ExpandedEntity =
         ExpandedEntity(
             members = members.mapValues {
-                if (JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
+                if (EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
                     it.value
                 else castAttributeValue(it.value).map { expandedAttributeInstance ->
                     expandedAttributeInstance
-                        .addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)
-                        .addDateTimeProperty(NGSILD_MODIFIED_AT_PROPERTY, createdAt)
+                        .addDateTimeProperty(NGSILD_CREATED_AT_IRI, createdAt)
+                        .addDateTimeProperty(NGSILD_MODIFIED_AT_IRI, createdAt)
                         as ExpandedAttributeInstance
                 }
-            }.addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)
-                .addDateTimeProperty(NGSILD_MODIFIED_AT_PROPERTY, createdAt)
+            }.addDateTimeProperty(NGSILD_CREATED_AT_IRI, createdAt)
+                .addDateTimeProperty(NGSILD_MODIFIED_AT_IRI, createdAt)
         )
 
     /**
@@ -69,21 +62,21 @@ data class ExpandedEntity(
     fun populateReplacementTimeDates(createdAt: ZonedDateTime, replacedAt: ZonedDateTime): ExpandedEntity =
         ExpandedEntity(
             members = members.mapValues {
-                if (JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
+                if (EXPANDED_ENTITY_CORE_MEMBERS.contains(it.key))
                     it.value
                 else castAttributeValue(it.value).map { expandedAttributeInstance ->
                     expandedAttributeInstance.addDateTimeProperty(
-                        NGSILD_CREATED_AT_PROPERTY,
+                        NGSILD_CREATED_AT_IRI,
                         replacedAt
                     ) as ExpandedAttributeInstance
                 }
             }
-                .addDateTimeProperty(NGSILD_CREATED_AT_PROPERTY, createdAt)
-                .addDateTimeProperty(NGSILD_MODIFIED_AT_PROPERTY, replacedAt)
+                .addDateTimeProperty(NGSILD_CREATED_AT_IRI, createdAt)
+                .addDateTimeProperty(NGSILD_MODIFIED_AT_IRI, replacedAt)
         )
 
     val id by lazy {
-        when (val id = members[JSONLD_ID]) {
+        when (val id = members[JSONLD_ID_KW]) {
             is URI -> id
             is String -> id.toUri()
             else -> throw BadRequestDataException("Could not extract id from JSON-LD entity")
@@ -91,7 +84,7 @@ data class ExpandedEntity(
     }
 
     val types by lazy {
-        (members[JSONLD_TYPE] ?: throw BadRequestDataException("Could not extract type from JSON-LD entity"))
+        (members[JSONLD_TYPE_KW] ?: throw BadRequestDataException("Could not extract type from JSON-LD entity"))
             as List<ExpandedTerm>
     }
 
@@ -109,13 +102,13 @@ data class ExpandedEntity(
         } else
             members.filterKeys {
                 includedAttributes.isEmpty() ||
-                    JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes).contains(it)
+                    EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes).contains(it)
             }.mapValuesNotNull { entry ->
-                if (entry.key in JSONLD_EXPANDED_ENTITY_CORE_MEMBERS)
+                if (entry.key in EXPANDED_ENTITY_CORE_MEMBERS)
                     entry.value
                 else (entry.value as ExpandedAttributeInstances).filter { expandedAttributeInstance ->
                     includedDatasetIds.isEmpty() ||
-                        includedDatasetIds.contains(NGSILD_NONE_TERM) &&
+                        includedDatasetIds.contains(JSONLD_NONE_KW) &&
                         expandedAttributeInstance.getDatasetId() == null ||
                         expandedAttributeInstance.getDatasetId() != null &&
                         includedDatasetIds.contains(expandedAttributeInstance.getDatasetId().toString())

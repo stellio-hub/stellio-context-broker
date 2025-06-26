@@ -1,8 +1,8 @@
 package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.shared.model.LdContextNotAvailableException
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.EndpointInfo
@@ -42,7 +42,7 @@ class ParsingUtilsTests {
         val subscription = mapOf(
             "id" to beehiveId,
             "type" to "Subscription",
-            "entities" to listOf(mapOf("type" to BEEHIVE_TYPE)),
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
@@ -57,7 +57,7 @@ class ParsingUtilsTests {
         val subscription = mapOf(
             "id" to "urn:ngsi-ld:BeeHive:01",
             "type" to NGSILD_SUBSCRIPTION_TERM,
-            "entities" to listOf(mapOf("type" to BEEHIVE_TYPE)),
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 

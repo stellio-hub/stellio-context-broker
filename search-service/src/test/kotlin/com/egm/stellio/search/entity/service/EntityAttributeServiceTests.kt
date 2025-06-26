@@ -12,20 +12,20 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
+import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
-import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.OUTGOING_IRI
+import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -81,7 +81,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         r2dbcEntityTemplate.insert<Entity>().into("entity_payload").using(
             Entity(
                 entityId = beehiveTestCId,
-                types = listOf(BEEHIVE_TYPE),
+                types = listOf(BEEHIVE_IRI),
                 createdAt = Instant.now().atZone(UTC),
                 payload = EMPTY_JSON_PAYLOAD
             )
@@ -90,7 +90,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         r2dbcEntityTemplate.insert<Entity>().into("entity_payload").using(
             Entity(
                 entityId = beehiveTestDId,
-                types = listOf(BEEHIVE_TYPE),
+                types = listOf(BEEHIVE_IRI),
                 createdAt = Instant.now().atZone(UTC),
                 payload = EMPTY_JSON_PAYLOAD
             )
@@ -120,14 +120,14 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             entityAttributeService.getForEntity(
                 beehiveTestDId,
                 setOf(
-                    INCOMING_PROPERTY,
-                    OUTGOING_PROPERTY
+                    INCOMING_IRI,
+                    OUTGOING_IRI
                 ),
                 emptySet()
             )
 
         assertEquals(2, attributes.size)
-        assertTrue(listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY).contains(attributes[0].attributeName))
+        assertTrue(listOf(INCOMING_IRI, OUTGOING_IRI).contains(attributes[0].attributeName))
         assertNotNull(attributes[0].createdAt)
         assertNotNull(attributes[0].modifiedAt)
 
@@ -279,7 +279,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         val expandedAttribute = expandAttribute(newProperty, APIC_COMPOUND_CONTEXTS)
         entityAttributeService.addOrReplaceAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY,
+            INCOMING_IRI,
             AttributeMetadata(
                 null,
                 "It's a string now",
@@ -296,7 +296,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY
+            INCOMING_IRI
         ).shouldSucceedWith {
             assertEquals(Attribute.AttributeType.Property, it.attributeType)
             assertEquals(Attribute.AttributeValueType.STRING, it.attributeValueType)
@@ -318,7 +318,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         val attribute = entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY
+            INCOMING_IRI
         ).shouldSucceedAndResult()
 
         val mergedAt = ngsiLdDateTime()
@@ -360,7 +360,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY
+            INCOMING_IRI
         ).shouldSucceedWith {
             assertEquals(Attribute.AttributeType.Property, it.attributeType)
             assertEquals(Attribute.AttributeValueType.STRING, it.attributeValueType)
@@ -382,7 +382,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
         entityAttributeService.deleteAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY,
+            INCOMING_IRI,
             datasetId = null,
             deletedAt = ngsiLdDateTime()
         ).shouldSucceed()
@@ -400,7 +400,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY
+            INCOMING_IRI
         ).shouldSucceedWith {
             assertNull(it.deletedAt)
             assertEquals(Attribute.AttributeValueType.STRING, it.attributeValueType)
@@ -434,7 +434,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             assertEquals(2, successfulOperations.filter { it.operationStatus == OperationStatus.CREATED }.size)
             val newAttributes = successfulOperations.filter { it.operationStatus == OperationStatus.CREATED }
                 .map { it.attributeName }
-            assertTrue(newAttributes.containsAll(listOf(OUTGOING_PROPERTY, TEMPERATURE_PROPERTY)))
+            assertTrue(newAttributes.containsAll(listOf(OUTGOING_IRI, TEMPERATURE_IRI)))
         }
 
         val attributes = entityAttributeService.getForEntity(
@@ -546,7 +546,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                 NGSILD_NULL,
                 createdAt,
                 expandAttribute(
-                    INCOMING_PROPERTY,
+                    INCOMING_IRI,
                     """
                         {
                             "type": "Property",
@@ -592,7 +592,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                 NGSILD_NULL,
                 createdAt,
                 expandAttribute(
-                    INCOMING_PROPERTY,
+                    INCOMING_IRI,
                     """
                         {
                             "type": "Property",
@@ -617,7 +617,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
         entityAttributeService.deleteAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY,
+            INCOMING_IRI,
             datasetId = null,
             deletedAt = ngsiLdDateTime()
         ).shouldSucceed()
@@ -639,7 +639,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY
+            INCOMING_IRI
         ).shouldSucceedWith {
             assertNull(it.deletedAt)
         }
@@ -658,7 +658,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         val createdAt = ngsiLdDateTime()
         val propertyToDelete = loadSampleData("fragments/beehive_mergeAttribute_null_fragment.json")
-        val expandedAttribute = expandAttribute(INCOMING_PROPERTY, propertyToDelete, APIC_COMPOUND_CONTEXTS)
+        val expandedAttribute = expandAttribute(INCOMING_IRI, propertyToDelete, APIC_COMPOUND_CONTEXTS)
         entityAttributeService.partialUpdateAttribute(
             beehiveTestCId,
             expandedAttribute,
@@ -674,7 +674,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                 NGSILD_NULL,
                 createdAt,
                 expandAttribute(
-                    INCOMING_PROPERTY,
+                    INCOMING_IRI,
                     """
                         {
                             "type": "Property",
@@ -714,7 +714,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY
+            INCOMING_IRI
         ).shouldSucceedWith {
             assertEquals(Attribute.AttributeType.Property, it.attributeType)
             assertEquals(Attribute.AttributeValueType.STRING, it.attributeValueType)
@@ -762,7 +762,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
         entityAttributeService.deleteAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY,
+            INCOMING_IRI,
             datasetId = null,
             deletedAt = ngsiLdDateTime()
         ).shouldSucceed()
@@ -780,7 +780,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             null
         ).shouldSucceedWith { operationResult ->
             assertInstanceOf(FailedAttributeOperationResult::class.java, operationResult)
-            assertEquals(INCOMING_PROPERTY, operationResult.attributeName)
+            assertEquals(INCOMING_IRI, operationResult.attributeName)
         }
     }
 
@@ -794,7 +794,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY
+            INCOMING_IRI
         ).shouldSucceedWith { assertNotNull(it) }
     }
 
@@ -808,7 +808,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY,
+            INCOMING_IRI,
             "urn:ngsi-ld:Dataset:01234".toUri()
         ).shouldSucceedWith { assertNotNull(it) }
     }
@@ -823,7 +823,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY,
+            INCOMING_IRI,
             "urn:ngsi-ld:Dataset:Unknown".toUri()
         ).shouldFail {
             assertInstanceOf(ResourceNotFoundException::class.java, it)
@@ -844,7 +844,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         val deletedAt = ngsiLdDateTime()
         entityAttributeService.deleteAttribute(
             beehiveTestDId,
-            INCOMING_PROPERTY,
+            INCOMING_IRI,
             null,
             false,
             deletedAt
@@ -856,7 +856,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                 NGSILD_NULL,
                 deletedAt,
                 expandAttribute(
-                    INCOMING_PROPERTY,
+                    INCOMING_IRI,
                     """
                         {
                             "type": "Property",
@@ -868,7 +868,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             )
         }
 
-        entityAttributeService.getForEntityAndAttribute(beehiveTestDId, INCOMING_PROPERTY)
+        entityAttributeService.getForEntityAndAttribute(beehiveTestDId, INCOMING_IRI)
             .shouldSucceedWith {
                 assertEquals(deletedAt, it.deletedAt)
             }
@@ -887,7 +887,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.deleteAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY,
+            INCOMING_IRI,
             null,
             deleteAll = true,
             ngsiLdDateTime()
@@ -897,7 +897,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
         }
 
-        entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)
+        entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_IRI)
             .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
     }
 
@@ -921,7 +921,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
         }
 
-        entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)
+        entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_IRI)
             .shouldSucceedWith { assertTrue(it.deletedAt != null) }
     }
 
@@ -936,16 +936,16 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.permanentlyDeleteAttribute(
             beehiveTestCId,
-            INCOMING_PROPERTY,
+            INCOMING_IRI,
             null,
             false
         ).shouldSucceed()
 
         coVerify {
-            attributeInstanceService.deleteInstancesOfAttribute(beehiveTestCId, INCOMING_PROPERTY, null)
+            attributeInstanceService.deleteInstancesOfAttribute(beehiveTestCId, INCOMING_IRI, null)
         }
 
-        entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_PROPERTY)
+        entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_IRI)
             .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
     }
 
@@ -979,7 +979,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
-        entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY)
+        entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_IRI)
             .shouldSucceed()
     }
 
@@ -991,7 +991,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
-        entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY, null, true)
+        entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_IRI, null, true)
             .shouldSucceed()
     }
 
@@ -1039,7 +1039,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             )
 
         assertEquals(1, attributes.size)
-        assertEquals(INCOMING_PROPERTY, attributes[0].attributeName)
+        assertEquals(INCOMING_IRI, attributes[0].attributeName)
         assertEquals("urn:ngsi-ld:Dataset:01234", attributes[0].datasetId.toString())
     }
 }

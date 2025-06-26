@@ -13,11 +13,11 @@ import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.addCoreMembers
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.toNgsiLdEntity
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import org.springframework.stereotype.Service
@@ -128,7 +128,7 @@ class TemporalService(
     private fun ExpandedAttributes.sorted(): ExpandedAttributes =
         this.mapValues {
             it.value.sortedByDescending { expandedAttributePayloadEntry ->
-                expandedAttributePayloadEntry.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)
+                expandedAttributePayloadEntry.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             }
         }
 

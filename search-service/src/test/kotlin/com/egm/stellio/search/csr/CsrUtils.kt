@@ -5,7 +5,7 @@ import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RegistrationInfo
-import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
@@ -16,7 +16,7 @@ object CsrUtils {
         endpoint: URI = "http://localhost:8089".toUri(),
         information: List<RegistrationInfo> = listOf(
             RegistrationInfo(
-                listOf(EntityInfo(types = listOf(APIARY_TYPE)))
+                listOf(EntityInfo(types = listOf(APIARY_IRI)))
             )
         ),
         operations: List<Operation> = listOf(Operation.FEDERATION_OPS),

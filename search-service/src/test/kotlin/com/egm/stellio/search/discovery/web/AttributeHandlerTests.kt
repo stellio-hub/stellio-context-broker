@@ -14,14 +14,14 @@ import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
-import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
-import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.MOCK_USER_SUB
-import com.egm.stellio.shared.util.OUTGOING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
-import com.egm.stellio.shared.util.TEMPERATURE_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.OUTGOING_IRI
+import com.egm.stellio.shared.util.OUTGOING_TERM
+import com.egm.stellio.shared.util.TEMPERATURE_IRI
+import com.egm.stellio.shared.util.TEMPERATURE_TERM
 import com.egm.stellio.shared.util.attributeNotFoundMessage
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -97,7 +97,7 @@ class AttributeHandlerTests {
     @Test
     fun `get attributes should return a 200 and an AttributeList`() {
         coEvery { attributeService.getAttributeList(any()) } returns AttributeList(
-            attributeList = listOf(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY)
+            attributeList = listOf(INCOMING_TERM, OUTGOING_TERM)
         )
 
         webClient.get()
@@ -109,7 +109,7 @@ class AttributeHandlerTests {
             .jsonPath("$.id").isNotEmpty
             .jsonPath("$.type").isEqualTo("AttributeList")
             .jsonPath("$.attributeList").isEqualTo(
-                listOfNotNull(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY)
+                listOfNotNull(INCOMING_TERM, OUTGOING_TERM)
             )
 
         coVerify {
@@ -140,14 +140,14 @@ class AttributeHandlerTests {
     fun `get attribute should return a 200 and a list of Attributes if details param is true`() {
         coEvery { attributeService.getAttributeDetails(any()) } returns listOf(
             AttributeDetails(
-                id = TEMPERATURE_PROPERTY.toUri(),
-                attributeName = TEMPERATURE_COMPACT_PROPERTY,
-                typeNames = setOf(BEEHIVE_COMPACT_TYPE)
+                id = TEMPERATURE_IRI.toUri(),
+                attributeName = TEMPERATURE_TERM,
+                typeNames = setOf(BEEHIVE_TERM)
             ),
             AttributeDetails(
-                id = INCOMING_PROPERTY.toUri(),
-                attributeName = INCOMING_COMPACT_PROPERTY,
-                typeNames = setOf(BEEHIVE_COMPACT_TYPE)
+                id = INCOMING_IRI.toUri(),
+                attributeName = INCOMING_TERM,
+                typeNames = setOf(BEEHIVE_TERM)
             )
         )
 
@@ -213,7 +213,7 @@ class AttributeHandlerTests {
 
         coVerify {
             attributeService.getAttributeTypeInfoByAttribute(
-                TEMPERATURE_PROPERTY,
+                TEMPERATURE_IRI,
                 listOf(applicationProperties.contexts.core)
             )
         }
@@ -223,11 +223,11 @@ class AttributeHandlerTests {
     fun `get attribute type information should correctly serialize an AttributeTypeInfo`() {
         coEvery { attributeService.getAttributeTypeInfoByAttribute(any(), APIC_COMPOUND_CONTEXTS) } returns
             AttributeTypeInfo(
-                id = TEMPERATURE_PROPERTY.toUri(),
+                id = TEMPERATURE_IRI.toUri(),
                 type = "Attribute",
-                attributeName = TEMPERATURE_COMPACT_PROPERTY,
+                attributeName = TEMPERATURE_TERM,
                 attributeTypes = setOf(AttributeType.Property),
-                typeNames = setOf(BEEHIVE_COMPACT_TYPE),
+                typeNames = setOf(BEEHIVE_TERM),
                 attributeCount = 2
             ).right()
 
@@ -240,7 +240,7 @@ class AttributeHandlerTests {
             .expectBody().json(expectedAttributeTypeInfo)
 
         coVerify {
-            attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_PROPERTY, APIC_COMPOUND_CONTEXTS)
+            attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_IRI, APIC_COMPOUND_CONTEXTS)
         }
     }
 
@@ -248,10 +248,10 @@ class AttributeHandlerTests {
     fun `get attribute type information should return a 404 if no attribute of that id exists`() {
         coEvery {
             attributeService.getAttributeTypeInfoByAttribute(any(), listOf(applicationProperties.contexts.core))
-        } returns ResourceNotFoundException(attributeNotFoundMessage(OUTGOING_PROPERTY)).left()
+        } returns ResourceNotFoundException(attributeNotFoundMessage(OUTGOING_IRI)).left()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/attributes/$OUTGOING_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/attributes/$OUTGOING_TERM")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isNotFound
@@ -259,7 +259,7 @@ class AttributeHandlerTests {
                 """
                     {
                       "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                      "title":"${attributeNotFoundMessage(OUTGOING_PROPERTY)}",
+                      "title":"${attributeNotFoundMessage(OUTGOING_IRI)}",
                       "detail":"$DEFAULT_DETAIL"
                     }
                 """

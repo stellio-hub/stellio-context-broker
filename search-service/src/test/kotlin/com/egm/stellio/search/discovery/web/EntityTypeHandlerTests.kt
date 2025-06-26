@@ -15,8 +15,8 @@ import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
-import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.util.typeNotFoundMessage
@@ -301,10 +301,10 @@ class EntityTypeHandlerTests {
     @Test
     fun `get entity type information should return a 404 if no entities of that type exists`() {
         coEvery { entityTypeService.getEntityTypeInfoByType(any(), any()) } returns
-            ResourceNotFoundException(typeNotFoundMessage(BEEHIVE_TYPE)).left()
+            ResourceNotFoundException(typeNotFoundMessage(BEEHIVE_IRI)).left()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/types/$BEEHIVE_COMPACT_TYPE")
+            .uri("/ngsi-ld/v1/types/$BEEHIVE_TERM")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isNotFound
@@ -312,7 +312,7 @@ class EntityTypeHandlerTests {
                 """
                       {
                         "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title": "${typeNotFoundMessage(BEEHIVE_TYPE)}",
+                        "title": "${typeNotFoundMessage(BEEHIVE_IRI)}",
                         "detail": "$DEFAULT_DETAIL"
                       }
                 """

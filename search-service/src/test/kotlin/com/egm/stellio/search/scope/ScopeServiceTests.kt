@@ -13,6 +13,7 @@ import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
+import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -118,7 +119,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         scopeService.update(
             beehiveTestCId,
-            expandedAttributes[JsonLdUtils.NGSILD_SCOPE_PROPERTY]!!,
+            expandedAttributes[NGSILD_SCOPE_IRI]!!,
             ngsiLdDateTime(),
             operationType
         ).shouldSucceed()

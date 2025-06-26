@@ -9,7 +9,7 @@ import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinTyp
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.LINKED_ENTITY_COMPACT_TYPE
+import com.egm.stellio.shared.util.LINKED_ENTITY_TERM
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.Sub
@@ -577,5 +577,5 @@ class LinkedEntityServiceTests {
     }
 
     private suspend fun loadAndExpandMinimalLinkedEntity(id: String, attributes: String? = null): ExpandedEntity =
-        loadAndExpandMinimalEntity(id, LINKED_ENTITY_COMPACT_TYPE, attributes)
+        loadAndExpandMinimalEntity(id, LINKED_ENTITY_TERM, attributes)
 }

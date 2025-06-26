@@ -14,7 +14,7 @@ import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
@@ -53,7 +53,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:45678".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
@@ -65,7 +65,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:45679".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             )
                         )
@@ -98,7 +98,7 @@ class TemporalEntityParameterizedSource {
                                     Attribute.AttributeType.Relationship
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
@@ -111,7 +111,7 @@ class TemporalEntityParameterizedSource {
                                     Attribute.AttributeType.Relationship
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             )
                         )
@@ -143,7 +143,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:01234".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
@@ -155,7 +155,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:01235".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             )
                         ),
@@ -177,7 +177,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:45678".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
@@ -189,7 +189,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:45679".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             )
                         )
@@ -221,7 +221,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:45678".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
@@ -233,7 +233,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:45679".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             )
                         )
@@ -265,7 +265,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:45678".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = "sub1"
                             ),
                             FullAttributeInstanceResult(
@@ -277,7 +277,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:45679".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = "sub2"
                             )
                         )
@@ -308,7 +308,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:45678".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             ),
                             FullAttributeInstanceResult(
@@ -320,7 +320,7 @@ class TemporalEntityParameterizedSource {
                                     "urn:ngsi-ld:Instance:45679".toUri()
                                 ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
-                                timeproperty = JsonLdUtils.NGSILD_OBSERVED_AT_TERM,
+                                timeproperty = NGSILD_OBSERVED_AT_TERM,
                                 sub = null
                             )
                         )

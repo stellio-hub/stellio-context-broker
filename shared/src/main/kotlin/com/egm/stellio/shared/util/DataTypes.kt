@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_TERMS
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_SYSATTRS_TERMS
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -40,7 +40,7 @@ object DataTypes {
     ): Map<String, Any> =
         dataType.let {
             if (mediaType == MediaType.APPLICATION_JSON)
-                it.minus(JSONLD_CONTEXT)
+                it.minus(JSONLD_CONTEXT_KW)
             else it
         }.let {
             if (!includeSysAttrs)

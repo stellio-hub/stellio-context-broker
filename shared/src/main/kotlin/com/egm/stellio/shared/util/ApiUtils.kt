@@ -9,11 +9,11 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntityTypeSelection
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NotAcceptableException
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.queryparameter.OptionsValue
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -97,7 +97,7 @@ fun checkContentType(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<A
     if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
         httpHeaders.contentType == MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
     ) {
-        if (body.contains(JSONLD_CONTEXT))
+        if (body.contains(JSONLD_CONTEXT_KW))
             return BadRequestDataException(
                 "Request payload must not contain @context term for a request having an application/json content type"
             ).left()
@@ -108,7 +108,7 @@ fun checkContentType(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<A
                     "JSON-LD Link header must not be provided for a request having an application/ld+json content type"
                 ).left()
         }
-        if (!body.contains(JSONLD_CONTEXT))
+        if (!body.contains(JSONLD_CONTEXT_KW))
             return BadRequestDataException(
                 "Request payload must contain @context term for a request having an application/ld+json content type"
             ).left()
@@ -143,16 +143,16 @@ suspend fun extractPayloadAndContexts(
         .checkContentIsNgsiLdSupported().bind()
     val contexts = checkAndGetContext(httpHeaders, body, coreContext).bind()
 
-    Pair(body.minus(JSONLD_CONTEXT), contexts)
+    Pair(body.minus(JSONLD_CONTEXT_KW), contexts)
 }
 
 fun Map<String, Any>.extractContexts(): List<String> =
-    if (!this.containsKey(JSONLD_CONTEXT))
+    if (!this.containsKey(JSONLD_CONTEXT_KW))
         emptyList()
-    else if (this[JSONLD_CONTEXT] is List<*>)
-        this[JSONLD_CONTEXT] as List<String>
-    else if (this[JSONLD_CONTEXT] is String)
-        listOf(this[JSONLD_CONTEXT] as String)
+    else if (this[JSONLD_CONTEXT_KW] is List<*>)
+        this[JSONLD_CONTEXT_KW] as List<String>
+    else if (this[JSONLD_CONTEXT_KW] is String)
+        listOf(this[JSONLD_CONTEXT_KW] as String)
     else
         emptyList()
 
@@ -187,7 +187,7 @@ fun addCoreContextIfMissing(contexts: List<String>, coreContext: String): List<S
  */
 internal fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
     val expandedType = JsonLdUtils.expandJsonLdTerm("datasetId", contexts)
-    return expandedType == NGSILD_DATASET_ID_PROPERTY
+    return expandedType == NGSILD_DATASET_ID_IRI
 }
 
 fun hasValueInOptionsParam(

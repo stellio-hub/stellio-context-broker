@@ -7,18 +7,18 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
+import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.util.DataTypes.serialize
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.checkJsonldContext
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.Sub
@@ -382,11 +382,11 @@ class SubscriptionService(
         input: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, Unit> = either {
-        if (!input.containsKey(JSONLD_TYPE_TERM) || input[JSONLD_TYPE_TERM]!! != NGSILD_SUBSCRIPTION_TERM)
+        if (!input.containsKey(NGSILD_TYPE_TERM) || input[NGSILD_TYPE_TERM]!! != NGSILD_SUBSCRIPTION_TERM)
             raise(BadRequestDataException("type attribute must be present and equal to '$NGSILD_SUBSCRIPTION_TERM'"))
 
         input.filterKeys {
-            it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
+            it !in COMPACTED_ENTITY_CORE_MEMBERS
         }.plus("modifiedAt" to ngsiLdDateTime())
             .forEach {
                 when {
@@ -797,7 +797,7 @@ class SubscriptionService(
                 geometry = row["geometry"] as String,
                 coordinates = row["coordinates"] as String,
                 pgisGeometry = (row["pgis_geometry"] as Geometry).toText(),
-                geoproperty = row["geoproperty"] as? ExpandedTerm ?: NGSILD_LOCATION_PROPERTY
+                geoproperty = row["geoproperty"] as? ExpandedTerm ?: NGSILD_LOCATION_IRI
             )
         }
     }

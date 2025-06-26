@@ -1,6 +1,6 @@
 package com.egm.stellio.subscription.model
 
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NOTIFICATION_TERM
+import com.egm.stellio.shared.model.NGSILD_NOTIFICATION_TERM
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import java.net.URI

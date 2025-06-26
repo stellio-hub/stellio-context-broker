@@ -22,17 +22,17 @@ import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.PaginationQuery
-import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AUTHZ_TEST_CONTEXT
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -123,7 +123,7 @@ class TemporalQueryServiceTests {
     @Test
     fun `it should query a temporal entity as requested by query params`() = runTest {
         val attributes =
-            listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY).map {
+            listOf(INCOMING_IRI, OUTGOING_IRI).map {
                 Attribute(
                     entityId = entityUri,
                     attributeName = it,
@@ -251,7 +251,7 @@ class TemporalQueryServiceTests {
     fun `it should query temporal entities as requested by query params`() = runTest {
         val attribute = Attribute(
             entityId = entityUri,
-            attributeName = INCOMING_PROPERTY,
+            attributeName = INCOMING_IRI,
             attributeValueType = Attribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
@@ -279,7 +279,7 @@ class TemporalQueryServiceTests {
         temporalQueryService.queryTemporalEntities(
             TemporalEntitiesQueryFromGet(
                 EntitiesQueryFromGet(
-                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_IRI,$APIARY_IRI",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -296,7 +296,7 @@ class TemporalQueryServiceTests {
             entityAttributeService.getForEntities(
                 listOf(entityUri),
                 EntitiesQueryFromGet(
-                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_IRI,$APIARY_IRI",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 )
@@ -312,7 +312,7 @@ class TemporalQueryServiceTests {
             )
             entityQueryService.queryEntitiesCount(
                 EntitiesQueryFromGet(
-                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_IRI,$APIARY_IRI",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -327,7 +327,7 @@ class TemporalQueryServiceTests {
     fun `it should not return any entity if no attribute is matching the temporal query`() = runTest {
         val attribute = Attribute(
             entityId = entityUri,
-            attributeName = INCOMING_PROPERTY,
+            attributeName = INCOMING_IRI,
             attributeValueType = Attribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
@@ -348,7 +348,7 @@ class TemporalQueryServiceTests {
         temporalQueryService.queryTemporalEntities(
             TemporalEntitiesQueryFromGet(
                 EntitiesQueryFromGet(
-                    typeSelection = "$BEEHIVE_TYPE,$APIARY_TYPE",
+                    typeSelection = "$BEEHIVE_IRI,$APIARY_IRI",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),

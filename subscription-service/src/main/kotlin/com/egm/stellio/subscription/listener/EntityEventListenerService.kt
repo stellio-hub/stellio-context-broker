@@ -6,14 +6,14 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AttributeCreateEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
+import com.egm.stellio.shared.model.EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NGSILD_SYSATTRS_IRIS
 import com.egm.stellio.shared.model.OperationNotSupportedException
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_EXPANDED_ENTITY_CORE_MEMBERS
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SYSATTRS_PROPERTIES
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
@@ -36,7 +36,7 @@ class EntityEventListenerService(
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
 
-    private val ignoredExpandedEntityProperties = JSONLD_EXPANDED_ENTITY_CORE_MEMBERS.plus(NGSILD_SYSATTRS_PROPERTIES)
+    private val ignoredExpandedEntityProperties = EXPANDED_ENTITY_CORE_MEMBERS.plus(NGSILD_SYSATTRS_IRIS)
 
     @KafkaListener(topics = ["cim.entity._CatchAll"], groupId = "context_subscription")
     fun processMessage(content: String) {

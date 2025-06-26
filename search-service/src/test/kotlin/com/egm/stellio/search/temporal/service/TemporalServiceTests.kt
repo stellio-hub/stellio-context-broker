@@ -6,7 +6,7 @@ import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.toUri
@@ -101,10 +101,10 @@ class TemporalServiceTests {
     fun `it should ask to permanently delete a temporal attribute`() = runTest {
         coEvery { entityService.permanentlyDeleteAttribute(any(), any(), any(), any(), any()) } returns Unit.right()
 
-        temporalService.deleteAttribute(entityUri, INCOMING_PROPERTY, null).shouldSucceed()
+        temporalService.deleteAttribute(entityUri, INCOMING_IRI, null).shouldSucceed()
 
         coVerify(exactly = 1) {
-            entityService.permanentlyDeleteAttribute(entityUri, INCOMING_PROPERTY, null)
+            entityService.permanentlyDeleteAttribute(entityUri, INCOMING_IRI, null)
         }
     }
 
@@ -115,13 +115,13 @@ class TemporalServiceTests {
         coEvery { entityQueryService.checkEntityExistence(entityUri) } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(entityUri, any()) } returns Unit.right()
         coEvery {
-            attributeInstanceService.deleteInstance(entityUri, INCOMING_PROPERTY, instanceId)
+            attributeInstanceService.deleteInstance(entityUri, INCOMING_IRI, instanceId)
         } returns Unit.right()
 
-        temporalService.deleteAttributeInstance(entityUri, INCOMING_PROPERTY, instanceId).shouldSucceed()
+        temporalService.deleteAttributeInstance(entityUri, INCOMING_IRI, instanceId).shouldSucceed()
 
         coVerify(exactly = 1) {
-            attributeInstanceService.deleteInstance(entityUri, INCOMING_PROPERTY, instanceId)
+            attributeInstanceService.deleteInstance(entityUri, INCOMING_IRI, instanceId)
         }
     }
 }

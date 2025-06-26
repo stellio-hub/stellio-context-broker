@@ -9,15 +9,15 @@ import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
-import com.egm.stellio.shared.util.APIARY_COMPACT_TYPE
-import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIARY_IRI
+import com.egm.stellio.shared.util.APIARY_TERM
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
-import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -73,7 +73,7 @@ class TemporalEntityOperationsHandlerTests {
             {
                 "type": "Query",
                 "entities": [{
-                    "type": "$BEEHIVE_COMPACT_TYPE,$APIARY_COMPACT_TYPE"
+                    "type": "$BEEHIVE_TERM,$APIARY_TERM"
                 }],
                 "attrs": ["incoming", "outgoing"],
                 "temporalQ": {
@@ -99,8 +99,8 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
                         entitiesQueryFromPost.entitySelectors!!.size == 1 &&
                         entitiesQueryFromPost.entitySelectors!![0].id == null &&
-                        entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
-                        temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
+                        entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_IRI,$APIARY_IRI" &&
+                        temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_IRI, OUTGOING_IRI) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES
                 },
@@ -125,7 +125,7 @@ class TemporalEntityOperationsHandlerTests {
             {
                 "type": "Query",
                 "entities": [{
-                    "type": "$BEEHIVE_COMPACT_TYPE,$APIARY_COMPACT_TYPE"
+                    "type": "$BEEHIVE_TERM,$APIARY_TERM"
                 }],
                 "attrs": ["incoming", "outgoing"],
                 "temporalQ": {
@@ -152,8 +152,8 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
                         entitiesQueryFromPost.entitySelectors!!.size == 1 &&
                         entitiesQueryFromPost.entitySelectors!![0].id == null &&
-                        entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_TYPE,$APIARY_TYPE" &&
-                        temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY) &&
+                        entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_IRI,$APIARY_IRI" &&
+                        temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_IRI, OUTGOING_IRI) &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.count &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES
@@ -171,7 +171,7 @@ class TemporalEntityOperationsHandlerTests {
             {
                 "type": "Query",
                 "entities": [{
-                    "type": "$BEEHIVE_TYPE"
+                    "type": "$BEEHIVE_IRI"
                 }],
                 "temporalQ": {
                     "timerel": "before"

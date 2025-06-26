@@ -7,6 +7,9 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
+import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.util.JsonUtils.getAllKeys
 import com.egm.stellio.shared.util.JsonUtils.getAllValues
 
@@ -15,9 +18,9 @@ import com.egm.stellio.shared.util.JsonUtils.getAllValues
  * that conforms to the restrictions defined in 4.6.2
  */
 suspend fun Map<String, Any>.checkNamesAreNgsiLdSupported(): Either<APIException, Map<String, Any>> = either {
-    val keys = filter { it.key != JsonLdUtils.JSONLD_CONTEXT }.getAllKeys()
+    val keys = filter { it.key != JSONLD_CONTEXT_KW }.getAllKeys()
     keys.parMap { key -> key.checkNameIsNgsiLdSupported().bind() }
-    when (val type = get(JsonLdUtils.JSONLD_TYPE_TERM)) {
+    when (val type = get(NGSILD_TYPE_TERM)) {
         is String -> type.checkNameIsNgsiLdSupported().bind()
         is List<*> -> (type as List<String>).parMap { it.checkNameIsNgsiLdSupported().bind() }
         else -> Unit.right().bind()
@@ -59,12 +62,12 @@ fun String.isNgsiLdSupportedScopeName(): Boolean = this.matches(scopeNameRegex)
  */
 suspend fun Map<String, Any>.checkContentIsNgsiLdSupported(): Either<APIException, Map<String, Any>> = either {
     val values = filter {
-        it.key != JsonLdUtils.JSONLD_CONTEXT && it.key != JsonLdUtils.NGSILD_SCOPE_TERM
+        it.key != JSONLD_CONTEXT_KW && it.key != NGSILD_SCOPE_TERM
     }.getAllValues()
     values.parMap { value ->
         (value?.checkContentIsNgsiLdSupported() ?: BadRequestDataException(NULL_VALUE_IN_CONTENT).left()).bind()
     }
-    get(JsonLdUtils.NGSILD_SCOPE_TERM)?.checkScopesNamesAreNgsiLdSupported()?.bind()
+    get(NGSILD_SCOPE_TERM)?.checkScopesNamesAreNgsiLdSupported()?.bind()
     this@checkContentIsNgsiLdSupported
 }
 

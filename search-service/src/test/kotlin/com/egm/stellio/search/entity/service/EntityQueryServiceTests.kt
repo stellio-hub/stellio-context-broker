@@ -10,7 +10,7 @@ import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadAndPrepareSampleData
 import com.egm.stellio.shared.util.loadMinimalEntity
@@ -81,7 +81,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityQueryService.queryEntity(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(beehiveTestCId, it.id)
-                assertEquals(listOf(BEEHIVE_TYPE), it.types)
+                assertEquals(listOf(BEEHIVE_IRI), it.types)
                 assertEquals(8, it.members.size)
             }
     }
@@ -112,7 +112,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             .shouldSucceedWith {
                 assertEquals(1, it.second)
                 assertEquals(beehiveTestCId, it.first[0].id)
-                assertEquals(listOf(BEEHIVE_TYPE), it.first[0].types)
+                assertEquals(listOf(BEEHIVE_IRI), it.first[0].types)
                 assertEquals(8, it.first[0].members.size)
             }
     }
@@ -130,7 +130,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should retrieve an entity payload`() = runTest {
-        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
                 entityService.createEntityPayload(
@@ -144,7 +144,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             .shouldSucceedWith {
                 assertThat(it)
                     .hasFieldOrPropertyWithValue("entityId", entity01Uri)
-                    .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_TYPE))
+                    .hasFieldOrPropertyWithValue("types", listOf(BEEHIVE_IRI))
                     .hasFieldOrPropertyWithValue("createdAt", now)
                     .hasFieldOrPropertyWithValue("modifiedAt", now)
                     .hasFieldOrPropertyWithValue("specificAccessPolicy", null)
@@ -153,7 +153,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should retrieve an entity payload with specificAccesPolicy`() = runTest {
-        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_TYPE), AUTH_READ, AUTHZ_TEST_COMPOUND_CONTEXTS)
+        loadMinimalEntityWithSap(entity01Uri, setOf(BEEHIVE_IRI), AUTH_READ, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .sampleDataToNgsiLdEntity()
             .map {
                 entityService.createEntityPayload(
@@ -189,7 +189,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should filter existing entities from a list of ids`() = runTest {
-        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
                 entityService.createEntityPayload(
@@ -212,7 +212,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should check the existence of an entity`() = runTest {
-        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
                 entityService.createEntityPayload(
@@ -229,7 +229,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should check the state of an entity`() = runTest {
-        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
                 entityService.createEntityPayload(

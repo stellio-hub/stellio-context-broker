@@ -10,6 +10,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
@@ -18,7 +19,6 @@ import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
@@ -169,7 +169,7 @@ class SubscriptionHandler(
     suspend fun getSubscriptionContext(@PathVariable subscriptionId: URI): ResponseEntity<*> = either {
         val contexts = subscriptionService.getContextsForSubscription(subscriptionId).bind()
 
-        ResponseEntity.ok(serializeObject(mapOf(JSONLD_CONTEXT to contexts)))
+        ResponseEntity.ok(serializeObject(mapOf(JSONLD_CONTEXT_KW to contexts)))
     }.fold(
         { it.toErrorResponse() },
         { it }

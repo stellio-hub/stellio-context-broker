@@ -1,27 +1,27 @@
 package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.model.EntitySelector
-import com.egm.stellio.shared.util.APIARY_COMPACT_TYPE
-import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_CREATED_AT_TERM
+import com.egm.stellio.shared.model.NGSILD_OPERATION_SPACE_IRI
+import com.egm.stellio.shared.model.NGSILD_OPERATION_SPACE_TERM
+import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.util.APIARY_IRI
+import com.egm.stellio.shared.util.APIARY_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.BEEKEEPER_COMPACT_TYPE
-import com.egm.stellio.shared.util.BEEKEEPER_TYPE
-import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.BEEKEEPER_IRI
+import com.egm.stellio.shared.util.BEEKEEPER_TERM
+import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
-import com.egm.stellio.shared.util.OUTGOING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.OUTGOING_IRI
+import com.egm.stellio.shared.util.OUTGOING_TERM
 import com.egm.stellio.shared.util.toUri
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -42,7 +42,7 @@ class SubscriptionTest {
             EntitySelector(
                 id = null,
                 idPattern = null,
-                typeSelection = BEEHIVE_TYPE
+                typeSelection = BEEHIVE_IRI
             )
         ),
         geoQ = GeoQ(
@@ -50,11 +50,11 @@ class SubscriptionTest {
             geometry = "Polygon",
             coordinates = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
             pgisGeometry = "100000101000101010100010100054300",
-            geoproperty = NGSILD_OPERATION_SPACE_PROPERTY
+            geoproperty = NGSILD_OPERATION_SPACE_IRI
         ),
-        watchedAttributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+        watchedAttributes = listOf(INCOMING_IRI, OUTGOING_IRI),
         notification = NotificationParams(
-            attributes = listOf(INCOMING_PROPERTY),
+            attributes = listOf(INCOMING_IRI),
             format = NotificationParams.FormatType.KEY_VALUES,
             endpoint = Endpoint(
                 uri = "http://localhost:8089/notification".toUri(),
@@ -72,12 +72,12 @@ class SubscriptionTest {
         assertThat(subscription)
             .extracting("geoQ.geoproperty", "watchedAttributes", "notification.attributes")
             .containsExactly(
-                NGSILD_OPERATION_SPACE_PROPERTY,
-                listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
-                listOf(INCOMING_PROPERTY)
+                NGSILD_OPERATION_SPACE_IRI,
+                listOf(INCOMING_IRI, OUTGOING_IRI),
+                listOf(INCOMING_IRI)
             )
         assertThat(subscription.entities)
-            .allMatch { it.typeSelection == BEEHIVE_TYPE }
+            .allMatch { it.typeSelection == BEEHIVE_IRI }
             .hasSize(1)
     }
 
@@ -88,13 +88,13 @@ class SubscriptionTest {
                 EntitySelector(
                     id = null,
                     idPattern = null,
-                    typeSelection = "($BEEHIVE_COMPACT_TYPE,$APIARY_COMPACT_TYPE);$BEEKEEPER_COMPACT_TYPE"
+                    typeSelection = "($BEEHIVE_TERM,$APIARY_TERM);$BEEKEEPER_TERM"
                 )
             )
         ).expand(APIC_COMPOUND_CONTEXTS)
 
         assertThat(subscription.entities)
-            .allMatch { it.typeSelection == "($BEEHIVE_TYPE,$APIARY_TYPE);$BEEKEEPER_TYPE" }
+            .allMatch { it.typeSelection == "($BEEHIVE_IRI,$APIARY_IRI);$BEEKEEPER_IRI" }
             .hasSize(1)
     }
 
@@ -108,11 +108,11 @@ class SubscriptionTest {
             .extracting("geoQ.geoproperty", "watchedAttributes", "notification.attributes")
             .containsExactly(
                 NGSILD_OPERATION_SPACE_TERM,
-                listOf(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY),
-                listOf(INCOMING_COMPACT_PROPERTY)
+                listOf(INCOMING_TERM, OUTGOING_TERM),
+                listOf(INCOMING_TERM)
             )
         assertThat(compactedSubscription.entities)
-            .allMatch { it.typeSelection == BEEHIVE_COMPACT_TYPE }
+            .allMatch { it.typeSelection == BEEHIVE_TERM }
             .hasSize(1)
     }
 
@@ -159,7 +159,7 @@ class SubscriptionTest {
 
         val deserializedSub = deserializeObject(serializedSub)
 
-        assertTrue(deserializedSub.containsKey(JSONLD_CONTEXT))
+        assertTrue(deserializedSub.containsKey(JSONLD_CONTEXT_KW))
     }
 
     @Test
@@ -173,7 +173,7 @@ class SubscriptionTest {
 
         val deserializedSub = deserializeObject(serializedSub)
 
-        assertFalse(deserializedSub.containsKey(JSONLD_CONTEXT))
+        assertFalse(deserializedSub.containsKey(JSONLD_CONTEXT_KW))
     }
 
     @Test
@@ -192,7 +192,7 @@ class SubscriptionTest {
         assertEquals(2, deserializedSubs.size)
         assertThat(deserializedSubs)
             .allMatch {
-                it.containsKey(JSONLD_CONTEXT) &&
+                it.containsKey(JSONLD_CONTEXT_KW) &&
                     it.containsKey(NGSILD_CREATED_AT_TERM)
             }
     }
@@ -210,7 +210,7 @@ class SubscriptionTest {
         assertEquals(2, deserializedSubs.size)
         assertThat(deserializedSubs)
             .allMatch {
-                !it.containsKey(JSONLD_CONTEXT) &&
+                !it.containsKey(JSONLD_CONTEXT_KW) &&
                     !it.containsKey(NGSILD_CREATED_AT_TERM)
             }
     }

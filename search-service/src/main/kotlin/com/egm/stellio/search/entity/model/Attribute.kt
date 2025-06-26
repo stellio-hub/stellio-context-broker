@@ -1,33 +1,33 @@
 package com.egm.stellio.search.entity.model
 
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGEMAP_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUES
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUES
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUES
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECTS
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUES
+import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
+import com.egm.stellio.shared.model.JSONLD_NONE_KW
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
+import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_VALUES
+import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
+import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSONS
+import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_LANGUAGEMAP_TERM
+import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAPS
+import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_NULL
+import com.egm.stellio.shared.model.NGSILD_OBJECT_TERM
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUES
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECTS
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_TYPE
+import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
+import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
+import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCABS
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
@@ -91,9 +91,9 @@ data class Attribute(
                 Property -> NGSILD_PROPERTY_VALUE
                 Relationship -> NGSILD_RELATIONSHIP_OBJECT
                 GeoProperty -> NGSILD_GEOPROPERTY_VALUE
-                JsonProperty -> NGSILD_JSONPROPERTY_VALUE
-                LanguageProperty -> NGSILD_LANGUAGEPROPERTY_VALUE
-                VocabProperty -> NGSILD_VOCABPROPERTY_VALUE
+                JsonProperty -> NGSILD_JSONPROPERTY_JSON
+                LanguageProperty -> NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+                VocabProperty -> NGSILD_VOCABPROPERTY_VOCAB
             }
 
         /**
@@ -104,32 +104,32 @@ data class Attribute(
                 Property -> NGSILD_PROPERTY_VALUES
                 Relationship -> NGSILD_RELATIONSHIP_OBJECTS
                 GeoProperty -> NGSILD_GEOPROPERTY_VALUES
-                JsonProperty -> NGSILD_JSONPROPERTY_VALUES
-                LanguageProperty -> NGSILD_LANGUAGEPROPERTY_VALUES
-                VocabProperty -> NGSILD_VOCABPROPERTY_VALUES
+                JsonProperty -> NGSILD_JSONPROPERTY_JSONS
+                LanguageProperty -> NGSILD_LANGUAGEPROPERTY_LANGUAGEMAPS
+                VocabProperty -> NGSILD_VOCABPROPERTY_VOCABS
             }
 
         fun toNullCompactedRepresentation(datasetId: URI? = null): Map<String, Any> =
             when (this) {
                 Property, GeoProperty, JsonProperty, VocabProperty ->
                     mapOf(
-                        JSONLD_TYPE_TERM to this.name,
-                        JSONLD_VALUE_TERM to NGSILD_NULL
+                        NGSILD_TYPE_TERM to this.name,
+                        NGSILD_VALUE_TERM to NGSILD_NULL
                     )
                 Relationship ->
                     mapOf(
-                        JSONLD_TYPE_TERM to this.name,
-                        JSONLD_OBJECT to NGSILD_NULL
+                        NGSILD_TYPE_TERM to this.name,
+                        NGSILD_OBJECT_TERM to NGSILD_NULL
                     )
                 LanguageProperty ->
                     mapOf(
-                        JSONLD_TYPE_TERM to this.name,
-                        JSONLD_LANGUAGEMAP_TERM to mapOf(NGSILD_NONE_TERM to NGSILD_NULL)
+                        NGSILD_TYPE_TERM to this.name,
+                        NGSILD_LANGUAGEMAP_TERM to mapOf(JSONLD_NONE_KW to NGSILD_NULL)
                     )
             }.let { nullAttrRepresentation ->
                 if (datasetId != null)
                     nullAttrRepresentation.plus(
-                        NGSILD_DATASET_ID_PROPERTY to buildNonReifiedPropertyValue(datasetId.toString())
+                        NGSILD_DATASET_ID_IRI to buildNonReifiedPropertyValue(datasetId.toString())
                     )
                 else nullAttrRepresentation
             }
@@ -138,7 +138,7 @@ data class Attribute(
             when (this) {
                 Property, GeoProperty, JsonProperty, VocabProperty, Relationship -> NGSILD_NULL
                 LanguageProperty ->
-                    serializeObject(listOf(mapOf(JSONLD_VALUE to NGSILD_NULL, JSONLD_LANGUAGE to NGSILD_NONE_TERM)))
+                    serializeObject(listOf(mapOf(JSONLD_VALUE_KW to NGSILD_NULL, JSONLD_LANGUAGE_KW to JSONLD_NONE_KW)))
             }
     }
 }

@@ -7,9 +7,9 @@ import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toNgsiLdEntity
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import org.springframework.core.io.ClassPathResource
@@ -112,7 +112,7 @@ suspend fun String.sampleDataToNgsiLdEntity(): Either<APIException, Pair<Expande
 
 suspend fun expandJsonLdEntity(input: String): ExpandedEntity {
     val jsonInput = input.deserializeAsMap()
-    return expandJsonLdEntity(jsonInput.minus(JSONLD_CONTEXT), jsonInput.extractContexts())
+    return expandJsonLdEntity(jsonInput.minus(JSONLD_CONTEXT_KW), jsonInput.extractContexts())
 }
 
 fun String.removeNoise(): String =

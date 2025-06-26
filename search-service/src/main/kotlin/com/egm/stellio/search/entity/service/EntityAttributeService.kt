@@ -38,12 +38,21 @@ import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AttributeType
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_NONE_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
+import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_PREFIX
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
+import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -57,17 +66,8 @@ import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.isAttributeOfType
 import com.egm.stellio.shared.model.toNgsiLdEntity
-import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NONE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PREFIX
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -458,7 +458,7 @@ class EntityAttributeService(
             if (entitiesQuery.datasetId.isNotEmpty()) {
                 val datasetIdsList = entitiesQuery.datasetId.joinToString(",") { "'$it'" }
                 " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
-                    "OR (dataset_id IS NULL AND '$NGSILD_NONE_TERM' in ($datasetIdsList)))"
+                    "OR (dataset_id IS NULL AND '$JSONLD_NONE_KW' in ($datasetIdsList)))"
             } else ""
 
         val selectQuery =
@@ -736,7 +736,7 @@ class EntityAttributeService(
         sub: Sub?
     ): Either<APIException, SucceededAttributeOperationResult> = either {
         // first update payload in temporal entity attribute
-        attributeValues[JSONLD_TYPE]?.let {
+        attributeValues[JSONLD_TYPE_KW]?.let {
             ensure(isAttributeOfType(attributeValues, AttributeType(NGSILD_PREFIX + attribute.attributeType))) {
                 BadRequestDataException("The type of the attribute has to be the same as the existing one")
             }
@@ -932,19 +932,19 @@ class EntityAttributeService(
                 )
             Attribute.AttributeType.JsonProperty ->
                 Triple(
-                    serializeObject(attributePayload.getMemberValue(NGSILD_JSONPROPERTY_VALUE)!!),
+                    serializeObject(attributePayload.getMemberValue(NGSILD_JSONPROPERTY_JSON)!!),
                     null,
                     null
                 )
             Attribute.AttributeType.LanguageProperty ->
                 Triple(
-                    serializeObject(attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_VALUE)!!),
+                    serializeObject(attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP)!!),
                     null,
                     null
                 )
             Attribute.AttributeType.VocabProperty ->
                 Triple(
-                    serializeObject(attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VALUE)!!),
+                    serializeObject(attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VOCAB)!!),
                     null,
                     null
                 )
@@ -958,9 +958,9 @@ class EntityAttributeService(
         sub: Sub?
     ): AttributeInstance {
         val timeAndProperty =
-            if (expandedAttributeInstance.containsKey(NGSILD_OBSERVED_AT_PROPERTY))
+            if (expandedAttributeInstance.containsKey(NGSILD_OBSERVED_AT_IRI))
                 Pair(
-                    expandedAttributeInstance.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY)!!,
+                    expandedAttributeInstance.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)!!,
                     AttributeInstance.TemporalProperty.OBSERVED_AT
                 )
             else
@@ -989,11 +989,11 @@ class EntityAttributeService(
     ): Pair<ExpandedAttributeInstance, AttributeMetadata> =
         if (
             observedAt != null &&
-            attribute.payload.deserializeAsMap().containsKey(NGSILD_OBSERVED_AT_PROPERTY) &&
-            !attributePayload.containsKey(NGSILD_OBSERVED_AT_PROPERTY)
+            attribute.payload.deserializeAsMap().containsKey(NGSILD_OBSERVED_AT_IRI) &&
+            !attributePayload.containsKey(NGSILD_OBSERVED_AT_IRI)
         )
             Pair(
-                attributePayload.plus(NGSILD_OBSERVED_AT_PROPERTY to buildNonReifiedTemporalValue(observedAt)),
+                attributePayload.plus(NGSILD_OBSERVED_AT_IRI to buildNonReifiedTemporalValue(observedAt)),
                 attributeMetadata.copy(observedAt = observedAt)
             )
         else Pair(attributePayload, attributeMetadata)

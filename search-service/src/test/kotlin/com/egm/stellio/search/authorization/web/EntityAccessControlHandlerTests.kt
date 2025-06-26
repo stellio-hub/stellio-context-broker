@@ -36,11 +36,11 @@ import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.MOCK_USER_SUB
-import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
+import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.sub
@@ -661,14 +661,14 @@ class EntityAccessControlHandlerTests {
                 createJsonLdEntity(
                     createEntityAccessRight(
                         "urn:ngsi-ld:Beehive:TESTC".toUri(),
-                        BEEHIVE_TYPE,
+                        BEEHIVE_IRI,
                         AccessRight.CAN_READ
                     )
                 ),
                 createJsonLdEntity(
                     createEntityAccessRight(
                         "urn:ngsi-ld:Beehive:TESTD".toUri(),
-                        BEEHIVE_TYPE,
+                        BEEHIVE_IRI,
                         AccessRight.CAN_ADMIN,
                         AUTH_READ,
                         createSubjectRightInfo(subjectId)
@@ -687,13 +687,13 @@ class EntityAccessControlHandlerTests {
                 """
                 [{
                     "id": "urn:ngsi-ld:Beehive:TESTC",
-                    "type": "$BEEHIVE_TYPE",
+                    "type": "$BEEHIVE_IRI",
                     "$AUTH_TERM_RIGHT": {"type":"Property", "value": "canRead"},
                     "@context": "${applicationProperties.contexts.authzCompound}"
                 },
                 {
                     "id": "urn:ngsi-ld:Beehive:TESTD",
-                    "type": "$BEEHIVE_TYPE",
+                    "type": "$BEEHIVE_IRI",
                     "$AUTH_TERM_RIGHT": {"type":"Property", "value": "canAdmin"},
                     "$AUTH_TERM_SAP": {"type":"Property", "value": "$AUTH_READ"},
                     "$AUTH_TERM_CAN_READ": {
@@ -763,7 +763,7 @@ class EntityAccessControlHandlerTests {
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:1",
                         "@type" to listOf(GROUP_TYPE),
-                        NGSILD_NAME_PROPERTY to buildExpandedPropertyValue("egm")
+                        NAME_IRI to buildExpandedPropertyValue("egm")
                     )
                 )
             )
@@ -802,7 +802,7 @@ class EntityAccessControlHandlerTests {
                     mapOf(
                         "@id" to "urn:ngsi-ld:group:01",
                         "@type" to listOf(GROUP_TYPE),
-                        NGSILD_NAME_PROPERTY to buildExpandedPropertyValue("egm"),
+                        NAME_IRI to buildExpandedPropertyValue("egm"),
                         AuthContextModel.AUTH_REL_IS_MEMBER_OF to buildExpandedPropertyValue("true")
                     )
                 )

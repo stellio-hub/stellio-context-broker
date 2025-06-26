@@ -7,13 +7,13 @@ import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.getRelationshipsObjects
 import com.egm.stellio.shared.model.inlineLinkedEntities
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinType
 import com.egm.stellio.shared.queryparameter.PaginationQuery
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.Sub
 import org.springframework.stereotype.Service
@@ -106,8 +106,8 @@ class LinkedEntityService(
     ): List<CompactedEntity> =
         compactedEntities.inlineLinkedEntities(
             // remove the inner contexts when inline mode, the context is the one from the linking entity
-            linkedEntities.map { it.minus(JSONLD_CONTEXT) }
-                .associateBy { it[JSONLD_ID_TERM] as String }
+            linkedEntities.map { it.minus(JSONLD_CONTEXT_KW) }
+                .associateBy { it[NGSILD_ID_TERM] as String }
         )
 
     internal fun flattenLinkedEntities(

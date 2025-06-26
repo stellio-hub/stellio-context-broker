@@ -25,6 +25,19 @@ import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
+import com.egm.stellio.shared.model.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.model.NGSILD_DATE_TYPE
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_TYPE
+import com.egm.stellio.shared.model.NGSILD_TIME_TYPE
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.PaginationQuery
@@ -32,29 +45,16 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
-import com.egm.stellio.shared.util.BEEHIVE_COMPACT_TYPE
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.TEMPERATURE_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.TEMPERATURE_IRI
+import com.egm.stellio.shared.util.TEMPERATURE_TERM
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
@@ -493,7 +493,7 @@ class EntityHandlerTests {
         initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
-                NGSILD_CREATED_AT_PROPERTY to
+                NGSILD_CREATED_AT_IRI to
                     mapOf(
                         "@type" to NGSILD_DATE_TIME_TYPE,
                         "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
@@ -560,15 +560,15 @@ class EntityHandlerTests {
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive"),
                 "https://uri.etsi.org/ngsi-ld/default-context/prop1" to mapOf(
-                    JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
+                    JSONLD_TYPE_KW to NGSILD_PROPERTY_TYPE.uri,
                     NGSILD_PROPERTY_VALUE to mapOf(
-                        JSONLD_VALUE to "some value"
+                        JSONLD_VALUE_KW to "some value"
                     )
                 ),
                 "https://uri.etsi.org/ngsi-ld/default-context/rel1" to mapOf(
-                    JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                    JSONLD_TYPE_KW to NGSILD_RELATIONSHIP_TYPE.uri,
                     NGSILD_RELATIONSHIP_OBJECT to mapOf(
-                        JSONLD_ID to "urn:ngsi-ld:Entity:1234"
+                        JSONLD_ID_KW to "urn:ngsi-ld:Entity:1234"
                     )
                 )
             )
@@ -601,15 +601,15 @@ class EntityHandlerTests {
                 "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive"),
                 "https://uri.etsi.org/ngsi-ld/default-context/prop1" to mapOf(
-                    JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
+                    JSONLD_TYPE_KW to NGSILD_PROPERTY_TYPE.uri,
                     NGSILD_PROPERTY_VALUE to mapOf(
-                        JSONLD_VALUE to "some value"
+                        JSONLD_VALUE_KW to "some value"
                     )
                 ),
                 "https://uri.etsi.org/ngsi-ld/default-context/rel1" to mapOf(
-                    JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                    JSONLD_TYPE_KW to NGSILD_RELATIONSHIP_TYPE.uri,
                     NGSILD_RELATIONSHIP_OBJECT to mapOf(
-                        JSONLD_ID to "urn:ngsi-ld:Entity:1234"
+                        JSONLD_ID_KW to "urn:ngsi-ld:Entity:1234"
                     )
                 )
             )
@@ -640,7 +640,7 @@ class EntityHandlerTests {
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
                 "@id" to beehiveId.toString(),
-                "@type" to listOf(BEEHIVE_TYPE)
+                "@type" to listOf(BEEHIVE_IRI)
             )
         ).right()
 
@@ -689,7 +689,7 @@ class EntityHandlerTests {
         initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns ExpandedEntity(
             mapOf(
-                NGSILD_CREATED_AT_PROPERTY to
+                NGSILD_CREATED_AT_IRI to
                     mapOf(
                         "@type" to NGSILD_DATE_TIME_TYPE,
                         "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
@@ -700,12 +700,12 @@ class EntityHandlerTests {
                         "@type" to NGSILD_DATE_TIME_TYPE,
                         "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
                     ),
-                    NGSILD_CREATED_AT_PROPERTY to
+                    NGSILD_CREATED_AT_IRI to
                         mapOf(
                             "@type" to NGSILD_DATE_TIME_TYPE,
                             "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
                         ),
-                    NGSILD_MODIFIED_AT_PROPERTY to
+                    NGSILD_MODIFIED_AT_IRI to
                         mapOf(
                             "@type" to NGSILD_DATE_TIME_TYPE,
                             "@value" to Instant.parse("2015-10-18T12:20:30.000001Z").atZone(ZoneOffset.UTC)
@@ -823,14 +823,14 @@ class EntityHandlerTests {
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
                     mapOf(
-                        JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
+                        JSONLD_TYPE_KW to "https://uri.etsi.org/ngsi-ld/Property",
                         NGSILD_PROPERTY_VALUE to "ruche",
-                        NGSILD_DATASET_ID_PROPERTY to mapOf(
-                            JSONLD_ID to "urn:ngsi-ld:Property:french-name"
+                        NGSILD_DATASET_ID_IRI to mapOf(
+                            JSONLD_ID_KW to "urn:ngsi-ld:Property:french-name"
                         )
                     ),
-                JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
-                JSONLD_TYPE to listOf("Beehive")
+                JSONLD_ID_KW to "urn:ngsi-ld:Beehive:4567",
+                JSONLD_TYPE_KW to listOf("Beehive")
             )
         ).right()
 
@@ -859,22 +859,22 @@ class EntityHandlerTests {
                 "https://uri.etsi.org/ngsi-ld/default-context/name" to
                     listOf(
                         mapOf(
-                            JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
+                            JSONLD_TYPE_KW to "https://uri.etsi.org/ngsi-ld/Property",
                             NGSILD_PROPERTY_VALUE to "beehive",
-                            NGSILD_DATASET_ID_PROPERTY to mapOf(
-                                JSONLD_ID to "urn:ngsi-ld:Property:english-name"
+                            NGSILD_DATASET_ID_IRI to mapOf(
+                                JSONLD_ID_KW to "urn:ngsi-ld:Property:english-name"
                             )
                         ),
                         mapOf(
-                            JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
+                            JSONLD_TYPE_KW to "https://uri.etsi.org/ngsi-ld/Property",
                             NGSILD_PROPERTY_VALUE to "ruche",
-                            NGSILD_DATASET_ID_PROPERTY to mapOf(
-                                JSONLD_ID to "urn:ngsi-ld:Property:french-name"
+                            NGSILD_DATASET_ID_IRI to mapOf(
+                                JSONLD_ID_KW to "urn:ngsi-ld:Property:french-name"
                             )
                         )
                     ),
-                JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
-                JSONLD_TYPE to listOf("Beehive")
+                JSONLD_ID_KW to "urn:ngsi-ld:Beehive:4567",
+                JSONLD_TYPE_KW to listOf("Beehive")
             )
         ).right()
 
@@ -909,16 +909,16 @@ class EntityHandlerTests {
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
-                        JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
+                        JSONLD_TYPE_KW to "https://uri.etsi.org/ngsi-ld/Relationship",
                         NGSILD_RELATIONSHIP_OBJECT to mapOf(
-                            JSONLD_ID to "urn:ngsi-ld:Beekeeper:1230"
+                            JSONLD_ID_KW to "urn:ngsi-ld:Beekeeper:1230"
                         ),
-                        NGSILD_DATASET_ID_PROPERTY to mapOf(
-                            JSONLD_ID to "urn:ngsi-ld:Dataset:managedBy:0215"
+                        NGSILD_DATASET_ID_IRI to mapOf(
+                            JSONLD_ID_KW to "urn:ngsi-ld:Dataset:managedBy:0215"
                         )
                     ),
-                JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
-                JSONLD_TYPE to listOf("Beehive")
+                JSONLD_ID_KW to "urn:ngsi-ld:Beehive:4567",
+                JSONLD_TYPE_KW to listOf("Beehive")
             )
         ).right()
 
@@ -950,26 +950,26 @@ class EntityHandlerTests {
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
-                        JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
+                        JSONLD_TYPE_KW to "https://uri.etsi.org/ngsi-ld/Relationship",
                         NGSILD_RELATIONSHIP_OBJECT to mapOf(
-                            JSONLD_ID to "urn:ngsi-ld:Beekeeper:1230"
+                            JSONLD_ID_KW to "urn:ngsi-ld:Beekeeper:1230"
                         ),
-                        NGSILD_DATASET_ID_PROPERTY to mapOf(
-                            JSONLD_ID to "urn:ngsi-ld:Dataset:managedBy:0215"
+                        NGSILD_DATASET_ID_IRI to mapOf(
+                            JSONLD_ID_KW to "urn:ngsi-ld:Dataset:managedBy:0215"
                         ),
-                        NGSILD_CREATED_AT_PROPERTY to
+                        NGSILD_CREATED_AT_IRI to
                             mapOf(
                                 "@type" to NGSILD_DATE_TIME_TYPE,
                                 "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
                             ),
-                        NGSILD_MODIFIED_AT_PROPERTY to
+                        NGSILD_MODIFIED_AT_IRI to
                             mapOf(
                                 "@type" to NGSILD_DATE_TIME_TYPE,
                                 "@value" to Instant.parse("2015-10-18T12:20:30.000001Z").atZone(ZoneOffset.UTC)
                             )
                     ),
-                JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
-                JSONLD_TYPE to listOf("Beehive")
+                JSONLD_ID_KW to "urn:ngsi-ld:Beehive:4567",
+                JSONLD_TYPE_KW to listOf("Beehive")
             )
         ).right()
 
@@ -991,23 +991,23 @@ class EntityHandlerTests {
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     listOf(
                         mapOf(
-                            JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
+                            JSONLD_TYPE_KW to "https://uri.etsi.org/ngsi-ld/Relationship",
                             NGSILD_RELATIONSHIP_OBJECT to mapOf(
-                                JSONLD_ID to "urn:ngsi-ld:Beekeeper:1229"
+                                JSONLD_ID_KW to "urn:ngsi-ld:Beekeeper:1229"
                             )
                         ),
                         mapOf(
-                            JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
+                            JSONLD_TYPE_KW to "https://uri.etsi.org/ngsi-ld/Relationship",
                             NGSILD_RELATIONSHIP_OBJECT to mapOf(
-                                JSONLD_ID to "urn:ngsi-ld:Beekeeper:1230"
+                                JSONLD_ID_KW to "urn:ngsi-ld:Beekeeper:1230"
                             ),
-                            NGSILD_DATASET_ID_PROPERTY to mapOf(
-                                JSONLD_ID to "urn:ngsi-ld:Dataset:managedBy:0215"
+                            NGSILD_DATASET_ID_IRI to mapOf(
+                                JSONLD_ID_KW to "urn:ngsi-ld:Dataset:managedBy:0215"
                             )
                         )
                     ),
-                JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
-                JSONLD_TYPE to listOf("Beehive")
+                JSONLD_ID_KW to "urn:ngsi-ld:Beehive:4567",
+                JSONLD_TYPE_KW to listOf("Beehive")
             )
         ).right()
 
@@ -1174,7 +1174,7 @@ class EntityHandlerTests {
             listOf(
                 ExpandedEntity(
                     mapOf(
-                        NGSILD_CREATED_AT_PROPERTY to
+                        NGSILD_CREATED_AT_IRI to
                             mapOf(
                                 "@type" to NGSILD_DATE_TIME_TYPE,
                                 "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
@@ -1302,7 +1302,7 @@ class EntityHandlerTests {
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
                     ids = setOf(beehiveId),
-                    typeSelection = BEEHIVE_TYPE,
+                    typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(offset = 0, limit = 30),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -1321,7 +1321,7 @@ class EntityHandlerTests {
         ).right()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities?id=$beehiveId&type=$BEEHIVE_COMPACT_TYPE")
+            .uri("/ngsi-ld/v1/entities?id=$beehiveId&type=$BEEHIVE_TERM")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .exchange()
@@ -1424,7 +1424,7 @@ class EntityHandlerTests {
         )
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities?type=$BEEHIVE_COMPACT_TYPE&count=true")
+            .uri("/ngsi-ld/v1/entities?type=$BEEHIVE_TERM&count=true")
             .header(HttpHeaders.LINK, AQUAC_HEADER_LINK)
             .exchange()
             .expectStatus().isOk
@@ -1668,7 +1668,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newType.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
         val appendTypeResult = UpdateResult(
-            listOf(JSONLD_TYPE),
+            listOf(JSONLD_TYPE_KW),
             emptyList()
         )
 
@@ -1704,7 +1704,7 @@ class EntityHandlerTests {
         } returns UpdateResult(
             updated = listOf(fishNumberAttribute),
             notUpdated = listOf(
-                NotUpdatedDetails(JSONLD_TYPE, "Append operation has unexpectedly failed"),
+                NotUpdatedDetails(JSONLD_TYPE_KW, "Append operation has unexpectedly failed"),
                 NotUpdatedDetails(fishSizeAttribute, "overwrite disallowed")
             )
         ).right()
@@ -1722,7 +1722,7 @@ class EntityHandlerTests {
                     "updated":["$fishNumberAttribute"],
                     "notUpdated":[
                       {"attributeName":"$fishSizeAttribute","reason":"overwrite disallowed"},
-                      {"attributeName":"$JSONLD_TYPE","reason":"Append operation has unexpectedly failed"}
+                      {"attributeName":"$JSONLD_TYPE_KW","reason":"Append operation has unexpectedly failed"}
                     ]
                 } 
                 """.trimIndent()
@@ -2332,7 +2332,7 @@ class EntityHandlerTests {
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_TERM")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -2342,7 +2342,7 @@ class EntityHandlerTests {
         coVerify {
             entityService.deleteAttribute(
                 eq(beehiveId),
-                eq(TEMPERATURE_PROPERTY),
+                eq(TEMPERATURE_IRI),
                 null,
                 eq(false),
                 eq(MOCK_USER_SUB)
@@ -2357,7 +2357,7 @@ class EntityHandlerTests {
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_COMPACT_PROPERTY?deleteAll=true")
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_TERM?deleteAll=true")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -2367,7 +2367,7 @@ class EntityHandlerTests {
         coVerify {
             entityService.deleteAttribute(
                 eq(beehiveId),
-                eq(TEMPERATURE_PROPERTY),
+                eq(TEMPERATURE_IRI),
                 null,
                 eq(true),
                 eq(MOCK_USER_SUB)
@@ -2383,7 +2383,7 @@ class EntityHandlerTests {
         } returns Unit.right()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_COMPACT_PROPERTY?datasetId=$datasetId")
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_TERM?datasetId=$datasetId")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -2393,7 +2393,7 @@ class EntityHandlerTests {
         coVerify {
             entityService.deleteAttribute(
                 eq(beehiveId),
-                eq(TEMPERATURE_PROPERTY),
+                eq(TEMPERATURE_IRI),
                 eq(datasetId.toUri()),
                 eq(false),
                 eq(MOCK_USER_SUB)
@@ -2408,7 +2408,7 @@ class EntityHandlerTests {
         } returns ResourceNotFoundException(entityNotFoundMessage(beehiveId.toString())).left()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_TERM")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -2431,7 +2431,7 @@ class EntityHandlerTests {
         } throws ResourceNotFoundException("Attribute Not Found")
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_COMPACT_PROPERTY?deleteAll=true")
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_TERM?deleteAll=true")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -2454,7 +2454,7 @@ class EntityHandlerTests {
         } returns BadRequestDataException("Something is wrong with the request").left()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_TERM")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -2477,7 +2477,7 @@ class EntityHandlerTests {
         } returns AccessDeniedException("User forbidden write access to entity $beehiveId").left()
 
         webClient.method(HttpMethod.DELETE)
-            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$TEMPERATURE_TERM")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
@@ -2549,12 +2549,12 @@ class EntityHandlerTests {
         coEvery {
             entityService.replaceAttribute(any(), any(), any())
         } returns UpdateResult(
-            updated = listOf(INCOMING_PROPERTY),
+            updated = listOf(INCOMING_IRI),
             notUpdated = emptyList()
         ).right()
 
         webClient.put()
-            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$INCOMING_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$INCOMING_TERM")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(attributeFragment)
@@ -2565,7 +2565,7 @@ class EntityHandlerTests {
             entityService.replaceAttribute(
                 beehiveId,
                 match {
-                    it.first == INCOMING_PROPERTY
+                    it.first == INCOMING_IRI
                 },
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
             )
@@ -2581,14 +2581,14 @@ class EntityHandlerTests {
             updated = emptyList(),
             notUpdated = arrayListOf(
                 NotUpdatedDetails(
-                    INCOMING_PROPERTY,
-                    "Unknown attribute $INCOMING_PROPERTY in entity $beehiveId"
+                    INCOMING_IRI,
+                    "Unknown attribute $INCOMING_IRI in entity $beehiveId"
                 )
             )
         ).right()
 
         webClient.put()
-            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$INCOMING_COMPACT_PROPERTY")
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$INCOMING_TERM")
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(attributeFragment)
@@ -2598,7 +2598,7 @@ class EntityHandlerTests {
                 """
                     {
                       "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                      "title": "Unknown attribute $INCOMING_PROPERTY in entity $beehiveId",
+                      "title": "Unknown attribute $INCOMING_IRI in entity $beehiveId",
                       "detail": "$DEFAULT_DETAIL"
                     }
                     """

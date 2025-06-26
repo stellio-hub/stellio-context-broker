@@ -17,9 +17,9 @@ import com.egm.stellio.search.common.util.toJsonString
 import com.egm.stellio.search.common.util.toOptionalList
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
@@ -204,7 +204,7 @@ class SubjectReferentialService(
                     givenName = it["givenName"] as? String,
                     familyName = it["familyName"] as? String,
                     subjectInfo = toJsonString(it["subject_info"])
-                        .deserializeAsMap()[JsonLdUtils.JSONLD_VALUE_TERM] as Map<String, String>
+                        .deserializeAsMap()[NGSILD_VALUE_TERM] as Map<String, String>
                 )
             }
 

@@ -19,7 +19,6 @@ import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.util.DataTypes.serialize
-import com.egm.stellio.shared.util.JsonLdUtils.checkJsonldContext
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildContextLinkHeader
@@ -27,7 +26,6 @@ import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.decode
-import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.subscription.config.SubscriptionProperties
@@ -75,7 +73,6 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.regex.Pattern
 
 @Component
 class SubscriptionService(
@@ -84,121 +81,8 @@ class SubscriptionService(
     private val r2dbcEntityTemplate: R2dbcEntityTemplate
 ) {
 
-    suspend fun validateNewSubscription(subscription: Subscription): Either<APIException, Unit> = either {
-        checkTypeIsSubscription(subscription).bind()
-        checkIdIsValid(subscription).bind()
-        checkEntitiesOrWatchedAttributes(subscription).bind()
-        checkTimeIntervalGreaterThanZero(subscription).bind()
-        checkThrottlingGreaterThanZero(subscription).bind()
-        checkSubscriptionValidity(subscription).bind()
-        checkExpiresAtInTheFuture(subscription).bind()
-        checkIdPatternIsValid(subscription).bind()
-        checkNotificationTriggersAreValid(subscription).bind()
-        checkJsonLdContextIsValid(subscription).bind()
-        checkJoinParametersAreValid(subscription).bind()
-    }
-
-    private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.type != NGSILD_SUBSCRIPTION_TERM)
-            BadRequestDataException("type attribute must be equal to 'Subscription'").left()
-        else Unit.right()
-
-    private fun checkIdIsValid(subscription: Subscription): Either<APIException, Unit> =
-        if (!subscription.id.isAbsolute)
-            BadRequestDataException(invalidUriMessage("${subscription.id}")).left()
-        else Unit.right()
-
-    private fun checkEntitiesOrWatchedAttributes(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.watchedAttributes == null && subscription.entities == null)
-            BadRequestDataException("At least one of entities or watchedAttributes shall be present").left()
-        else Unit.right()
-
-    private fun checkSubscriptionValidity(subscription: Subscription): Either<APIException, Unit> =
-        when {
-            subscription.watchedAttributes != null && subscription.timeInterval != null -> {
-                BadRequestDataException(
-                    "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
-                ).left()
-            }
-            subscription.timeInterval != null && subscription.throttling != null -> {
-                BadRequestDataException(
-                    "You can't use 'timeInterval' in conjunction with 'throttling'"
-                ).left()
-            }
-            else ->
-                Unit.right()
-        }
-
-    private fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.timeInterval != null && subscription.timeInterval < 1)
-            BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
-        else Unit.right()
-
-    private fun checkThrottlingGreaterThanZero(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.throttling != null && subscription.throttling < 1)
-            BadRequestDataException("The value of 'throttling' must be greater than zero (int)").left()
-        else Unit.right()
-
-    private fun checkExpiresAtInTheFuture(subscription: Subscription): Either<BadRequestDataException, Unit> =
-        if (subscription.expiresAt != null && subscription.expiresAt.isBefore(ngsiLdDateTime()))
-            BadRequestDataException("'expiresAt' must be in the future").left()
-        else Unit.right()
-
-    private fun checkExpiresAtInTheFuture(expiresAt: String): Either<BadRequestDataException, ZonedDateTime> =
-        runCatching { ZonedDateTime.parse(expiresAt) }.fold({
-            if (it.isBefore(ngsiLdDateTime()))
-                BadRequestDataException("'expiresAt' must be in the future").left()
-            else it.right()
-        }, {
-            BadRequestDataException("Unable to parse 'expiresAt' value: $expiresAt").left()
-        })
-
-    private fun checkIdPatternIsValid(subscription: Subscription): Either<BadRequestDataException, Unit> {
-        val result = subscription.entities?.all { endpoint ->
-            runCatching {
-                endpoint.idPattern?.let { Pattern.compile(it) }
-                true
-            }.fold({ true }, { false })
-        }
-
-        return if (result == null || result)
-            Unit.right()
-        else BadRequestDataException("Invalid idPattern found in subscription").left()
-    }
-
-    private fun checkNotificationTriggersAreValid(subscription: Subscription): Either<BadRequestDataException, Unit> =
-        subscription.notificationTrigger.all {
-            NotificationTrigger.isValid(it)
-        }.let {
-            if (it) Unit.right()
-            else BadRequestDataException("Unknown notification trigger in ${subscription.notificationTrigger}").left()
-        }
-
-    suspend fun checkJsonLdContextIsValid(subscription: Subscription): Either<APIException, Unit> = either {
-        val jsonldContext = subscription.jsonldContext
-
-        if (jsonldContext != null) {
-            checkJsonldContext(jsonldContext).bind()
-        }
-    }
-
-    private fun checkJoinParametersAreValid(subscription: Subscription): Either<BadRequestDataException, Unit> {
-        if (subscription.notification.join != null && subscription.notification.join != JoinType.NONE) {
-            subscription.notification.joinLevel?.let {
-                if (it < 1)
-                    return BadRequestDataException(
-                        "The value of 'joinLevel' must be greater than zero (int) if 'join' is asked"
-                    ).left()
-            }
-        }
-
-        return Unit.right()
-    }
-
     @Transactional
     suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> = either {
-        validateNewSubscription(subscription).bind()
-
         val geoQuery = subscription.geoQ?.let {
             parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
         }
@@ -375,6 +259,15 @@ class SubscriptionService(
                 it["sub"] == sub.toStringValue()
             }
     }
+
+    private fun checkExpiresAtInTheFuture(expiresAt: String): Either<BadRequestDataException, ZonedDateTime> =
+        runCatching { ZonedDateTime.parse(expiresAt) }.fold({
+            if (it.isBefore(ngsiLdDateTime()))
+                BadRequestDataException("'expiresAt' must be in the future").left()
+            else it.right()
+        }, {
+            BadRequestDataException("Unable to parse 'expiresAt' value: $expiresAt").left()
+        })
 
     @Transactional
     suspend fun update(

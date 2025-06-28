@@ -1,18 +1,28 @@
 package com.egm.stellio.subscription.model
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.raise.either
+import arrow.core.right
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.checkJsonldContext
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.compactTypeSelection
 import com.egm.stellio.shared.util.expandTypeSelection
+import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toFinalRepresentation
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
 import com.fasterxml.jackson.annotation.JsonInclude
@@ -23,6 +33,7 @@ import org.springframework.http.MediaType
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.*
+import java.util.regex.Pattern
 
 val defaultNotificationTriggers = listOf(
     ATTRIBUTE_CREATED.notificationTrigger,
@@ -68,6 +79,106 @@ data class Subscription(
             SubscriptionStatus.EXPIRED
         else
             SubscriptionStatus.ACTIVE
+
+    fun validate(): Either<APIException, Unit> = either {
+        checkTypeIsSubscription().bind()
+        checkIdIsValid().bind()
+        checkEntitiesOrWatchedAttributes().bind()
+        checkTimeIntervalGreaterThanZero().bind()
+        checkThrottlingGreaterThanZero().bind()
+        checkSubscriptionValidity().bind()
+        checkExpiresAtInTheFuture().bind()
+        checkIdPatternIsValid().bind()
+        checkNotificationTriggersAreValid().bind()
+        checkJsonLdContextIsValid().bind()
+        checkJoinParametersAreValid().bind()
+    }
+
+    private fun checkTypeIsSubscription(): Either<APIException, Unit> =
+        if (type != NGSILD_SUBSCRIPTION_TERM)
+            BadRequestDataException("type attribute must be equal to 'Subscription'").left()
+        else Unit.right()
+
+    private fun checkIdIsValid(): Either<APIException, Unit> =
+        if (!id.isAbsolute)
+            BadRequestDataException(invalidUriMessage("$id")).left()
+        else Unit.right()
+
+    private fun checkEntitiesOrWatchedAttributes(): Either<APIException, Unit> =
+        if (watchedAttributes == null && entities == null)
+            BadRequestDataException("At least one of entities or watchedAttributes shall be present").left()
+        else Unit.right()
+
+    private fun checkSubscriptionValidity(): Either<APIException, Unit> =
+        when {
+            watchedAttributes != null && timeInterval != null -> {
+                BadRequestDataException(
+                    "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
+                ).left()
+            }
+            timeInterval != null && throttling != null -> {
+                BadRequestDataException(
+                    "You can't use 'timeInterval' in conjunction with 'throttling'"
+                ).left()
+            }
+            else ->
+                Unit.right()
+        }
+
+    private fun checkTimeIntervalGreaterThanZero(): Either<APIException, Unit> =
+        if (timeInterval != null && timeInterval < 1)
+            BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
+        else Unit.right()
+
+    private fun checkThrottlingGreaterThanZero(): Either<APIException, Unit> =
+        if (throttling != null && throttling < 1)
+            BadRequestDataException("The value of 'throttling' must be greater than zero (int)").left()
+        else Unit.right()
+
+    private fun checkExpiresAtInTheFuture(): Either<BadRequestDataException, Unit> =
+        if (expiresAt != null && expiresAt.isBefore(ngsiLdDateTime()))
+            BadRequestDataException("'expiresAt' must be in the future").left()
+        else Unit.right()
+
+    private fun checkIdPatternIsValid(): Either<BadRequestDataException, Unit> {
+        val result = entities?.all { endpoint ->
+            runCatching {
+                endpoint.idPattern?.let { Pattern.compile(it) }
+                true
+            }.fold({ true }, { false })
+        }
+
+        return if (result == null || result)
+            Unit.right()
+        else BadRequestDataException("Invalid idPattern found in subscription").left()
+    }
+
+    private fun checkNotificationTriggersAreValid(): Either<BadRequestDataException, Unit> =
+        notificationTrigger.all {
+            NotificationTrigger.isValid(it)
+        }.let {
+            if (it) Unit.right()
+            else BadRequestDataException("Unknown notification trigger in $notificationTrigger").left()
+        }
+
+    private fun checkJsonLdContextIsValid(): Either<APIException, Unit> = either {
+        if (jsonldContext != null) {
+            checkJsonldContext(jsonldContext).bind()
+        }
+    }
+
+    private fun checkJoinParametersAreValid(): Either<BadRequestDataException, Unit> {
+        if (notification.join != null && notification.join != JoinType.NONE) {
+            notification.joinLevel?.let {
+                if (it < 1)
+                    return BadRequestDataException(
+                        "The value of 'joinLevel' must be greater than zero (int) if 'join' is asked"
+                    ).left()
+            }
+        }
+
+        return Unit.right()
+    }
 
     fun expand(contexts: List<String>): Subscription =
         this.copy(

@@ -183,7 +183,6 @@ class SubscriptionHandlerTests {
     fun `create subscription should return a 201 if JSON-LD payload is correct`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.jsonld")
 
-        coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         coEvery { subscriptionService.exists(any()) } returns false.right()
         coEvery { subscriptionService.create(any(), any()) } returns Unit.right()
 
@@ -199,7 +198,6 @@ class SubscriptionHandlerTests {
     fun `create subscription should return a 409 if the subscription already exists`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.jsonld")
 
-        coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         coEvery { subscriptionService.exists(any()) } returns true.right()
 
         webClient.post()
@@ -222,7 +220,6 @@ class SubscriptionHandlerTests {
     fun `create subscription should return a 500 error if internal server Error`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.jsonld")
 
-        coEvery { subscriptionService.validateNewSubscription(any()) } returns Unit.right()
         coEvery { subscriptionService.exists(any()) } returns false.right()
         coEvery { subscriptionService.create(any(), any()) } throws InternalErrorException("Internal Server Exception")
 
@@ -273,8 +270,6 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-
-        coVerify(exactly = 0) { subscriptionService.validateNewSubscription(any()) }
     }
 
     @Test

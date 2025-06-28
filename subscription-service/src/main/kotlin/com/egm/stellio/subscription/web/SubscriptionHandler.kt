@@ -76,6 +76,7 @@ class SubscriptionHandler(
         val sub = getSubFromSecurityContext()
 
         val subscription = parseSubscription(body, contexts).bind()
+        subscription.validate().bind()
         checkSubscriptionNotExists(subscription).bind()
 
         subscriptionService.create(subscription, sub).bind()

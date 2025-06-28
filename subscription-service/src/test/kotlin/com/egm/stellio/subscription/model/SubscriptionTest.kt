@@ -1,7 +1,9 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_OPERATION_SPACE_IRI
 import com.egm.stellio.shared.model.NGSILD_OPERATION_SPACE_TERM
@@ -16,16 +18,24 @@ import com.egm.stellio.shared.util.BEEKEEPER_TERM
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.OUTGOING_TERM
+import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.shouldFail
+import com.egm.stellio.shared.util.shouldFailWith
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.subscription.utils.ParsingUtils
+import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
@@ -64,6 +74,275 @@ class SubscriptionTest {
         ),
         contexts = APIC_COMPOUND_CONTEXTS
     )
+
+    @Test
+    fun `it should not allow a subscription with an empty id`() = runTest {
+        val payload = mapOf(
+            "id" to "",
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "The supplied identifier was expected to be an URI but it is not: "
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with an invalid id`() = runTest {
+        val payload = mapOf(
+            "id" to "invalidId",
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "The supplied identifier was expected to be an URI but it is not: invalidId"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with an invalid idPattern`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI, "idPattern" to "[")),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "Invalid idPattern found in subscription"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription without entities and watchedAttributes`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "At least one of entities or watchedAttributes shall be present"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with timeInterval and watchedAttributes`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "timeInterval" to 10,
+            "watchedAttributes" to listOf(INCOMING_TERM),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with timeInterval and throttling`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "timeInterval" to 10,
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")),
+            "throttling" to 30
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "You can't use 'timeInterval' in conjunction with 'throttling'"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with a negative throttling`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")),
+            "throttling" to -30
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "The value of 'throttling' must be greater than zero (int)"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with a negative timeInterval`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(INCOMING_TERM),
+            "timeInterval" to -10,
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "The value of 'timeInterval' must be greater than zero (int)"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with an expiresAt in the past`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(INCOMING_TERM),
+            "expiresAt" to ngsiLdDateTime().minusDays(1),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "'expiresAt' must be in the future"
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with an unknown notification trigger`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "notificationTrigger" to listOf("unknownNotificationTrigger"),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "Unknown notification trigger in [unknownNotificationTrigger]"
+            }
+    }
+
+    @Test
+    fun `it should throw a BadRequestData exception when jsonldContext is not a URI`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       }
+                    },
+                    "jsonldContext": "unknownContext"
+                }
+            """.trimIndent()
+
+        val subscription = ParsingUtils.parseSubscription(
+            rawSubscription.deserializeAsMap(),
+            emptyList()
+        ).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+            }
+    }
+
+    @Test
+    fun `it should throw a LdContextNotAvailable exception when jsonldContext is not available`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       }
+                    },
+                    "jsonldContext": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld"
+                }
+            """.trimIndent()
+
+        val subscription = ParsingUtils.parseSubscription(
+            rawSubscription.deserializeAsMap(),
+            emptyList()
+        ).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFail {
+                assertInstanceOf(LdContextNotAvailableException::class.java, it)
+            }
+    }
+
+    @Test
+    fun `it should not allow a subscription with an invalid join level when join is flat or inline`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       },
+                       "join": "flat",
+                       "joinLevel": 0
+                    }
+                }
+            """.trimIndent()
+
+        val subscription = ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList())
+            .shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "The value of 'joinLevel' must be greater than zero (int) if 'join' is asked"
+            }
+    }
 
     @Test
     fun `it should expand a subscription`() {

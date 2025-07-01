@@ -643,7 +643,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             "throttling" to 50,
             "lang" to "fr-CH,fr"
         )
-        val patchedSubscription = subscription.mergeWithFragment(parsedInput).shouldSucceedAndResult()
+        val patchedSubscription =
+            subscription.mergeWithFragment(parsedInput, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
         subscriptionService.upsert(patchedSubscription, mockUserSub).shouldSucceed()
 
@@ -713,7 +714,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             )
         )
-        val patchedSubscription = subscription.mergeWithFragment(parsedInput).shouldSucceedAndResult()
+        val patchedSubscription =
+            subscription.mergeWithFragment(parsedInput, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
         subscriptionService.upsert(patchedSubscription, mockUserSub).shouldSucceed()
 
@@ -771,7 +773,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val fragment = mapOf("isActive" to false, "modifiedAt" to ngsiLdDateTime())
-        val patchedSubscription = subscription.mergeWithFragment(fragment).shouldSucceedAndResult()
+        val patchedSubscription =
+            subscription.mergeWithFragment(fragment, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
         subscriptionService.upsert(patchedSubscription, mockUserSub).shouldSucceed()
 
@@ -795,7 +798,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             "type" to NGSILD_SUBSCRIPTION_TERM,
             "watchedAttributes" to arrayListOf(INCOMING_TERM, TEMPERATURE_TERM)
         )
-        val patchedSubscription = subscription.mergeWithFragment(fragment).shouldSucceedAndResult()
+        val patchedSubscription =
+            subscription.mergeWithFragment(fragment, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
         subscriptionService.upsert(patchedSubscription, mockUserSub).shouldSucceed()
 
@@ -826,7 +830,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             "type" to NGSILD_SUBSCRIPTION_TERM,
             "notificationTrigger" to notificationTriggers
         )
-        val patchedSubscription = subscription.mergeWithFragment(fragment).shouldSucceedAndResult()
+        val patchedSubscription =
+            subscription.mergeWithFragment(fragment, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
         subscriptionService.upsert(patchedSubscription, mockUserSub)
 
@@ -844,7 +849,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val fragment = mapOf("unknownAttribute" to "unknownValue")
-        subscription.mergeWithFragment(fragment)
+        subscription.mergeWithFragment(fragment, APIC_COMPOUND_CONTEXTS)
             .shouldFailWith {
                 it is BadRequestDataException &&
                     it.message == "Invalid attribute unknownAttribute in subscription"
@@ -857,7 +862,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val fragment = mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "csf" to "someValue")
-        subscription.mergeWithFragment(fragment)
+        subscription.mergeWithFragment(fragment, APIC_COMPOUND_CONTEXTS)
             .shouldFailWith {
                 it is NotImplementedException &&
                     it.message == "Attribute csf is not yet implemented in subscriptions"

@@ -29,21 +29,26 @@ import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceedAndResult
+import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.subscription.utils.ParsingUtils
+import com.egm.stellio.subscription.model.Subscription.Companion.parseSubscription
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.fail
 import org.springframework.http.MediaType
 
-class SubscriptionTest {
+class SubscriptionTests {
 
     private val endpointReceiverInfo =
         listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value"))
+
+    private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     private val subscription = Subscription(
         id = "urn:ngsi-ld:Subscription:01".toUri(),
@@ -76,6 +81,20 @@ class SubscriptionTest {
     )
 
     @Test
+    fun `it should correctly parse a subscription`() = runTest {
+        val subscription = mapOf(
+            "id" to beehiveId,
+            "type" to "Subscription",
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        parseSubscription(subscription, emptyList()).shouldSucceedWith {
+            assertNotNull(it)
+        }
+    }
+
+    @Test
     fun `it should not allow a subscription with an empty id`() = runTest {
         val payload = mapOf(
             "id" to "",
@@ -84,7 +103,7 @@ class SubscriptionTest {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -101,7 +120,7 @@ class SubscriptionTest {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -118,7 +137,7 @@ class SubscriptionTest {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -134,7 +153,7 @@ class SubscriptionTest {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -152,7 +171,7 @@ class SubscriptionTest {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -171,7 +190,7 @@ class SubscriptionTest {
             "throttling" to 30
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -189,7 +208,7 @@ class SubscriptionTest {
             "throttling" to -30
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -207,7 +226,7 @@ class SubscriptionTest {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -225,7 +244,7 @@ class SubscriptionTest {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -243,12 +262,37 @@ class SubscriptionTest {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
                     it.message == "Unknown notification trigger in [unknownNotificationTrigger]"
             }
+    }
+
+    @Test
+    fun `it should not allow a subscription if remote JSON-LD @context cannot be retrieved`() = runTest {
+        val contextNonExisting = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld"
+        val subscription = mapOf(
+            "id" to "urn:ngsi-ld:BeeHive:01",
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val result = parseSubscription(subscription, listOf(contextNonExisting))
+        result.fold({
+            assertTrue(it is LdContextNotAvailableException)
+            assertEquals(
+                "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered " +
+                    "loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There was a problem " +
+                    "encountered loading a remote context " +
+                    "[https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld]])",
+                it.message
+            )
+        }, {
+            fail("it should not have allowed a subscription if remote JSON-LD @context cannot be retrieved")
+        })
     }
 
     @Test
@@ -272,7 +316,7 @@ class SubscriptionTest {
                 }
             """.trimIndent()
 
-        val subscription = ParsingUtils.parseSubscription(
+        val subscription = parseSubscription(
             rawSubscription.deserializeAsMap(),
             emptyList()
         ).shouldSucceedAndResult()
@@ -303,7 +347,7 @@ class SubscriptionTest {
                 }
             """.trimIndent()
 
-        val subscription = ParsingUtils.parseSubscription(
+        val subscription = parseSubscription(
             rawSubscription.deserializeAsMap(),
             emptyList()
         ).shouldSucceedAndResult()
@@ -335,7 +379,7 @@ class SubscriptionTest {
                 }
             """.trimIndent()
 
-        val subscription = ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList())
+        val subscription = parseSubscription(rawSubscription.deserializeAsMap(), emptyList())
             .shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {

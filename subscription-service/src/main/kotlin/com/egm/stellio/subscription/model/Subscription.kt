@@ -10,12 +10,17 @@ import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.model.NotImplementedException
+import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.DataTypes.convertTo
+import com.egm.stellio.shared.util.DataTypes.deserializeAs
 import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.checkJsonldContext
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.compactTypeSelection
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.invalidUriMessage
@@ -27,6 +32,7 @@ import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Transient
 import org.springframework.http.MediaType
@@ -80,7 +86,7 @@ data class Subscription(
         else
             SubscriptionStatus.ACTIVE
 
-    fun validate(): Either<APIException, Unit> = either {
+    fun validate(): Either<APIException, Subscription> = either {
         checkTypeIsSubscription().bind()
         checkIdIsValid().bind()
         checkEntitiesOrWatchedAttributes().bind()
@@ -92,6 +98,8 @@ data class Subscription(
         checkNotificationTriggersAreValid().bind()
         checkJsonLdContextIsValid().bind()
         checkJoinParametersAreValid().bind()
+
+        this@Subscription
     }
 
     private fun checkTypeIsSubscription(): Either<APIException, Unit> =
@@ -116,11 +124,13 @@ data class Subscription(
                     "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
                 ).left()
             }
+
             timeInterval != null && throttling != null -> {
                 BadRequestDataException(
                     "You can't use 'timeInterval' in conjunction with 'throttling'"
                 ).left()
             }
+
             else ->
                 Unit.right()
         }
@@ -229,6 +239,41 @@ data class Subscription(
         includeSysAttrs: Boolean = false
     ): String =
         prepareForRendering(listOf(context), mediaType, includeSysAttrs)
+
+    fun mergeWithFragment(
+        fragment: Map<String, Any>,
+        contexts: List<String>
+    ): Either<APIException, Subscription> = either {
+        val mergedSubscription = convertTo<Map<String, Any>>(this@Subscription).plus(fragment)
+        parseSubscription(mergedSubscription, contexts).bind()
+            .copy(modifiedAt = ngsiLdDateTime())
+    }
+
+    fun mergeWithFragment(fragment: String, contexts: List<String>): Either<APIException, Subscription> =
+        mergeWithFragment(fragment.deserializeAsMap(), contexts)
+
+    companion object {
+
+        val notImplementedAttributes: List<String> = listOf("csf", "temporalQ")
+
+        fun parseSubscription(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
+            runCatching {
+                deserializeAs<Subscription>(serializeObject(input.plus(JSONLD_CONTEXT_KW to contexts)))
+                    .expand(contexts)
+            }.fold(
+                { it.right() },
+                {
+                    if (it is UnrecognizedPropertyException) {
+                        if (it.propertyName in notImplementedAttributes)
+                            NotImplementedException(
+                                "Attribute ${it.propertyName} is not yet implemented in subscriptions"
+                            ).left()
+                        else
+                            BadRequestDataException("Invalid attribute ${it.propertyName} in subscription").left()
+                    } else it.toAPIException("Failed to parse subscription: ${it.message}").left()
+                }
+            )
+    }
 }
 
 // Default for booleans is false, so add a simple filter to only include "isActive" is it is false

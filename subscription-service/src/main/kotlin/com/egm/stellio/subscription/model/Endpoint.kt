@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.subscription.model.Endpoint.AcceptType.JSON
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.net.URI
@@ -20,5 +21,14 @@ data class Endpoint(
 
         @JsonProperty("application/geo+json")
         GEOJSON("application/geo+json")
+    }
+
+    companion object {
+
+        fun parseEndpointInfo(input: String?): List<EndpointInfo>? {
+            return if (input != null && input != "null")
+                DataTypes.convertToList(input)
+            else null
+        }
     }
 }

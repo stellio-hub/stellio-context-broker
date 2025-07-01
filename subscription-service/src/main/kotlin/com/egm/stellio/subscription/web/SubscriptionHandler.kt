@@ -30,9 +30,9 @@ import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.web.BaseHandler
 import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.model.Subscription.Companion.parseSubscription
 import com.egm.stellio.subscription.model.prepareForRendering
 import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -79,7 +79,7 @@ class SubscriptionHandler(
         subscription.validate().bind()
         checkSubscriptionNotExists(subscription).bind()
 
-        subscriptionService.create(subscription, sub).bind()
+        subscriptionService.upsert(subscription, sub).bind()
 
         ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${subscription.id}"))
@@ -196,7 +196,12 @@ class SubscriptionHandler(
         checkIsAllowed(subscriptionId, sub).bind()
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
-        subscriptionService.update(subscriptionId, body, contexts).bind()
+        val fragment = requestBody.awaitFirst()
+        val subscription = subscriptionService.getById(subscriptionId)
+            .mergeWithFragment(fragment, contexts).bind()
+            .validate()
+            .bind()
+        subscriptionService.upsert(subscription, sub).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

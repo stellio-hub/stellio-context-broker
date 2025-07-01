@@ -10,7 +10,6 @@ import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.sub
@@ -184,7 +183,7 @@ class SubscriptionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.jsonld")
 
         coEvery { subscriptionService.exists(any()) } returns false.right()
-        coEvery { subscriptionService.create(any(), any()) } returns Unit.right()
+        coEvery { subscriptionService.upsert(any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -221,7 +220,7 @@ class SubscriptionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.jsonld")
 
         coEvery { subscriptionService.exists(any()) } returns false.right()
-        coEvery { subscriptionService.create(any(), any()) } throws InternalErrorException("Internal Server Exception")
+        coEvery { subscriptionService.upsert(any(), any()) } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -278,7 +277,7 @@ class SubscriptionHandlerTests {
 
         coEvery { subscriptionService.exists(any()) } returns false.right()
         coEvery {
-            subscriptionService.create(any(), any())
+            subscriptionService.upsert(any(), any())
         } returns BadRequestDataException("You can't use 'timeInterval' in conjunction with 'watchedAttributes'").left()
 
         @Suppress("MaxLineLength")
@@ -494,11 +493,11 @@ class SubscriptionHandlerTests {
     fun `update subscription should return a 204 if JSON-LD payload is correct`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.jsonld")
         val subscriptionId = subscriptionId
-        val parsedSubscription = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
         coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
-        coEvery { subscriptionService.update(any(), any(), any()) } returns Unit.right()
+        coEvery { subscriptionService.getById(subscriptionId) } returns gimmeRawSubscription()
+        coEvery { subscriptionService.upsert(any(), any()) } returns Unit.right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -508,7 +507,8 @@ class SubscriptionHandlerTests {
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
         coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
-        coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, APIC_COMPOUND_CONTEXTS) }
+        coVerify { subscriptionService.getById(subscriptionId) }
+        coVerify { subscriptionService.upsert(any(), any()) }
 
         confirmVerified(subscriptionService)
     }
@@ -517,11 +517,11 @@ class SubscriptionHandlerTests {
     fun `update subscription should return a 500 if update in DB failed`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.jsonld")
         val subscriptionId = subscriptionId
-        val parsedSubscription = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
         coEvery { subscriptionService.exists(any()) } returns true.right()
         coEvery { subscriptionService.isCreatorOf(any(), any()) } returns true.right()
-        coEvery { subscriptionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
+        coEvery { subscriptionService.getById(subscriptionId) } returns gimmeRawSubscription()
+        coEvery { subscriptionService.upsert(any(), any()) } throws RuntimeException("Update failed")
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -540,7 +540,8 @@ class SubscriptionHandlerTests {
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
         coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
-        coVerify { subscriptionService.update(eq(subscriptionId), parsedSubscription, APIC_COMPOUND_CONTEXTS) }
+        coVerify { subscriptionService.getById(subscriptionId) }
+        coVerify { subscriptionService.upsert(any(), any()) }
 
         confirmVerified(subscriptionService)
     }

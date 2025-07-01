@@ -49,11 +49,11 @@ import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_DELETED
 import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_UPDATED
 import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.model.Subscription.Companion.parseSubscription
 import com.egm.stellio.subscription.support.WithKafkaContainer
 import com.egm.stellio.subscription.support.WithTimescaleContainer
 import com.egm.stellio.subscription.support.gimmeSubscriptionFromMembers
 import com.egm.stellio.subscription.support.loadAndDeserializeSubscription
-import com.egm.stellio.subscription.utils.ParsingUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -118,7 +118,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 }
             """.trimIndent()
 
-        ParsingUtils.parseSubscription(rawSubscription.deserializeAsMap(), emptyList())
+        parseSubscription(rawSubscription.deserializeAsMap(), emptyList())
             .shouldFailWith {
                 it is BadRequestDataException
             }
@@ -127,7 +127,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should load a subscription with minimal required info - entities`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val persistedSubscription = subscriptionService.getById(subscription.id)
         assertThat(persistedSubscription)
@@ -148,7 +148,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should load a subscription with minimal required info - watchedAttributes`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_watched_attributes.json")
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val persistedSubscription = subscriptionService.getById(subscription.id)
         assertThat(persistedSubscription)
@@ -166,7 +166,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should load a subscription with all possible members`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_full.json")
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val persistedSubscription = subscriptionService.getById(subscription.id)
         assertThat(persistedSubscription)
@@ -218,7 +218,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val notifiedAt = ngsiLdDateTime()
         subscriptionService.updateSubscriptionNotification(
@@ -243,7 +243,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should delete an existing subscription`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.delete(subscription.id).shouldSucceed()
     }
@@ -262,7 +262,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "expiresAt" to ngsiLdDateTime().plusSeconds(1)
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         // add a delay to ensure subscription has expired
         runBlocking {
@@ -286,7 +286,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "expiresAt" to ngsiLdDateTime().plusDays(1),
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
@@ -306,7 +306,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:12345678", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -327,7 +327,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:3456789", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -348,7 +348,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -369,7 +369,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -390,7 +390,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -407,7 +407,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf("entities" to listOf(mapOf("idPattern" to "urn:ngsi-ld:Beehive:*", "type" to BEEHIVE_TERM)))
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -428,7 +428,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", SENSOR_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -450,7 +450,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "isActive" to false
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -469,7 +469,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "watchedAttributes" to listOf(INCOMING_TERM, OUTGOING_TERM)
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -488,7 +488,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "watchedAttributes" to listOf(INCOMING_TERM, OUTGOING_TERM)
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -508,7 +508,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "watchedAttributes" to listOf(INCOMING_TERM, OUTGOING_TERM)
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -528,7 +528,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "notificationTrigger" to listOf(ENTITY_CREATED.notificationTrigger)
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -548,7 +548,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "q" to "name==\"C%27est%20une%20belle%20ruche\""
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandSampleData("beehive_single_quote.jsonld")
         subscriptionService.getMatchingSubscriptions(
@@ -568,7 +568,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "notificationTrigger" to listOf(ENTITY_UPDATED.notificationTrigger)
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
@@ -589,7 +589,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     "notificationTrigger" to listOf(ENTITY_DELETED.notificationTrigger)
                 )
             )
-            subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+            subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
             val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
             subscriptionService.getMatchingSubscriptions(
@@ -610,7 +610,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     "notificationTrigger" to listOf(ENTITY_DELETED.notificationTrigger)
                 )
             )
-            subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+            subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
             val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
             subscriptionService.getMatchingSubscriptions(
@@ -625,7 +625,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should update a subscription`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val parsedInput = mapOf(
             "type" to NGSILD_SUBSCRIPTION_TERM,
@@ -643,8 +643,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             "throttling" to 50,
             "lang" to "fr-CH,fr"
         )
+        val patchedSubscription = subscription.mergeWithFragment(parsedInput).shouldSucceedAndResult()
 
-        subscriptionService.update(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
+        subscriptionService.upsert(patchedSubscription, mockUserSub).shouldSucceed()
 
         val updatedSubscription = subscriptionService.getById(subscription.id)
         assertThat(updatedSubscription)
@@ -666,7 +667,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should update a subscription notification`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val parsedInput = mapOf(
             "attributes" to listOf(OUTGOING_TERM),
@@ -698,20 +699,23 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should update a subscription entities`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        val parsedInput = listOf(
-            mapOf(
-                "id" to "urn:ngsi-ld:Beehive:123",
-                "type" to BEEHIVE_IRI
-            ),
-            mapOf(
-                "idPattern" to "urn:ngsi-ld:Beehive:12*",
-                "type" to BEEHIVE_IRI
+        val parsedInput = mapOf(
+            "entities" to listOf(
+                mapOf(
+                    "id" to "urn:ngsi-ld:Beehive:123",
+                    "type" to BEEHIVE_IRI
+                ),
+                mapOf(
+                    "idPattern" to "urn:ngsi-ld:Beehive:12*",
+                    "type" to BEEHIVE_IRI
+                )
             )
         )
+        val patchedSubscription = subscription.mergeWithFragment(parsedInput).shouldSucceedAndResult()
 
-        subscriptionService.updateEntities(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
+        subscriptionService.upsert(patchedSubscription, mockUserSub).shouldSucceed()
 
         val updatedSubscription = subscriptionService.getById(subscription.id)
         assertThat(updatedSubscription)
@@ -743,12 +747,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "isActive" to false
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.update(
-            subscription.id,
-            mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "isActive" to true),
-            APIC_COMPOUND_CONTEXTS
+        subscriptionService.upsert(
+            subscription.copy(isActive = true, modifiedAt = ngsiLdDateTime()),
+            mockUserSub
         ).shouldSucceed()
 
         val updatedSubscription = subscriptionService.getById(subscription.id)
@@ -765,13 +768,12 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "entities" to listOf(mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_TERM))
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.update(
-            subscription.id,
-            mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "isActive" to false),
-            APIC_COMPOUND_CONTEXTS
-        )
+        val fragment = mapOf("isActive" to false, "modifiedAt" to ngsiLdDateTime())
+        val patchedSubscription = subscription.mergeWithFragment(fragment).shouldSucceedAndResult()
+
+        subscriptionService.upsert(patchedSubscription, mockUserSub).shouldSucceed()
 
         val updatedSubscription = subscriptionService.getById(subscription.id)
         assertThat(updatedSubscription)
@@ -787,14 +789,15 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "watchedAttributes" to arrayListOf(INCOMING_TERM)
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        val parsedInput = mapOf(
+        val fragment = mapOf(
             "type" to NGSILD_SUBSCRIPTION_TERM,
             "watchedAttributes" to arrayListOf(INCOMING_TERM, TEMPERATURE_TERM)
         )
+        val patchedSubscription = subscription.mergeWithFragment(fragment).shouldSucceedAndResult()
 
-        subscriptionService.update(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+        subscriptionService.upsert(patchedSubscription, mockUserSub).shouldSucceed()
 
         val updatedSubscription = subscriptionService.getById(subscription.id)
 
@@ -813,17 +816,19 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "notificationTrigger" to listOf(ENTITY_CREATED.notificationTrigger)
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val notificationTriggers = arrayListOf(
             ENTITY_CREATED.notificationTrigger,
             ENTITY_DELETED.notificationTrigger
         )
-        val parsedInput = mapOf(
+        val fragment = mapOf(
             "type" to NGSILD_SUBSCRIPTION_TERM,
             "notificationTrigger" to notificationTriggers
         )
-        subscriptionService.update(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
+        val patchedSubscription = subscription.mergeWithFragment(fragment).shouldSucceedAndResult()
+
+        subscriptionService.upsert(patchedSubscription, mockUserSub)
 
         val updatedSubscription = subscriptionService.getById(subscription.id)
         assertThat(updatedSubscription)
@@ -836,28 +841,26 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should return a BadRequestData exception if the subscription has an unknown attribute`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        val parsedInput = mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "unknownAttribute" to "unknownValue")
-
-        subscriptionService.update(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
+        val fragment = mapOf("unknownAttribute" to "unknownValue")
+        subscription.mergeWithFragment(fragment)
             .shouldFailWith {
                 it is BadRequestDataException &&
-                    it.message == "Subscription urn:ngsi-ld:Subscription:1 has invalid attribute: unknownAttribute"
+                    it.message == "Invalid attribute unknownAttribute in subscription"
             }
     }
 
     @Test
     fun `it should return a NotImplemented exception if the subscription has an unsupported attribute`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        val parsedInput = mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "csf" to "someValue")
-
-        subscriptionService.update(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
+        val fragment = mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "csf" to "someValue")
+        subscription.mergeWithFragment(fragment)
             .shouldFailWith {
                 it is NotImplementedException &&
-                    it.message == "Subscription urn:ngsi-ld:Subscription:1 has unsupported attribute: csf"
+                    it.message == "Attribute csf is not yet implemented in subscriptions"
             }
     }
 
@@ -882,7 +885,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf("entities" to listOf(mapOf("type" to typesQuery)))
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", types.split(","))
         subscriptionService.getMatchingSubscriptions(
@@ -901,7 +904,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "q" to "foodQuantity.invalidAttribute>=150"
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(0, it.size) }
@@ -916,7 +919,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "q" to "foodQuantity<150"
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(1, it.size) }
@@ -931,7 +934,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "q" to "foodQuantity>=150"
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(0, it.size) }
@@ -946,7 +949,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "q" to "(foodQuantity<=150;foodName==\"dietary fibres\");executes==urn:ngsi-ld:Feeder:018z5"
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(1, it.size) }
@@ -961,7 +964,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "q" to "foodQuantity<150;executes.createdAt==\"2018-11-26T21:32:52.98601Z\""
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(1, it.size) }
@@ -976,7 +979,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "q" to "foodQuantity>150|executes.createdAt==\"2018-11-26T21:32:52.98601Z\""
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(1, it.size) }
@@ -991,7 +994,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "q" to "foodName.isHealthy!=false"
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(1, it.size) }
@@ -1006,7 +1009,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "scopeQ" to "/Nantes/#"
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(1, it.size) }
@@ -1021,7 +1024,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "scopeQ" to "/Valbonne/#"
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(0, it.size) }
@@ -1036,7 +1039,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "q" to "foodQuality!~=\"(?i).*It's good.*\""
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(1, it.size) }
@@ -1056,9 +1059,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             "throttling" to 300
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.updateSubscriptionNotification(
             subscription,
             Notification(subscriptionId = subscription.id, data = emptyList()),
@@ -1088,9 +1091,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             "throttling" to 1
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.updateSubscriptionNotification(
             subscription,
             Notification(subscriptionId = subscription.id, data = emptyList()),
@@ -1125,9 +1128,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             "throttling" to 300
         )
 
-        val subscription = ParsingUtils.parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+        val subscription = parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
             setOf(NGSILD_LOCATION_IRI),
@@ -1167,7 +1170,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(INCOMING_IRI), ATTRIBUTE_UPDATED)
             .shouldSucceedWith { assertEquals(expectedSize, it.size) }
@@ -1181,7 +1184,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "timeInterval" to 500
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val subscription2 = gimmeSubscriptionFromMembers(
             mapOf(
@@ -1190,7 +1193,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "timeInterval" to 5000
             )
         )
-        subscriptionService.create(subscription2, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription2, mockUserSub).shouldSucceed()
 
         val persistedSubscription = subscriptionService.getById(subscription.id)
         val notification = Notification(subscriptionId = subscription.id, data = emptyList())
@@ -1212,7 +1215,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "timeInterval" to 1
             )
         )
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         val subscription2 = gimmeSubscriptionFromMembers(
             mapOf(
@@ -1221,7 +1224,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 "timeInterval" to 5000
             )
         )
-        subscriptionService.create(subscription2, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription2, mockUserSub).shouldSucceed()
 
         val persistedSubscription = subscriptionService.getById(subscription.id)
         val notification = Notification(subscriptionId = subscription.id, data = emptyList())
@@ -1246,7 +1249,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should retrieve the JSON-LD contexts of subscription`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription.jsonld")
-        subscriptionService.create(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         subscriptionService.getContextsForSubscription(subscription.id)
             .shouldSucceedWith {

@@ -194,9 +194,12 @@ class SubscriptionHandler(
 
         val sub = getSubFromSecurityContext()
         checkIsAllowed(subscriptionId, sub).bind()
-        val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
         val fragment = requestBody.awaitFirst()
+        val contexts = checkAndGetContext(
+            httpHeaders,
+            fragment.deserializeAsMap(),
+            applicationProperties.contexts.core
+        ).bind()
         val subscription = subscriptionService.getById(subscriptionId)
             .mergeWithFragment(fragment, contexts).bind()
             .validate()

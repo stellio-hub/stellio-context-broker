@@ -91,10 +91,11 @@ class SubscriptionService(
                     description = :description, watched_attributes = :watched_attributes, 
                     notification_trigger = :notification_trigger, time_interval = :time_interval, q = :q, 
                     scope_q = :scope_q, notif_attributes = :notif_attributes, notif_format = :notif_format, 
-                    endpoint_uri = :endpoint_uri, endpoint_accept = :endpoint_accept, endpoint_receiver_info = :endpoint_receiver_info,
-                    times_sent = :times_sent, is_active = :is_active, expires_at = :expires_at, sub = :sub, contexts = :contexts,
-                    throttling = :throttling, sys_attrs = :sys_attrs, lang = :lang, datasetId = :datasetId,
-                    jsonld_context = :jsonld_context, join_type = :join_type, join_level = :join_level
+                    endpoint_uri = :endpoint_uri, endpoint_accept = :endpoint_accept, 
+                    endpoint_receiver_info = :endpoint_receiver_info, times_sent = :times_sent, is_active = :is_active,
+                    expires_at = :expires_at, sub = :sub, contexts = :contexts, throttling = :throttling,
+                    sys_attrs = :sys_attrs, lang = :lang, datasetId = :datasetId, jsonld_context = :jsonld_context,
+                    join_type = :join_type, join_level = :join_level
             """.trimIndent()
 
         databaseClient.sql(insertStatement)

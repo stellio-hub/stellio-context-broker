@@ -30,7 +30,7 @@ import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.web.BaseHandler
 import com.egm.stellio.subscription.model.Subscription
-import com.egm.stellio.subscription.model.Subscription.Companion.parseSubscription
+import com.egm.stellio.subscription.model.Subscription.Companion.deserialize
 import com.egm.stellio.subscription.model.prepareForRendering
 import com.egm.stellio.subscription.service.SubscriptionService
 import kotlinx.coroutines.reactive.awaitFirst
@@ -75,7 +75,7 @@ class SubscriptionHandler(
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
         val sub = getSubFromSecurityContext()
 
-        val subscription = parseSubscription(body, contexts).bind()
+        val subscription = deserialize(body, contexts).bind()
         subscription.validate().bind()
         checkSubscriptionNotExists(subscription).bind()
 

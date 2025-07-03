@@ -49,7 +49,7 @@ import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_DELETED
 import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_UPDATED
 import com.egm.stellio.subscription.model.Subscription
-import com.egm.stellio.subscription.model.Subscription.Companion.parseSubscription
+import com.egm.stellio.subscription.model.Subscription.Companion.deserialize
 import com.egm.stellio.subscription.support.WithKafkaContainer
 import com.egm.stellio.subscription.support.WithTimescaleContainer
 import com.egm.stellio.subscription.support.gimmeSubscriptionFromMembers
@@ -118,7 +118,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 }
             """.trimIndent()
 
-        parseSubscription(rawSubscription.deserializeAsMap(), emptyList())
+        deserialize(rawSubscription.deserializeAsMap(), emptyList())
             .shouldFailWith {
                 it is BadRequestDataException
             }
@@ -1064,7 +1064,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             "throttling" to 300
         )
 
-        val subscription = parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+        val subscription = deserialize(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.updateSubscriptionNotification(
@@ -1096,7 +1096,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             "throttling" to 1
         )
 
-        val subscription = parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+        val subscription = deserialize(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.updateSubscriptionNotification(
@@ -1133,7 +1133,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             "throttling" to 300
         )
 
-        val subscription = parseSubscription(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+        val subscription = deserialize(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.getMatchingSubscriptions(

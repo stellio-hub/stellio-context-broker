@@ -1,24 +1,24 @@
 package com.egm.stellio.subscription.model
 
-import com.egm.stellio.subscription.model.Endpoint.Companion.parseEndpointInfo
+import com.egm.stellio.subscription.model.Endpoint.Companion.deserialize
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class EndpointInfoTests {
 
     @Test
-    fun `it should correctly parse an endpoint info`() {
+    fun `it should correctly deserialize an endpoint info`() {
         val input = """[{"key": "Authorization-token", "value": "Authorization-token-value"}]"""
-        val info = parseEndpointInfo(input)
+        val info = deserialize(input)
 
-        assertEquals(info, listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value")))
+        assertEquals(listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value")), info)
     }
 
     @Test
-    fun `it should correctly parse a null endpoint info`() {
+    fun `it should correctly deserialize a null endpoint info`() {
         val input = null
-        val info = parseEndpointInfo(input)
+        val info = deserialize(input)
 
-        assertEquals(info, null)
+        assertEquals(null, info)
     }
 }

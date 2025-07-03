@@ -25,7 +25,7 @@ data class Endpoint(
 
     companion object {
 
-        fun parseEndpointInfo(input: String?): List<EndpointInfo>? {
+        fun deserialize(input: String?): List<EndpointInfo>? {
             return if (input != null && input != "null")
                 DataTypes.convertToList(input)
             else null

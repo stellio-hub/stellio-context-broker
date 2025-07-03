@@ -31,7 +31,7 @@ import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.subscription.model.Subscription.Companion.parseSubscription
+import com.egm.stellio.subscription.model.Subscription.Companion.deserialize
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -81,7 +81,7 @@ class SubscriptionTests {
     )
 
     @Test
-    fun `it should correctly parse a subscription`() = runTest {
+    fun `it should correctly deserialize a subscription`() = runTest {
         val subscription = mapOf(
             "id" to beehiveId,
             "type" to "Subscription",
@@ -89,13 +89,13 @@ class SubscriptionTests {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        parseSubscription(subscription, emptyList()).shouldSucceedWith {
+        deserialize(subscription, emptyList()).shouldSucceedWith {
             assertNotNull(it)
         }
     }
 
     @Test
-    fun `it should not allow a subscription with an empty id`() = runTest {
+    fun `it should not validate a subscription with an empty id`() = runTest {
         val payload = mapOf(
             "id" to "",
             "type" to NGSILD_SUBSCRIPTION_TERM,
@@ -103,7 +103,7 @@ class SubscriptionTests {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -112,7 +112,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should not allow a subscription with an invalid id`() = runTest {
+    fun `it should not validate a subscription with an invalid id`() = runTest {
         val payload = mapOf(
             "id" to "invalidId",
             "type" to NGSILD_SUBSCRIPTION_TERM,
@@ -120,7 +120,7 @@ class SubscriptionTests {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -129,7 +129,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should not allow a subscription with an invalid idPattern`() = runTest {
+    fun `it should not validate a subscription with an invalid idPattern`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
@@ -137,7 +137,7 @@ class SubscriptionTests {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -146,14 +146,14 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should not allow a subscription without entities and watchedAttributes`() = runTest {
+    fun `it should not validate a subscription without entities and watchedAttributes`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -162,7 +162,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should not allow a subscription with timeInterval and watchedAttributes`() = runTest {
+    fun `it should not validate a subscription with timeInterval and watchedAttributes`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
@@ -171,7 +171,7 @@ class SubscriptionTests {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -180,7 +180,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should not allow a subscription with timeInterval and throttling`() = runTest {
+    fun `it should not validate a subscription with timeInterval and throttling`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
@@ -190,7 +190,7 @@ class SubscriptionTests {
             "throttling" to 30
         )
 
-        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -199,7 +199,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should not allow a subscription with a negative throttling`() = runTest {
+    fun `it should not validate a subscription with a negative throttling`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
@@ -208,7 +208,7 @@ class SubscriptionTests {
             "throttling" to -30
         )
 
-        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -217,7 +217,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should not allow a subscription with a negative timeInterval`() = runTest {
+    fun `it should not validate a subscription with a negative timeInterval`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
@@ -226,7 +226,7 @@ class SubscriptionTests {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -235,7 +235,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should not allow a subscription with an expiresAt in the past`() = runTest {
+    fun `it should not validate a subscription with an expiresAt in the past`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
@@ -244,7 +244,7 @@ class SubscriptionTests {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -253,7 +253,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should not allow a subscription with an unknown notification trigger`() = runTest {
+    fun `it should not validate a subscription with an unknown notification trigger`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "type" to NGSILD_SUBSCRIPTION_TERM,
@@ -262,7 +262,7 @@ class SubscriptionTests {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val subscription = parseSubscription(payload, emptyList()).shouldSucceedAndResult()
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
@@ -280,7 +280,7 @@ class SubscriptionTests {
             "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
         )
 
-        val result = parseSubscription(subscription, listOf(contextNonExisting))
+        val result = deserialize(subscription, listOf(contextNonExisting))
         result.fold({
             assertTrue(it is LdContextNotAvailableException)
             assertEquals(
@@ -296,7 +296,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should throw a BadRequestData exception when jsonldContext is not a URI`() = runTest {
+    fun `it should not validate a subscription when jsonldContext is not a URI`() = runTest {
         val rawSubscription =
             """
                 {
@@ -316,7 +316,7 @@ class SubscriptionTests {
                 }
             """.trimIndent()
 
-        val subscription = parseSubscription(
+        val subscription = deserialize(
             rawSubscription.deserializeAsMap(),
             emptyList()
         ).shouldSucceedAndResult()
@@ -327,7 +327,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should throw a LdContextNotAvailable exception when jsonldContext is not available`() = runTest {
+    fun `it should not validate a subscription when jsonldContext is not available`() = runTest {
         val rawSubscription =
             """
                 {
@@ -347,7 +347,7 @@ class SubscriptionTests {
                 }
             """.trimIndent()
 
-        val subscription = parseSubscription(
+        val subscription = deserialize(
             rawSubscription.deserializeAsMap(),
             emptyList()
         ).shouldSucceedAndResult()
@@ -358,7 +358,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `it should not allow a subscription with an invalid join level when join is flat or inline`() = runTest {
+    fun `it should not validate a subscription with an invalid join level when join is flat or inline`() = runTest {
         val rawSubscription =
             """
                 {
@@ -379,7 +379,7 @@ class SubscriptionTests {
                 }
             """.trimIndent()
 
-        val subscription = parseSubscription(rawSubscription.deserializeAsMap(), emptyList())
+        val subscription = deserialize(rawSubscription.deserializeAsMap(), emptyList())
             .shouldSucceedAndResult()
         subscription.validate()
             .shouldFailWith {

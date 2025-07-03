@@ -245,7 +245,7 @@ data class Subscription(
         contexts: List<String>
     ): Either<APIException, Subscription> = either {
         val mergedSubscription = convertTo<Map<String, Any>>(this@Subscription).plus(fragment)
-        parseSubscription(mergedSubscription, contexts).bind()
+        deserialize(mergedSubscription, contexts).bind()
             .copy(modifiedAt = ngsiLdDateTime())
     }
 
@@ -256,7 +256,7 @@ data class Subscription(
 
         val notImplementedAttributes: List<String> = listOf("csf", "temporalQ")
 
-        fun parseSubscription(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
+        fun deserialize(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
             runCatching {
                 deserializeAs<Subscription>(serializeObject(input.plus(JSONLD_CONTEXT_KW to contexts)))
                     .expand(contexts)

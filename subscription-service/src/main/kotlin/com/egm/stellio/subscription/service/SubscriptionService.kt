@@ -26,7 +26,7 @@ import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.Endpoint
-import com.egm.stellio.subscription.model.Endpoint.Companion.parseEndpointInfo
+import com.egm.stellio.subscription.model.Endpoint.Companion.deserialize
 import com.egm.stellio.subscription.model.GeoQ
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
@@ -542,8 +542,8 @@ class SubscriptionService(
                 endpoint = Endpoint(
                     uri = toUri(row["endpoint_uri"]),
                     accept = toEnum(row["endpoint_accept"]!!),
-                    receiverInfo = parseEndpointInfo(toJsonString(row["endpoint_receiver_info"])),
-                    notifierInfo = parseEndpointInfo(toJsonString(row["endpoint_notifier_info"]))
+                    receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
+                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"]))
                 ),
                 status = toOptionalEnum<NotificationParams.StatusType>(row["status"]),
                 timesSent = row["times_sent"] as Int,
@@ -579,8 +579,8 @@ class SubscriptionService(
                 endpoint = Endpoint(
                     uri = toUri(row["endpoint_uri"]),
                     accept = toEnum(row["endpoint_accept"]!!),
-                    receiverInfo = parseEndpointInfo(toJsonString(row["endpoint_receiver_info"])),
-                    notifierInfo = parseEndpointInfo(toJsonString(row["endpoint_notifier_info"]))
+                    receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
+                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"]))
                 ),
                 status = null,
                 timesSent = row["times_sent"] as Int,

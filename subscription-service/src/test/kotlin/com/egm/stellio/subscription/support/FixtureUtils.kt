@@ -13,11 +13,11 @@ import com.egm.stellio.subscription.model.GeoQ
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.Subscription
-import com.egm.stellio.subscription.utils.ParsingUtils
+import com.egm.stellio.subscription.model.Subscription.Companion.deserialize
 
 fun loadAndDeserializeSubscription(filename: String, contexts: List<String> = APIC_COMPOUND_CONTEXTS): Subscription {
     val subscriptionPayload = loadSampleData(filename)
-    return ParsingUtils.parseSubscription(subscriptionPayload.deserializeAsMap(), contexts)
+    return deserialize(subscriptionPayload.deserializeAsMap(), contexts)
         .shouldSucceedAndResult()
 }
 
@@ -31,7 +31,7 @@ fun gimmeSubscriptionFromMembers(
         "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
     ).plus(additionalMembers)
 
-    return ParsingUtils.parseSubscription(payload, contexts).shouldSucceedAndResult()
+    return deserialize(payload, contexts).shouldSucceedAndResult()
 }
 
 fun gimmeRawSubscription(

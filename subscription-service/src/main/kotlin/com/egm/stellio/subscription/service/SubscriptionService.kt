@@ -7,19 +7,14 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
-import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
-import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
-import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.util.DataTypes.serialize
-import com.egm.stellio.shared.util.JsonLdUtils.checkJsonldContext
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildContextLinkHeader
@@ -27,11 +22,11 @@ import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.decode
-import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.Endpoint.Companion.deserialize
 import com.egm.stellio.subscription.model.GeoQ
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
@@ -39,8 +34,6 @@ import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.mergeEntitySelectorsOnSubscriptions
-import com.egm.stellio.subscription.utils.ParsingUtils.parseEndpointInfo
-import com.egm.stellio.subscription.utils.ParsingUtils.parseEntitySelector
 import com.egm.stellio.subscription.utils.allToMappedList
 import com.egm.stellio.subscription.utils.execute
 import com.egm.stellio.subscription.utils.oneToResult
@@ -54,12 +47,8 @@ import com.egm.stellio.subscription.utils.toNullableList
 import com.egm.stellio.subscription.utils.toNullableUri
 import com.egm.stellio.subscription.utils.toNullableZonedDateTime
 import com.egm.stellio.subscription.utils.toOptionalEnum
-import com.egm.stellio.subscription.utils.toSqlColumnName
-import com.egm.stellio.subscription.utils.toSqlValue
 import com.egm.stellio.subscription.utils.toUri
 import com.egm.stellio.subscription.utils.toZonedDateTime
-import com.egm.stellio.subscription.web.invalidSubscriptionAttributeMessage
-import com.egm.stellio.subscription.web.unsupportedSubscriptionAttributeMessage
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.reactive.awaitFirst
 import org.locationtech.jts.geom.Geometry
@@ -74,8 +63,6 @@ import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
-import java.time.ZonedDateTime
-import java.util.regex.Pattern
 
 @Component
 class SubscriptionService(
@@ -84,126 +71,9 @@ class SubscriptionService(
     private val r2dbcEntityTemplate: R2dbcEntityTemplate
 ) {
 
-    suspend fun validateNewSubscription(subscription: Subscription): Either<APIException, Unit> = either {
-        checkTypeIsSubscription(subscription).bind()
-        checkIdIsValid(subscription).bind()
-        checkEntitiesOrWatchedAttributes(subscription).bind()
-        checkTimeIntervalGreaterThanZero(subscription).bind()
-        checkThrottlingGreaterThanZero(subscription).bind()
-        checkSubscriptionValidity(subscription).bind()
-        checkExpiresAtInTheFuture(subscription).bind()
-        checkIdPatternIsValid(subscription).bind()
-        checkNotificationTriggersAreValid(subscription).bind()
-        checkJsonLdContextIsValid(subscription).bind()
-        checkJoinParametersAreValid(subscription).bind()
-    }
-
-    private fun checkTypeIsSubscription(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.type != NGSILD_SUBSCRIPTION_TERM)
-            BadRequestDataException("type attribute must be equal to 'Subscription'").left()
-        else Unit.right()
-
-    private fun checkIdIsValid(subscription: Subscription): Either<APIException, Unit> =
-        if (!subscription.id.isAbsolute)
-            BadRequestDataException(invalidUriMessage("${subscription.id}")).left()
-        else Unit.right()
-
-    private fun checkEntitiesOrWatchedAttributes(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.watchedAttributes == null && subscription.entities == null)
-            BadRequestDataException("At least one of entities or watchedAttributes shall be present").left()
-        else Unit.right()
-
-    private fun checkSubscriptionValidity(subscription: Subscription): Either<APIException, Unit> =
-        when {
-            subscription.watchedAttributes != null && subscription.timeInterval != null -> {
-                BadRequestDataException(
-                    "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
-                ).left()
-            }
-            subscription.timeInterval != null && subscription.throttling != null -> {
-                BadRequestDataException(
-                    "You can't use 'timeInterval' in conjunction with 'throttling'"
-                ).left()
-            }
-            else ->
-                Unit.right()
-        }
-
-    private fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.timeInterval != null && subscription.timeInterval < 1)
-            BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
-        else Unit.right()
-
-    private fun checkThrottlingGreaterThanZero(subscription: Subscription): Either<APIException, Unit> =
-        if (subscription.throttling != null && subscription.throttling < 1)
-            BadRequestDataException("The value of 'throttling' must be greater than zero (int)").left()
-        else Unit.right()
-
-    private fun checkExpiresAtInTheFuture(subscription: Subscription): Either<BadRequestDataException, Unit> =
-        if (subscription.expiresAt != null && subscription.expiresAt.isBefore(ngsiLdDateTime()))
-            BadRequestDataException("'expiresAt' must be in the future").left()
-        else Unit.right()
-
-    private fun checkExpiresAtInTheFuture(expiresAt: String): Either<BadRequestDataException, ZonedDateTime> =
-        runCatching { ZonedDateTime.parse(expiresAt) }.fold({
-            if (it.isBefore(ngsiLdDateTime()))
-                BadRequestDataException("'expiresAt' must be in the future").left()
-            else it.right()
-        }, {
-            BadRequestDataException("Unable to parse 'expiresAt' value: $expiresAt").left()
-        })
-
-    private fun checkIdPatternIsValid(subscription: Subscription): Either<BadRequestDataException, Unit> {
-        val result = subscription.entities?.all { endpoint ->
-            runCatching {
-                endpoint.idPattern?.let { Pattern.compile(it) }
-                true
-            }.fold({ true }, { false })
-        }
-
-        return if (result == null || result)
-            Unit.right()
-        else BadRequestDataException("Invalid idPattern found in subscription").left()
-    }
-
-    private fun checkNotificationTriggersAreValid(subscription: Subscription): Either<BadRequestDataException, Unit> =
-        subscription.notificationTrigger.all {
-            NotificationTrigger.isValid(it)
-        }.let {
-            if (it) Unit.right()
-            else BadRequestDataException("Unknown notification trigger in ${subscription.notificationTrigger}").left()
-        }
-
-    suspend fun checkJsonLdContextIsValid(subscription: Subscription): Either<APIException, Unit> = either {
-        val jsonldContext = subscription.jsonldContext
-
-        if (jsonldContext != null) {
-            checkJsonldContext(jsonldContext).bind()
-        }
-    }
-
-    private fun checkJoinParametersAreValid(subscription: Subscription): Either<BadRequestDataException, Unit> {
-        if (subscription.notification.join != null && subscription.notification.join != JoinType.NONE) {
-            subscription.notification.joinLevel?.let {
-                if (it < 1)
-                    return BadRequestDataException(
-                        "The value of 'joinLevel' must be greater than zero (int) if 'join' is asked"
-                    ).left()
-            }
-        }
-
-        return Unit.right()
-    }
-
     @Transactional
-    suspend fun create(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> = either {
-        validateNewSubscription(subscription).bind()
-
-        val geoQuery = subscription.geoQ?.let {
-            parseGeoQueryParameters(subscription.geoQ.toMap(), subscription.contexts).bind()
-        }
+    suspend fun upsert(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> = either {
         val endpoint = subscription.notification.endpoint
-
         val insertStatement =
             """
             INSERT INTO subscription(id, type, subscription_name, created_at, modified_at, description,
@@ -216,6 +86,16 @@ class SubscriptionService(
                 :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info,
                 :times_sent, :is_active, :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId,
                 :jsonld_context, :join_type, :join_level)
+            ON CONFLICT (id)
+                DO UPDATE SET subscription_name = :subscription_name, modified_at = :modified_at, 
+                    description = :description, watched_attributes = :watched_attributes, 
+                    notification_trigger = :notification_trigger, time_interval = :time_interval, q = :q, 
+                    scope_q = :scope_q, notif_attributes = :notif_attributes, notif_format = :notif_format, 
+                    endpoint_uri = :endpoint_uri, endpoint_accept = :endpoint_accept, 
+                    endpoint_receiver_info = :endpoint_receiver_info, times_sent = :times_sent, is_active = :is_active,
+                    expires_at = :expires_at, sub = :sub, contexts = :contexts, throttling = :throttling,
+                    sys_attrs = :sys_attrs, lang = :lang, datasetId = :datasetId, jsonld_context = :jsonld_context,
+                    join_type = :join_type, join_level = :join_level
             """.trimIndent()
 
         databaseClient.sql(insertStatement)
@@ -250,12 +130,13 @@ class SubscriptionService(
             .bind("join_level", subscription.notification.joinLevel)
             .execute().bind()
 
-        geoQuery?.let {
-            upsertGeometryQuery(it, subscription.id).bind()
+        subscription.geoQ?.let { geoQ ->
+            val geoQuery = parseGeoQueryParameters(geoQ.toMap(), subscription.contexts).bind()
+            geoQuery?.let { upsertGeometryQuery(it, subscription.id).bind() }
         }
 
-        subscription.entities?.forEach {
-            createEntitySelector(it, subscription.id).bind()
+        subscription.entities?.let {
+            upsertEntitiesSelector(subscription.id, it).bind()
         }
     }
 
@@ -286,6 +167,16 @@ class SubscriptionService(
             .bind("type_selection", entitySelector.typeSelection)
             .bind("subscription_id", subscriptionId)
             .execute().bind()
+    }
+
+    private suspend fun upsertEntitiesSelector(
+        subscriptionId: URI,
+        entitiesSelector: Set<EntitySelector>
+    ): Either<APIException, Unit> = either {
+        deleteEntitySelector(subscriptionId).bind()
+        entitiesSelector.forEach {
+            createEntitySelector(it, subscriptionId).bind()
+        }
     }
 
     private suspend fun upsertGeometryQuery(geoQuery: GeoQuery, subscriptionId: URI): Either<APIException, Unit> =
@@ -376,76 +267,6 @@ class SubscriptionService(
             }
     }
 
-    @Transactional
-    suspend fun update(
-        subscriptionId: URI,
-        input: Map<String, Any>,
-        contexts: List<String>
-    ): Either<APIException, Unit> = either {
-        if (!input.containsKey(NGSILD_TYPE_TERM) || input[NGSILD_TYPE_TERM]!! != NGSILD_SUBSCRIPTION_TERM)
-            raise(BadRequestDataException("type attribute must be present and equal to '$NGSILD_SUBSCRIPTION_TERM'"))
-
-        input.filterKeys {
-            it !in COMPACTED_ENTITY_CORE_MEMBERS
-        }.plus("modifiedAt" to ngsiLdDateTime())
-            .forEach {
-                when {
-                    it.key == "geoQ" ->
-                        parseGeoQueryParameters(it.value as Map<String, String>, contexts).bind()
-                            ?.let { upsertGeometryQuery(it, subscriptionId).bind() }
-                    it.key == "notification" -> {
-                        val notification = it.value as Map<String, Any>
-                        updateNotification(subscriptionId, notification, contexts).bind()
-                    }
-                    it.key == "entities" -> {
-                        val entities = it.value as List<Map<String, Any>>
-                        updateEntities(subscriptionId, entities, contexts).bind()
-                    }
-                    it.key == "expiresAt" -> {
-                        val columnName = it.key.toSqlColumnName()
-                        val expiresAt = checkExpiresAtInTheFuture(it.value as String).bind()
-                        updateSubscriptionAttribute(subscriptionId, columnName, expiresAt).bind()
-                    }
-                    it.key == "watchedAttributes" -> {
-                        val value = (it.value as List<String>).map { watchedAttribute ->
-                            expandJsonLdTerm(watchedAttribute, contexts)
-                        }.toSqlValue(it.key)
-                        updateSubscriptionAttribute(subscriptionId, it.key.toSqlColumnName(), value).bind()
-                    }
-                    listOf(
-                        "subscriptionName", "description", "notificationTrigger", "timeInterval", "q", "scopeQ",
-                        "isActive", "modifiedAt", "throttling", "lang", "datasetId", "jsonldContext",
-                        "join", "jointLevel"
-                    ).contains(it.key) -> {
-                        val columnName = it.key.toSqlColumnName()
-                        val value = it.value.toSqlValue(it.key)
-                        updateSubscriptionAttribute(subscriptionId, columnName, value).bind()
-                    }
-                    listOf("csf", "temporalQ").contains(it.key) -> {
-                        NotImplementedException(unsupportedSubscriptionAttributeMessage(subscriptionId, it.key))
-                            .left().bind<Unit>()
-                    }
-                    else -> {
-                        BadRequestDataException(invalidSubscriptionAttributeMessage(subscriptionId, it.key))
-                            .left().bind<Unit>()
-                    }
-                }
-            }
-    }
-
-    private suspend fun updateSubscriptionAttribute(
-        subscriptionId: URI,
-        columnName: String,
-        value: Any?
-    ): Either<APIException, Unit> {
-        val updateStatement = Update.update(columnName, value)
-        return r2dbcEntityTemplate.update(Subscription::class.java)
-            .matching(query(where("id").`is`(subscriptionId)))
-            .apply(updateStatement)
-            .map { Unit.right() }
-            .awaitFirst()
-    }
-
     suspend fun updateNotification(
         subscriptionId: URI,
         notification: Map<String, Any>,
@@ -519,17 +340,6 @@ class SubscriptionService(
             }
 
             else -> throw BadRequestDataException("Could not update attribute ${attribute.key}")
-        }
-    }
-
-    suspend fun updateEntities(
-        subscriptionId: URI,
-        entities: List<Map<String, Any>>,
-        contexts: List<String>
-    ): Either<APIException, Unit> = either {
-        deleteEntitySelector(subscriptionId).bind()
-        entities.forEach {
-            createEntitySelector(parseEntitySelector(it, contexts), subscriptionId).bind()
         }
     }
 
@@ -733,8 +543,8 @@ class SubscriptionService(
                 endpoint = Endpoint(
                     uri = toUri(row["endpoint_uri"]),
                     accept = toEnum(row["endpoint_accept"]!!),
-                    receiverInfo = parseEndpointInfo(toJsonString(row["endpoint_receiver_info"])),
-                    notifierInfo = parseEndpointInfo(toJsonString(row["endpoint_notifier_info"]))
+                    receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
+                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"]))
                 ),
                 status = toOptionalEnum<NotificationParams.StatusType>(row["status"]),
                 timesSent = row["times_sent"] as Int,
@@ -770,8 +580,8 @@ class SubscriptionService(
                 endpoint = Endpoint(
                     uri = toUri(row["endpoint_uri"]),
                     accept = toEnum(row["endpoint_accept"]!!),
-                    receiverInfo = parseEndpointInfo(toJsonString(row["endpoint_receiver_info"])),
-                    notifierInfo = parseEndpointInfo(toJsonString(row["endpoint_notifier_info"]))
+                    receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
+                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"]))
                 ),
                 status = null,
                 timesSent = row["times_sent"] as Int,

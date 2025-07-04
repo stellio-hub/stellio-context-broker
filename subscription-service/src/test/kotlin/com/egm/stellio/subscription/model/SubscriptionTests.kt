@@ -271,6 +271,23 @@ class SubscriptionTests {
     }
 
     @Test
+    fun `it should not validate a subscription with an invalid endpoint URI`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "endoint_is_not_a_valid_uri"))
+        )
+
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "Invalid URI for endpoint: endoint_is_not_a_valid_uri"
+            }
+    }
+
+    @Test
     fun `it should not allow a subscription if remote JSON-LD @context cannot be retrieved`() = runTest {
         val contextNonExisting = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld"
         val subscription = mapOf(

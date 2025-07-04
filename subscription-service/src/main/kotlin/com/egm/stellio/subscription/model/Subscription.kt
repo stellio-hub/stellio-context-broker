@@ -98,6 +98,7 @@ data class Subscription(
         checkNotificationTriggersAreValid().bind()
         checkJsonLdContextIsValid().bind()
         checkJoinParametersAreValid().bind()
+        checkEndpointUriIsValid().bind()
 
         this@Subscription
     }
@@ -190,6 +191,12 @@ data class Subscription(
         return Unit.right()
     }
 
+    private fun checkEndpointUriIsValid(): Either<BadRequestDataException, Unit> {
+        if (notification.endpoint.uri.scheme !in validEndpointUriSchemes)
+            return BadRequestDataException("Invalid URI for endpoint: ${notification.endpoint.uri}").left()
+        return Unit.right()
+    }
+
     fun expand(contexts: List<String>): Subscription =
         this.copy(
             entities = entities?.map { entitySelector ->
@@ -255,6 +262,7 @@ data class Subscription(
     companion object {
 
         val notImplementedAttributes: List<String> = listOf("csf", "temporalQ")
+        val validEndpointUriSchemes: List<String> = listOf("http", "https", "mqtt", "mqtts")
 
         fun deserialize(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
             runCatching {

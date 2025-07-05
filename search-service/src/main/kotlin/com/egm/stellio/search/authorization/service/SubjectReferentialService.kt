@@ -1,7 +1,6 @@
 package com.egm.stellio.search.authorization.service
 
 import arrow.core.Either
-import arrow.core.Option
 import arrow.core.Some
 import arrow.core.getOrElse
 import com.egm.stellio.search.authorization.model.Group
@@ -23,6 +22,7 @@ import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -84,7 +84,7 @@ class SubjectReferentialService(
                 rowToSubjectReferential(it)
             }
 
-    suspend fun getSubjectAndGroupsUUID(sub: Option<Sub>): Either<APIException, List<Sub>> =
+    suspend fun getSubjectAndGroupsUUID(): Either<APIException, List<Sub>> =
         databaseClient
             .sql(
                 """
@@ -93,13 +93,17 @@ class SubjectReferentialService(
                 WHERE subject_id = :subject_id
                 """.trimIndent()
             )
-            .bind("subject_id", (sub as Some).value)
-            .oneToResult(AccessDeniedException("No subject information found for ${sub.value}")) {
+            .bind("subject_id", (getSubFromSecurityContext() as Some).value)
+            .oneToResult(
+                AccessDeniedException(
+                    "No subject information found for ${(getSubFromSecurityContext() as Some).value}"
+                )
+            ) {
                 toOptionalList<Sub>(it["groups_memberships"]).orEmpty()
                     .plus(it["subject_id"] as Sub)
             }
 
-    suspend fun getGroups(sub: Option<Sub>, offset: Int, limit: Int): List<Group> =
+    suspend fun getGroups(offset: Int, limit: Int): List<Group> =
         databaseClient
             .sql(
                 """
@@ -116,7 +120,7 @@ class SubjectReferentialService(
                 OFFSET :offset
                 """.trimIndent()
             )
-            .bind("subject_id", (sub as Some).value)
+            .bind("subject_id", (getSubFromSecurityContext() as Some).value)
             .bind("limit", limit)
             .bind("offset", offset)
             .allToMappedList {
@@ -127,7 +131,7 @@ class SubjectReferentialService(
                 )
             }
 
-    suspend fun getCountGroups(sub: Option<Sub>): Either<APIException, Int> =
+    suspend fun getCountGroups(): Either<APIException, Int> =
         databaseClient
             .sql(
                 """
@@ -137,10 +141,10 @@ class SubjectReferentialService(
                 WHERE subject_id = :subject_id
                 """.trimIndent()
             )
-            .bind("subject_id", (sub as Some).value)
+            .bind("subject_id", (getSubFromSecurityContext() as Some).value)
             .oneToResult { toInt(it["count"]) }
 
-    suspend fun getAllGroups(sub: Option<Sub>, offset: Int, limit: Int): List<Group> =
+    suspend fun getAllGroups(offset: Int, limit: Int): List<Group> =
         databaseClient
             .sql(
                 """
@@ -158,7 +162,7 @@ class SubjectReferentialService(
                 OFFSET :offset
                 """.trimIndent()
             )
-            .bind("subject_id", (sub as Some).value)
+            .bind("subject_id", (getSubFromSecurityContext() as Some).value)
             .bind("limit", limit)
             .bind("offset", offset)
             .allToMappedList {

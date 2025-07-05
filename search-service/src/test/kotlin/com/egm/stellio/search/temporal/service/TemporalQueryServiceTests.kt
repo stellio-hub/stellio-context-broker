@@ -1,6 +1,5 @@
 package com.egm.stellio.search.temporal.service
 
-import arrow.core.None
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.service.AuthorizationService
@@ -134,7 +133,7 @@ class TemporalQueryServiceTests {
             }
 
         coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
-        coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any(), any()) } returns attributes
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
@@ -163,7 +162,7 @@ class TemporalQueryServiceTests {
 
         coVerify {
             entityQueryService.retrieve(entityUri, false)
-            authorizationService.userCanReadEntity(entityUri, None)
+            authorizationService.userCanReadEntity(entityUri)
             entityAttributeService.getForEntity(entityUri, emptySet(), emptySet(), false)
             attributeInstanceService.search(
                 match { temporalEntitiesQuery ->
@@ -257,7 +256,7 @@ class TemporalQueryServiceTests {
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter() } returns { null }
         coEvery { entityQueryService.queryEntities(any(), any(), any<() -> String?>()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForEntities(any(), any())
@@ -333,7 +332,7 @@ class TemporalQueryServiceTests {
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter() } returns { null }
         coEvery { entityQueryService.queryEntities(any(), any(), any<() -> String?>()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForEntities(any(), any())

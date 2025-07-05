@@ -1,6 +1,7 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.right
+import com.egm.stellio.search.authorization.USER_UUID
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.Entity
@@ -12,6 +13,7 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -135,6 +137,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
+    @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
     fun `it should create entries for all attributes of an entity`() = runTest {
         val rawEntity = loadSampleData()
 
@@ -142,8 +145,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.createAttributes(
             rawEntity,
-            APIC_COMPOUND_CONTEXTS,
-            "0123456789-1234-5678-987654321"
+            APIC_COMPOUND_CONTEXTS
         ).shouldSucceed()
 
         val attributes = entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
@@ -156,7 +158,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                         it.measuredValue == 1543.0 &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
                         it.time.isAfter(ngsiLdDateTime().minusMinutes(1)) &&
-                        it.sub == "0123456789-1234-5678-987654321"
+                        it.sub == USER_UUID
                 }
             )
             attributeInstanceService.create(
@@ -290,8 +292,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                 ZonedDateTime.parse("2022-12-24T14:01:22.066Z")
             ),
             createdAt,
-            expandedAttribute.second[0],
-            null
+            expandedAttribute.second[0]
         ).shouldSucceed()
 
         entityAttributeService.getForEntityAndAttribute(
@@ -337,8 +338,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             ),
             mergedAt,
             null,
-            expandedAttribute.second[0],
-            null
+            expandedAttribute.second[0]
         ).shouldSucceed()
 
         val expectedMergedPayload = expandAttribute(
@@ -394,7 +394,6 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult(),
             expandedAttributes,
             ngsiLdDateTime(),
-            null,
             null
         ).shouldSucceed()
 
@@ -425,7 +424,6 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             ngsiLdAttributes,
             expandedAttributes,
             createdAt,
-            null,
             null
         ).shouldSucceedWith { operationResults ->
             val successfulOperations = operationResults.getSucceededOperations()
@@ -492,8 +490,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             ngsiLdAttributes,
             expandedAttributes,
             createdAt,
-            observedAt,
-            null
+            observedAt
         ).shouldSucceedWith { operationResults ->
             val successfulOperations = operationResults.getSucceededOperations()
             assertEquals(1, successfulOperations.size)
@@ -532,7 +529,6 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             ngsiLdAttributes,
             expandedAttributes,
             createdAt,
-            null,
             null
         ).shouldSucceedWith { operationResults ->
             val successfulOperations = operationResults.getSucceededOperations()
@@ -578,8 +574,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             beehiveTestCId,
             ngsiLdAttributes,
             expandedAttributes,
-            createdAt,
-            null
+            createdAt
         ).shouldSucceedWith { operationResults ->
             val successfulOperations = operationResults.getSucceededOperations()
             assertEquals(1, successfulOperations.size)
@@ -629,8 +624,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             beehiveTestCId,
             ngsiLdAttributes,
             expandedAttributes,
-            ngsiLdDateTime(),
-            null
+            ngsiLdDateTime()
         ).shouldSucceedWith { operationResults ->
             val successfulOperations = operationResults.getSucceededOperations()
             assertEquals(1, successfulOperations.size)
@@ -662,8 +656,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         entityAttributeService.partialUpdateAttribute(
             beehiveTestCId,
             expandedAttribute,
-            createdAt,
-            null
+            createdAt
         ).shouldSucceedWith { operationResult ->
             assertEquals(OperationStatus.DELETED, operationResult.operationStatus)
         }
@@ -708,8 +701,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             beehiveTestCId,
             ngsiLdAttribute,
             expandedAttribute,
-            replacedAt,
-            null
+            replacedAt
         ).shouldSucceed()
 
         entityAttributeService.getForEntityAndAttribute(
@@ -742,8 +734,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             beehiveTestCId,
             ngsiLdAttribute,
             expandedAttribute,
-            replacedAt,
-            null
+            replacedAt
         ).shouldSucceedWith { operationResult ->
             assertInstanceOf(FailedAttributeOperationResult::class.java, operationResult)
             assertEquals(NGSILD_DEFAULT_VOCAB + "unknown", operationResult.attributeName)
@@ -776,8 +767,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             beehiveTestCId,
             ngsiLdAttribute,
             expandedAttribute,
-            replacedAt,
-            null
+            replacedAt
         ).shouldSucceedWith { operationResult ->
             assertInstanceOf(FailedAttributeOperationResult::class.java, operationResult)
             assertEquals(INCOMING_IRI, operationResult.attributeName)

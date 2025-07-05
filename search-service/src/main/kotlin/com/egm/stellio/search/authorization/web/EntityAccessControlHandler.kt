@@ -38,7 +38,6 @@ import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.replaceDefaultContextToAuthzContext
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
@@ -78,7 +77,6 @@ class EntityAccessControlHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
 
-        val sub = getSubFromSecurityContext()
         val includeDeleted = queryParams.getFirst(QueryParameter.INCLUDE_DELETED.key)?.toBoolean() == true
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
@@ -97,8 +95,7 @@ class EntityAccessControlHandler(
         val (count, entities) = authorizationService.getAuthorizedEntities(
             entitiesQuery,
             includeDeleted,
-            contexts,
-            sub
+            contexts
         ).bind()
 
         if (count == -1) {
@@ -130,8 +127,6 @@ class EntityAccessControlHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
 
-        val sub = getSubFromSecurityContext()
-
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
@@ -143,8 +138,7 @@ class EntityAccessControlHandler(
             authorizationService.getGroupsMemberships(
                 entitiesQuery.paginationQuery.offset,
                 entitiesQuery.paginationQuery.limit,
-                contexts,
-                sub
+                contexts
             ).bind()
 
         if (count == -1) {
@@ -176,9 +170,7 @@ class EntityAccessControlHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
 
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userIsAdmin(sub).bind()
+        authorizationService.userIsAdmin().bind()
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val entitiesQuery = composeEntitiesQueryFromGet(
@@ -222,8 +214,6 @@ class EntityAccessControlHandler(
         @AllowedParameters
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
             .replaceDefaultContextToAuthzContext(applicationProperties.contexts)
@@ -244,7 +234,7 @@ class EntityAccessControlHandler(
             .map { ngsiLdAttribute -> ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) } }
             .flatten()
             .partition {
-                authorizationService.userCanAdminEntity(it.second.objectId, sub).isRight()
+                authorizationService.userCanAdminEntity(it.second.objectId).isRight()
             }
         val unauthorizedInstancesDetails = unauthorizedInstances.map {
             NotUpdatedDetails(
@@ -302,9 +292,7 @@ class EntityAccessControlHandler(
         @AllowedParameters
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
+        authorizationService.userCanAdminEntity(entityId).bind()
 
         val isOwnerOfEntity = entityAccessRightsService.isOwnerOfEntity(subjectId, entityId).bind()
         if (!isOwnerOfEntity) {
@@ -327,9 +315,7 @@ class EntityAccessControlHandler(
         @AllowedParameters
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
+        authorizationService.userCanAdminEntity(entityId).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
@@ -355,9 +341,7 @@ class EntityAccessControlHandler(
         @AllowedParameters
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
+        authorizationService.userCanAdminEntity(entityId).bind()
 
         entityAccessRightsService.removeSpecificAccessPolicy(entityId).bind()
 

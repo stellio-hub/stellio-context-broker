@@ -43,7 +43,6 @@ import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
-import com.egm.stellio.shared.util.sub
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -112,7 +111,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery {
             entityAccessRightsService.setRoleOnEntity(any(), any(), any())
         } returns Unit.right()
@@ -124,7 +123,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
+            authorizationService.userCanAdminEntity(eq(entityUri1))
 
             entityAccessRightsService.setRoleOnEntity(
                 eq(otherUserSub),
@@ -158,7 +157,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.setRoleOnEntity(any(), any(), any()) } returns Unit.right()
 
         webClient.post()
@@ -169,8 +168,7 @@ class EntityAccessControlHandlerTests {
 
         coVerify(exactly = 3) {
             authorizationService.userCanAdminEntity(
-                match { listOf(entityUri1, entityUri2, entityUri3).contains(it) },
-                eq(sub)
+                match { listOf(entityUri1, entityUri2, entityUri3).contains(it) }
             )
         }
 
@@ -212,9 +210,9 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userCanAdminEntity(eq(entityUri1), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(eq(entityUri1)) } returns Unit.right()
         coEvery {
-            authorizationService.userCanAdminEntity(eq(entityUri2), any())
+            authorizationService.userCanAdminEntity(eq(entityUri2))
         } returns AccessDeniedException("Access denied").left()
         coEvery { entityAccessRightsService.setRoleOnEntity(any(), any(), any()) } returns Unit.right()
 
@@ -326,7 +324,7 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `it should allow an authorized user to remove access to an entity`() {
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.isOwnerOfEntity(any(), any()) } returns false.right()
         coEvery { entityAccessRightsService.removeRoleOnEntity(any(), any()) } returns Unit.right()
 
@@ -337,7 +335,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
+            authorizationService.userCanAdminEntity(eq(entityUri1))
 
             entityAccessRightsService.removeRoleOnEntity(eq(otherUserSub), eq(entityUri1))
         }
@@ -345,7 +343,7 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `it should not allow an authorized user to remove access to the owner of an entity`() {
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.isOwnerOfEntity(any(), any()) } returns true.right()
 
         webClient.delete()
@@ -364,7 +362,7 @@ class EntityAccessControlHandlerTests {
             )
 
         coVerify {
-            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
+            authorizationService.userCanAdminEntity(eq(entityUri1))
             entityAccessRightsService.isOwnerOfEntity(eq(otherUserSub), eq(entityUri1))
         }
         coVerify(exactly = 0) { entityAccessRightsService.removeRoleOnEntity(eq(otherUserSub), eq(entityUri1)) }
@@ -373,7 +371,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `it should not allow an unauthorized user to remove access to an entity`() {
         coEvery {
-            authorizationService.userCanAdminEntity(any(), any())
+            authorizationService.userCanAdminEntity(any())
         } returns AccessDeniedException("Access denied").left()
 
         webClient.delete()
@@ -381,12 +379,12 @@ class EntityAccessControlHandlerTests {
             .exchange()
             .expectStatus().isForbidden
 
-        coVerify { authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub)) }
+        coVerify { authorizationService.userCanAdminEntity(eq(entityUri1)) }
     }
 
     @Test
     fun `it should return a 404 if the subject has no right on the target entity`() {
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.isOwnerOfEntity(any(), any()) } returns false.right()
         coEvery {
             entityAccessRightsService.removeRoleOnEntity(any(), any())
@@ -417,7 +415,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
 
         webClient.post()
@@ -429,7 +427,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
+            authorizationService.userCanAdminEntity(eq(entityUri1))
 
             entityAccessRightsService.updateSpecificAccessPolicy(
                 eq(entityUri1),
@@ -454,7 +452,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
 
         webClient.post()
@@ -464,7 +462,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
+            authorizationService.userCanAdminEntity(eq(entityUri1))
 
             entityAccessRightsService.updateSpecificAccessPolicy(
                 eq(entityUri1),
@@ -489,7 +487,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.updateSpecificAccessPolicy(any(), any()) } returns Unit.right()
 
         val expectedAttr = "https://uri.etsi.org/ngsi-ld/default-context/specificAccessPolicy"
@@ -520,7 +518,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery {
             entityAccessRightsService.updateSpecificAccessPolicy(any(), any())
         } returns BadRequestDataException("Bad request").left()
@@ -545,7 +543,7 @@ class EntityAccessControlHandlerTests {
             }
             """.trimIndent()
 
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.updateSpecificAccessPolicy(any(), any()) } throws RuntimeException()
 
         webClient.post()
@@ -560,7 +558,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `it should not allow an unauthorized user to set the specific access policy on an entity`() {
         coEvery {
-            authorizationService.userCanAdminEntity(any(), any())
+            authorizationService.userCanAdminEntity(any())
         } returns AccessDeniedException("User is not admin of the target entity").left()
 
         webClient.post()
@@ -574,7 +572,7 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `it should allow an authorized user to delete the specific access policy on an entity`() {
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityAccessRightsService.removeSpecificAccessPolicy(any()) } returns Unit.right()
 
         webClient.delete()
@@ -584,7 +582,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            authorizationService.userCanAdminEntity(eq(entityUri1), eq(sub))
+            authorizationService.userCanAdminEntity(eq(entityUri1))
 
             entityAccessRightsService.removeSpecificAccessPolicy(eq(entityUri1))
         }
@@ -593,7 +591,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 200 and the number of results if requested limit is 0`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any())
         } returns Pair(3, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -607,7 +605,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any())
         } returns Pair(0, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -620,7 +618,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should not ask for deleted entities if includeDeleted query param is not provided`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any())
         } returns Pair(0, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -630,14 +628,14 @@ class EntityAccessControlHandlerTests {
             .expectBody().json("[]")
 
         coVerify {
-            authorizationService.getAuthorizedEntities(any(), false, any(), any())
+            authorizationService.getAuthorizedEntities(any(), false, any())
         }
     }
 
     @Test
     fun `get authorized entities should ask for deleted entities if includeDeleted query param is true`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any())
         } returns Pair(0, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -647,14 +645,14 @@ class EntityAccessControlHandlerTests {
             .expectBody().json("[]")
 
         coVerify {
-            authorizationService.getAuthorizedEntities(any(), true, any(), any())
+            authorizationService.getAuthorizedEntities(any(), true, any())
         }
     }
 
     @Test
     fun `get authorized entities should return entities I have a right on`() = runTest {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any())
         } returns Pair(
             2,
             listOf(
@@ -728,7 +726,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get authorized entities should return 204 if authentication is not enabled`() {
         coEvery {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any())
+            authorizationService.getAuthorizedEntities(any(), any(), any())
         } returns Pair(-1, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -741,7 +739,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get groups memberships should return 200 and the number of results if requested limit is 0`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any(), any())
         } returns Pair(3, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -755,7 +753,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get groups memberships should return groups I am member of`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any(), any())
         } returns Pair(
             1,
             listOf(
@@ -794,7 +792,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get groups memberships should return groups I am member of with authorization context`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any(), any())
         } returns Pair(
             1,
             listOf(
@@ -839,7 +837,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get groups memberships should return 204 if authentication is not enabled`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any(), any())
         } returns Pair(-1, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -852,7 +850,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `get users should return an access denied error if user is not a stellio admin`() {
         coEvery {
-            authorizationService.userIsAdmin(any())
+            authorizationService.userIsAdmin()
         } returns AccessDeniedException("Access denied").left()
 
         webClient.get()
@@ -864,7 +862,7 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `get users should return 200 and the number of results if requested limit is 0`() {
-        coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
+        coEvery { authorizationService.userIsAdmin() } returns Unit.right()
         coEvery {
             authorizationService.getUsers(any(), any(), any())
         } returns Pair(3, emptyList<ExpandedEntity>()).right()
@@ -879,7 +877,7 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `get users should return 204 if authentication is not enabled`() {
-        coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
+        coEvery { authorizationService.userIsAdmin() } returns Unit.right()
         coEvery {
             authorizationService.getUsers(any(), any(), any())
         } returns Pair(-1, emptyList<ExpandedEntity>()).right()
@@ -893,7 +891,7 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `get users should return users if user is a stellio admin`() = runTest {
-        coEvery { authorizationService.userIsAdmin(any()) } returns Unit.right()
+        coEvery { authorizationService.userIsAdmin() } returns Unit.right()
         coEvery {
             authorizationService.getUsers(any(), any(), any())
         } returns Pair(

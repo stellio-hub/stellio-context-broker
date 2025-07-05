@@ -66,7 +66,7 @@ class TemporalEntityOperationsHandlerTests {
         )
 
         coEvery {
-            temporalQueryService.queryTemporalEntities(any(), any())
+            temporalQueryService.queryTemporalEntities(any())
         } returns Either.Right(Triple(emptyList(), 2, null))
 
         val query = """
@@ -103,8 +103,7 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_IRI, OUTGOING_IRI) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES
-                },
-                any()
+                }
             )
         }
     }
@@ -118,7 +117,7 @@ class TemporalEntityOperationsHandlerTests {
         )
 
         coEvery {
-            temporalQueryService.queryTemporalEntities(any(), any())
+            temporalQueryService.queryTemporalEntities(any())
         } returns Either.Right(Triple(emptyList(), 2, null))
 
         val query = """
@@ -157,8 +156,7 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.count &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES
-                },
-                any()
+                }
             )
         }
 

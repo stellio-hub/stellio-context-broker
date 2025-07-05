@@ -71,9 +71,9 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.attributeNotFoundMessage
 import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.getNullableSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -159,15 +159,14 @@ class EntityAttributeService(
     @Transactional
     suspend fun createAttributes(
         payload: String,
-        contexts: List<String>,
-        sub: String? = null
+        contexts: List<String>
     ): Either<APIException, Unit> = either {
         val createdAt = ngsiLdDateTime()
         val expandedEntity = expandJsonLdEntity(payload, contexts)
         val ngsiLdEntity = expandedEntity.toNgsiLdEntity().bind()
         ngsiLdEntity.prepareAttributes()
             .map {
-                createAttributes(ngsiLdEntity, expandedEntity, it, createdAt, sub).bind()
+                createAttributes(ngsiLdEntity, expandedEntity, it, createdAt).bind()
             }.bind()
     }
 
@@ -176,8 +175,7 @@ class EntityAttributeService(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity,
         attributesMetadata: List<Pair<ExpandedTerm, AttributeMetadata>>,
-        createdAt: ZonedDateTime,
-        sub: String? = null
+        createdAt: ZonedDateTime
     ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         logger.debug("Creating {} attributes in entity: {}", attributesMetadata.size, ngsiLdEntity.id)
 
@@ -197,8 +195,7 @@ class EntityAttributeService(
                     expandedAttributeName,
                     attributeMetadata,
                     createdAt,
-                    attributePayload,
-                    sub
+                    attributePayload
                 ).bind()
             }
     }
@@ -210,7 +207,6 @@ class EntityAttributeService(
         attributeMetadata: AttributeMetadata,
         createdAt: ZonedDateTime,
         attributePayload: ExpandedAttributeInstance,
-        sub: Sub?
     ): Either<APIException, SucceededAttributeOperationResult> = either {
         logger.debug("Adding attribute {} to entity {}", attributeName, entityId)
         val attribute = Attribute(
@@ -236,7 +232,7 @@ class EntityAttributeService(
             time = createdAt,
             attributeMetadata = attributeMetadata,
             payload = attributePayload,
-            sub = sub
+            sub = getNullableSubFromSecurityContext()
         )
         attributeInstanceService.create(attributeInstance).bind()
 
@@ -268,8 +264,7 @@ class EntityAttributeService(
         attributeMetadata: AttributeMetadata,
         mergedAt: ZonedDateTime,
         observedAt: ZonedDateTime?,
-        attributePayload: ExpandedAttributeInstance,
-        sub: Sub?
+        attributePayload: ExpandedAttributeInstance
     ): Either<APIException, SucceededAttributeOperationResult> = either {
         logger.debug(
             "Merging attribute {} ({}) in entity {}",
@@ -289,7 +284,7 @@ class EntityAttributeService(
         update(attribute.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject).bind()
 
         val attributeInstance =
-            createContextualAttributeInstance(attribute, updatedAttributeInstance, value, mergedAt, sub)
+            createContextualAttributeInstance(attribute, updatedAttributeInstance, value, mergedAt)
         attributeInstanceService.create(attributeInstance)
             .map {
                 SucceededAttributeOperationResult(
@@ -611,8 +606,7 @@ class EntityAttributeService(
         ngsiLdAttributes: List<NgsiLdAttribute>,
         expandedAttributes: ExpandedAttributes,
         disallowOverwrite: Boolean,
-        createdAt: ZonedDateTime,
-        sub: Sub?
+        createdAt: ZonedDateTime
     ): Either<APIException, List<AttributeOperationResult>> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
@@ -639,8 +633,7 @@ class EntityAttributeService(
                     ngsiLdAttribute.name,
                     attributeMetadata,
                     createdAt,
-                    attributePayload,
-                    sub
+                    attributePayload
                 ).bind()
             }
         }
@@ -651,8 +644,7 @@ class EntityAttributeService(
         entityUri: URI,
         ngsiLdAttributes: List<NgsiLdAttribute>,
         expandedAttributes: ExpandedAttributes,
-        createdAt: ZonedDateTime,
-        sub: Sub?
+        createdAt: ZonedDateTime
     ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
@@ -680,8 +672,7 @@ class EntityAttributeService(
                     ngsiLdAttribute.name,
                     attributeMetadata,
                     createdAt,
-                    attributePayload,
-                    sub
+                    attributePayload
                 ).bind()
             }
         }
@@ -691,8 +682,7 @@ class EntityAttributeService(
     suspend fun partialUpdateAttribute(
         entityId: URI,
         expandedAttribute: ExpandedAttribute,
-        modifiedAt: ZonedDateTime,
-        sub: Sub?
+        modifiedAt: ZonedDateTime
     ): Either<APIException, AttributeOperationResult> = either {
         val attributeName = expandedAttribute.first
         val attributeValues = expandedAttribute.second[0]
@@ -720,8 +710,7 @@ class EntityAttributeService(
                 applyPartialUpdatePatchOperation(
                     currentAttribute,
                     attributeValues,
-                    modifiedAt,
-                    sub
+                    modifiedAt
                 ).bind()
             }
 
@@ -732,8 +721,7 @@ class EntityAttributeService(
     internal suspend fun applyPartialUpdatePatchOperation(
         attribute: Attribute,
         attributeValues: ExpandedAttributeInstance,
-        modifiedAt: ZonedDateTime,
-        sub: Sub?
+        modifiedAt: ZonedDateTime
     ): Either<APIException, SucceededAttributeOperationResult> = either {
         // first update payload in temporal entity attribute
         attributeValues[JSONLD_TYPE_KW]?.let {
@@ -752,8 +740,7 @@ class EntityAttributeService(
             attribute,
             updatedAttributeInstance,
             value,
-            modifiedAt,
-            sub
+            modifiedAt
         )
         attributeInstanceService.create(attributeInstance).bind()
 
@@ -770,8 +757,7 @@ class EntityAttributeService(
         entityUri: URI,
         ngsiLdAttribute: NgsiLdAttribute,
         expandedAttributes: ExpandedAttributes,
-        createdAt: ZonedDateTime,
-        sub: Sub?
+        createdAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         logger.debug("Upserting temporal attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
@@ -795,8 +781,7 @@ class EntityAttributeService(
                 ngsiLdAttribute.name,
                 attributeMetadata,
                 createdAt,
-                attributePayload,
-                sub
+                attributePayload
             ).bind()
         } else {
             logger.debug("Adding instance to attribute {} to entity {}", currentAttribute.attributeName, entityUri)
@@ -814,8 +799,7 @@ class EntityAttributeService(
         ngsiLdAttributes: List<NgsiLdAttribute>,
         expandedAttributes: ExpandedAttributes,
         createdAt: ZonedDateTime,
-        observedAt: ZonedDateTime?,
-        sub: Sub?
+        observedAt: ZonedDateTime?
     ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
         val attributeInstances = ngsiLdAttributes.flatOnInstances()
         attributeInstances.parMap { (ngsiLdAttribute, ngsiLdAttributeInstance) ->
@@ -835,8 +819,7 @@ class EntityAttributeService(
                     ngsiLdAttribute.name,
                     attributeMetadata,
                     createdAt,
-                    attributePayload,
-                    sub
+                    attributePayload
                 ).map {
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
@@ -859,8 +842,7 @@ class EntityAttributeService(
                     attributeMetadata,
                     createdAt,
                     observedAt,
-                    attributePayload,
-                    sub
+                    attributePayload
                 ).bind()
         }
     }.fold({ it.left() }, { it.right() })
@@ -870,8 +852,7 @@ class EntityAttributeService(
         entityId: URI,
         ngsiLdAttribute: NgsiLdAttribute,
         expandedAttribute: ExpandedAttribute,
-        replacedAt: ZonedDateTime,
-        sub: Sub?
+        replacedAt: ZonedDateTime
     ): Either<APIException, AttributeOperationResult> = either {
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         val attributeName = ngsiLdAttribute.name
@@ -892,8 +873,7 @@ class EntityAttributeService(
                     attributeName,
                     attributeMetadata,
                     replacedAt,
-                    expandedAttribute.second.first(),
-                    sub
+                    expandedAttribute.second.first()
                 ).bind()
 
                 SucceededAttributeOperationResult(
@@ -950,12 +930,11 @@ class EntityAttributeService(
                 )
         }
 
-    private fun createContextualAttributeInstance(
+    private suspend fun createContextualAttributeInstance(
         attribute: Attribute,
         expandedAttributeInstance: ExpandedAttributeInstance,
         value: Triple<String?, Double?, WKTCoordinates?>,
-        modifiedAt: ZonedDateTime,
-        sub: Sub?
+        modifiedAt: ZonedDateTime
     ): AttributeInstance {
         val timeAndProperty =
             if (expandedAttributeInstance.containsKey(NGSILD_OBSERVED_AT_IRI))
@@ -971,7 +950,7 @@ class EntityAttributeService(
             timeAndProperty = timeAndProperty,
             value = value,
             payload = expandedAttributeInstance,
-            sub = sub
+            sub = getNullableSubFromSecurityContext()
         )
     }
 

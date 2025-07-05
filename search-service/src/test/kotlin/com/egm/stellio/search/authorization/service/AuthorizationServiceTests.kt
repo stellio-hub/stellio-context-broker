@@ -1,6 +1,5 @@
 package com.egm.stellio.search.authorization.service
 
-import arrow.core.None
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.queryparameter.PaginationQuery
@@ -27,7 +26,7 @@ class AuthorizationServiceTests {
 
     @Test
     fun `it should authorize access to read`() = runTest {
-        authorizationService.userCanReadEntity(entityUri, None)
+        authorizationService.userCanReadEntity(entityUri)
             .mapLeft {
                 fail("it should not have failed")
             }
@@ -41,8 +40,7 @@ class AuthorizationServiceTests {
                 contexts = listOf(applicationProperties.contexts.core)
             ),
             false,
-            listOf(applicationProperties.contexts.core),
-            None
+            listOf(applicationProperties.contexts.core)
         ).shouldSucceedWith {
             assertEquals(-1, it.first)
             assertEquals(0, it.second.size)
@@ -54,8 +52,7 @@ class AuthorizationServiceTests {
         authorizationService.getGroupsMemberships(
             0,
             0,
-            AUTHZ_TEST_COMPOUND_CONTEXTS,
-            None
+            AUTHZ_TEST_COMPOUND_CONTEXTS
         ).shouldSucceedWith {
             assertEquals(-1, it.first)
             assertEquals(0, it.second.size)

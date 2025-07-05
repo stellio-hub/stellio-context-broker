@@ -37,7 +37,6 @@ import com.egm.stellio.shared.util.checkNamesAreNgsiLdSupported
 import com.egm.stellio.shared.util.extractContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.toListOfUri
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -74,8 +73,6 @@ class EntityOperationHandler(
         @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
         val batchOperationResult = BatchOperationResult().apply {
@@ -83,7 +80,7 @@ class EntityOperationHandler(
         }
 
         if (parsedEntities.isNotEmpty()) {
-            val createOperationResult = entityOperationService.create(parsedEntities, sub.getOrNull())
+            val createOperationResult = entityOperationService.create(parsedEntities)
             batchOperationResult.errors.addAll(createOperationResult.errors)
             batchOperationResult.success.addAll(createOperationResult.success)
         }
@@ -112,7 +109,6 @@ class EntityOperationHandler(
         val options = queryParams.getFirst(QP.OPTIONS.key)?.split(",")
         val disallowOverwrite = options?.any { it == OptionsValue.NO_OVERWRITE.value } == true
         val updateMode = options?.any { it == OptionsValue.UPDATE_MODE.value } == true
-        val sub = getSubFromSecurityContext()
 
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
@@ -124,8 +120,7 @@ class EntityOperationHandler(
             val (updateOperationResult, newUniqueEntities) = entityOperationService.upsert(
                 parsedEntities,
                 disallowOverwrite,
-                updateMode,
-                sub.getOrNull()
+                updateMode
             )
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
@@ -160,8 +155,6 @@ class EntityOperationHandler(
         val options = queryParams.getFirst(QP.OPTIONS.key)
         val disallowOverwrite = options?.let { it == OptionsValue.NO_OVERWRITE.value } == true
 
-        val sub = getSubFromSecurityContext()
-
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
         val batchOperationResult = BatchOperationResult().apply {
@@ -170,7 +163,7 @@ class EntityOperationHandler(
 
         if (parsedEntities.isNotEmpty()) {
             val updateOperationResult =
-                entityOperationService.update(parsedEntities, disallowOverwrite, sub.getOrNull())
+                entityOperationService.update(parsedEntities, disallowOverwrite)
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)
@@ -195,8 +188,6 @@ class EntityOperationHandler(
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
         val batchOperationResult = BatchOperationResult().apply {
@@ -204,7 +195,7 @@ class EntityOperationHandler(
         }
 
         if (parsedEntities.isNotEmpty()) {
-            val mergeOperationResult = entityOperationService.merge(parsedEntities, sub.getOrNull())
+            val mergeOperationResult = entityOperationService.merge(parsedEntities)
             batchOperationResult.errors.addAll(mergeOperationResult.errors)
             batchOperationResult.success.addAll(mergeOperationResult.success)
         }
@@ -227,14 +218,12 @@ class EntityOperationHandler(
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val body = requestBody.awaitFirst()
         checkBatchRequestBody(body).bind()
         val entitiesId = body.toListOfUri()
 
         val batchOperationResult = if (entitiesId.isNotEmpty()) {
-            val deleteOperationResult = entityOperationService.delete(entitiesId, sub.getOrNull())
+            val deleteOperationResult = entityOperationService.delete(entitiesId)
             BatchOperationResult(
                 errors = deleteOperationResult.errors,
                 success = deleteOperationResult.success
@@ -267,7 +256,6 @@ class EntityOperationHandler(
         val query = Query(requestBody.awaitFirst()).bind()
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
             .copy(languageFilter = query.lang)
-        val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val entitiesQuery = composeEntitiesQueryFromPost(
             applicationProperties.pagination,
@@ -276,7 +264,7 @@ class EntityOperationHandler(
             contexts
         ).bind()
 
-        val (entities, count) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
+        val (entities, count) = entityQueryService.queryEntities(entitiesQuery).bind()
 
         val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 

@@ -15,7 +15,6 @@ import com.egm.stellio.shared.queryparameter.LinkedEntityQuery
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinType
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
-import com.egm.stellio.shared.util.Sub
 import org.springframework.stereotype.Service
 
 @Service
@@ -24,8 +23,7 @@ class LinkedEntityService(
 ) {
     suspend fun processLinkedEntities(
         compactedEntity: CompactedEntity,
-        entitiesQuery: EntitiesQuery,
-        sub: Sub?
+        entitiesQuery: EntitiesQuery
     ): Either<APIException, List<CompactedEntity>> = either {
         val linkedEntityQuery = entitiesQuery.linkedEntityQuery
         if (linkedEntityQuery == null || linkedEntityQuery.join == JoinType.NONE)
@@ -35,29 +33,26 @@ class LinkedEntityService(
             listOf(compactedEntity),
             linkedEntityQuery,
             entitiesQuery.contexts,
-            1.toUInt(),
-            sub
+            1.toUInt()
         ).bind()
     }
 
     suspend fun processLinkedEntities(
         compactedEntities: List<CompactedEntity>,
-        entitiesQuery: EntitiesQuery,
-        sub: Sub?
+        entitiesQuery: EntitiesQuery
     ): Either<APIException, List<CompactedEntity>> = either {
         val linkedEntityQuery = entitiesQuery.linkedEntityQuery
         if (linkedEntityQuery == null || linkedEntityQuery.join == JoinType.NONE)
             return compactedEntities.right()
 
-        enrichWithLinkedEntities(compactedEntities, linkedEntityQuery, entitiesQuery.contexts, 1.toUInt(), sub).bind()
+        enrichWithLinkedEntities(compactedEntities, linkedEntityQuery, entitiesQuery.contexts, 1.toUInt()).bind()
     }
 
     internal suspend fun enrichWithLinkedEntities(
         compactedEntities: List<CompactedEntity>,
         linkedEntityQuery: LinkedEntityQuery,
         contexts: List<String>,
-        currentLevel: UInt,
-        sub: Sub?
+        currentLevel: UInt
     ): Either<APIException, List<CompactedEntity>> = either {
         val linkedUris = compactedEntities.getRelationshipsObjects()
         if (currentLevel > linkedEntityQuery.joinLevel || linkedUris.isEmpty())
@@ -68,7 +63,7 @@ class LinkedEntityService(
             paginationQuery = PaginationQuery(0, Int.MAX_VALUE),
             contexts = contexts
         )
-        val linkedEntities = entityQueryService.queryEntities(relationshipsQuery, sub).bind()
+        val linkedEntities = entityQueryService.queryEntities(relationshipsQuery).bind()
             .first
             .let { compactEntities(it, contexts) }
 
@@ -80,8 +75,7 @@ class LinkedEntityService(
                         linkedEntities,
                         linkedEntityQuery,
                         contexts,
-                        currentLevel.inc(),
-                        sub
+                        currentLevel.inc()
                     ).bind()
                 )
             JoinType.INLINE ->
@@ -91,8 +85,7 @@ class LinkedEntityService(
                         linkedEntities,
                         linkedEntityQuery,
                         contexts,
-                        currentLevel.inc(),
-                        sub
+                        currentLevel.inc()
                     ).bind()
                 )
             // not possible but it needs to be handled anyway

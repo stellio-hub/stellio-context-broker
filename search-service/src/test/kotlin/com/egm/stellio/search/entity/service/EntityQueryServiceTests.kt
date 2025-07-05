@@ -67,7 +67,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should return a JSON-LD entity when querying by id`() = runTest {
-        coEvery { authorizationService.userCanReadEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
 
         loadAndPrepareSampleData("beehive.jsonld")
             .map {
@@ -96,9 +96,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should return a list of JSON-LD entities when querying entities`() = runTest {
-        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
-        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
-        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.computeAccessRightFilter() } returns { null }
 
         loadAndPrepareSampleData("beehive.jsonld")
             .map {
@@ -119,7 +119,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should return an empty list if no entity matched the query`() = runTest {
-        coEvery { authorizationService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { authorizationService.computeAccessRightFilter() } returns { null }
 
         entityQueryService.queryEntities(buildDefaultQueryParams().copy(ids = setOf(entity01Uri)))
             .shouldSucceedWith {

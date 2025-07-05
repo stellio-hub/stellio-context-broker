@@ -16,7 +16,6 @@ import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.ENTITIY_CREATION_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
-import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
@@ -52,8 +51,6 @@ class EntityOperationServiceTests {
     private lateinit var firstEntity: NgsiLdEntity
     private lateinit var secondExpandedEntity: ExpandedEntity
     private lateinit var secondEntity: NgsiLdEntity
-
-    val sub: Sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"
 
     @BeforeAll
     fun initNgsiLdEntitiesMocks() {
@@ -123,10 +120,10 @@ class EntityOperationServiceTests {
         val error = BadRequestDataException("error")
 
         coEvery {
-            entityService.appendAttributes(firstEntityURI, any(), any(), any())
+            entityService.appendAttributes(firstEntityURI, any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
         coEvery {
-            entityService.appendAttributes(secondEntityURI, any(), any(), any())
+            entityService.appendAttributes(secondEntityURI, any(), any())
         } returns error.left()
 
         val batchOperationResult =
@@ -135,9 +132,7 @@ class EntityOperationServiceTests {
                     firstExpandedEntity to firstEntity,
                     secondExpandedEntity to secondEntity
                 ),
-                false,
-                sub,
-                entityOperationService::updateEntity
+                processor = entityOperationService::updateEntity
             )
 
         assertEquals(
@@ -160,10 +155,10 @@ class EntityOperationServiceTests {
             )
         )
         coEvery {
-            entityService.appendAttributes(firstEntityURI, any(), any(), any())
+            entityService.appendAttributes(firstEntityURI, any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
         coEvery {
-            entityService.appendAttributes(secondEntityURI, any(), any(), any())
+            entityService.appendAttributes(secondEntityURI, any(), any())
         } returns updateResult.right()
 
         val batchOperationResult = entityOperationService.processEntities(
@@ -171,9 +166,7 @@ class EntityOperationServiceTests {
                 firstExpandedEntity to firstEntity,
                 secondExpandedEntity to secondEntity
             ),
-            false,
-            sub,
-            entityOperationService::updateEntity
+            processor = entityOperationService::updateEntity
         )
 
         assertEquals(
@@ -193,14 +186,13 @@ class EntityOperationServiceTests {
 
     @Test
     fun `batch create should ask to create all provided entities`() = runTest {
-        coEvery { entityService.createEntity(any<NgsiLdEntity>(), any(), any()) } returns Unit.right()
+        coEvery { entityService.createEntity(any<NgsiLdEntity>(), any()) } returns Unit.right()
 
         val batchOperationResult = entityOperationService.create(
             listOf(
                 Pair(firstExpandedEntity, firstEntity),
                 Pair(secondExpandedEntity, secondEntity)
-            ),
-            sub
+            )
         )
 
         assertEquals(
@@ -210,27 +202,26 @@ class EntityOperationServiceTests {
         assertTrue(batchOperationResult.errors.isEmpty())
 
         coVerify {
-            entityService.createEntity(firstEntity, firstExpandedEntity, sub)
+            entityService.createEntity(firstEntity, firstExpandedEntity)
         }
         coVerify {
-            entityService.createEntity(secondEntity, secondExpandedEntity, sub)
+            entityService.createEntity(secondEntity, secondExpandedEntity)
         }
     }
 
     @Test
     fun `batch create should ask to create entities and transmit back any error`() = runTest {
         val badRequestException = BadRequestDataException("Invalid entity")
-        coEvery { entityService.createEntity(firstEntity, any(), any()) } returns Unit.right()
+        coEvery { entityService.createEntity(firstEntity, any()) } returns Unit.right()
         coEvery {
-            entityService.createEntity(secondEntity, any(), any())
+            entityService.createEntity(secondEntity, any())
         } returns badRequestException.left()
 
         val batchOperationResult = entityOperationService.create(
             listOf(
                 Pair(firstExpandedEntity, firstEntity),
                 Pair(secondExpandedEntity, secondEntity)
-            ),
-            sub
+            )
         )
 
         assertEquals(arrayListOf(BatchEntitySuccess(firstEntityURI)), batchOperationResult.success)
@@ -241,23 +232,21 @@ class EntityOperationServiceTests {
             batchOperationResult.errors
         )
         coVerify(exactly = 1) {
-            entityService.createEntity(secondEntity, any(), any())
+            entityService.createEntity(secondEntity, any())
         }
     }
 
     @Test
     fun `batch update should ask to update attributes of entities`() = runTest {
         coEvery {
-            entityService.appendAttributes(any(), any(), any(), any())
+            entityService.appendAttributes(any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
 
         val batchOperationResult = entityOperationService.update(
             listOf(
                 Pair(firstExpandedEntity, firstEntity),
                 Pair(secondExpandedEntity, secondEntity)
-            ),
-            false,
-            sub
+            )
         )
 
         assertEquals(
@@ -266,25 +255,24 @@ class EntityOperationServiceTests {
         )
 
         coVerify {
-            entityService.appendAttributes(eq(firstEntityURI), any(), false, sub)
+            entityService.appendAttributes(eq(firstEntityURI), any(), false)
         }
         coVerify {
-            entityService.appendAttributes(eq(secondEntityURI), any(), false, sub)
+            entityService.appendAttributes(eq(secondEntityURI), any(), false)
         }
     }
 
     @Test
     fun `batch replace should ask to replace entities`() = runTest {
         coEvery {
-            entityService.replaceEntity(any(), any(), any(), any())
+            entityService.replaceEntity(any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
 
         val batchOperationResult = entityOperationService.replace(
             listOf(
                 Pair(firstExpandedEntity, firstEntity),
                 Pair(secondExpandedEntity, secondEntity)
-            ),
-            sub
+            )
         )
 
         assertEquals(
@@ -294,21 +282,20 @@ class EntityOperationServiceTests {
         assertTrue(batchOperationResult.errors.isEmpty())
 
         coVerify {
-            entityService.replaceEntity(firstEntityURI, any(), any(), any())
-            entityService.replaceEntity(secondEntityURI, any(), any(), any())
+            entityService.replaceEntity(firstEntityURI, any(), any())
+            entityService.replaceEntity(secondEntityURI, any(), any())
         }
     }
 
     @Test
     fun `batch delete should return the list of deleted entity ids when deletion is successful`() = runTest {
-        coEvery { entityService.deleteEntity(any(), any()) } returns Unit.right()
+        coEvery { entityService.deleteEntity(any()) } returns Unit.right()
 
         val batchOperationResult = entityOperationService.delete(
             listOf(
                 firstEntityURI,
                 secondEntityURI,
-            ),
-            sub
+            )
         )
 
         assertEquals(
@@ -318,8 +305,8 @@ class EntityOperationServiceTests {
         assertEquals(emptyList<BatchEntityError>(), batchOperationResult.errors)
 
         coVerify {
-            entityService.deleteEntity(firstEntityURI, sub)
-            entityService.deleteEntity(secondEntityURI, sub)
+            entityService.deleteEntity(firstEntityURI)
+            entityService.deleteEntity(secondEntityURI)
         }
     }
 
@@ -327,17 +314,16 @@ class EntityOperationServiceTests {
     fun `batch delete should return deleted entity ids and in errors when deletion is partially successful`() =
         runTest {
             val internalError = InternalErrorException("Something went wrong during deletion")
-            coEvery { entityService.deleteEntity(firstEntityURI, sub) } returns Unit.right()
+            coEvery { entityService.deleteEntity(firstEntityURI) } returns Unit.right()
             coEvery {
-                entityService.deleteEntity(secondEntityURI, sub)
+                entityService.deleteEntity(secondEntityURI)
             } returns internalError.left()
 
             val batchOperationResult = entityOperationService.delete(
                 listOf(
                     firstEntityURI,
                     secondEntityURI,
-                ),
-                sub
+                )
             )
 
             assertEquals(
@@ -360,15 +346,14 @@ class EntityOperationServiceTests {
         val deleteEntityError = InternalErrorException("Something went wrong with deletion request")
 
         coEvery {
-            entityService.deleteEntity(any(), any())
+            entityService.deleteEntity(any())
         } returns deleteEntityError.left()
 
         val batchOperationResult = entityOperationService.delete(
             listOf(
                 firstEntityURI,
                 secondEntityURI,
-            ),
-            sub
+            )
         )
 
         assertEquals(emptyList<BatchEntitySuccess>(), batchOperationResult.success)
@@ -386,22 +371,21 @@ class EntityOperationServiceTests {
             batchOperationResult.errors
         )
 
-        coVerify { entityService.deleteEntity(firstEntityURI, sub) }
-        coVerify { entityService.deleteEntity(secondEntityURI, sub) }
+        coVerify { entityService.deleteEntity(firstEntityURI) }
+        coVerify { entityService.deleteEntity(secondEntityURI) }
     }
 
     @Test
     fun `batch merge should ask to merge attributes of entities`() = runTest {
         coEvery {
-            entityService.mergeEntity(any(), any(), any(), any())
+            entityService.mergeEntity(any(), any(), any())
         } returns EMPTY_UPDATE_RESULT.right()
 
         val batchOperationResult = entityOperationService.merge(
             listOf(
                 firstExpandedEntity to firstEntity,
                 secondExpandedEntity to secondEntity
-            ),
-            sub
+            )
         )
 
         assertEquals(
@@ -410,8 +394,8 @@ class EntityOperationServiceTests {
         )
 
         coVerify {
-            entityService.mergeEntity(eq(firstEntityURI), any(), null, sub)
-            entityService.mergeEntity(eq(secondEntityURI), any(), null, sub)
+            entityService.mergeEntity(eq(firstEntityURI), any(), null)
+            entityService.mergeEntity(eq(secondEntityURI), any(), null)
         }
     }
 
@@ -435,7 +419,7 @@ class EntityOperationServiceTests {
     fun `upsert batch entity without option should replace existing entities`() = runTest {
         upsertUpdateSetup()
 
-        coEvery { entityOperationService.replace(any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.replace(any()) } returns BatchOperationResult(
             mutableListOf(BatchEntitySuccess(firstEntity.id), BatchEntitySuccess(secondEntity.id)),
             arrayListOf()
         )
@@ -446,18 +430,17 @@ class EntityOperationServiceTests {
                 secondExpandedEntity to secondEntity
             ),
             disallowOverwrite = false,
-            updateMode = false,
-            sub
+            updateMode = false
         )
 
         assertEquals(0, createdIds.size)
         assertEquals(2, batchOperationResult.success.size)
         assertEquals(0, batchOperationResult.errors.size)
 
-        coVerify { entityOperationService.replace(any(), com.egm.stellio.shared.util.sub.getOrNull()) }
+        coVerify { entityOperationService.replace(any()) }
         coVerify(exactly = 0) {
-            entityOperationService.create(any(), any())
-            entityOperationService.update(any(), any(), any())
+            entityOperationService.create(any())
+            entityOperationService.update(any(), any())
         }
     }
 
@@ -465,7 +448,7 @@ class EntityOperationServiceTests {
     fun `upsert batch entity with update should update existing entities`() = runTest {
         upsertUpdateSetup()
 
-        coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             mutableListOf(BatchEntitySuccess(firstEntity.id), BatchEntitySuccess(secondEntity.id)),
             arrayListOf()
         )
@@ -476,18 +459,17 @@ class EntityOperationServiceTests {
                 secondExpandedEntity to secondEntity
             ),
             disallowOverwrite = false,
-            updateMode = true,
-            sub
+            updateMode = true
         )
 
         assertEquals(0, createdIds.size)
         assertEquals(2, batchOperationResult.success.size)
         assertEquals(0, batchOperationResult.errors.size)
 
-        coVerify { entityOperationService.update(any(), false, com.egm.stellio.shared.util.sub.getOrNull()) }
+        coVerify { entityOperationService.update(any()) }
         coVerify(exactly = 0) {
-            entityOperationService.create(any(), any())
-            entityOperationService.replace(any(), any())
+            entityOperationService.create(any())
+            entityOperationService.replace(any())
         }
     }
 
@@ -507,7 +489,7 @@ class EntityOperationServiceTests {
             )
         )
 
-        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.create(any()) } returns BatchOperationResult(
             mutableListOf(BatchEntitySuccess(firstEntity.id), BatchEntitySuccess(secondEntity.id)),
             arrayListOf()
         )
@@ -518,18 +500,17 @@ class EntityOperationServiceTests {
                 secondExpandedEntity to secondEntity
             ),
             disallowOverwrite = false,
-            updateMode = true,
-            sub
+            updateMode = true
         )
 
         assertEquals(2, createdIds.size)
         assertEquals(2, batchOperationResult.success.size)
         assertEquals(0, batchOperationResult.errors.size)
 
-        coVerify { entityOperationService.create(any(), any()) }
+        coVerify { entityOperationService.create(any()) }
         coVerify(exactly = 0) {
-            entityOperationService.update(any(), any(), any())
-            entityOperationService.replace(any(), any())
+            entityOperationService.update(any(), any())
+            entityOperationService.replace(any())
         }
     }
 
@@ -550,7 +531,7 @@ class EntityOperationServiceTests {
             )
         )
 
-        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.create(any()) } returns BatchOperationResult(
             emptyList<BatchEntitySuccess>().toMutableList(),
             arrayListOf(
                 BatchEntityError(
@@ -559,7 +540,7 @@ class EntityOperationServiceTests {
                 )
             )
         )
-        coEvery { entityOperationService.replace(any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.replace(any()) } returns BatchOperationResult(
             emptyList<BatchEntitySuccess>().toMutableList(),
             arrayListOf(
                 BatchEntityError(
@@ -575,15 +556,14 @@ class EntityOperationServiceTests {
                 secondExpandedEntity to secondEntity
             ),
             disallowOverwrite = false,
-            updateMode = false,
-            sub
+            updateMode = false
         )
 
         assertEquals(0, createdIds.size)
         assertEquals(0, batchOperationResult.success.size)
         assertEquals(2, batchOperationResult.errors.size)
 
-        coVerify { entityOperationService.create(any(), any()) }
-        coVerify { entityOperationService.replace(any(), any()) }
+        coVerify { entityOperationService.create(any()) }
+        coVerify { entityOperationService.replace(any()) }
     }
 }

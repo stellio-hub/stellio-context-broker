@@ -453,7 +453,8 @@ class PermissionHandlerTests {
 
     @Test
     fun `delete Permission should return the errors from the service`() = runTest {
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
         coEvery { permissionService.delete(any()) } returns ResourceNotFoundException("").left()
 
         webClient.delete()
@@ -466,7 +467,8 @@ class PermissionHandlerTests {
 
     @Test
     fun `delete Permission should return a 204 if the deletion succeeded`() = runTest {
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
         coEvery { permissionService.delete(any()) } returns Unit.right()
 
         webClient.delete()
@@ -479,13 +481,28 @@ class PermissionHandlerTests {
 
     @Test
     fun `delete Permission should refuse to delete permission if the subject is not admin of the target`() = runTest {
-        coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns false.right()
         coEvery { permissionService.delete(any()) } returns Unit.right()
 
         webClient.delete()
             .uri("$permissionUri/$id")
             .exchange()
             .expectStatus().isForbidden
+
+        coVerify(exactly = 0) { permissionService.delete(eq(id)) }
+    }
+
+    @Test
+    fun `delete Permission should refuse to delete an owning permission`() = runTest {
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission(action = Action.OWN).right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
+        coEvery { permissionService.delete(any()) } returns Unit.right()
+
+        webClient.delete()
+            .uri("$permissionUri/$id")
+            .exchange()
+            .expectStatus().isBadRequest
 
         coVerify(exactly = 0) { permissionService.delete(eq(id)) }
     }

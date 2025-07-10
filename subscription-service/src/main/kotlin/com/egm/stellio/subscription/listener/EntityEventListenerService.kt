@@ -65,7 +65,7 @@ class EntityEventListenerService(
                 is EntityDeleteEvent -> handleEntityEvent(
                     tenantName,
                     emptySet(),
-                    Pair(entityEvent.getEntity()!!, entityEvent.updatedEntity),
+                    Pair(entityEvent.getEntity(), entityEvent.updatedEntity),
                     NotificationTrigger.ENTITY_DELETED
                 )
                 is AttributeCreateEvent -> handleEntityEvent(

@@ -109,6 +109,7 @@ class EntityService(
         entityEventService.publishAttributeChangeEvents(
             sub,
             ngsiLdEntity.id,
+            ExpandedEntity(emptyMap()),
             attrsOperationResult.getSucceededOperations()
         )
     }
@@ -153,12 +154,13 @@ class EntityService(
         entityQueryService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId).bind()
 
+        val mergedAt = ngsiLdDateTime()
+        val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
         val (coreAttrs, otherAttrs) =
             expandedAttributes.toList()
                 // remove @id if it is present (optional as per 5.4)
                 .filter { it.first != JSONLD_ID_KW }
                 .partition { EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
-        val mergedAt = ngsiLdDateTime()
         logger.debug("Merging entity {}", entityId)
 
         val coreOperationResult = updateCoreAttributes(entityId, coreAttrs, mergedAt, MERGE_ENTITY).bind()
@@ -171,7 +173,7 @@ class EntityService(
         ).bind()
 
         val operationResult = coreOperationResult.plus(attrsOperationResult)
-        handleSuccessOperationActions(operationResult, entityId, mergedAt).bind()
+        handleSuccessOperationActions(entityId, originalEntity, operationResult, mergedAt).bind()
 
         UpdateResult(operationResult)
     }
@@ -188,6 +190,7 @@ class EntityService(
         logger.debug("Replacing entity {}", ngsiLdEntity.id)
 
         val replacedAt = ngsiLdDateTime()
+        val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
         val currentEntityAttributes = entityQueryService.retrieve(entityId).bind()
             .toExpandedEntity()
             .getAttributes()
@@ -235,9 +238,9 @@ class EntityService(
             .forEach {
                 val sub = getNullableSubFromSecurityContext()
                 if (it.operationStatus == OperationStatus.DELETED)
-                    entityEventService.publishAttributeDeleteEvent(sub, entityId, it)
+                    entityEventService.publishAttributeDeleteEvent(sub, entityId, originalEntity, it)
                 else
-                    entityEventService.publishAttributeChangeEvents(sub, entityId, listOf(it))
+                    entityEventService.publishAttributeChangeEvents(sub, entityId, originalEntity, listOf(it))
             }
 
         UpdateResult(operationResult)
@@ -361,9 +364,10 @@ class EntityService(
         entityQueryService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId).bind()
 
+        val createdAt = ngsiLdDateTime()
+        val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
         val (coreAttrs, otherAttrs) =
             expandedAttributes.toList().partition { EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
-        val createdAt = ngsiLdDateTime()
 
         val operationType =
             if (disallowOverwrite) APPEND_ATTRIBUTES
@@ -378,7 +382,7 @@ class EntityService(
         ).bind()
 
         val operationResult = coreOperationResult.plus(attrsOperationResult)
-        handleSuccessOperationActions(operationResult, entityId, createdAt).bind()
+        handleSuccessOperationActions(entityId, originalEntity, operationResult, createdAt).bind()
 
         UpdateResult(operationResult)
     }
@@ -391,9 +395,10 @@ class EntityService(
         entityQueryService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId).bind()
 
+        val createdAt = ngsiLdDateTime()
+        val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
         val (coreAttrs, otherAttrs) =
             expandedAttributes.toList().partition { EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
-        val createdAt = ngsiLdDateTime()
 
         val coreOperationResult = updateCoreAttributes(entityId, coreAttrs, createdAt, UPDATE_ATTRIBUTES).bind()
         val attrsOperationResult = entityAttributeService.updateAttributes(
@@ -404,7 +409,7 @@ class EntityService(
         ).bind()
 
         val operationResult = coreOperationResult.plus(attrsOperationResult)
-        handleSuccessOperationActions(operationResult, entityId, createdAt).bind()
+        handleSuccessOperationActions(entityId, originalEntity, operationResult, createdAt).bind()
 
         UpdateResult(operationResult)
     }
@@ -418,6 +423,7 @@ class EntityService(
         authorizationService.userCanUpdateEntity(entityId).bind()
 
         val modifiedAt = ngsiLdDateTime()
+        val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
 
         val operationResult = entityAttributeService.partialUpdateAttribute(
             entityId,
@@ -425,7 +431,7 @@ class EntityService(
             modifiedAt
         ).bind().let { listOf(it) }
 
-        handleSuccessOperationActions(operationResult, entityId, modifiedAt).bind()
+        handleSuccessOperationActions(entityId, originalEntity, operationResult, modifiedAt).bind()
 
         UpdateResult(operationResult)
     }
@@ -464,8 +470,9 @@ class EntityService(
         entityQueryService.checkEntityExistence(entityId).bind()
         authorizationService.userCanUpdateEntity(entityId).bind()
 
-        val ngsiLdAttribute = listOf(expandedAttribute).toMap().toNgsiLdAttributes().bind()[0]
         val replacedAt = ngsiLdDateTime()
+        val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
+        val ngsiLdAttribute = listOf(expandedAttribute).toMap().toNgsiLdAttributes().bind()[0]
 
         val operationResult = entityAttributeService.replaceAttribute(
             entityId,
@@ -474,15 +481,16 @@ class EntityService(
             replacedAt
         ).bind().let { listOf(it) }
 
-        handleSuccessOperationActions(operationResult, entityId, replacedAt).bind()
+        handleSuccessOperationActions(entityId, originalEntity, operationResult, replacedAt).bind()
 
         UpdateResult(operationResult)
     }
 
     @Transactional
     internal suspend fun handleSuccessOperationActions(
-        operationResult: List<AttributeOperationResult>,
         entityId: URI,
+        originalEntity: ExpandedEntity,
+        operationResult: List<AttributeOperationResult>,
         createdAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
         // update modifiedAt in entity if at least one attribute has been added
@@ -494,6 +502,7 @@ class EntityService(
             entityEventService.publishAttributeChangeEvents(
                 sub,
                 entityId,
+                originalEntity,
                 operationResult.getSucceededOperations()
             )
         }
@@ -559,6 +568,7 @@ class EntityService(
         entityEventService.publishAttributeDeletesOnEntityDeleteEvent(
             sub,
             entityId,
+            currentEntity.toExpandedEntity(),
             deletedEntityPayload,
             deleteOperationResult.getSucceededOperations()
         )
@@ -643,6 +653,8 @@ class EntityService(
         val sub = getNullableSubFromSecurityContext()
         authorizationService.userCanUpdateEntity(entityId).bind()
 
+        val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
+
         val deleteAttributeResults = if (attributeName == NGSILD_SCOPE_IRI) {
             scopeService.delete(entityId).bind()
         } else {
@@ -668,7 +680,7 @@ class EntityService(
 
         deleteAttributeResults.filterIsInstance<SucceededAttributeOperationResult>()
             .forEach {
-                entityEventService.publishAttributeDeleteEvent(sub, entityId, it)
+                entityEventService.publishAttributeDeleteEvent(sub, entityId, originalEntity, it)
             }
     }
 

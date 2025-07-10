@@ -3,6 +3,7 @@
   "tenantName": "urn:ngsi-ld:tenant:default",
   "entityTypes": ["Beekeeper"],
   "attributeName": "specificAccessPolicy",
+  "previousPayload": "",
   "updatedEntity": "",
   "contexts": [
     "https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld"

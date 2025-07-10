@@ -5,6 +5,7 @@
   "entityTypes": ["User"],
   "attributeName": "isMemberOf",
   "datasetId": "urn:ngsi-ld:Dataset:7cdad168-96ee-4649-b768-a060ac2ef435",
+  "previousPayload": "",
   "updatedEntity": "",
   "contexts": [
     "https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld"

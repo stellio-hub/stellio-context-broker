@@ -56,8 +56,7 @@ data class EntityDeleteEvent(
     override val tenantName: String = DEFAULT_TENANT_NAME,
     override val entityId: URI,
     override val entityTypes: List<ExpandedTerm>,
-    // null only when in the case of an IAM event (previous state is not known)
-    val previousEntity: String?,
+    val previousEntity: String,
     val updatedEntity: String
 ) : EntityEvent(EventsType.ENTITY_DELETE, sub, tenantName, entityId, entityTypes) {
     override fun getEntity() = this.previousEntity
@@ -86,6 +85,7 @@ data class AttributeUpdateEvent(
     override val entityTypes: List<ExpandedTerm>,
     val attributeName: ExpandedTerm,
     val datasetId: URI?,
+    val previousPayload: String,
     val operationPayload: String,
     val updatedEntity: String
 ) : EntityEvent(EventsType.ATTRIBUTE_UPDATE, sub, tenantName, entityId, entityTypes) {
@@ -101,6 +101,7 @@ data class AttributeDeleteEvent(
     override val entityTypes: List<ExpandedTerm>,
     val attributeName: ExpandedTerm,
     val datasetId: URI?,
+    val previousPayload: String,
     val updatedEntity: String
 ) : EntityEvent(EventsType.ATTRIBUTE_DELETE, sub, tenantName, entityId, entityTypes) {
     override fun getEntity() = this.updatedEntity

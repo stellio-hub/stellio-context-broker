@@ -20,11 +20,11 @@
     <ID>LongParameterList:EntitiesQuery.kt$EntitiesQuery$( open val q: String?, open val scopeQ: String?, open val paginationQuery: PaginationQuery, open val attrs: Set&lt;ExpandedTerm&gt;, open val datasetId: Set&lt;String&gt;, open val geoQuery: GeoQuery?, open val linkedEntityQuery: LinkedEntityQuery?, open val local: Boolean = false, open val contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:TemporalEntityHandler.kt$TemporalEntityHandler$( @RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: URI, @PathVariable attrId: String, @PathVariable instanceId: URI, @RequestBody requestBody: Mono&lt;String&gt;, @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA]) @RequestParam queryParams: MultiValueMap&lt;String, String&gt; )</ID>
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
+    <ID>MaxLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$"$permissionUri?id=$id&amp;action=${Action.OWN.value}&amp;assignee=assigneeId&amp;assigner=assignerId&amp;type=${BEEHIVE_TERM}"</ID>
     <ID>MaxLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$fun</ID>
     <ID>MaximumLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$ </ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>SwallowedException:TemporalQueryUtils.kt$e: IllegalArgumentException</ID>
-    <ID>UnusedParameter:PermissionFilters.kt$PermissionFilters.Companion$contexts: List&lt;String&gt;</ID>
     <ID>UnusedParameter:PermissionService.kt$PermissionService$contexts: List&lt;String&gt;</ID>
     <ID>UnusedParameter:TargetAsset.kt$TargetAsset$contexts: List&lt;String&gt;</ID>
   </CurrentIssues>

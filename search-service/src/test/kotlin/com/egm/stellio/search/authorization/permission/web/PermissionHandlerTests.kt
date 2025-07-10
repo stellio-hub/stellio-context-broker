@@ -4,6 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
+import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.OnlyGetPermission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.permission.service.PermissionService
@@ -17,7 +18,10 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MOCK_USER_SUB
@@ -360,6 +364,91 @@ class PermissionHandlerTests {
             .expectBody()
 
         coVerify { permissionService.getPermissions(any(), any()) }
+    }
+
+    @Test
+    fun `query Permissions instantiate filter based on query parameters`() = runTest {
+        val permission = gimmeRawPermission()
+
+        coEvery {
+            permissionService.getPermissions(any(), any(), any())
+        } returns listOf(permission).right()
+
+        coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
+
+        webClient.get()
+            .uri(
+                "$permissionUri?id=$id&action=${Action.OWN.value}&assignee=assigneeId&assigner=assignerId&type=${BEEHIVE_TERM}"
+            )
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+
+        coVerify {
+            permissionService.getPermissions(
+                match {
+                    it.ids == listOf(id)
+                    it.action == Action.OWN
+                    it.assignee == "assigneeId"
+                    it.assigner == "assignerId"
+                    it.targetTypeSelection == BEEHIVE_IRI
+                },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun `query base Permissions endpoint should only ask for permission you admin`() = runTest {
+        val permission = gimmeRawPermission()
+
+        coEvery {
+            permissionService.getPermissions(any(), any(), any())
+        } returns listOf(permission).right()
+
+        coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
+
+        webClient.get()
+            .uri("$permissionUri?id=$id")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+
+        coVerify {
+            permissionService.getPermissions(
+                match {
+                    it.onlyGetPermission == OnlyGetPermission.ADMIN
+                },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun `query assigned Permissions endpoint should only ask for permission assigned to you`() = runTest {
+        val permission = gimmeRawPermission()
+
+        coEvery {
+            permissionService.getPermissions(any(), any(), any())
+        } returns listOf(permission).right()
+
+        coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
+
+        webClient.get()
+            .uri("$permissionUri/assigned?id=$id")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+
+        coVerify {
+            permissionService.getPermissions(
+                match {
+                    it.onlyGetPermission == OnlyGetPermission.ASSIGNED
+                },
+                any()
+            )
+        }
     }
 
     @Test

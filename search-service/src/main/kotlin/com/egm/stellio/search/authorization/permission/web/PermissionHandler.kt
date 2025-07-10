@@ -14,6 +14,7 @@ import com.egm.stellio.search.authorization.permission.model.Permission.Companio
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedEditMessage
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedRetrieveMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
+import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.OnlyGetPermission
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.permission.service.PermissionService
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
@@ -112,24 +113,56 @@ class PermissionHandler(
         { it }
     )
 
-    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun query(
+    @GetMapping(path = ["", "/admin"], produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun queryOnlyAssigned(
         @RequestHeader httpHeaders: HttpHeaders,
         @AllowedParameters(
             implemented = [
                 QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
                 QP.ACTION, QP.ASSIGNEE, QP.ASSIGNER,
-                QP.ID, QP.DETAILS, QP.DETAILS_PICK
+                QP.ID, QP.DETAILS, QP.DETAILS_PICK,
+                QP.TYPE, // could also be targetType,
             ],
             notImplemented = [
-                QP.TYPE, QP.SCOPEQ
+                QP.SCOPEQ
             ]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
-    ): ResponseEntity<*> = either {
+    ): ResponseEntity<*> = query(
+        httpHeaders,
+        queryParams,
+        onlyGet = PermissionFilters.Companion.OnlyGetPermission.ADMIN
+    )
+
+    @GetMapping(path = [ "/assigned"], produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun queryOnlyAdmin(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @AllowedParameters(
+            implemented = [
+                QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
+                QP.ACTION, QP.ASSIGNEE, QP.ASSIGNER,
+                QP.ID, QP.DETAILS, QP.DETAILS_PICK,
+                QP.TYPE, // could also be targetType,
+            ],
+            notImplemented = [
+                QP.SCOPEQ
+            ]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
+    ): ResponseEntity<*> = query(httpHeaders, queryParams, onlyGet = OnlyGetPermission.ASSIGNED)
+
+    suspend fun query(
+        httpHeaders: HttpHeaders,
+        queryParams: MultiValueMap<String, String>,
+        onlyGet: OnlyGetPermission
+    ) = either {
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val permissionFilters = PermissionFilters.fromQueryParameters(queryParams, contexts).bind()
+        val permissionFilters = PermissionFilters.fromQueryParameters(
+            queryParams,
+            contexts,
+            onlyGet
+        ).bind()
         val includeSysAttrs = queryParams.getOrDefault(QP.OPTIONS.key, emptyList())
             .contains(OptionsValue.SYS_ATTRS.value)
         val includeDetails = queryParams.getFirst(QP.DETAILS.key)?.toBoolean() ?: false

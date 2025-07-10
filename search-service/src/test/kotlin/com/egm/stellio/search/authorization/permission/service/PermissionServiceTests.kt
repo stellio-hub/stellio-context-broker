@@ -348,7 +348,8 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             Permission(
                 assignee = userUuid,
                 target = TargetAsset(entityId),
-                action = Action.READ
+                action = Action.READ,
+                assigner = userUuid
             )
         )
 
@@ -384,7 +385,14 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
         } returns listOf(userUuid).right()
 
-        permissionService.create(Permission(assignee = userUuid, target = TargetAsset(entityId), action = Action.READ))
+        permissionService.create(
+            Permission(
+                assignee = userUuid,
+                target = TargetAsset(entityId),
+                action = Action.READ,
+                assigner = userUuid
+            )
+        )
 
         permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
             .shouldSucceedWith { assertTrue(it) }
@@ -398,7 +406,14 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
         } returns listOf(userUuid).right()
 
-        permissionService.create(Permission(assignee = userUuid, target = TargetAsset(entityId), action = Action.WRITE))
+        permissionService.create(
+            Permission(
+                assignee = userUuid,
+                target = TargetAsset(entityId),
+                action = Action.WRITE,
+                assigner = userUuid
+            )
+        )
 
         permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
             .shouldSucceedWith { assertTrue(it) }
@@ -412,7 +427,14 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             subjectReferentialService.getSubjectAndGroupsUUID(any())
         } returns listOf(groupUuid, userUuid).right()
 
-        permissionService.create(Permission(assignee = groupUuid, target = TargetAsset(entityId), action = Action.READ))
+        permissionService.create(
+            Permission(
+                assignee = groupUuid,
+                target = TargetAsset(entityId),
+                action = Action.READ,
+                assigner = userUuid
+            )
+        )
 
         permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
             .shouldSucceedWith { assertTrue(it) }

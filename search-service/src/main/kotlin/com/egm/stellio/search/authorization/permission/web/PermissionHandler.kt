@@ -302,8 +302,12 @@ class PermissionHandler(
         @AllowedParameters // no query parameter is allowed
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        checkIsAdmin(permissionId).bind()
+        val currentPermission = permissionService.getById(permissionId).bind()
+        checkIsAdmin(currentPermission).bind()
 
+        if (currentPermission.action == Action.OWN) {
+            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+        }
         permissionService.delete(permissionId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

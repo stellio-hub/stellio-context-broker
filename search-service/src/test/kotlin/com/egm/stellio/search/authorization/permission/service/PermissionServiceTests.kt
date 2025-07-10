@@ -7,15 +7,21 @@ import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.notFoundMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
+import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.OnlyGetPermission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
+import com.egm.stellio.search.entity.model.Entity
+import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.BEEKEEPER_IRI
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.loadAndPrepareSampleData
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
@@ -37,14 +43,18 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=true"])
 class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
+
+    @Autowired
+    private lateinit var entityService: EntityService
 
     @Autowired
     private lateinit var permissionService: PermissionService
@@ -66,7 +76,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             subjectReferentialService.getSubjectAndGroupsUUID()
         } answers { listOf(userUuid).right() }
         val capturedSub = slot<Option<Sub>>()
-
+        coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID(capture(capturedSub)) } answers {
             listOfNotNull(capturedSub.captured.getOrNull()).right()
         }
@@ -74,9 +84,8 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @AfterEach
     fun deletePermissions() {
-        r2dbcEntityTemplate.delete(Permission::class.java)
-            .all()
-            .block()
+        r2dbcEntityTemplate.delete(Permission::class.java).all().block()
+        r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
     }
 
     final fun loadAndDeserializePermission(
@@ -128,7 +137,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         permissionService.create(minimalPermission).shouldSucceed()
 
         val matchingPermissions = permissionService.getPermissions(
-            PermissionFilters(ids = setOf("urn:ngsi-ld:BeeHive:A456".toUri()))
+            PermissionFilters(
+                ids = setOf("urn:ngsi-ld:BeeHive:A456".toUri()),
+                onlyGetPermission = OnlyGetPermission.ASSIGNED
+            )
         )
         assertTrue(matchingPermissions.isRight())
         assertThat(matchingPermissions.getOrNull()).hasSize(1)
@@ -182,14 +194,14 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         permissionService.create(permission).shouldSucceed()
 
         val matchingPermissions = permissionService.getPermissions(
-            PermissionFilters(assignee = userUuid)
+            PermissionFilters(assignee = userUuid, onlyGetPermission = OnlyGetPermission.ASSIGNED)
         )
 
         assertTrue(matchingPermissions.isRight())
         assertThat(matchingPermissions.getOrNull()).hasSize(1)
 
         val notMatchingPermission = permissionService.getPermissions(
-            PermissionFilters(assignee = "i:am:not:matching")
+            PermissionFilters(assignee = "i:am:not:matching", onlyGetPermission = OnlyGetPermission.ASSIGNED)
         )
         assertTrue(notMatchingPermission.isRight())
         assertThat(notMatchingPermission.getOrNull()).isEmpty()
@@ -201,14 +213,14 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         permissionService.create(permission).shouldSucceed()
 
         val matchingPermissions = permissionService.getPermissions(
-            PermissionFilters(assigner = userUuid)
+            PermissionFilters(assigner = userUuid, onlyGetPermission = OnlyGetPermission.ASSIGNED)
         )
 
         assertTrue(matchingPermissions.isRight())
         assertThat(matchingPermissions.getOrNull()).hasSize(1)
 
         val notMatchingPermission = permissionService.getPermissions(
-            PermissionFilters(assigner = "i:am:not:matching")
+            PermissionFilters(assigner = "i:am:not:matching", onlyGetPermission = OnlyGetPermission.ASSIGNED)
         )
         assertTrue(notMatchingPermission.isRight())
         assertThat(notMatchingPermission.getOrNull()).isEmpty()
@@ -230,6 +242,59 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
 
     @Test
+    fun `query Permission on target entities type should return an empty list if no Permission matches`() = runTest {
+        coEvery {
+            subjectReferentialService.hasOneOfGlobalRoles(any(), any())
+        } returns true.right() // allow entity creation
+
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+        entityService.createEntity(
+            ngsiLdEntity,
+            expandedEntity,
+            userUuid
+        ).shouldSucceed()
+
+        val permission = minimalPermission.copy(target = TargetAsset(id = entityId))
+        permissionService.create(permission).shouldSucceed()
+
+        val matchingPermissions = permissionService.getPermissions(
+            PermissionFilters(targetTypeSelection = "$BEEKEEPER_IRI", onlyGetPermission = OnlyGetPermission.ASSIGNED)
+        )
+        assertTrue(matchingPermissions.isRight())
+        assertThat(matchingPermissions.getOrNull()).isEmpty()
+    }
+
+    @Test
+    fun `query Permission on target entities type should return Permissions matching this type`() = runTest {
+        coEvery {
+            subjectReferentialService.hasOneOfGlobalRoles(any(), any())
+        } returns true.right() // allow entity creation
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+        entityService.createEntity(
+            ngsiLdEntity,
+            expandedEntity,
+            userUuid
+        ).shouldSucceed()
+
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
+        } returns listOf(userUuid).right()
+
+        val permission = minimalPermission.copy(target = TargetAsset(id = entityId))
+        permissionService.create(permission).shouldSucceed()
+
+        val matchingPermissions = permissionService.getPermissions(
+            PermissionFilters(targetTypeSelection = BEEHIVE_IRI, onlyGetPermission = OnlyGetPermission.ASSIGNED)
+        )
+        assertTrue(matchingPermissions.isRight())
+        assertThat(matchingPermissions.getOrNull()).hasSize(2)
+    }
+
+    @Test
     fun `count on Permission should apply the filter`() = runTest {
         val permission = minimalPermission.copy(assignee = userUuid)
         val invalidUser = "INVALID"
@@ -240,7 +305,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns listOf(userUuid).right()
 
         val count = permissionService.getPermissionsCount(
-            PermissionFilters(assignee = userUuid)
+            PermissionFilters(assignee = userUuid, onlyGetPermission = OnlyGetPermission.ASSIGNED),
         )
         assertEquals(1, count.getOrNull())
 
@@ -249,7 +314,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns listOf(invalidUser).right()
 
         val countEmpty = permissionService.getPermissionsCount(
-            filters = PermissionFilters(assignee = invalidUser)
+            filters = PermissionFilters(assignee = invalidUser, onlyGetPermission = OnlyGetPermission.ASSIGNED)
         )
         assertEquals(0, countEmpty.getOrNull())
     }

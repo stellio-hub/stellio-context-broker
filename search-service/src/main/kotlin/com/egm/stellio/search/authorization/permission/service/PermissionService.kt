@@ -10,6 +10,7 @@ import arrow.core.toOption
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
+import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.OnlyGetPermission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.common.util.allToMappedList
@@ -34,6 +35,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TARGET_TERM
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toStringValue
@@ -239,7 +241,7 @@ class PermissionService(
         offset: Int = 0,
     ): Either<APIException, List<Permission>> = either {
         val filterQuery = buildWhereStatement(filters).bind()
-        val authorizationFilter = buildAuthorizationFilter().bind()
+        val authorizationFilter = buildAuthorizationFilter(filters.onlyGetPermission).bind()
         val selectStatement =
             """
             SELECT id,
@@ -267,7 +269,7 @@ class PermissionService(
         filters: PermissionFilters = PermissionFilters(),
     ): Either<APIException, Int> = either {
         val filterQuery = buildWhereStatement(filters).bind()
-        val authorizationFilter = buildAuthorizationFilter().bind()
+        val authorizationFilter = buildAuthorizationFilter(filters.onlyGetPermission).bind()
 
         val selectStatement =
             """
@@ -347,17 +349,31 @@ class PermissionService(
             .allToMappedList { toUri(it["target_id"]) }
     }
 
-    private suspend fun buildAuthorizationFilter(): Either<APIException, String> = either {
-        val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind().joinToString(",") { "'$it'" }
+    private suspend fun buildAuthorizationFilter(onlyPermission: OnlyGetPermission?): Either<APIException, String> =
+        either {
+            val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+            when (onlyPermission) {
+                OnlyGetPermission.ADMIN -> buildIsAdminFilter(uuids).bind()
+                OnlyGetPermission.ASSIGNED -> buildIsAssigneeFilter(uuids)
+                else -> buildIsAdminFilter(uuids).bind()
+            }
+        }
 
+    private suspend fun buildIsAssigneeFilter(uuids: List<Sub>): String =
         """
         (
             assignee is null
-            OR assignee IN ($uuids)
-            OR target_id in (
+            OR assignee IN (${uuids.joinToString(",") { "'$it'" }})
+         )
+        """.trimIndent()
+
+    private suspend fun buildIsAdminFilter(uuids: List<Sub>): Either<APIException, String> = either {
+        if (subjectReferentialService.hasStellioAdminRole(uuids).bind()) "true" else """
+        (
+            target_id in (
                 SELECT target_id
                 FROM permission
-                WHERE assignee IN ($uuids)
+                WHERE assignee IN (${uuids.joinToString(",") { "'$it'" }})
                 AND action IN ('admin', 'own')
             )
          )
@@ -400,7 +416,19 @@ class PermissionService(
             "assigner = '$assigner'"
         }
 
-        val filters = listOfNotNull(idFilter, actionFilter, assigneeFilter, assignerFilter)
+        val targetTypeFilter = if (!permissionFilters.targetTypeSelection.isNullOrEmpty())
+            """
+                (
+                    target_id is null OR
+                    target_id in (
+                      SELECT entity_id
+                      FROM entity_payload
+                      where ${buildTypeQuery(permissionFilters.targetTypeSelection)})
+                )
+            """.trimIndent()
+        else null
+
+        val filters = listOfNotNull(idFilter, actionFilter, assigneeFilter, assignerFilter, targetTypeFilter)
 
         if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
     }

@@ -15,12 +15,12 @@ import com.egm.stellio.shared.util.acceptToMediaType
 import com.egm.stellio.shared.util.getTenantFromContext
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
+import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
-import com.egm.stellio.subscription.service.mqtt.Mqtt
 import com.egm.stellio.subscription.service.mqtt.MqttNotificationService
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -121,7 +121,7 @@ class NotificationService(
 
         val result =
             kotlin.runCatching {
-                if (uri.startsWith(Mqtt.SCHEME.MQTT)) {
+                if (uri.startsWith(Endpoint.MQTT_SCHEME)) {
                     Triple(
                         subscription,
                         notification,

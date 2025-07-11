@@ -30,8 +30,6 @@ import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
-import com.egm.stellio.subscription.service.mqtt.Mqtt.SCHEME.MQTT
-import com.egm.stellio.subscription.service.mqtt.Mqtt.SCHEME.MQTTS
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException
@@ -194,7 +192,7 @@ data class Subscription(
     }
 
     private fun checkEndpointUriIsValid(): Either<BadRequestDataException, Unit> {
-        if (notification.endpoint.uri.scheme !in validEndpointUriSchemes)
+        if (notification.endpoint.uri.scheme !in Endpoint.allowedSchemes)
             return BadRequestDataException("Invalid URI for endpoint: ${notification.endpoint.uri}").left()
         return Unit.right()
     }
@@ -264,7 +262,6 @@ data class Subscription(
     companion object {
 
         val notImplementedAttributes: List<String> = listOf("csf", "temporalQ")
-        val validEndpointUriSchemes: List<String> = listOf("http", "https", MQTT, MQTTS)
 
         fun deserialize(input: Map<String, Any>, contexts: List<String>): Either<APIException, Subscription> =
             runCatching {

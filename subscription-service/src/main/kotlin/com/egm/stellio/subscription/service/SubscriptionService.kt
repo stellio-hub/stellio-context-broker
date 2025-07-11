@@ -326,6 +326,8 @@ class SubscriptionService(
                 val accept =
                     if (endpoint["accept"] == "application/json")
                         Endpoint.AcceptType.JSON.name
+                    else if (endpoint["accept"] == "application/geo+json")
+                        Endpoint.AcceptType.GEOJSON.name
                     else
                         Endpoint.AcceptType.JSONLD.name
                 val endpointReceiverInfo = endpoint["receiverInfo"] as? List<Map<String, String>>

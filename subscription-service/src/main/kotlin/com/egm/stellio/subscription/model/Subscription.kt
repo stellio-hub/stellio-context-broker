@@ -98,6 +98,7 @@ data class Subscription(
         checkNotificationTriggersAreValid().bind()
         checkJsonLdContextIsValid().bind()
         checkJoinParametersAreValid().bind()
+        checkEndpointUriIsValid().bind()
 
         this@Subscription
     }
@@ -187,6 +188,12 @@ data class Subscription(
             }
         }
 
+        return Unit.right()
+    }
+
+    private fun checkEndpointUriIsValid(): Either<BadRequestDataException, Unit> {
+        if (notification.endpoint.uri.scheme !in Endpoint.allowedSchemes)
+            return BadRequestDataException("Invalid URI for endpoint: ${notification.endpoint.uri}").left()
         return Unit.right()
     }
 

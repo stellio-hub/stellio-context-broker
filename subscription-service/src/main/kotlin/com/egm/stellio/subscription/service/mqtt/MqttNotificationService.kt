@@ -35,9 +35,9 @@ class MqttNotificationService(
         val userInfo = uri.userInfo?.split(':')
         val username = userInfo?.getOrNull(0)
         val password = userInfo?.getOrNull(1)
-        val brokerScheme = Mqtt.SCHEME.brokerSchemeMap[uri.scheme]
+        val brokerScheme = Mqtt.SchemeMapping.brokerSchemeMap[uri.scheme]
 
-        val brokerPort = if (uri.port != -1) uri.port else Mqtt.SCHEME.defaultPortMap[uri.scheme]
+        val brokerPort = if (uri.port != -1) uri.port else Mqtt.SchemeMapping.defaultPortMap[uri.scheme]
 
         val brokerUrl = "$brokerScheme://${uri.host}:$brokerPort"
         val notifierInfo = endpoint.notifierInfo?.associate { it.key to it.value } ?: emptyMap()

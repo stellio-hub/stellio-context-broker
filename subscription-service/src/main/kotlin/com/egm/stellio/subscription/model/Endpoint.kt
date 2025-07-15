@@ -25,6 +25,12 @@ data class Endpoint(
 
     companion object {
 
+        const val MQTT_SCHEME = "mqtt"
+        const val MQTTS_SCHEME = "mqtts"
+        const val HTTP_SCHEME = "http"
+        const val HTTPS_SCHEME = "https"
+        val allowedSchemes = listOf(MQTT_SCHEME, MQTTS_SCHEME, HTTP_SCHEME, HTTPS_SCHEME)
+
         fun deserialize(input: String?): List<EndpointInfo>? {
             return if (input != null && input != "null")
                 DataTypes.convertToList(input)

@@ -14,7 +14,7 @@ interface WithMosquittoContainer {
 
         private val mosquittoContainer = GenericContainer<Nothing>(mosquittoImage).apply {
             withReuse(true)
-            withExposedPorts(Mqtt.SCHEME.MQTT_DEFAULT_PORT)
+            withExposedPorts(Mqtt.Port.MQTT_DEFAULT_PORT)
             withCopyFileToContainer(
                 MountableFile.forClasspathResource("/mosquitto/mosquitto.conf"),
                 "/mosquitto/config/mosquitto.conf"
@@ -22,7 +22,7 @@ interface WithMosquittoContainer {
         }
 
         fun getPort(): Int = mosquittoContainer.getMappedPort(
-            Mqtt.SCHEME.MQTT_DEFAULT_PORT
+            Mqtt.Port.MQTT_DEFAULT_PORT
         )
 
         init {

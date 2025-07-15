@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.Either.Left
 import arrow.core.Either.Right
 import arrow.core.raise.either
-import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
@@ -18,7 +17,6 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.addCoreMembers
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.toNgsiLdEntity
-import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -36,8 +34,7 @@ class TemporalService(
 
     suspend fun createOrUpdateTemporalEntity(
         entityId: URI,
-        jsonLdTemporalEntity: ExpandedEntity,
-        sub: Sub? = null
+        jsonLdTemporalEntity: ExpandedEntity
     ): Either<APIException, CreateOrUpdateResult> = either {
         entityQueryService.isMarkedAsDeleted(entityId).let {
             when (it) {
@@ -45,8 +42,7 @@ class TemporalService(
                     createTemporalEntity(
                         entityId,
                         jsonLdTemporalEntity,
-                        jsonLdTemporalEntity.getAttributes().sorted(),
-                        sub
+                        jsonLdTemporalEntity.getAttributes().sorted()
                     ).bind()
                     CreateOrUpdateResult.CREATED
                 }
@@ -55,8 +51,7 @@ class TemporalService(
                         entityId,
                         jsonLdTemporalEntity,
                         jsonLdTemporalEntity.getAttributes().sorted(),
-                        it.value,
-                        sub
+                        it.value
                     ).bind()
                     CreateOrUpdateResult.UPSERTED
                 }
@@ -67,29 +62,26 @@ class TemporalService(
     internal suspend fun createTemporalEntity(
         entityId: URI,
         jsonLdTemporalEntity: ExpandedEntity,
-        sortedJsonLdInstances: ExpandedAttributes,
-        sub: Sub? = null
+        sortedJsonLdInstances: ExpandedAttributes
     ): Either<APIException, Unit> = either {
-        authorizationService.userCanCreateEntities(sub.toOption()).bind()
+        authorizationService.userCanCreateEntities().bind()
 
         val (expandedEntity, ngsiLdEntity) = parseExpandedInstances(sortedJsonLdInstances, jsonLdTemporalEntity).bind()
-        entityService.createEntity(ngsiLdEntity, expandedEntity, sub).bind()
+        entityService.createEntity(ngsiLdEntity, expandedEntity).bind()
         entityService.upsertAttributes(
             entityId,
-            sortedJsonLdInstances.removeFirstInstances(),
-            sub
+            sortedJsonLdInstances.removeFirstInstances()
         ).bind()
-        authorizationService.createOwnerRight(entityId, sub.toOption()).bind()
+        authorizationService.createOwnerRight(entityId).bind()
     }
 
     internal suspend fun upsertTemporalEntity(
         entityId: URI,
         jsonLdTemporalEntity: ExpandedEntity,
         sortedJsonLdInstances: ExpandedAttributes,
-        isDeleted: Boolean,
-        sub: Sub? = null
+        isDeleted: Boolean
     ): Either<APIException, Unit> = either {
-        authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
+        authorizationService.userCanUpdateEntity(entityId).bind()
         if (isDeleted) {
             val (expandedEntity, ngsiLdEntity) =
                 parseExpandedInstances(sortedJsonLdInstances, jsonLdTemporalEntity).bind()
@@ -97,8 +89,7 @@ class TemporalService(
         }
         entityService.upsertAttributes(
             entityId,
-            sortedJsonLdInstances,
-            sub
+            sortedJsonLdInstances
         ).bind()
     }
 
@@ -134,25 +125,22 @@ class TemporalService(
 
     suspend fun upsertAttributes(
         entityId: URI,
-        jsonLdInstances: ExpandedAttributes,
-        sub: Sub? = null
+        jsonLdInstances: ExpandedAttributes
     ): Either<APIException, Unit> = either {
         entityQueryService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
+        authorizationService.userCanUpdateEntity(entityId).bind()
 
         entityService.upsertAttributes(
             entityId,
-            jsonLdInstances.sorted(),
-            sub
+            jsonLdInstances.sorted()
         ).bind()
     }
 
     @Transactional
     suspend fun deleteEntity(
-        entityId: URI,
-        sub: Sub? = null
+        entityId: URI
     ): Either<APIException, Unit> = either {
-        entityService.permanentlyDeleteEntity(entityId, sub).bind()
+        entityService.permanentlyDeleteEntity(entityId).bind()
     }
 
     @Transactional
@@ -160,20 +148,18 @@ class TemporalService(
         entityId: URI,
         attributeName: ExpandedTerm,
         datasetId: URI?,
-        deleteAll: Boolean = false,
-        sub: Sub? = null
+        deleteAll: Boolean = false
     ): Either<APIException, Unit> = either {
-        entityService.permanentlyDeleteAttribute(entityId, attributeName, datasetId, deleteAll, sub).bind()
+        entityService.permanentlyDeleteAttribute(entityId, attributeName, datasetId, deleteAll).bind()
     }
 
     suspend fun modifyAttributeInstance(
         entityId: URI,
         instanceId: URI,
-        expandedAttribute: ExpandedAttribute,
-        sub: Sub? = null
+        expandedAttribute: ExpandedAttribute
     ): Either<APIException, Unit> = either {
         entityQueryService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
+        authorizationService.userCanUpdateEntity(entityId).bind()
 
         attributeInstanceService.modifyAttributeInstance(
             entityId,
@@ -186,11 +172,10 @@ class TemporalService(
     suspend fun deleteAttributeInstance(
         entityId: URI,
         attributeName: ExpandedTerm,
-        instanceId: URI,
-        sub: Sub? = null
+        instanceId: URI
     ): Either<APIException, Unit> = either {
         entityQueryService.checkEntityExistence(entityId).bind()
-        authorizationService.userCanUpdateEntity(entityId, sub.toOption()).bind()
+        authorizationService.userCanUpdateEntity(entityId).bind()
 
         attributeInstanceService.deleteInstance(entityId, attributeName, instanceId).bind()
     }

@@ -18,7 +18,6 @@ import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEKEEPER_IRI
 import com.egm.stellio.shared.util.DEVICE_IRI
-import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.SENSOR_IRI
 import com.egm.stellio.shared.util.geoJsonToWkt
@@ -82,14 +81,14 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val fourthRawEntity = loadSampleData("beekeeper.jsonld")
         val fifthRawEntity = loadSampleData("apiary.jsonld")
 
-        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
-        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
 
         runBlocking {
             listOf(firstRawEntity, secondRawEntity, thirdRawEntity, fourthRawEntity, fifthRawEntity).forEach {
                 val (expandedEntity, ngsiLdEntity) = it.sampleDataToNgsiLdEntity().shouldSucceedAndResult()
-                entityService.createEntity(ngsiLdEntity, expandedEntity, MOCK_USER_SUB).shouldSucceed()
+                entityService.createEntity(ngsiLdEntity, expandedEntity).shouldSucceed()
             }
         }
     }

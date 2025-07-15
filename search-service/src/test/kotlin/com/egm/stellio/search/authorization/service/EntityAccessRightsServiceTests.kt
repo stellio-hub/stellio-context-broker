@@ -1,7 +1,9 @@
 package com.egm.stellio.search.authorization.service
 
-import arrow.core.Some
 import arrow.core.right
+import com.egm.stellio.search.authorization.GROUP_UUID
+import com.egm.stellio.search.authorization.SERVICE_ACCOUNT_UUID
+import com.egm.stellio.search.authorization.USER_UUID
 import com.egm.stellio.search.authorization.getSubjectInfoForClient
 import com.egm.stellio.search.authorization.getSubjectInfoForGroup
 import com.egm.stellio.search.authorization.getSubjectInfoForUser
@@ -74,18 +76,15 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     @SpykBean
     private lateinit var entityService: EntityService
 
-    private val userUuid = "0768A6D5-D87B-4209-9A22-8C40A8961A79"
-    private val groupUuid = "220FC854-3609-404B-BC77-F2DFE332B27B"
-    private val serviceAccountUuid = "8C55EE65-94EC-407B-9003-33DC37A6A080"
     private val entityId01 = "urn:ngsi-ld:Entity:01".toUri()
     private val entityId02 = "urn:ngsi-ld:Entity:02".toUri()
 
     @BeforeEach
     fun setDefaultBehaviorOnSubjectReferential() {
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } answers { false.right() }
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(USER_UUID)) } answers { false.right() }
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
-        } answers { listOf(userUuid).right() }
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } answers { listOf(USER_UUID).right() }
     }
 
     @AfterEach
@@ -97,18 +96,18 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     fun `it should add a new entity in the allowed list of read entities`() = runTest {
-        entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
+        entityAccessRightsService.setReadRoleOnEntity(USER_UUID, entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId01)
+        entityAccessRightsService.canReadEntity(entityId01)
             .shouldSucceed()
     }
 
     @Test
     fun `it should remove an entity from the allowed list of read entities`() = runTest {
-        entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
-        entityAccessRightsService.removeRoleOnEntity(userUuid, entityId01)
+        entityAccessRightsService.setReadRoleOnEntity(USER_UUID, entityId01)
+        entityAccessRightsService.removeRoleOnEntity(USER_UUID, entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).fold(
+        entityAccessRightsService.canReadEntity(entityId01).fold(
             { assertEquals(AccessDeniedException("User forbidden read access to entity $entityId01"), it) },
             { fail("it should have not read right on entity") }
         )
@@ -116,13 +115,13 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     fun `it should remove an entity from the list of known entities`() = runTest {
-        entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
+        entityAccessRightsService.setReadRoleOnEntity(USER_UUID, entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).shouldSucceed()
+        entityAccessRightsService.canReadEntity(entityId01).shouldSucceed()
 
         entityAccessRightsService.removeRolesOnEntity(entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).fold(
+        entityAccessRightsService.canReadEntity(entityId01).fold(
             { assertEquals(AccessDeniedException("User forbidden read access to entity $entityId01"), it) },
             { fail("it should have not read right on entity") }
         )
@@ -130,11 +129,10 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     fun `it should allow the owner of entity to administrate the entity`() = runTest {
-        entityAccessRightsService.setOwnerRoleOnEntity(userUuid, entityId01)
+        entityAccessRightsService.setOwnerRoleOnEntity(USER_UUID, entityId01)
 
-        entityAccessRightsService.canWriteEntity(Some(userUuid), entityId01).shouldSucceed()
+        entityAccessRightsService.canWriteEntity(entityId01).shouldSucceed()
         entityAccessRightsService.checkHasRightOnEntity(
-            Some(userUuid),
             entityId01,
             emptyList(),
             listOf(AccessRight.IS_OWNER, AccessRight.CAN_ADMIN)
@@ -143,11 +141,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     fun `it should allow an user having a direct read role on a entity`() = runTest {
-        entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
-        entityAccessRightsService.setWriteRoleOnEntity(userUuid, "urn:ngsi-ld:Entity:6666".toUri())
+        entityAccessRightsService.setReadRoleOnEntity(USER_UUID, entityId01)
+        entityAccessRightsService.setWriteRoleOnEntity(USER_UUID, "urn:ngsi-ld:Entity:6666".toUri())
 
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).shouldSucceed()
-        entityAccessRightsService.canReadEntity(Some(userUuid), "urn:ngsi-ld:Entity:2222".toUri()).fold(
+        entityAccessRightsService.canReadEntity(entityId01).shouldSucceed()
+        entityAccessRightsService.canReadEntity("urn:ngsi-ld:Entity:2222".toUri()).fold(
             {
                 assertEquals(
                     AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:Entity:2222"),
@@ -156,19 +154,19 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
             },
             { fail("it should have not read right on entity") }
         )
-        entityAccessRightsService.canWriteEntity(Some(userUuid), "urn:ngsi-ld:Entity:6666".toUri()).shouldSucceed()
+        entityAccessRightsService.canWriteEntity("urn:ngsi-ld:Entity:6666".toUri()).shouldSucceed()
     }
 
     @Test
     fun `it should allow an user having a read role on a entity via a group membership`() = runTest {
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
-        } returns listOf(groupUuid, userUuid).right()
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } returns listOf(USER_UUID, GROUP_UUID).right()
 
-        entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId01)
+        entityAccessRightsService.setReadRoleOnEntity(GROUP_UUID, entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).shouldSucceed()
-        entityAccessRightsService.canReadEntity(Some(userUuid), "urn:ngsi-ld:Entity:2222".toUri()).fold(
+        entityAccessRightsService.canReadEntity(entityId01).shouldSucceed()
+        entityAccessRightsService.canReadEntity("urn:ngsi-ld:Entity:2222".toUri()).fold(
             {
                 assertEquals(
                     AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:Entity:2222"),
@@ -182,15 +180,15 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     @Test
     fun `it should allow an user having a read role on a entity both directly and via a group membership`() = runTest {
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
-        } answers { listOf(groupUuid, userUuid).right() }
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } answers { listOf(USER_UUID, GROUP_UUID).right() }
         coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
 
-        entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId01)
-        entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
+        entityAccessRightsService.setReadRoleOnEntity(GROUP_UUID, entityId01)
+        entityAccessRightsService.setReadRoleOnEntity(USER_UUID, entityId01)
 
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).shouldSucceed()
-        entityAccessRightsService.canReadEntity(Some(userUuid), "urn:ngsi-ld:Entity:2222".toUri()).fold(
+        entityAccessRightsService.canReadEntity(entityId01).shouldSucceed()
+        entityAccessRightsService.canReadEntity("urn:ngsi-ld:Entity:2222".toUri()).fold(
             {
                 assertEquals(
                     AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:Entity:2222"),
@@ -203,52 +201,51 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     fun `it should allow an user having the stellio-admin role to read any entity`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns true.right()
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(USER_UUID)) } returns true.right()
 
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).shouldSucceed()
-        entityAccessRightsService.canReadEntity(Some(userUuid), "urn:ngsi-ld:Entity:2222".toUri()).shouldSucceed()
+        entityAccessRightsService.canReadEntity(entityId01).shouldSucceed()
+        entityAccessRightsService.canReadEntity("urn:ngsi-ld:Entity:2222".toUri()).shouldSucceed()
 
         coVerify {
-            subjectReferentialService.hasStellioAdminRole(listOf(userUuid))
+            subjectReferentialService.hasStellioAdminRole(listOf(USER_UUID))
         }
         coVerify(exactly = 0) {
-            subjectReferentialService.retrieve(eq(userUuid))
+            subjectReferentialService.retrieve(eq(USER_UUID))
         }
     }
 
     @Test
     fun `it should delete entity access rights associated to an user`() = runTest {
-        entityAccessRightsService.setReadRoleOnEntity(userUuid, entityId01)
+        entityAccessRightsService.setReadRoleOnEntity(USER_UUID, entityId01)
 
-        entityAccessRightsService.delete(userUuid).shouldSucceed()
+        entityAccessRightsService.delete(USER_UUID).shouldSucceed()
 
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).shouldFailWith {
+        entityAccessRightsService.canReadEntity(entityId01).shouldFailWith {
             it is AccessDeniedException
         }
     }
 
     @Test
     fun `it should allow user who have write right on entity`() = runTest {
-        entityAccessRightsService.setWriteRoleOnEntity(userUuid, entityId01)
+        entityAccessRightsService.setWriteRoleOnEntity(USER_UUID, entityId01)
 
-        entityAccessRightsService.canWriteEntity(Some(userUuid), entityId01).shouldSucceed()
+        entityAccessRightsService.canWriteEntity(entityId01).shouldSucceed()
     }
 
     @Test
     fun `it should find if user has ownership on an entity`() = runTest {
-        entityAccessRightsService.setOwnerRoleOnEntity(userUuid, entityId01).shouldSucceed()
+        entityAccessRightsService.setOwnerRoleOnEntity(USER_UUID, entityId01).shouldSucceed()
 
-        entityAccessRightsService.isOwnerOfEntity(userUuid, entityId01).shouldSucceedWith { assertTrue(it) }
+        entityAccessRightsService.isOwnerOfEntity(USER_UUID, entityId01).shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
     fun `it should get all the entities an user has created with appropriate other rights`() = runTest {
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI))
-        entityAccessRightsService.setOwnerRoleOnEntity(userUuid, entityId01).shouldSucceed()
-        entityAccessRightsService.setWriteRoleOnEntity(serviceAccountUuid, entityId01).shouldSucceed()
+        entityAccessRightsService.setOwnerRoleOnEntity(USER_UUID, entityId01).shouldSucceed()
+        entityAccessRightsService.setWriteRoleOnEntity(SERVICE_ACCOUNT_UUID, entityId01).shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
-            Some(userUuid),
             emptyList(),
             entitiesQuery = EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(limit = 100, offset = 0),
@@ -264,7 +261,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         }
 
         entityAccessRightsService.getSubjectAccessRightsCount(
-            Some(userUuid),
             emptyList()
         ).shouldSucceedWith {
             assertEquals(1, it)
@@ -275,12 +271,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     fun `it should get all entities an user has access to`() = runTest {
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
         entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
-            Some(userUuid),
             emptyList(),
             entitiesQuery = EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(limit = 100, offset = 0),
@@ -296,7 +291,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         }
 
         entityAccessRightsService.getSubjectAccessRightsCount(
-            Some(userUuid),
             emptyList()
         ).shouldSucceedWith {
             assertEquals(1, it)
@@ -309,12 +303,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
         entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
-            Some(userUuid),
             emptyList(),
             entitiesQuery = EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(limit = 100, offset = 0),
@@ -328,7 +321,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         }
 
         entityAccessRightsService.getSubjectAccessRightsCount(
-            Some(userUuid),
             emptyList()
         ).shouldSucceedWith {
             assertEquals(2, it)
@@ -342,13 +334,12 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
         createEntityPayload(entityId03, setOf(APIARY_IRI))
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
         entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
-            Some(userUuid),
             emptyList(),
             entitiesQuery = EntitiesQueryFromGet(
                 typeSelection = BEEHIVE_IRI,
@@ -363,7 +354,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         }
 
         entityAccessRightsService.getSubjectAccessRightsCount(
-            Some(userUuid),
             emptyList(),
             BEEHIVE_IRI
         ).shouldSucceedWith {
@@ -378,13 +368,12 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
         createEntityPayload(entityId03, setOf(APIARY_IRI))
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
         entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
-            Some(userUuid),
             emptyList(),
             entitiesQuery = EntitiesQueryFromGet(
                 ids = setOf(entityId01, entityId02),
@@ -397,7 +386,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         }
 
         entityAccessRightsService.getSubjectAccessRightsCount(
-            Some(userUuid),
             emptyList(),
             BEEHIVE_IRI,
             setOf(entityId01, entityId03)
@@ -413,13 +401,12 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
         createEntityPayload(entityId03, setOf(APIARY_IRI))
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
         entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
-            Some(userUuid),
             emptyList(),
             entitiesQuery = EntitiesQueryFromGet(
                 ids = setOf(entityId01, entityId02),
@@ -433,7 +420,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         }
 
         entityAccessRightsService.getSubjectAccessRightsCount(
-            Some(userUuid),
             emptyList(),
             BEEHIVE_IRI,
             setOf(entityId01, entityId03)
@@ -449,13 +435,12 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
         createEntityPayload(entityId03, setOf(APIARY_IRI))
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_READ).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId03, AccessRight.CAN_WRITE).shouldSucceed()
         entityAccessRightsService.setRoleOnEntity(UUID.randomUUID().toString(), entityId02, AccessRight.CAN_WRITE)
             .shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
-            Some(userUuid),
             listOf(AccessRight.CAN_WRITE),
             entitiesQuery = EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(limit = 100, offset = 0),
@@ -468,7 +453,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         }
 
         entityAccessRightsService.getSubjectAccessRightsCount(
-            Some(userUuid),
             listOf(AccessRight.CAN_WRITE)
         ).shouldSucceedWith {
             assertEquals(1, it)
@@ -482,12 +466,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
         createEntityPayload(entityId03, setOf(APIARY_IRI))
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_READ).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId02, AccessRight.CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId03, AccessRight.CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId02, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId03, AccessRight.CAN_READ).shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
-            Some(userUuid),
             listOf(AccessRight.CAN_WRITE),
             entitiesQuery = EntitiesQueryFromGet(
                 typeSelection = "$BEEHIVE_IRI,$APIARY_IRI",
@@ -501,7 +484,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         }
 
         entityAccessRightsService.getSubjectAccessRightsCount(
-            Some(userUuid),
             listOf(AccessRight.CAN_WRITE)
         ).shouldSucceedWith {
             assertEquals(1, it)
@@ -512,14 +494,13 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     fun `it should return only one entity with higher right if user has access through different paths`() = runTest {
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI))
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
-        } returns listOf(groupUuid, userUuid).right()
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } returns listOf(USER_UUID, GROUP_UUID).right()
 
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE)
-        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.CAN_ADMIN)
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_WRITE)
+        entityAccessRightsService.setRoleOnEntity(GROUP_UUID, entityId01, AccessRight.CAN_ADMIN)
 
         entityAccessRightsService.getSubjectAccessRights(
-            Some(userUuid),
             emptyList(),
             entitiesQuery = EntitiesQueryFromGet(
                 typeSelection = BEEHIVE_IRI,
@@ -537,14 +518,13 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     @Test
     fun `getSubjectAccessRights should include deleted entities if it is asked for`() = runTest {
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI), AUTH_READ)
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
 
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId02, AccessRight.CAN_ADMIN).shouldSucceed()
-        entityService.deleteEntity(entityId02, userUuid).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId02, AccessRight.CAN_ADMIN).shouldSucceed()
+        entityService.deleteEntity(entityId02).shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
-            Some(userUuid),
             emptyList(),
             entitiesQuery = EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(limit = 100, offset = 0),
@@ -557,7 +537,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         }
 
         entityAccessRightsService.getSubjectAccessRightsCount(
-            Some(userUuid),
             emptyList(),
             includeDeleted = true
         ).shouldSucceedWith {
@@ -568,14 +547,13 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     @Test
     fun `getSubjectAccessRights should not include deleted entities if it is not asked for`() = runTest {
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI))
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
 
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId02, AccessRight.CAN_ADMIN).shouldSucceed()
-        entityService.deleteEntity(entityId02, userUuid).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId02, AccessRight.CAN_ADMIN).shouldSucceed()
+        entityService.deleteEntity(entityId02).shouldSucceed()
 
         entityAccessRightsService.getSubjectAccessRights(
-            Some(userUuid),
             emptyList(),
             entitiesQuery = EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(limit = 100, offset = 0),
@@ -587,7 +565,6 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         }
 
         entityAccessRightsService.getSubjectAccessRightsCount(
-            Some(userUuid),
             emptyList()
         ).shouldSucceedWith {
             assertEquals(1, it)
@@ -596,19 +573,19 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     fun `it should return nothing when list of entities is empty`() = runTest {
-        entityAccessRightsService.getAccessRightsForEntities(Some(userUuid), emptyList())
+        entityAccessRightsService.getAccessRightsForEntities(emptyList())
             .shouldSucceedWith { assertTrue(it.isEmpty()) }
     }
 
     @Test
     fun `it should get other subject rights for one entity and a group`() = runTest {
-        createSubjectReferential(userUuid, SubjectType.USER, getSubjectInfoForUser("stellio"))
-        createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
+        createSubjectReferential(USER_UUID, SubjectType.USER, getSubjectInfoForUser("stellio"))
+        createSubjectReferential(GROUP_UUID, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
 
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(GROUP_UUID, entityId01, AccessRight.CAN_READ).shouldSucceed()
 
-        entityAccessRightsService.getAccessRightsForEntities(Some(userUuid), listOf(entityId01, entityId02))
+        entityAccessRightsService.getAccessRightsForEntities(listOf(entityId01, entityId02))
             .shouldSucceedWith {
                 assertEquals(1, it.size)
                 val result = it.entries.first()
@@ -618,8 +595,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
                 val rCanReadList = result.value[AccessRight.CAN_READ]!!
                 assertEquals(1, rCanReadList.size)
                 val subjectRightDetail = rCanReadList[0]
-                assertEquals(GROUP_ENTITY_PREFIX + groupUuid, subjectRightDetail.uri.toString())
-                assertEquals(DATASET_ID_PREFIX + groupUuid, subjectRightDetail.datasetId.toString())
+                assertEquals(GROUP_ENTITY_PREFIX + GROUP_UUID, subjectRightDetail.uri.toString())
+                assertEquals(DATASET_ID_PREFIX + GROUP_UUID, subjectRightDetail.datasetId.toString())
                 assertEquals(2, subjectRightDetail.subjectInfo.size)
                 assertTrue(subjectRightDetail.subjectInfo.containsKey(AUTH_TERM_NAME))
                 assertEquals("Stellio Team", subjectRightDetail.subjectInfo[AUTH_TERM_NAME])
@@ -629,15 +606,15 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     fun `it should get other subject rights for a set of entities`() = runTest {
-        createSubjectReferential(userUuid, SubjectType.USER, getSubjectInfoForUser("stellio"))
-        createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
+        createSubjectReferential(USER_UUID, SubjectType.USER, getSubjectInfoForUser("stellio"))
+        createSubjectReferential(GROUP_UUID, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
 
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.CAN_READ).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId02, AccessRight.CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId02, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(GROUP_UUID, entityId01, AccessRight.CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId02, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(GROUP_UUID, entityId02, AccessRight.CAN_WRITE).shouldSucceed()
 
-        entityAccessRightsService.getAccessRightsForEntities(Some(userUuid), listOf(entityId01, entityId02))
+        entityAccessRightsService.getAccessRightsForEntities(listOf(entityId01, entityId02))
             .shouldSucceedWith {
                 assertEquals(2, it.size)
                 assertTrue(it.getValue(entityId01).containsKey(AccessRight.CAN_READ))
@@ -647,15 +624,20 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     fun `it should get other subject rights for all kinds of subjects`() = runTest {
-        createSubjectReferential(userUuid, SubjectType.USER, getSubjectInfoForUser("stellio"))
-        createSubjectReferential(groupUuid, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
-        createSubjectReferential(serviceAccountUuid, SubjectType.CLIENT, getSubjectInfoForClient("client-id", "kc-id"))
+        createSubjectReferential(USER_UUID, SubjectType.USER, getSubjectInfoForUser("stellio"))
+        createSubjectReferential(GROUP_UUID, SubjectType.GROUP, getSubjectInfoForGroup("Stellio Team"))
+        createSubjectReferential(
+            SERVICE_ACCOUNT_UUID,
+            SubjectType.CLIENT,
+            getSubjectInfoForClient("client-id", "kc-id")
+        )
 
-        entityAccessRightsService.setRoleOnEntity(userUuid, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(groupUuid, entityId01, AccessRight.CAN_READ).shouldSucceed()
-        entityAccessRightsService.setRoleOnEntity(serviceAccountUuid, entityId01, AccessRight.CAN_ADMIN).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(USER_UUID, entityId01, AccessRight.CAN_WRITE).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(GROUP_UUID, entityId01, AccessRight.CAN_READ).shouldSucceed()
+        entityAccessRightsService.setRoleOnEntity(SERVICE_ACCOUNT_UUID, entityId01, AccessRight.CAN_ADMIN)
+            .shouldSucceed()
 
-        entityAccessRightsService.getAccessRightsForEntities(Some(userUuid), listOf(entityId01))
+        entityAccessRightsService.getAccessRightsForEntities(listOf(entityId01))
             .shouldSucceedWith {
                 assertEquals(1, it.size)
                 val result = it.entries.first()
@@ -664,7 +646,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
                 assertTrue(it.getValue(entityId01).containsKey(AccessRight.CAN_ADMIN))
                 val rCanAdminList = it.getValue(entityId01).getValue(AccessRight.CAN_ADMIN)
                 assertEquals(1, rCanAdminList.size)
-                assertEquals(CLIENT_ENTITY_PREFIX + serviceAccountUuid, rCanAdminList[0].uri.toString())
+                assertEquals(CLIENT_ENTITY_PREFIX + SERVICE_ACCOUNT_UUID, rCanAdminList[0].uri.toString())
             }
     }
 
@@ -672,9 +654,9 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     fun `it should get ids of all entities owned by a user`() = runTest {
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI))
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
-        entityAccessRightsService.setOwnerRoleOnEntity(userUuid, entityId01).shouldSucceed()
-        entityAccessRightsService.setWriteRoleOnEntity(userUuid, entityId02).shouldSucceed()
-        entityAccessRightsService.getEntitiesIdsOwnedBySubject(userUuid)
+        entityAccessRightsService.setOwnerRoleOnEntity(USER_UUID, entityId01).shouldSucceed()
+        entityAccessRightsService.setWriteRoleOnEntity(USER_UUID, entityId02).shouldSucceed()
+        entityAccessRightsService.getEntitiesIdsOwnedBySubject(USER_UUID)
             .shouldSucceedWith {
                 assertEquals(1, it.size)
                 assertEquals(entityId01, it[0])
@@ -685,12 +667,12 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     fun `it should delete all access rights on entities`() = runTest {
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI))
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
-        entityAccessRightsService.setOwnerRoleOnEntity(userUuid, entityId01).shouldSucceed()
-        entityAccessRightsService.setWriteRoleOnEntity(userUuid, entityId02).shouldSucceed()
+        entityAccessRightsService.setOwnerRoleOnEntity(USER_UUID, entityId01).shouldSucceed()
+        entityAccessRightsService.setWriteRoleOnEntity(USER_UUID, entityId02).shouldSucceed()
         val entitiesIds = listOf(entityId01, entityId02)
         entityAccessRightsService.deleteAllAccessRightsOnEntities(entitiesIds)
             .shouldSucceed()
-        entityAccessRightsService.getAccessRightsForEntities(Some(userUuid), entitiesIds)
+        entityAccessRightsService.getAccessRightsForEntities(entitiesIds)
             .shouldSucceedWith { assertTrue(it.isEmpty()) }
     }
 
@@ -737,8 +719,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI), AUTH_READ)
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
 
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).shouldSucceed()
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId02).shouldFailWith {
+        entityAccessRightsService.canReadEntity(entityId01).shouldSucceed()
+        entityAccessRightsService.canReadEntity(entityId02).shouldFailWith {
             it is AccessDeniedException
         }
     }
@@ -750,11 +732,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
         createEntityPayload(entityId03, setOf(BEEHIVE_IRI), AUTH_WRITE)
 
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId01).shouldSucceed()
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId02).shouldFailWith {
+        entityAccessRightsService.canReadEntity(entityId01).shouldSucceed()
+        entityAccessRightsService.canReadEntity(entityId02).shouldFailWith {
             it is AccessDeniedException
         }
-        entityAccessRightsService.canReadEntity(Some(userUuid), entityId03).shouldSucceed()
+        entityAccessRightsService.canReadEntity(entityId03).shouldSucceed()
     }
 
     @Test
@@ -762,8 +744,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
         createEntityPayload(entityId01, setOf(BEEHIVE_IRI), AUTH_WRITE)
         createEntityPayload(entityId02, setOf(BEEHIVE_IRI))
 
-        entityAccessRightsService.canWriteEntity(Some(userUuid), entityId01).shouldSucceed()
-        entityAccessRightsService.canWriteEntity(Some(userUuid), entityId02).shouldFailWith {
+        entityAccessRightsService.canWriteEntity(entityId01).shouldSucceed()
+        entityAccessRightsService.canWriteEntity(entityId02).shouldFailWith {
             it is AccessDeniedException
         }
     }

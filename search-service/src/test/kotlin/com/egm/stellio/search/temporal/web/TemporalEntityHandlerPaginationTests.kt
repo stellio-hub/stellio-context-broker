@@ -32,7 +32,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
         )
         val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
         coEvery {
-            temporalQueryService.queryTemporalEntities(any(), any())
+            temporalQueryService.queryTemporalEntities(any())
         } returns Either.Right(
             Triple(
                 listOf(firstTemporalEntity, secondTemporalEntity),
@@ -45,7 +45,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
     private suspend fun mockQueryEntityService(range: Range? = null) {
         val firstTemporalEntity = loadAndExpandSampleData("/temporal/beehive_create_temporal_entity.jsonld")
         coEvery {
-            temporalQueryService.queryTemporalEntity(any(), any(), any())
+            temporalQueryService.queryTemporalEntity(any(), any())
         } returns Either.Right(
             firstTemporalEntity to range
         )
@@ -68,8 +68,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.temporalQuery.instanceLimit == 5 &&
                         !temporalEntitiesQuery.temporalQuery.hasLastN()
-                },
-                any()
+                }
             )
         }
     }
@@ -92,8 +91,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.temporalQuery.instanceLimit == 5 &&
                         temporalEntitiesQuery.temporalQuery.lastN == 7
-                },
-                any()
+                }
             )
         }
     }

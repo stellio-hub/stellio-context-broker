@@ -5,7 +5,6 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.service.EntityAttributeService
@@ -24,7 +23,6 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
@@ -43,11 +41,10 @@ class TemporalQueryService(
 
     suspend fun queryTemporalEntity(
         entityId: URI,
-        temporalEntitiesQuery: TemporalEntitiesQuery,
-        sub: Sub? = null
+        temporalEntitiesQuery: TemporalEntitiesQuery
     ): Either<APIException, Pair<ExpandedEntity, Range?>> = either {
         val entity = entityQueryService.retrieve(entityId, false).bind()
-        authorizationService.userCanReadEntity(entityId, sub.toOption()).bind()
+        authorizationService.userCanReadEntity(entityId).bind()
 
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val datasetIds = temporalEntitiesQuery.entitiesQuery.datasetId
@@ -117,10 +114,9 @@ class TemporalQueryService(
     }
 
     suspend fun queryTemporalEntities(
-        temporalEntitiesQuery: TemporalEntitiesQuery,
-        sub: Sub? = null
+        temporalEntitiesQuery: TemporalEntitiesQuery
     ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
-        val accessRightFilter = authorizationService.computeAccessRightFilter(sub.toOption())
+        val accessRightFilter = authorizationService.computeAccessRightFilter()
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val entitiesIds =
             entityQueryService.queryEntities(temporalEntitiesQuery.entitiesQuery, false, accessRightFilter)

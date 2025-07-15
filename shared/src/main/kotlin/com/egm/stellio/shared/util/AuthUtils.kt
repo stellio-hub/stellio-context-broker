@@ -103,6 +103,9 @@ suspend fun getSubFromSecurityContext(): Option<Sub> {
         .awaitFirst()
 }
 
+suspend fun getNullableSubFromSecurityContext(): Sub? =
+    getSubFromSecurityContext().getOrElse { null }
+
 fun Option<Sub>.toStringValue(): String = this.getOrElse { "" }
 
 fun URI.extractSub(): Sub =

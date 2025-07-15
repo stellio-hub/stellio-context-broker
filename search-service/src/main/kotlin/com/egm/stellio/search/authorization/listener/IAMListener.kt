@@ -122,11 +122,11 @@ class IAMListener(
             // (if it no longer exists, it fails because of access rights checks)
             if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
                 entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()?.forEach { entityId ->
-                    entityService.permanentlyDeleteEntity(entityId, sub)
+                    entityService.permanentlyDeleteEntity(entityId, inUserDeletion = true)
                 }
                 Unit.right()
             } else Unit.right()
-            subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub())
+            subjectReferentialService.delete(sub)
         }.writeContextAndSubscribe(tenantName, entityDeleteEvent)
     }
 

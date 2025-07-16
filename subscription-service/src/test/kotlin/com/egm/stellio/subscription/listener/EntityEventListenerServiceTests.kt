@@ -37,7 +37,7 @@ class EntityEventListenerServiceTests {
         val mockedNotification = mockkClass(Notification::class)
 
         coEvery {
-            notificationService.notifyMatchingSubscribers(DEFAULT_TENANT_NAME, any(), any(), any())
+            notificationService.notifyMatchingSubscribers(DEFAULT_TENANT_NAME, any(), any(), any(), any())
         } returns listOf(
             Triple(mockedSubscription, mockedNotification, true),
             Triple(mockedSubscription, mockedNotification, false)
@@ -48,8 +48,9 @@ class EntityEventListenerServiceTests {
         coVerify(timeout = 1000L) {
             notificationService.notifyMatchingSubscribers(
                 DEFAULT_TENANT_NAME,
+                Pair(NAME_IRI, null),
                 any(),
-                setOf(NAME_IRI),
+                any(),
                 NotificationTrigger.ATTRIBUTE_UPDATED
             )
         }

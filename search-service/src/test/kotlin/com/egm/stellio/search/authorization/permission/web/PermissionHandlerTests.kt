@@ -253,12 +253,14 @@ class PermissionHandlerTests {
                         "type": "Permission",
                         "action" : "read",
                         "assignee" : {
-                          "kind" : "Group",
-                          "name" : "Stellio Team"
+                            "subjectId":"55e64faf-4bda-41cc-98b0-195874cefd29",
+                            "subjectType":"GROUP",
+                            "subjectInfo":{"kind":"Group","name":"Stellio Team"}
                         },
                         "assigner" : {
-                          "kind" : "Group",
-                          "name" : "Stellio Team"
+                            "subjectId":"55e64faf-4bda-41cc-98b0-195874cefd29",
+                            "subjectType":"GROUP",
+                            "subjectInfo":{"kind":"Group","name":"Stellio Team"}
                         },
                         "target" : {
                             "id": "my:id",
@@ -317,12 +319,14 @@ class PermissionHandlerTests {
                         "type": "Permission",
                         "action" : "read",
                         "assignee" : {
-                          "kind" : "Group",
-                          "name" : "Stellio Team"
+                            "subjectId":"55e64faf-4bda-41cc-98b0-195874cefd29",
+                            "subjectType":"GROUP",
+                            "subjectInfo":{"kind":"Group","name":"Stellio Team"}
                         },
                         "assigner" : {
-                          "kind" : "Group",
-                          "name" : "Stellio Team"
+                            "subjectId":"55e64faf-4bda-41cc-98b0-195874cefd29",
+                            "subjectType":"GROUP",
+                            "subjectInfo":{"kind":"Group","name":"Stellio Team"}
                         },
                         "target" : {
                             "id": "my:id",

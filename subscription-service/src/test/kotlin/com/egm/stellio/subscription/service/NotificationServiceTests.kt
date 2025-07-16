@@ -8,11 +8,11 @@ import com.egm.stellio.shared.model.NGSILD_LANG_TERM
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TERM
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.FRIENDLYNAME_IRI
 import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MANAGED_BY_IRI
@@ -142,8 +142,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -155,7 +156,7 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
-                setOf(NAME_IRI),
+                Pair(NAME_IRI, null),
                 ATTRIBUTE_UPDATED
             )
         }
@@ -195,8 +196,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceed()
 
@@ -233,8 +235,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -279,8 +282,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
             val notificationResult = notificationResults[0]
@@ -321,8 +325,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_TERM),
+            Pair(NAME_IRI, null),
+            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
             val notificationResult = notificationResults[0]
@@ -352,8 +357,9 @@ class NotificationServiceTests {
 
             notificationService.notifyMatchingSubscribers(
                 DEFAULT_TENANT_NAME,
-                Pair(expandedEntity, expandedEntity),
-                setOf(NAME_IRI),
+                Pair(NAME_IRI, null),
+                Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+                expandedEntity,
                 ATTRIBUTE_UPDATED
             ).shouldSucceedWith {
                 assertEquals(1, it.size)
@@ -365,7 +371,7 @@ class NotificationServiceTests {
             coVerify {
                 subscriptionService.getMatchingSubscriptions(
                     expandedEntity,
-                    setOf(NAME_IRI),
+                    Pair(NAME_IRI, null),
                     ATTRIBUTE_UPDATED
                 )
             }
@@ -391,8 +397,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            expandedEntity,
             ATTRIBUTE_DELETED
         ).shouldSucceedWith {
             assertEquals(2, it.size)
@@ -401,7 +408,7 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
-                setOf(NAME_IRI),
+                Pair(NAME_IRI, null),
                 ATTRIBUTE_DELETED
             )
         }
@@ -438,8 +445,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            expandedEntity,
             ATTRIBUTE_CREATED
         ).shouldSucceedWith { results ->
             assertEquals(2, results.size)
@@ -454,7 +462,7 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
-                setOf(NAME_IRI),
+                Pair(NAME_IRI, null),
                 ATTRIBUTE_CREATED
             )
         }
@@ -600,8 +608,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             val entity = it[0].second.data[0]
@@ -643,8 +652,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             val entity = it[0].second.data[0]
@@ -703,8 +713,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(FRIENDLYNAME_IRI),
+            Pair(NAME_IRI, null),
+            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             val entity = it[0].second.data[0]

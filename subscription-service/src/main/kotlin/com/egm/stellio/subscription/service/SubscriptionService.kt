@@ -319,7 +319,7 @@ class SubscriptionService(
     }
 
     internal suspend fun getMatchingSubscriptions(
-        updatedAttributes: Set<ExpandedTerm>,
+        updatedAttribute: Pair<ExpandedTerm, URI?>?,
         notificationTrigger: NotificationTrigger
     ): List<Subscription> {
         val selectStatement =
@@ -339,8 +339,11 @@ class SubscriptionService(
             AND ( throttling IS NULL 
                 OR (last_notification + throttling * INTERVAL '1 second') < :date
                 OR last_notification IS NULL)
-            AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
-                OR watched_attributes IS NULL)
+            ${
+                if (updatedAttribute != null) "AND (string_to_array(watched_attributes, ',') && '{ ${updatedAttribute.first} }'" +
+                    "  OR watched_attributes IS NULL)"
+                else ""
+            }
             AND CASE
                 WHEN notification_trigger && '{ entityUpdated }'
                     THEN notification_trigger || '{ ${NotificationTrigger.expandEntityUpdated()} }' && '{ ${notificationTrigger.notificationTrigger} }'
@@ -348,7 +351,6 @@ class SubscriptionService(
             END
             """.trimIndent()
         return databaseClient.sql(selectStatement)
-            .bind("updatedAttributes", updatedAttributes.joinToString(separator = ","))
             .bind("date", ngsiLdDateTime())
             .allToMappedList { rowToMinimalMatchSubscription(it) }
             .mergeEntitySelectorsOnSubscriptions()
@@ -356,10 +358,10 @@ class SubscriptionService(
 
     suspend fun getMatchingSubscriptions(
         expandedEntity: ExpandedEntity,
-        updatedAttributes: Set<ExpandedTerm>,
+        updatedAttribute: Pair<ExpandedTerm, URI?>?,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, List<Subscription>> = either {
-        getMatchingSubscriptions(updatedAttributes, notificationTrigger)
+        getMatchingSubscriptions(updatedAttribute, notificationTrigger)
             .filter {
                 val entitiesFilter = prepareEntitiesQuery(it.entities, expandedEntity)
                 val qFilter = prepareQQuery(it.q?.decode(), expandedEntity, it.contexts)

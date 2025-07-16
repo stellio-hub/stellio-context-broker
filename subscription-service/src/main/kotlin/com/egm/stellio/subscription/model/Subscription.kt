@@ -200,9 +200,7 @@ data class Subscription(
     }
 
     private fun checkShowChangesIsValid(): Either<BadRequestDataException, Unit> =
-        if (notification.showChanges &&
-            (notification.format == FormatType.KEY_VALUES || notification.format == FormatType.SIMPLIFIED)
-        )
+        if (notification.showChanges && notification.format in setOf(FormatType.KEY_VALUES, FormatType.SIMPLIFIED))
             BadRequestDataException(
                 "'showChanges' and 'simplified' / 'keyValues' format cannot be used at the same time"
             ).left()

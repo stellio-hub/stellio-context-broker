@@ -7,6 +7,7 @@ import com.egm.stellio.shared.model.AttributeRepresentation
 import com.egm.stellio.shared.model.EntityRepresentation
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
@@ -17,7 +18,7 @@ import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.Notification
-import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
@@ -29,6 +30,7 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitExchange
+import java.net.URI
 
 @Service
 class NotificationService(
@@ -41,58 +43,93 @@ class NotificationService(
 
     suspend fun notifyMatchingSubscribers(
         tenantName: String,
-        previousAndUpdatedExpandedEntities: Pair<ExpandedEntity, ExpandedEntity>,
-        updatedAttributes: Set<ExpandedTerm>,
+        updatedAttribute: Pair<ExpandedTerm, URI?>?,
+        previousAttributeValue: Pair<String, Any>?,
+        expandedEntity: ExpandedEntity,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> = either {
         subscriptionService.getMatchingSubscriptions(
-            previousAndUpdatedExpandedEntities.first,
-            updatedAttributes,
+            expandedEntity,
+            updatedAttribute,
             notificationTrigger
-        ).bind()
-            .map {
-                val compactedEntities =
-                    if (it.notification.join == JoinType.FLAT || it.notification.join == JoinType.INLINE) {
-                        coreAPIService.retrieveLinkedEntities(
-                            tenantName,
-                            previousAndUpdatedExpandedEntities.first.id,
-                            it.notification,
-                            subscriptionService.getContextsLink(it)
+        ).bind().map {
+            val compactedEntities =
+                if (it.notification.join in listOf(JoinType.FLAT, JoinType.INLINE)) {
+                    coreAPIService.retrieveLinkedEntities(
+                        tenantName,
+                        expandedEntity.id,
+                        it.notification,
+                        subscriptionService.getContextsLink(it)
+                    )
+                } else {
+                    // using the "previous" entity (it is actually the previous only for deleted entity events)
+                    // to be able to send deleted attributes in case of an entityDeleted event
+                    val filteredEntity = expandedEntity.filterAttributes(
+                        it.notification.attributes?.toSet().orEmpty(),
+                        it.datasetId?.toSet().orEmpty()
+                    )
+                    val entityRepresentation =
+                        EntityRepresentation.forMediaType(acceptToMediaType(it.notification.endpoint.accept.accept))
+                    val attributeRepresentation =
+                        if (it.notification.format in listOf(FormatType.KEY_VALUES, FormatType.SIMPLIFIED))
+                            AttributeRepresentation.SIMPLIFIED
+                        else AttributeRepresentation.NORMALIZED
+
+                    val contexts = it.jsonldContext?.let { listOf(it.toString()) } ?: it.contexts
+
+                    compactEntity(
+                        filteredEntity,
+                        contexts
+                    ).toFinalRepresentation(
+                        NgsiLdDataRepresentation(
+                            entityRepresentation,
+                            attributeRepresentation,
+                            it.notification.sysAttrs,
+                            it.lang
                         )
-                    } else {
-                        // using the "previous" entity (it is actually the previous only for deleted entity events)
-                        // to be able to send deleted attributes in case of a entityDeleted event
-                        val filteredEntity = previousAndUpdatedExpandedEntities.first.filterAttributes(
-                            it.notification.attributes?.toSet().orEmpty(),
-                            it.datasetId?.toSet().orEmpty()
-                        )
-                        val entityRepresentation =
-                            EntityRepresentation.forMediaType(acceptToMediaType(it.notification.endpoint.accept.accept))
-                        val attributeRepresentation =
-                            if (
-                                it.notification.format == NotificationParams.FormatType.KEY_VALUES ||
-                                it.notification.format == NotificationParams.FormatType.SIMPLIFIED
-                            )
-                                AttributeRepresentation.SIMPLIFIED
-                            else AttributeRepresentation.NORMALIZED
+                    ).let { listOf(it) }
+                }
 
-                        val contexts = it.jsonldContext?.let { listOf(it.toString()) } ?: it.contexts
+            val compactedEntitiesWithPreviousValues =
+                if (it.notification.showChanges)
+                    injectPreviousValues(
+                        expandedEntity.id,
+                        compactedEntities,
+                        updatedAttribute,
+                        previousAttributeValue,
+                        notificationTrigger
+                    )
+                else compactedEntities
 
-                        compactEntity(
-                            filteredEntity,
-                            contexts
-                        ).toFinalRepresentation(
-                            NgsiLdDataRepresentation(
-                                entityRepresentation,
-                                attributeRepresentation,
-                                it.notification.sysAttrs,
-                                it.lang
-                            )
-                        ).let { listOf(it) }
-                    }
+            callSubscriber(it, compactedEntitiesWithPreviousValues)
+        }
+    }
 
-                callSubscriber(it, compactedEntities)
+    // TODO to remove later
+    @Suppress("unused")
+    internal fun injectPreviousValues(
+        entityId: URI,
+        compactedEntities: List<Map<String, Any?>>,
+        updatedAttribute: Pair<ExpandedTerm, URI?>?,
+        previousAttributeValue: Pair<String, Any>?,
+        notificationTrigger: NotificationTrigger
+    ): List<Map<String, Any?>> {
+        // since the notification can contain linked entities, extract the "main" entity from the list
+        val notifiedEntity = compactedEntities.first { it[NGSILD_ID_TERM] == entityId.toString() }
+
+        val notifiedEntityWithPreviousValue = when (notificationTrigger) {
+            NotificationTrigger.ATTRIBUTE_UPDATED, NotificationTrigger.ATTRIBUTE_DELETED -> {
+                notifiedEntity
             }
+            NotificationTrigger.ENTITY_DELETED -> {
+                notifiedEntity
+            }
+            else -> notifiedEntity
+        }
+
+        return compactedEntities
+            .filter { it[NGSILD_ID_TERM] != entityId.toString() }
+            .plus(notifiedEntityWithPreviousValue)
     }
 
     suspend fun callSubscriber(

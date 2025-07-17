@@ -6,7 +6,6 @@ import arrow.core.Either.Right
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import arrow.core.toOption
 import com.egm.stellio.search.authorization.permission.model.getSpecificAccessPolicy
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.common.util.deserializeAsMap
@@ -105,11 +104,10 @@ class EntityService(
             ?.let { specificAccessPolicy ->
                 authorizationService.createGlobalPermission(
                     ngsiLdEntity.id,
-                    action = specificAccessPolicy,
-                    sub = sub.toOption()
+                    action = specificAccessPolicy
                 ).bind()
             }
-        authorizationService.createOwnerRight(ngsiLdEntity.id, sub.toOption()).bind()
+        authorizationService.createOwnerRight(ngsiLdEntity.id).bind()
 
         entityEventService.publishEntityCreateEvent(
             sub,

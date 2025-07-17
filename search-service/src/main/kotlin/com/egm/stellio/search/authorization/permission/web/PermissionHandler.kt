@@ -283,7 +283,7 @@ class PermissionHandler(
             val target = it as Map<String, Any>
             target[NGSILD_ID_TERM]?.let { entityId ->
                 val entityUri = (entityId as String).toUri()
-                authorizationService.userCanAdminEntity(entityUri, getSubFromSecurityContext()).bind()
+                authorizationService.userCanAdminEntity(entityUri).bind()
             }
         }
 
@@ -317,7 +317,7 @@ class PermissionHandler(
     )
 
     private suspend fun checkIsAdmin(permissionId: URI): Either<APIException, Unit> =
-        permissionService.isAdminOf(permissionId, getSubFromSecurityContext())
+        permissionService.isAdminOf(permissionId)
             .flatMap {
                 if (!it)
                     AccessDeniedException(
@@ -328,7 +328,7 @@ class PermissionHandler(
             }
 
     private suspend fun checkIsAdmin(permission: Permission): Either<APIException, Unit> =
-        permissionService.checkHasPermissionOnEntity(getSubFromSecurityContext(), permission.target.id, Action.ADMIN)
+        permissionService.checkHasPermissionOnEntity(permission.target.id, Action.ADMIN)
             .flatMap {
                 if (!it)
                     AccessDeniedException(
@@ -361,7 +361,7 @@ class PermissionHandler(
             }
             permission.target.id.let { id ->
                 permissionMap[AUTH_TARGET_TERM] = compactEntity(
-                    entityQueryService.queryEntity(id, getSubFromSecurityContext().getOrNull()).bind()
+                    entityQueryService.queryEntity(id).bind()
                         .filterAttributes(pickAttributes, emptySet()),
                     contexts
                 ).minus(JSONLD_CONTEXT_KW)

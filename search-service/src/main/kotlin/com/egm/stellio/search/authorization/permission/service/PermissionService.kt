@@ -1,12 +1,10 @@
 package com.egm.stellio.search.authorization.permission.service
 
 import arrow.core.Either
-import arrow.core.Option
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import arrow.core.toOption
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
@@ -142,7 +140,7 @@ class PermissionService(
             .oneToResult { rowToPermission(it).bind() }
     }
 
-    suspend fun isAdminOf(entityId: URI, sub: Option<Sub>): Either<APIException, Boolean> = either {
+    suspend fun isAdminOf(entityId: URI): Either<APIException, Boolean> = either {
         val selectStatement =
             """
             SELECT target_id
@@ -153,7 +151,7 @@ class PermissionService(
         val targetEntityId = databaseClient.sql(selectStatement)
             .bind("entity_id", entityId)
             .oneToResult { it["target_id"] as String }.bind()
-        checkHasPermissionOnEntity(sub, targetEntityId.toUri(), Action.ADMIN).bind()
+        checkHasPermissionOnEntity(targetEntityId.toUri(), Action.ADMIN).bind()
     }
 
     suspend fun delete(id: URI): Either<APIException, Unit> = either {
@@ -296,14 +294,13 @@ class PermissionService(
             .execute()
 
     internal suspend fun checkHasPermissionOnEntity(
-        sub: Option<Sub>,
         entityId: URI,
         action: Action
     ): Either<APIException, Boolean> = either {
         if (!applicationProperties.authentication.enabled)
             return@either true
 
-        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
 
         subjectReferentialService.hasStellioAdminRole(subjectUuids)
             .flatMap {
@@ -401,7 +398,7 @@ class PermissionService(
         }
 
         val assigneeFilter = permissionFilters.assignee?.let {
-            val assignee = permissionFilters.assignee.toOption()
+            val assignee = permissionFilters.assignee
 
             val assigneeUuids = subjectReferentialService.getSubjectAndGroupsUUID(assignee).bind()
             """

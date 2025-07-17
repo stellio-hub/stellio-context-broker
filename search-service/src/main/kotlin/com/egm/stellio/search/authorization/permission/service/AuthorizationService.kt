@@ -1,7 +1,6 @@
 package com.egm.stellio.search.authorization.permission.service
 
 import arrow.core.Either
-import arrow.core.Option
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity

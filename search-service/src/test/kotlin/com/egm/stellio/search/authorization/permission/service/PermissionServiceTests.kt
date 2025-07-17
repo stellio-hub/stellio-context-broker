@@ -1,7 +1,5 @@
 package com.egm.stellio.search.authorization.permission.service
 
-import arrow.core.Option
-import arrow.core.Some
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
@@ -9,11 +7,13 @@ import com.egm.stellio.search.authorization.permission.model.Permission.Companio
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.OnlyGetPermission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
+import com.egm.stellio.search.authorization.subject.USER_UUID
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -75,10 +75,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             subjectReferentialService.getSubjectAndGroupsUUID()
         } answers { listOf(userUuid).right() }
-        val capturedSub = slot<Option<Sub>>()
+        val capturedSub = slot<Sub>()
         coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID(capture(capturedSub)) } answers {
-            listOfNotNull(capturedSub.captured.getOrNull()).right()
+            listOfNotNull(capturedSub.captured).right()
         }
     }
 
@@ -242,6 +242,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
 
     @Test
+    @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
     fun `query Permission on target entities type should return an empty list if no Permission matches`() = runTest {
         coEvery {
             subjectReferentialService.hasOneOfGlobalRoles(any(), any())
@@ -252,8 +253,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
         entityService.createEntity(
             ngsiLdEntity,
-            expandedEntity,
-            userUuid
+            expandedEntity
         ).shouldSucceed()
 
         val permission = minimalPermission.copy(target = TargetAsset(id = entityId))
@@ -267,31 +267,36 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
     fun `query Permission on target entities type should return Permissions matching this type`() = runTest {
         coEvery {
             subjectReferentialService.hasOneOfGlobalRoles(any(), any())
         } returns true.right() // allow entity creation
+
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } answers { listOf(USER_UUID).right() }
+
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
         val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
         entityService.createEntity(
             ngsiLdEntity,
-            expandedEntity,
-            userUuid
+            expandedEntity
         ).shouldSucceed()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
-        } returns listOf(userUuid).right()
+            subjectReferentialService.getSubjectAndGroupsUUID(USER_UUID)
+        } returns listOf(USER_UUID).right()
 
-        val permission = minimalPermission.copy(target = TargetAsset(id = entityId))
+        val permission = minimalPermission.copy(assignee = USER_UUID, target = TargetAsset(id = entityId))
         permissionService.create(permission).shouldSucceed()
 
         val matchingPermissions = permissionService.getPermissions(
             PermissionFilters(targetTypeSelection = BEEHIVE_IRI, onlyGetPermission = OnlyGetPermission.ASSIGNED)
         )
         assertTrue(matchingPermissions.isRight())
-        assertThat(matchingPermissions.getOrNull()).hasSize(2)
+        assertThat(matchingPermissions.getOrNull()).hasSize(2) // created permission and owner permission
     }
 
     @Test
@@ -301,7 +306,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         permissionService.create(permission).shouldSucceed()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
+            subjectReferentialService.getSubjectAndGroupsUUID(userUuid)
         } returns listOf(userUuid).right()
 
         val count = permissionService.getPermissionsCount(
@@ -310,7 +315,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         assertEquals(1, count.getOrNull())
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(invalidUser))
+            subjectReferentialService.getSubjectAndGroupsUUID(invalidUser)
         } returns listOf(invalidUser).right()
 
         val countEmpty = permissionService.getPermissionsCount(
@@ -366,10 +371,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
+            subjectReferentialService.getSubjectAndGroupsUUID()
         } returns listOf(userUuid).right()
 
-        permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
+        permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
             .shouldSucceedWith { assertFalse(it) }
 
         coVerify {
@@ -382,7 +387,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
+            subjectReferentialService.getSubjectAndGroupsUUID()
         } returns listOf(userUuid).right()
 
         permissionService.create(
@@ -394,7 +399,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             )
         )
 
-        permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
+        permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
             .shouldSucceedWith { assertTrue(it) }
     }
 
@@ -403,7 +408,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
+            subjectReferentialService.getSubjectAndGroupsUUID()
         } returns listOf(userUuid).right()
 
         permissionService.create(
@@ -415,7 +420,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             )
         )
 
-        permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
+        permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
             .shouldSucceedWith { assertTrue(it) }
     }
 
@@ -424,7 +429,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(any())
+            subjectReferentialService.getSubjectAndGroupsUUID()
         } returns listOf(groupUuid, userUuid).right()
 
         permissionService.create(
@@ -436,7 +441,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             )
         )
 
-        permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
+        permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
             .shouldSucceedWith { assertTrue(it) }
     }
 
@@ -445,10 +450,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns true.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(userUuid))
+            subjectReferentialService.getSubjectAndGroupsUUID()
         } returns listOf(userUuid).right()
 
-        permissionService.checkHasPermissionOnEntity(Some(userUuid), entityId, Action.READ)
+        permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
             .shouldSucceedWith {
                 assertTrue(it)
             }

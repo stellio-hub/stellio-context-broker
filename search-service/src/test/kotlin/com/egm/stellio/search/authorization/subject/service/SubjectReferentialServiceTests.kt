@@ -2,11 +2,11 @@ package com.egm.stellio.search.authorization.subject.service
 
 import com.egm.stellio.search.authorization.subject.GROUP_UUID
 import com.egm.stellio.search.authorization.subject.SERVICE_ACCOUNT_UUID
+import com.egm.stellio.search.authorization.subject.USER_UUID
 import com.egm.stellio.search.authorization.subject.getSubjectInfoForClient
 import com.egm.stellio.search.authorization.subject.getSubjectInfoForGroup
 import com.egm.stellio.search.authorization.subject.getSubjectInfoForUser
 import com.egm.stellio.search.authorization.subject.model.SubjectReferential
-import com.egm.stellio.search.authorization.subject.USER_UUID
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -36,7 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")

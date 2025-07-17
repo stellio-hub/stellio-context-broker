@@ -29,7 +29,6 @@ import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.expandJsonLdEntity
-import com.egm.stellio.shared.util.sub
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -120,7 +119,7 @@ class PermissionHandlerTests {
     fun `get Permission by id should return 200 when it exists`() = runTest {
         val permission = gimmeRawPermission()
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(userUuid).right()
 
@@ -139,7 +138,7 @@ class PermissionHandlerTests {
     fun `get Permission by id should return 200 with sysAttrs when options query param specify it`() = runTest {
         val permission = gimmeRawPermission()
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(userUuid).right()
 
@@ -157,7 +156,7 @@ class PermissionHandlerTests {
     fun `get Permission by id should return the errors from the service`() = runTest {
         val permission = gimmeRawPermission()
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
         coEvery { permissionService.getById(any()) } returns ResourceNotFoundException("").left()
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(userUuid).right()
 
@@ -173,7 +172,7 @@ class PermissionHandlerTests {
     fun `get Permission by id should return the permission if the subject is assigned to the permission`() = runTest {
         val permission = gimmeRawPermission(assignee = userUuid)
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
+        coEvery { permissionService.isAdminOf(any()) } returns false.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(userUuid).right()
 
@@ -190,7 +189,7 @@ class PermissionHandlerTests {
         runTest {
             val permission = gimmeRawPermission(assignee = "not-matching-sub")
 
-            coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
+            coEvery { permissionService.isAdminOf(any()) } returns false.right()
             coEvery { permissionService.getById(any()) } returns permission.right()
             coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(userUuid).right()
 
@@ -226,9 +225,9 @@ class PermissionHandlerTests {
         val permission = gimmeRawPermission()
         val expandedEntity = expandJsonLdEntity(entity)
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
         coEvery { permissionService.getPermissions(any(), any(), any()) } returns listOf(permission).right()
-        coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns expandedEntity.right()
+        coEvery { entityQueryService.queryEntity(any()) } returns expandedEntity.right()
         coEvery { subjectReferentialService.retrieve(any()) } returns SubjectReferential(
             userUuid, SubjectType.GROUP,
             Json.of(
@@ -281,7 +280,7 @@ class PermissionHandlerTests {
             .returnResult().responseBody?.toString(Charsets.UTF_8)
 
         coVerify { permissionService.getPermissions(any(), any()) }
-        coVerify { entityQueryService.queryEntity(any(), any()) }
+        coVerify { entityQueryService.queryEntity(any()) }
         coVerify { subjectReferentialService.retrieve(any()) }
     }
 
@@ -290,9 +289,9 @@ class PermissionHandlerTests {
         val permission = gimmeRawPermission()
         val expandedEntity = expandJsonLdEntity(entity)
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
         coEvery { permissionService.getPermissions(any(), any(), any()) } returns listOf(permission).right()
-        coEvery { entityQueryService.queryEntity(any(), MOCK_USER_SUB) } returns expandedEntity.right()
+        coEvery { entityQueryService.queryEntity(any()) } returns expandedEntity.right()
         coEvery { subjectReferentialService.retrieve(any()) } returns SubjectReferential(
             userUuid, SubjectType.GROUP,
             Json.of(
@@ -341,7 +340,7 @@ class PermissionHandlerTests {
             .returnResult().responseBody?.toString(Charsets.UTF_8)
 
         coVerify { permissionService.getPermissions(any(), any()) }
-        coVerify { entityQueryService.queryEntity(any(), any()) }
+        coVerify { entityQueryService.queryEntity(any()) }
         coVerify { subjectReferentialService.retrieve(any()) }
     }
 
@@ -349,7 +348,7 @@ class PermissionHandlerTests {
     fun `query Permission should return the count if it was asked`() = runTest {
         val permission = gimmeRawPermission()
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
         coEvery {
             permissionService.getPermissions(any(), any(), any())
         } returns listOf(permission).right()
@@ -454,7 +453,7 @@ class PermissionHandlerTests {
     @Test
     fun `delete Permission should return the errors from the service`() = runTest {
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
-        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns true.right()
         coEvery { permissionService.delete(any()) } returns ResourceNotFoundException("").left()
 
         webClient.delete()
@@ -468,7 +467,7 @@ class PermissionHandlerTests {
     @Test
     fun `delete Permission should return a 204 if the deletion succeeded`() = runTest {
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
-        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns true.right()
         coEvery { permissionService.delete(any()) } returns Unit.right()
 
         webClient.delete()
@@ -482,7 +481,7 @@ class PermissionHandlerTests {
     @Test
     fun `delete Permission should refuse to delete permission if the subject is not admin of the target`() = runTest {
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
-        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns false.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns false.right()
         coEvery { permissionService.delete(any()) } returns Unit.right()
 
         webClient.delete()
@@ -496,7 +495,7 @@ class PermissionHandlerTests {
     @Test
     fun `delete Permission should refuse to delete an owning permission`() = runTest {
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission(action = Action.OWN).right()
-        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns true.right()
         coEvery { permissionService.delete(any()) } returns Unit.right()
 
         webClient.delete()
@@ -513,7 +512,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.create(any()) } returns AlreadyExistsException("").left()
         coEvery {
-            permissionService.checkHasPermissionOnEntity(any(), any(), any())
+            permissionService.checkHasPermissionOnEntity(any(), any())
         } returns true.right()
 
         webClient.post()
@@ -535,7 +534,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal.json")
 
         coEvery { permissionService.create(any()) } returns Unit.right()
-        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns true.right()
 
         webClient.post()
             .uri(permissionUri)
@@ -557,7 +556,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission.jsonld")
 
         coEvery { permissionService.create(any()) } returns Unit.right()
-        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns true.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns true.right()
 
         webClient.post()
             .uri(permissionUri)
@@ -574,7 +573,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission.jsonld")
 
         coEvery { permissionService.create(any()) } returns Unit.right()
-        coEvery { permissionService.checkHasPermissionOnEntity(any(), any(), any()) } returns false.right()
+        coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns false.right()
 
         webClient.post()
             .uri(permissionUri)
@@ -591,8 +590,8 @@ class PermissionHandlerTests {
         val permissionId = id
         val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
         coEvery { permissionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
 
@@ -611,7 +610,7 @@ class PermissionHandlerTests {
                     """
             )
 
-        coVerify { permissionService.isAdminOf(permissionId, sub) }
+        coVerify { permissionService.isAdminOf(permissionId) }
         coVerify { permissionService.update(eq(permissionId), parsedPermission, APIC_COMPOUND_CONTEXTS) }
         coVerify { permissionService.getById(permissionId) }
 
@@ -624,8 +623,8 @@ class PermissionHandlerTests {
         val permissionId = id
         val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
 
@@ -635,7 +634,7 @@ class PermissionHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        coVerify { permissionService.isAdminOf(permissionId, sub) }
+        coVerify { permissionService.isAdminOf(permissionId) }
         coVerify { permissionService.update(eq(permissionId), parsedPermission, APIC_COMPOUND_CONTEXTS) }
         coVerify { permissionService.getById(permissionId) }
 
@@ -646,8 +645,8 @@ class PermissionHandlerTests {
     fun `update permission should return a 400 if JSON-LD context is not correct`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
 
         webClient.patch()
@@ -665,15 +664,15 @@ class PermissionHandlerTests {
                 """.trimIndent()
             )
 
-        coVerify { permissionService.isAdminOf(id, sub) }
+        coVerify { permissionService.isAdminOf(id) }
     }
 
     @Test
     fun `update permission should return a 204 if JSON-LD context is provided in header`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
 
@@ -694,7 +693,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.jsonld")
         val permissionId = id
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns false.right()
+        coEvery { permissionService.isAdminOf(any()) } returns false.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
 
         webClient.patch()
@@ -712,10 +711,10 @@ class PermissionHandlerTests {
         val newId = "urn:ngsi-ld:Vehicle:A456".toUri()
         val permissionId = id
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission().right()
-        coEvery { authorizationService.userCanAdminEntity(newId, any()) } returns
+        coEvery { authorizationService.userCanAdminEntity(newId) } returns
             AccessDeniedException("errorMessage").left()
 
         webClient.patch()
@@ -737,7 +736,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update_action_to_admin.json")
         val permissionId = id
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission(assignee = null).right()
 
@@ -760,7 +759,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
         val permissionId = id
 
-        coEvery { permissionService.isAdminOf(any(), any()) } returns true.right()
+        coEvery { permissionService.isAdminOf(any()) } returns true.right()
         coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission(action = Action.OWN).right()
 

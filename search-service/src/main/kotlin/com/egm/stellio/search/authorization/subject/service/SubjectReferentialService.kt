@@ -84,7 +84,11 @@ class SubjectReferentialService(
                 rowToSubjectReferential(it)
             }
 
-    suspend fun getSubjectAndGroupsUUID(): Either<APIException, List<Sub>> =
+    suspend fun getSubjectAndGroupsUUID(): Either<APIException, List<Sub>> = getSubjectAndGroupsUUID(
+        (getSubFromSecurityContext()as Some).value
+    )
+
+    suspend fun getSubjectAndGroupsUUID(sub: Sub): Either<APIException, List<Sub>> =
         databaseClient
             .sql(
                 """
@@ -93,10 +97,10 @@ class SubjectReferentialService(
                 WHERE subject_id = :subject_id
                 """.trimIndent()
             )
-            .bind("subject_id", (getSubFromSecurityContext() as Some).value)
+            .bind("subject_id", sub)
             .oneToResult(
                 AccessDeniedException(
-                    "No subject information found for ${(getSubFromSecurityContext() as Some).value}"
+                    "No subject information found for $sub"
                 )
             ) {
                 toOptionalList<Sub>(it["groups_memberships"]).orEmpty()

@@ -1,8 +1,5 @@
 package com.egm.stellio.search.authorization.permission.service
 
-import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
-import com.egm.stellio.shared.queryparameter.PaginationQuery
-import arrow.core.None
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri

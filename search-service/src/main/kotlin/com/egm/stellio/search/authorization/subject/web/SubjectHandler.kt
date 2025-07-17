@@ -13,7 +13,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -44,8 +43,6 @@ class SubjectHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
 
-        val sub = getSubFromSecurityContext()
-
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
@@ -57,8 +54,7 @@ class SubjectHandler(
             authorizationService.getGroupsMemberships(
                 entitiesQuery.paginationQuery.offset,
                 entitiesQuery.paginationQuery.limit,
-                contexts,
-                sub
+                contexts
             ).bind()
 
         if (count == -1) {
@@ -90,9 +86,7 @@ class SubjectHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
 
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userIsAdmin(sub).bind()
+        authorizationService.userIsAdmin().bind()
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val entitiesQuery = composeEntitiesQueryFromGet(

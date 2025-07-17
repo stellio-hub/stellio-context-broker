@@ -3,8 +3,7 @@ package com.egm.stellio.search.entity.service
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
-import com.egm.stellio.search.authorization.USER_UUID
-import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.authorization.subject.USER_UUID
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationStatus

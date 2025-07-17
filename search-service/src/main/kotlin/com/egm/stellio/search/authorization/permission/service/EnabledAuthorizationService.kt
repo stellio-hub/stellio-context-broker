@@ -79,7 +79,6 @@ class EnabledAuthorizationService(
         action: Action
     ): Either<APIException, Boolean> =
         permissionService.checkHasPermissionOnEntity(
-            sub,
             entityId,
             action
         )

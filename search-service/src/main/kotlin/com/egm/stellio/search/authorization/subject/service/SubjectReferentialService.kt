@@ -1,7 +1,6 @@
 package com.egm.stellio.search.authorization.subject.service
 
 import arrow.core.Either
-import arrow.core.Some
 import arrow.core.getOrElse
 import com.egm.stellio.search.authorization.subject.model.Group
 import com.egm.stellio.search.authorization.subject.model.SubjectReferential
@@ -85,7 +84,7 @@ class SubjectReferentialService(
             }
 
     suspend fun getSubjectAndGroupsUUID(): Either<APIException, List<Sub>> = getSubjectAndGroupsUUID(
-        (getSubFromSecurityContext()as Some).value
+        getSubFromSecurityContext()!!
     )
 
     suspend fun getSubjectAndGroupsUUID(sub: Sub): Either<APIException, List<Sub>> =
@@ -124,7 +123,7 @@ class SubjectReferentialService(
                 OFFSET :offset
                 """.trimIndent()
             )
-            .bind("subject_id", (getSubFromSecurityContext() as Some).value)
+            .bind("subject_id", getSubFromSecurityContext())
             .bind("limit", limit)
             .bind("offset", offset)
             .allToMappedList {
@@ -145,7 +144,7 @@ class SubjectReferentialService(
                 WHERE subject_id = :subject_id
                 """.trimIndent()
             )
-            .bind("subject_id", (getSubFromSecurityContext() as Some).value)
+            .bind("subject_id", getSubFromSecurityContext())
             .oneToResult { toInt(it["count"]) }
 
     suspend fun getAllGroups(offset: Int, limit: Int): List<Group> =
@@ -166,7 +165,7 @@ class SubjectReferentialService(
                 OFFSET :offset
                 """.trimIndent()
             )
-            .bind("subject_id", (getSubFromSecurityContext() as Some).value)
+            .bind("subject_id", getSubFromSecurityContext())
             .bind("limit", limit)
             .bind("offset", offset)
             .allToMappedList {

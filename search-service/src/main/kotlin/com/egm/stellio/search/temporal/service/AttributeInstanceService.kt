@@ -47,7 +47,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
 @Service
 class AttributeInstanceService(
@@ -153,7 +153,7 @@ class AttributeInstanceService(
             timeAndProperty = deletedAt to DELETED_AT,
             value = Triple(value, null, null),
             payload = attributeValues,
-            sub = getSubFromSecurityContext().getOrNull()
+            sub = getSubFromSecurityContext()
         )
         return create(attributeInstance)
     }

@@ -1,9 +1,9 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.model.COMPACTED_ATTRIBUTES_TERMS
 import com.egm.stellio.shared.model.InvalidRequestException
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_JSON_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_COMPACTED_ATTRIBUTES_VALUES
+import com.egm.stellio.shared.model.NGSILD_JSON_TERM
+import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -78,7 +78,7 @@ object JsonUtils {
     fun Map<String, Any>.getAllKeys(): Set<String> =
         this.entries.fold(emptySet()) { acc, entry ->
             // what is inside the value of a Property or a JsonProperty is not a key
-            if (entry.key in NGSILD_COMPACTED_ATTRIBUTES_VALUES)
+            if (entry.key in COMPACTED_ATTRIBUTES_TERMS)
                 acc.plus(entry.key)
             else {
                 val valueKeys = when (entry.value) {
@@ -101,7 +101,7 @@ object JsonUtils {
         this.entries.fold(emptySet()) { acc, entry ->
             val values = when {
                 entry.value is Map<*, *> &&
-                    entry.key in listOf(JSONLD_VALUE_TERM, JSONLD_JSON_TERM) -> setOf(entry.value)
+                    entry.key in listOf(NGSILD_VALUE_TERM, NGSILD_JSON_TERM) -> setOf(entry.value)
                 entry.value is Map<*, *> -> (entry.value as Map<String, Any>).getAllValues()
                 entry.value is List<*> ->
                     (entry.value as List<Any>).map {

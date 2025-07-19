@@ -12,6 +12,12 @@ import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
+import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
+import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_NULL
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NgsiLdAttributeInstance
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
@@ -25,8 +31,6 @@ import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.getRelationshipId
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.savvasdalkitsis.jsonmerger.JsonMerger
@@ -173,9 +177,9 @@ fun mergePatch(
             target[attrName] = attrValue
         } else if (
             listOf(
-                JsonLdUtils.NGSILD_JSONPROPERTY_VALUE,
-                JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE,
-                JsonLdUtils.NGSILD_PROPERTY_VALUE
+                NGSILD_JSONPROPERTY_JSON,
+                NGSILD_VOCABPROPERTY_VOCAB,
+                NGSILD_PROPERTY_VALUE
             ).contains(attrName)
         ) {
             if (attrValue.size > 1) {
@@ -190,13 +194,13 @@ fun mergePatch(
                     ).deserializeAsMap()
                 )
             }
-        } else if (listOf(NGSILD_LANGUAGEPROPERTY_VALUE).contains(attrName)) {
+        } else if (listOf(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).contains(attrName)) {
             val sourceLangEntries = source[attrName] as List<Map<String, String>>
             val targetLangEntries = sourceLangEntries.toMutableList()
             (attrValue as List<Map<String, String>>).forEach { langEntry ->
                 // remove any previously existing entry for this language
                 targetLangEntries.removeIf {
-                    it[JsonLdUtils.JSONLD_LANGUAGE] == langEntry[JsonLdUtils.JSONLD_LANGUAGE]
+                    it[JSONLD_LANGUAGE_KW] == langEntry[JSONLD_LANGUAGE_KW]
                 }
                 targetLangEntries.add(langEntry)
             }

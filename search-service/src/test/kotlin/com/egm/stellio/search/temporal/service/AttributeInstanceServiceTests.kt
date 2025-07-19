@@ -23,38 +23,38 @@ import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_INSTANCE_ID_IRI
+import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
+import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_NULL
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.CATEGORY_COMPACT_VOCABPROPERTY
-import com.egm.stellio.shared.util.CATEGORY_VOCAPPROPERTY
-import com.egm.stellio.shared.util.FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY
-import com.egm.stellio.shared.util.FRIENDLYNAME_LANGUAGEPROPERTY
-import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.CATEGORY_IRI
+import com.egm.stellio.shared.util.CATEGORY_TERM
+import com.egm.stellio.shared.util.FRIENDLYNAME_IRI
+import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
+import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_LANGUAGE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_JSONPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANGUAGEPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NULL
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_VOCABPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.LUMINOSITY_COMPACT_JSONPROPERTY
-import com.egm.stellio.shared.util.LUMINOSITY_JSONPROPERTY
-import com.egm.stellio.shared.util.OUTGOING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.LUMINOSITY_IRI
+import com.egm.stellio.shared.util.LUMINOSITY_TERM
+import com.egm.stellio.shared.util.OUTGOING_IRI
+import com.egm.stellio.shared.util.OUTGOING_TERM
 import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
@@ -115,7 +115,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     fun createAttribute() {
         incomingAttribute = Attribute(
             entityId = entityId,
-            attributeName = INCOMING_PROPERTY,
+            attributeName = INCOMING_IRI,
             attributeValueType = Attribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
@@ -127,7 +127,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         outgoingAttribute = Attribute(
             entityId = entityId,
-            attributeName = OUTGOING_PROPERTY,
+            attributeName = OUTGOING_IRI,
             attributeValueType = Attribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
@@ -139,7 +139,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         jsonAttribute = Attribute(
             entityId = entityId,
-            attributeName = LUMINOSITY_JSONPROPERTY,
+            attributeName = LUMINOSITY_IRI,
             attributeValueType = Attribute.AttributeValueType.JSON,
             createdAt = now,
             payload = SAMPLE_JSON_PROPERTY_PAYLOAD
@@ -151,7 +151,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         languageAttribute = Attribute(
             entityId = entityId,
-            attributeName = FRIENDLYNAME_LANGUAGEPROPERTY,
+            attributeName = FRIENDLYNAME_IRI,
             attributeValueType = Attribute.AttributeValueType.ARRAY,
             createdAt = now,
             payload = SAMPLE_LANGUAGE_PROPERTY_PAYLOAD
@@ -163,7 +163,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         vocabAttribute = Attribute(
             entityId = entityId,
-            attributeName = CATEGORY_VOCAPPROPERTY,
+            attributeName = CATEGORY_IRI,
             attributeValueType = Attribute.AttributeValueType.ARRAY,
             createdAt = now,
             payload = SAMPLE_VOCAB_PROPERTY_PAYLOAD
@@ -347,7 +347,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 time = observedAt,
                 attributeMetadata = attributeMetadata,
                 payload = buildExpandedPropertyValue(attributeMetadata.value!!)
-                    .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_PROPERTY, observedAt)
+                    .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_IRI, observedAt)
                     .getSingleEntry()
             )
             attributeInstanceService.create(attributeInstance)
@@ -506,7 +506,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     fun `it should only retrieve the temporal evolution of the provided temporal entity attribute`() = runTest {
         val attribute2 = Attribute(
             entityId = entityId,
-            attributeName = OUTGOING_COMPACT_PROPERTY,
+            attributeName = OUTGOING_TERM,
             attributeValueType = Attribute.AttributeValueType.NUMBER,
             createdAt = now,
             payload = EMPTY_JSON_PAYLOAD
@@ -629,15 +629,15 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             observedAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z")
         )
         val attributeValues = mapOf(
-            NGSILD_OBSERVED_AT_PROPERTY to listOf(
+            NGSILD_OBSERVED_AT_IRI to listOf(
                 mapOf(
-                    JSONLD_VALUE to attributeMetadata.observedAt,
-                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
+                    JSONLD_VALUE_KW to attributeMetadata.observedAt,
+                    JSONLD_TYPE_KW to NGSILD_DATE_TIME_TYPE
                 )
             ),
             NGSILD_PROPERTY_VALUE to listOf(
                 mapOf(
-                    JSONLD_VALUE to attributeMetadata.measuredValue
+                    JSONLD_VALUE_KW to attributeMetadata.measuredValue
                 )
             )
         )
@@ -691,15 +691,15 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             observedAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z")
         )
         val attributeValues = mapOf(
-            NGSILD_OBSERVED_AT_PROPERTY to listOf(
+            NGSILD_OBSERVED_AT_IRI to listOf(
                 mapOf(
-                    JSONLD_VALUE to attributeMetadata.observedAt,
-                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
+                    JSONLD_VALUE_KW to attributeMetadata.observedAt,
+                    JSONLD_TYPE_KW to NGSILD_DATE_TIME_TYPE
                 )
             ),
             NGSILD_PROPERTY_VALUE to listOf(
                 mapOf(
-                    JSONLD_VALUE to false
+                    JSONLD_VALUE_KW to false
                 )
             )
         )
@@ -745,15 +745,15 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         )
         val deletedAt = ZonedDateTime.parse("2025-01-02T11:20:30.000001Z")
         val attributeValues = mapOf(
-            NGSILD_DELETED_AT_PROPERTY to listOf(
+            NGSILD_DELETED_AT_IRI to listOf(
                 mapOf(
-                    JSONLD_VALUE to deletedAt,
-                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
+                    JSONLD_VALUE_KW to deletedAt,
+                    JSONLD_TYPE_KW to NGSILD_DATE_TIME_TYPE
                 )
             ),
             NGSILD_PROPERTY_VALUE to listOf(
                 mapOf(
-                    JSONLD_VALUE to NGSILD_NULL
+                    JSONLD_VALUE_KW to NGSILD_NULL
                 )
             )
         )
@@ -799,7 +799,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_fragment.jsonld")
-        val attributeInstancePayload = mapOf(INCOMING_COMPACT_PROPERTY to instanceTemporalFragment.deserializeAsMap())
+        val attributeInstancePayload = mapOf(INCOMING_TERM to instanceTemporalFragment.deserializeAsMap())
         val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(
             attributeInstancePayload,
             APIC_COMPOUND_CONTEXTS
@@ -814,7 +814,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.modifyAttributeInstance(
             entityId,
-            INCOMING_PROPERTY,
+            INCOMING_IRI,
             attributeInstance.instanceId,
             jsonLdAttribute.entries.first().value
         ).shouldSucceed()
@@ -823,8 +823,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             .shouldSucceedWith {
                 (it as List<FullAttributeInstanceResult>).single { result ->
                     result.time == ZonedDateTime.parse("2023-03-13T12:33:06Z") &&
-                        result.payload.deserializeAsMap().containsKey(NGSILD_MODIFIED_AT_PROPERTY) ||
-                        result.payload.deserializeAsMap().containsKey(NGSILD_INSTANCE_ID_PROPERTY)
+                        result.payload.deserializeAsMap().containsKey(NGSILD_MODIFIED_AT_IRI) ||
+                        result.payload.deserializeAsMap().containsKey(NGSILD_INSTANCE_ID_IRI)
                 }
             }
     }
@@ -837,7 +837,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_json_fragment.jsonld")
         val attributeInstancePayload =
-            mapOf(LUMINOSITY_COMPACT_JSONPROPERTY to instanceTemporalFragment.deserializeAsMap())
+            mapOf(LUMINOSITY_TERM to instanceTemporalFragment.deserializeAsMap())
         val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(
             attributeInstancePayload,
             APIC_COMPOUND_CONTEXTS
@@ -852,7 +852,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.modifyAttributeInstance(
             entityId,
-            LUMINOSITY_JSONPROPERTY,
+            LUMINOSITY_IRI,
             attributeInstance.instanceId,
             jsonLdAttribute.entries.first().value
         ).shouldSucceed()
@@ -861,9 +861,9 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             .shouldSucceedWith {
                 (it as List<FullAttributeInstanceResult>).single { result ->
                     result.time == ZonedDateTime.parse("2023-03-13T12:33:06Z") &&
-                        result.payload.deserializeAsMap().containsKey(NGSILD_MODIFIED_AT_PROPERTY) &&
-                        result.payload.deserializeAsMap().containsKey(NGSILD_INSTANCE_ID_PROPERTY) &&
-                        result.payload.deserializeAsMap().containsKey(NGSILD_JSONPROPERTY_VALUE)
+                        result.payload.deserializeAsMap().containsKey(NGSILD_MODIFIED_AT_IRI) &&
+                        result.payload.deserializeAsMap().containsKey(NGSILD_INSTANCE_ID_IRI) &&
+                        result.payload.deserializeAsMap().containsKey(NGSILD_JSONPROPERTY_JSON)
                 }
             }
     }
@@ -876,7 +876,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_language_fragment.jsonld")
         val attributeInstancePayload =
-            mapOf(FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY to instanceTemporalFragment.deserializeAsMap())
+            mapOf(FRIENDLYNAME_TERM to instanceTemporalFragment.deserializeAsMap())
         val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(
             attributeInstancePayload,
             APIC_COMPOUND_CONTEXTS
@@ -891,7 +891,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.modifyAttributeInstance(
             entityId,
-            FRIENDLYNAME_LANGUAGEPROPERTY,
+            FRIENDLYNAME_IRI,
             attributeInstance.instanceId,
             jsonLdAttribute.entries.first().value
         ).shouldSucceed()
@@ -901,12 +901,12 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 (it as List<FullAttributeInstanceResult>).single { result ->
                     val deserializedPayload = result.payload.deserializeAsMap()
                     result.time == ZonedDateTime.parse("2023-03-13T12:33:06Z") &&
-                        deserializedPayload.containsKey(NGSILD_MODIFIED_AT_PROPERTY) &&
-                        deserializedPayload.containsKey(NGSILD_INSTANCE_ID_PROPERTY) &&
-                        deserializedPayload.containsKey(NGSILD_LANGUAGEPROPERTY_VALUE) &&
-                        (deserializedPayload[NGSILD_LANGUAGEPROPERTY_VALUE] as List<Map<String, String>>)
+                        deserializedPayload.containsKey(NGSILD_MODIFIED_AT_IRI) &&
+                        deserializedPayload.containsKey(NGSILD_INSTANCE_ID_IRI) &&
+                        deserializedPayload.containsKey(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP) &&
+                        (deserializedPayload[NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP] as List<Map<String, String>>)
                             .all { langMap ->
-                                langMap[JSONLD_LANGUAGE] == "fr" || langMap[JSONLD_LANGUAGE] == "it"
+                                langMap[JSONLD_LANGUAGE_KW] == "fr" || langMap[JSONLD_LANGUAGE_KW] == "it"
                             }
                 }
             }
@@ -920,7 +920,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         val instanceTemporalFragment =
             loadSampleData("fragments/temporal_instance_vocab_fragment.jsonld")
         val attributeInstancePayload =
-            mapOf(CATEGORY_COMPACT_VOCABPROPERTY to instanceTemporalFragment.deserializeAsMap())
+            mapOf(CATEGORY_TERM to instanceTemporalFragment.deserializeAsMap())
         val jsonLdAttribute = JsonLdUtils.expandJsonLdFragment(
             attributeInstancePayload,
             APIC_COMPOUND_CONTEXTS
@@ -935,7 +935,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.modifyAttributeInstance(
             entityId,
-            CATEGORY_VOCAPPROPERTY,
+            CATEGORY_IRI,
             attributeInstance.instanceId,
             jsonLdAttribute.entries.first().value
         ).shouldSucceed()
@@ -945,13 +945,13 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 (it as List<FullAttributeInstanceResult>).single { result ->
                     val deserializedPayload = result.payload.deserializeAsMap()
                     result.time == ZonedDateTime.parse("2023-03-13T12:33:06Z") &&
-                        deserializedPayload.containsKey(NGSILD_MODIFIED_AT_PROPERTY) &&
-                        deserializedPayload.containsKey(NGSILD_INSTANCE_ID_PROPERTY) &&
-                        deserializedPayload.containsKey(NGSILD_VOCABPROPERTY_VALUE) &&
-                        (deserializedPayload[NGSILD_VOCABPROPERTY_VALUE] as List<Map<String, String>>)
+                        deserializedPayload.containsKey(NGSILD_MODIFIED_AT_IRI) &&
+                        deserializedPayload.containsKey(NGSILD_INSTANCE_ID_IRI) &&
+                        deserializedPayload.containsKey(NGSILD_VOCABPROPERTY_VOCAB) &&
+                        (deserializedPayload[NGSILD_VOCABPROPERTY_VOCAB] as List<Map<String, String>>)
                             .all { entry ->
-                                entry[JSONLD_ID] == "${NGSILD_DEFAULT_VOCAB}stellio" ||
-                                    entry[JSONLD_ID] == "${NGSILD_DEFAULT_VOCAB}egm"
+                                entry[JSONLD_ID_KW] == "${NGSILD_DEFAULT_VOCAB}stellio" ||
+                                    entry[JSONLD_ID_KW] == "${NGSILD_DEFAULT_VOCAB}egm"
                             }
                 }
             }
@@ -1073,7 +1073,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 )
         }
 
-        attributeInstanceService.deleteAllInstancesOfAttribute(entityId, INCOMING_PROPERTY).shouldSucceed()
+        attributeInstanceService.deleteAllInstancesOfAttribute(entityId, INCOMING_IRI).shouldSucceed()
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
             buildDefaultTestTemporalQuery(
@@ -1100,7 +1100,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                 )
         }
 
-        attributeInstanceService.deleteInstancesOfAttribute(entityId, INCOMING_PROPERTY, null).shouldSucceed()
+        attributeInstanceService.deleteInstancesOfAttribute(entityId, INCOMING_IRI, null).shouldSucceed()
 
         val temporalEntitiesQuery = gimmeTemporalEntitiesQuery(
             buildDefaultTestTemporalQuery(

@@ -9,18 +9,18 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.model.NGSILD_OBSERVATION_SPACE_IRI
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.Georel
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinType
-import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.BEEKEEPER_TYPE
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_PROPERTY
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.BEEKEEPER_IRI
+import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceedAndResult
@@ -49,8 +49,8 @@ class EntitiesQueryUtilsTests {
             APIC_COMPOUND_CONTEXTS
         ).shouldSucceedAndResult()
 
-        assertEquals("$BEEHIVE_TYPE,$APIARY_TYPE", entitiesQuery.typeSelection)
-        assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), entitiesQuery.attrs)
+        assertEquals("$BEEHIVE_IRI,$APIARY_IRI", entitiesQuery.typeSelection)
+        assertEquals(setOf(INCOMING_IRI, OUTGOING_IRI), entitiesQuery.attrs)
         assertEquals(
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
             entitiesQuery.ids
@@ -234,13 +234,13 @@ class EntitiesQueryUtilsTests {
             val entitySelector = it.entitySelectors[0]
             assertEquals("urn:ngsi-ld:BeeHive:TESTC".toUri(), entitySelector.id)
             assertEquals("urn:ngsi-ld:BeeHive:*", entitySelector.idPattern)
-            assertEquals(BEEHIVE_TYPE, entitySelector.typeSelection)
+            assertEquals(BEEHIVE_IRI, entitySelector.typeSelection)
             assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2"), it.attrs)
             assertEquals("temperature>32", it.q)
             assertEquals(GeoQuery.GeometryType.POINT, it.geoQuery?.geometry)
             assertEquals("[1.0, 1.0]", it.geoQuery?.coordinates)
             assertEquals(Georel.EQUALS.key, it.geoQuery?.georel)
-            assertEquals(NGSILD_OBSERVATION_SPACE_PROPERTY, it.geoQuery?.geoproperty)
+            assertEquals(NGSILD_OBSERVATION_SPACE_IRI, it.geoQuery?.geoproperty)
             assertEquals("/Nantes", it.scopeQ)
             assertEquals(setOf("urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"), it.datasetId)
             assertEquals(JoinType.FLAT, it.linkedEntityQuery?.join)
@@ -271,7 +271,7 @@ class EntitiesQueryUtilsTests {
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
         ).shouldSucceedWith {
-            assertEquals(BEEHIVE_TYPE, it.entitySelectors!![0].typeSelection)
+            assertEquals(BEEHIVE_IRI, it.entitySelectors!![0].typeSelection)
             assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1"), it.attrs)
             assertEquals("temperature>32", it.q)
         }
@@ -308,12 +308,12 @@ class EntitiesQueryUtilsTests {
                 .hasSize(3)
                 .containsAll(
                     listOf(
-                        EntitySelector(id = null, idPattern = "urn:ngsi-ld:BeeHive:*", typeSelection = BEEHIVE_TYPE),
-                        EntitySelector(id = null, idPattern = null, typeSelection = APIARY_TYPE),
+                        EntitySelector(id = null, idPattern = "urn:ngsi-ld:BeeHive:*", typeSelection = BEEHIVE_IRI),
+                        EntitySelector(id = null, idPattern = null, typeSelection = APIARY_IRI),
                         EntitySelector(
                             id = "urn:ngsi-ld:Beekeeper:Jules".toUri(),
                             idPattern = null,
-                            typeSelection = BEEKEEPER_TYPE
+                            typeSelection = BEEKEEPER_IRI
                         )
                     )
                 )

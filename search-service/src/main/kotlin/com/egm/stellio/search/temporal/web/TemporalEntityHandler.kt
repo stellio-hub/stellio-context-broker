@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.service.TemporalService
+import com.egm.stellio.search.temporal.util.TemporalEntityBuilder.wrapSingleValuesToList
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntityTemporalResponse
@@ -13,6 +14,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributes
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.toExpandedAttributes
@@ -21,7 +23,6 @@ import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
@@ -33,7 +34,6 @@ import com.egm.stellio.shared.util.checkNameIsNgsiLdSupported
 import com.egm.stellio.shared.util.extractPayloadAndContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.invalidTemporalInstanceMessage
 import com.egm.stellio.shared.util.missingPathErrorResponse
 import com.egm.stellio.shared.util.toUri
@@ -76,7 +76,6 @@ class TemporalEntityHandler(
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
@@ -88,8 +87,7 @@ class TemporalEntityHandler(
 
         val result = temporalService.createOrUpdateTemporalEntity(
             entityUri,
-            jsonLdTemporalEntity,
-            sub.getOrNull()
+            jsonLdTemporalEntity
         ).bind()
 
         if (result == TemporalService.CreateOrUpdateResult.CREATED)
@@ -114,14 +112,12 @@ class TemporalEntityHandler(
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val jsonLdInstances = expandAttributes(body, contexts)
         jsonLdInstances.checkTemporalAttributeInstance().bind()
 
-        temporalService.upsertAttributes(entityId, jsonLdInstances, sub.getOrNull()).bind()
+        temporalService.upsertAttributes(entityId, jsonLdInstances).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -149,7 +145,6 @@ class TemporalEntityHandler(
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
@@ -157,11 +152,11 @@ class TemporalEntityHandler(
             composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts, true).bind()
 
         val (temporalEntities, total, range) = temporalQueryService.queryTemporalEntities(
-            temporalEntitiesQuery,
-            sub.getOrNull()
+            temporalEntitiesQuery
         ).bind()
 
         val compactedEntities = compactEntities(temporalEntities, contexts)
+            .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
         buildEntitiesTemporalResponse(
             compactedEntities,
@@ -194,7 +189,6 @@ class TemporalEntityHandler(
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
@@ -203,11 +197,11 @@ class TemporalEntityHandler(
 
         val (temporalEntity, range) = temporalQueryService.queryTemporalEntity(
             entityId,
-            temporalEntitiesQuery,
-            sub.getOrNull()
+            temporalEntitiesQuery
         ).bind()
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
+            .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         buildEntityTemporalResponse(mediaType, contexts, temporalEntitiesQuery, range)
@@ -234,7 +228,6 @@ class TemporalEntityHandler(
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         attrId.checkNameIsNgsiLdSupported().bind()
@@ -245,8 +238,7 @@ class TemporalEntityHandler(
         temporalService.modifyAttributeInstance(
             entityId,
             instanceId,
-            expandedAttribute,
-            sub.getOrNull()
+            expandedAttribute
         ).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -273,9 +265,7 @@ class TemporalEntityHandler(
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
-        temporalService.deleteEntity(entityId, sub.getOrNull()).bind()
+        temporalService.deleteEntity(entityId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -297,7 +287,6 @@ class TemporalEntityHandler(
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val deleteAll = queryParams.getFirst(QP.DELETE_ALL.key)?.toBoolean() ?: false
         val datasetId = queryParams.getFirst(QP.DATASET_ID.key)?.toUri()
 
@@ -309,8 +298,7 @@ class TemporalEntityHandler(
             entityId,
             expandedAttrId,
             datasetId,
-            deleteAll,
-            sub.getOrNull()
+            deleteAll
         ).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -335,12 +323,11 @@ class TemporalEntityHandler(
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         attrId.checkNameIsNgsiLdSupported().bind()
         val expandedAttrId = expandJsonLdTerm(attrId, contexts)
 
-        temporalService.deleteAttributeInstance(entityId, expandedAttrId, instanceId, sub.getOrNull()).bind()
+        temporalService.deleteAttributeInstance(entityId, expandedAttrId, instanceId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -357,7 +344,7 @@ class TemporalEntityHandler(
     private fun ExpandedAttributes.checkTemporalAttributeInstance(): Either<APIException, Unit> =
         this.values.all { expandedInstances ->
             expandedInstances.all { expandedAttributePayloadEntry ->
-                expandedAttributePayloadEntry.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_PROPERTY) != null
+                expandedAttributePayloadEntry.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI) != null
             }
         }.let {
             if (it) Unit.right()

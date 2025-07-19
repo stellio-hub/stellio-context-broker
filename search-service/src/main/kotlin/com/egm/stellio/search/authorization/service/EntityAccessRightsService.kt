@@ -1,7 +1,6 @@
 package com.egm.stellio.search.authorization.service
 
 import arrow.core.Either
-import arrow.core.Option
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
@@ -23,6 +22,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.EntityTypeSelection
+import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.AccessRight
@@ -40,7 +40,6 @@ import com.egm.stellio.shared.util.AuthContextModel.GROUP_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
@@ -116,9 +115,8 @@ class EntityAccessRightsService(
             .bind("entity_id", entityId)
             .execute()
 
-    suspend fun canReadEntity(sub: Option<Sub>, entityId: URI): Either<APIException, Unit> =
+    suspend fun canReadEntity(entityId: URI): Either<APIException, Unit> =
         checkHasRightOnEntity(
-            sub,
             entityId,
             listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE),
             listOf(CAN_READ, CAN_WRITE, CAN_ADMIN, IS_OWNER)
@@ -128,9 +126,8 @@ class EntityAccessRightsService(
             else Unit.right()
         }
 
-    suspend fun canWriteEntity(sub: Option<Sub>, entityId: URI): Either<APIException, Unit> =
+    suspend fun canWriteEntity(entityId: URI): Either<APIException, Unit> =
         checkHasRightOnEntity(
-            sub,
             entityId,
             listOf(SpecificAccessPolicy.AUTH_WRITE),
             listOf(CAN_WRITE, CAN_ADMIN, IS_OWNER)
@@ -155,7 +152,6 @@ class EntityAccessRightsService(
             .oneToResult { it["access_right"] as String == IS_OWNER.attributeName }
 
     internal suspend fun checkHasRightOnEntity(
-        sub: Option<Sub>,
         entityId: URI,
         specificAccessPolicies: List<SpecificAccessPolicy>,
         accessRights: List<AccessRight>
@@ -163,7 +159,7 @@ class EntityAccessRightsService(
         if (!applicationProperties.authentication.enabled)
             return@either true
 
-        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
 
         subjectReferentialService.hasStellioAdminRole(subjectUuids)
             .flatMap {
@@ -218,14 +214,13 @@ class EntityAccessRightsService(
             .oneToResult { it["count"] as Long >= 1L }
 
     suspend fun getSubjectAccessRights(
-        sub: Option<Sub>,
         accessRights: List<AccessRight>,
         entitiesQuery: EntitiesQueryFromGet,
         includeDeleted: Boolean = false
     ): Either<APIException, List<EntityAccessRights>> = either {
         val ids = entitiesQuery.ids
         val typeSelection = entitiesQuery.typeSelection
-        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
         val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(subjectUuids).bind()
 
         databaseClient
@@ -278,13 +273,12 @@ class EntityAccessRightsService(
     }
 
     suspend fun getSubjectAccessRightsCount(
-        sub: Option<Sub>,
         accessRights: List<AccessRight>,
         type: EntityTypeSelection? = null,
         ids: Set<URI>? = null,
         includeDeleted: Boolean = false
     ): Either<APIException, Int> = either {
-        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
         val isStellioAdmin = subjectReferentialService.hasStellioAdminRole(subjectUuids).bind()
 
         databaseClient
@@ -320,13 +314,12 @@ class EntityAccessRightsService(
     }
 
     suspend fun getAccessRightsForEntities(
-        sub: Option<Sub>,
         entities: List<URI>
     ): Either<APIException, Map<URI, Map<AccessRight, List<SubjectRightInfo>>>> = either {
         if (entities.isEmpty())
             return@either emptyMap()
 
-        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID(sub).bind()
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
 
         databaseClient
             .sql(
@@ -356,7 +349,7 @@ class EntityAccessRightsService(
                             }
 
                             val subjectInfo = toJsonString(record["subject_info"])
-                                .deserializeAsMap()[JSONLD_VALUE_TERM] as Map<String, String>
+                                .deserializeAsMap()[NGSILD_VALUE_TERM] as Map<String, String>
                             val subjectSpecificInfo = when (subjectType) {
                                 SubjectType.USER -> Pair(AUTH_TERM_USERNAME, subjectInfo[AUTH_TERM_USERNAME]!!)
                                 SubjectType.GROUP -> Pair(AUTH_TERM_NAME, subjectInfo[AUTH_TERM_NAME]!!)

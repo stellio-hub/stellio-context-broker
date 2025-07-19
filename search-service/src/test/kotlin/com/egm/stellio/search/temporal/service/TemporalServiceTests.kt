@@ -6,7 +6,7 @@ import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.toUri
@@ -41,12 +41,11 @@ class TemporalServiceTests {
     private lateinit var authorizationService: AuthorizationService
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-    private val sub = "0123456789-1234-5678-987654321"
 
     private fun mockkAuthorizationForCreation() {
-        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
-        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
-        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
     }
 
     @Test
@@ -55,56 +54,56 @@ class TemporalServiceTests {
         coEvery {
             entityQueryService.isMarkedAsDeleted(entityUri)
         } returns ResourceNotFoundException("Entity does not exist").left()
-        coEvery { entityService.createEntity(any(), any(), any()) } returns Unit.right()
-        coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { entityService.createEntity(any(), any()) } returns Unit.right()
+        coEvery { entityService.upsertAttributes(any(), any()) } returns Unit.right()
 
         val expandedEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
 
-        temporalService.createOrUpdateTemporalEntity(entityUri, expandedEntity, sub).shouldSucceed()
+        temporalService.createOrUpdateTemporalEntity(entityUri, expandedEntity).shouldSucceed()
     }
 
     @Test
     fun `it should ask to create a temporal entity if it already exists but is deleted`() = runTest {
         mockkAuthorizationForCreation()
         coEvery { entityQueryService.isMarkedAsDeleted(entityUri) } returns false.right()
-        coEvery { entityService.createEntity(any(), any(), any()) } returns Unit.right()
-        coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { entityService.createEntity(any(), any()) } returns Unit.right()
+        coEvery { entityService.upsertAttributes(any(), any()) } returns Unit.right()
 
         val expandedEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
 
-        temporalService.createOrUpdateTemporalEntity(entityUri, expandedEntity, sub).shouldSucceed()
+        temporalService.createOrUpdateTemporalEntity(entityUri, expandedEntity).shouldSucceed()
     }
 
     @Test
     fun `it should ask to upsert a temporal entity if it already exists but is not deleted`() = runTest {
         mockkAuthorizationForCreation()
         coEvery { entityQueryService.isMarkedAsDeleted(entityUri) } returns false.right()
-        coEvery { entityService.upsertAttributes(any(), any(), any()) } returns Unit.right()
+        coEvery { entityService.upsertAttributes(any(), any()) } returns Unit.right()
 
         val expandedEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
 
-        temporalService.createOrUpdateTemporalEntity(entityUri, expandedEntity, sub).shouldSucceed()
+        temporalService.createOrUpdateTemporalEntity(entityUri, expandedEntity).shouldSucceed()
     }
 
     @Test
     fun `it should ask to permanently delete a temporal entity`() = runTest {
         coEvery { entityService.permanentlyDeleteEntity(any(), any()) } returns Unit.right()
 
-        temporalService.deleteEntity(entityUri, sub).shouldSucceed()
+        temporalService.deleteEntity(entityUri).shouldSucceed()
 
         coVerify(exactly = 1) {
-            entityService.permanentlyDeleteEntity(entityUri, sub)
+            entityService.permanentlyDeleteEntity(entityUri)
         }
     }
 
     @Test
     fun `it should ask to permanently delete a temporal attribute`() = runTest {
-        coEvery { entityService.permanentlyDeleteAttribute(any(), any(), any(), any(), any()) } returns Unit.right()
+        coEvery { entityService.permanentlyDeleteAttribute(any(), any(), any(), any()) } returns Unit.right()
 
-        temporalService.deleteAttribute(entityUri, INCOMING_PROPERTY, null).shouldSucceed()
+        temporalService.deleteAttribute(entityUri, INCOMING_IRI, null).shouldSucceed()
 
         coVerify(exactly = 1) {
-            entityService.permanentlyDeleteAttribute(entityUri, INCOMING_PROPERTY, null)
+            entityService.permanentlyDeleteAttribute(entityUri, INCOMING_IRI, null)
         }
     }
 
@@ -113,15 +112,15 @@ class TemporalServiceTests {
         val instanceId = "urn:ngsi-ld:Instance:01".toUri()
 
         coEvery { entityQueryService.checkEntityExistence(entityUri) } returns Unit.right()
-        coEvery { authorizationService.userCanUpdateEntity(entityUri, any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(entityUri) } returns Unit.right()
         coEvery {
-            attributeInstanceService.deleteInstance(entityUri, INCOMING_PROPERTY, instanceId)
+            attributeInstanceService.deleteInstance(entityUri, INCOMING_IRI, instanceId)
         } returns Unit.right()
 
-        temporalService.deleteAttributeInstance(entityUri, INCOMING_PROPERTY, instanceId).shouldSucceed()
+        temporalService.deleteAttributeInstance(entityUri, INCOMING_IRI, instanceId).shouldSucceed()
 
         coVerify(exactly = 1) {
-            attributeInstanceService.deleteInstance(entityUri, INCOMING_PROPERTY, instanceId)
+            attributeInstanceService.deleteInstance(entityUri, INCOMING_IRI, instanceId)
         }
     }
 }

@@ -8,10 +8,10 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.WKTCoordinates
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.decode
@@ -23,7 +23,7 @@ data class GeoQuery(
     val geometry: GeometryType,
     val coordinates: String,
     val wktCoordinates: WKTCoordinates,
-    var geoproperty: ExpandedTerm = NGSILD_LOCATION_PROPERTY
+    var geoproperty: ExpandedTerm = NGSILD_LOCATION_IRI
 ) {
     enum class GeometryType(val type: String) {
         POINT("Point"),
@@ -45,7 +45,7 @@ data class GeoQuery(
     fun buildSqlFilter(target: ExpandedEntity? = null): String {
         val targetWKTCoordinates =
             """
-            (select jsonb_path_query_first(#{TARGET}#, '$."$geoproperty"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE')
+            (select jsonb_path_query_first(#{TARGET}#, '$."$geoproperty"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE_KW')
             """.trimIndent()
         val georelQuery = Georel.prepareQuery(georel)
 
@@ -94,7 +94,7 @@ data class GeoQuery(
             }
             val geoproperty = requestParams[QueryParameter.GEOPROPERTY.key]?.let {
                 expandJsonLdTerm(it, contexts)
-            } ?: NGSILD_LOCATION_PROPERTY
+            } ?: NGSILD_LOCATION_IRI
 
             // if at least one parameter is provided, the three must be provided for the geoquery to be valid
             val notNullGeoParameters = listOfNotNull(georel, geometry, coordinates)

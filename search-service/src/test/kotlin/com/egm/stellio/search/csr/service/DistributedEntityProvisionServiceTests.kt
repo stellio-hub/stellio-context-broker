@@ -16,8 +16,8 @@ import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
-import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.TEMPERATURE_PROPERTY
+import com.egm.stellio.shared.util.NAME_IRI
+import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.toTypeSelection
 import com.egm.stellio.shared.util.toUri
@@ -196,9 +196,9 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         val secondInclusiveCsr = gimmeRawCSR(id = "id:inclusive:2".toUri(), mode = Mode.INCLUSIVE)
 
         val entryEntity = expandJsonLdEntity(entity)
-        val entityWithIgnoredTemperature = entryEntity.omitAttributes(setOf(TEMPERATURE_PROPERTY))
+        val entityWithIgnoredTemperature = entryEntity.omitAttributes(setOf(TEMPERATURE_IRI))
         val entityWithIgnoredTemperatureAndName = entityWithIgnoredTemperature
-            .omitAttributes(setOf(NGSILD_NAME_PROPERTY))
+            .omitAttributes(setOf(NAME_IRI))
 
         coEvery {
             distributedEntityProvisionService.distributeEntityProvisionForContextSources(
@@ -257,7 +257,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         coEvery {
             csr.getAttributesMatchingCSFAndEntity(any(), any())
-        } returns setOf(NGSILD_NAME_PROPERTY) andThen setOf(TEMPERATURE_PROPERTY)
+        } returns setOf(NAME_IRI) andThen setOf(TEMPERATURE_IRI)
         coEvery {
             csr.id
         } returns firstURI andThen secondURI
@@ -288,7 +288,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         val csr = spyk(gimmeRawCSR())
         coEvery {
             csr.getAttributesMatchingCSFAndEntity(any(), any())
-        } returns setOf(NGSILD_NAME_PROPERTY) andThen setOf(TEMPERATURE_PROPERTY)
+        } returns setOf(NAME_IRI) andThen setOf(TEMPERATURE_IRI)
 
         coEvery {
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
@@ -311,7 +311,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         val csr = spyk(gimmeRawCSR())
         coEvery {
             csr.getAttributesMatchingCSFAndEntity(any(), any())
-        } returns setOf(NGSILD_NAME_PROPERTY)
+        } returns setOf(NAME_IRI)
 
         coEvery {
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
@@ -326,8 +326,8 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             Operation.CREATE_ENTITY
         )
 
-        assertNull(successEntity?.getAttributes()?.get(NGSILD_NAME_PROPERTY))
-        assertNotNull(successEntity?.getAttributes()?.get(TEMPERATURE_PROPERTY))
+        assertNull(successEntity?.getAttributes()?.get(NAME_IRI))
+        assertNotNull(successEntity?.getAttributes()?.get(TEMPERATURE_IRI))
     }
 
     @Test
@@ -336,7 +336,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         coEvery {
             csr.getAttributesMatchingCSFAndEntity(any(), any())
-        } returns setOf(NGSILD_NAME_PROPERTY)
+        } returns setOf(NAME_IRI)
         coEvery {
             distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any())
         } returns contextSourceException.left()
@@ -350,8 +350,8 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             Operation.CREATE_ENTITY
         )
 
-        assertNull(errorEntity?.getAttributes()?.get(NGSILD_NAME_PROPERTY))
-        assertNotNull(errorEntity?.getAttributes()?.get(TEMPERATURE_PROPERTY))
+        assertNull(errorEntity?.getAttributes()?.get(NAME_IRI))
+        assertNotNull(errorEntity?.getAttributes()?.get(TEMPERATURE_IRI))
     }
 
     @Test

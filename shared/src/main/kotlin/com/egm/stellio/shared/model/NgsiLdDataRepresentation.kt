@@ -8,7 +8,6 @@ import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import org.springframework.http.MediaType
 import org.springframework.util.MultiValueMap
 

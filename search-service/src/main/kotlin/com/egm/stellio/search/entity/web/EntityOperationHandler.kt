@@ -13,6 +13,8 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
@@ -23,8 +25,6 @@ import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntitySafe
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
@@ -37,7 +37,6 @@ import com.egm.stellio.shared.util.checkNamesAreNgsiLdSupported
 import com.egm.stellio.shared.util.extractContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.toListOfUri
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -74,8 +73,6 @@ class EntityOperationHandler(
         @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
         val batchOperationResult = BatchOperationResult().apply {
@@ -83,7 +80,7 @@ class EntityOperationHandler(
         }
 
         if (parsedEntities.isNotEmpty()) {
-            val createOperationResult = entityOperationService.create(parsedEntities, sub.getOrNull())
+            val createOperationResult = entityOperationService.create(parsedEntities)
             batchOperationResult.errors.addAll(createOperationResult.errors)
             batchOperationResult.success.addAll(createOperationResult.success)
         }
@@ -112,7 +109,6 @@ class EntityOperationHandler(
         val options = queryParams.getFirst(QP.OPTIONS.key)?.split(",")
         val disallowOverwrite = options?.any { it == OptionsValue.NO_OVERWRITE.value } == true
         val updateMode = options?.any { it == OptionsValue.UPDATE_MODE.value } == true
-        val sub = getSubFromSecurityContext()
 
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
@@ -124,8 +120,7 @@ class EntityOperationHandler(
             val (updateOperationResult, newUniqueEntities) = entityOperationService.upsert(
                 parsedEntities,
                 disallowOverwrite,
-                updateMode,
-                sub.getOrNull()
+                updateMode
             )
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
@@ -160,8 +155,6 @@ class EntityOperationHandler(
         val options = queryParams.getFirst(QP.OPTIONS.key)
         val disallowOverwrite = options?.let { it == OptionsValue.NO_OVERWRITE.value } == true
 
-        val sub = getSubFromSecurityContext()
-
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
         val batchOperationResult = BatchOperationResult().apply {
@@ -170,7 +163,7 @@ class EntityOperationHandler(
 
         if (parsedEntities.isNotEmpty()) {
             val updateOperationResult =
-                entityOperationService.update(parsedEntities, disallowOverwrite, sub.getOrNull())
+                entityOperationService.update(parsedEntities, disallowOverwrite)
 
             batchOperationResult.errors.addAll(updateOperationResult.errors)
             batchOperationResult.success.addAll(updateOperationResult.success)
@@ -195,8 +188,6 @@ class EntityOperationHandler(
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val (parsedEntities, unparsableEntities) = prepareEntitiesFromRequestBody(requestBody, httpHeaders).bind()
 
         val batchOperationResult = BatchOperationResult().apply {
@@ -204,7 +195,7 @@ class EntityOperationHandler(
         }
 
         if (parsedEntities.isNotEmpty()) {
-            val mergeOperationResult = entityOperationService.merge(parsedEntities, sub.getOrNull())
+            val mergeOperationResult = entityOperationService.merge(parsedEntities)
             batchOperationResult.errors.addAll(mergeOperationResult.errors)
             batchOperationResult.success.addAll(mergeOperationResult.success)
         }
@@ -227,14 +218,12 @@ class EntityOperationHandler(
         @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val body = requestBody.awaitFirst()
         checkBatchRequestBody(body).bind()
         val entitiesId = body.toListOfUri()
 
         val batchOperationResult = if (entitiesId.isNotEmpty()) {
-            val deleteOperationResult = entityOperationService.delete(entitiesId, sub.getOrNull())
+            val deleteOperationResult = entityOperationService.delete(entitiesId)
             BatchOperationResult(
                 errors = deleteOperationResult.errors,
                 success = deleteOperationResult.success
@@ -267,7 +256,6 @@ class EntityOperationHandler(
         val query = Query(requestBody.awaitFirst()).bind()
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
             .copy(languageFilter = query.lang)
-        val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val entitiesQuery = composeEntitiesQueryFromPost(
             applicationProperties.pagination,
@@ -276,7 +264,7 @@ class EntityOperationHandler(
             contexts
         ).bind()
 
-        val (entities, count) = entityQueryService.queryEntities(entitiesQuery, sub.getOrNull()).bind()
+        val (entities, count) = entityQueryService.queryEntities(entitiesQuery).bind()
 
         val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
 
@@ -315,17 +303,17 @@ class EntityOperationHandler(
                     val coreContext = applicationProperties.contexts.core
                     if (httpHeaders.contentType == JSON_LD_MEDIA_TYPE)
                         addCoreContextIfMissingSafe(it.extractContexts(), coreContext).flatMap { contexts ->
-                            expandJsonLdEntitySafe(it.minus(JSONLD_CONTEXT), contexts)
+                            expandJsonLdEntitySafe(it.minus(JSONLD_CONTEXT_KW), contexts)
                         }
                     else
                         addCoreContextIfMissingSafe(listOfNotNull(context), coreContext).flatMap { contexts ->
                             expandJsonLdEntitySafe(it, contexts)
                         }
                 }
-                .mapLeft { apiException -> Pair(compactedEntity[JSONLD_ID_TERM] as String, apiException) }
+                .mapLeft { apiException -> Pair(compactedEntity[NGSILD_ID_TERM] as String, apiException) }
                 .flatMap { jsonLdEntity ->
                     jsonLdEntity.toNgsiLdEntity()
-                        .mapLeft { apiException -> Pair(compactedEntity[JSONLD_ID_TERM] as String, apiException) }
+                        .mapLeft { apiException -> Pair(compactedEntity[NGSILD_ID_TERM] as String, apiException) }
                         .map { ngsiLdEntity -> Pair(jsonLdEntity, ngsiLdEntity) }
                 }
         }.fold(BatchEntityPreparation()) { acc, entry ->

@@ -12,11 +12,12 @@ import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -29,14 +30,14 @@ import kotlin.random.Random
 
 fun gimmeEntityPayload(
     entityId: String,
-    types: List<ExpandedTerm> = listOf(BEEHIVE_TYPE),
+    types: List<ExpandedTerm> = listOf(BEEHIVE_IRI),
     payload: String = EMPTY_PAYLOAD
 ): Entity =
     gimmeEntityPayload(entityId.toUri(), types, payload)
 
 fun gimmeEntityPayload(
     entityId: URI,
-    types: List<ExpandedTerm> = listOf(BEEHIVE_TYPE),
+    types: List<ExpandedTerm> = listOf(BEEHIVE_IRI),
     payload: String = EMPTY_PAYLOAD
 ): Entity =
     Entity(
@@ -64,7 +65,7 @@ fun gimmeNumericPropertyAttributeInstance(
         observedAt = time
     )
     val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.measuredValue!!)
-        .addNonReifiedTemporalProperty(JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY, attributeMetadata.observedAt!!)
+        .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_IRI, attributeMetadata.observedAt!!)
         .getSingleEntry()
 
     return AttributeInstance(
@@ -91,7 +92,7 @@ fun gimmeJsonPropertyAttributeInstance(
         observedAt = ngsiLdDateTime()
     )
     val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.value!!)
-        .addNonReifiedTemporalProperty(JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY, attributeMetadata.observedAt!!)
+        .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_IRI, attributeMetadata.observedAt!!)
         .getSingleEntry()
 
     return AttributeInstance(
@@ -117,7 +118,7 @@ fun gimmeLanguagePropertyAttributeInstance(
         observedAt = ngsiLdDateTime()
     )
     val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.value!!)
-        .addNonReifiedTemporalProperty(JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY, attributeMetadata.observedAt!!)
+        .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_IRI, attributeMetadata.observedAt!!)
         .getSingleEntry()
 
     return AttributeInstance(
@@ -143,7 +144,7 @@ fun gimmeVocabPropertyAttributeInstance(
         observedAt = ngsiLdDateTime()
     )
     val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.value!!)
-        .addNonReifiedTemporalProperty(JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY, attributeMetadata.observedAt!!)
+        .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_IRI, attributeMetadata.observedAt!!)
         .getSingleEntry()
 
     return AttributeInstance(

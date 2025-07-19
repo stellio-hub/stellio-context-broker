@@ -14,6 +14,7 @@ import com.apicatalog.jsonld.loader.DocumentLoaderOptions
 import com.apicatalog.jsonld.loader.HttpLoader
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
@@ -21,6 +22,20 @@ import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedNonReifiedPropertyValue
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.JSONLD_LIST_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_TERM
+import com.egm.stellio.shared.model.NGSILD_NULL
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_TYPE
+import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
+import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
@@ -32,137 +47,16 @@ import jakarta.json.JsonArray
 import jakarta.json.JsonObject
 import jakarta.json.JsonString
 import jakarta.json.JsonStructure
+import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
 import java.net.URI
 import java.time.ZonedDateTime
 
-@JvmInline
-value class AttributeType(val uri: String)
-
 object JsonLdUtils {
 
-    const val NGSILD_PREFIX = "https://uri.etsi.org/ngsi-ld/"
-    const val NGSILD_DEFAULT_VOCAB = "https://uri.etsi.org/ngsi-ld/default-context/"
-
-    const val NGSILD_PROPERTY_TERM = "Property"
-    val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
-    const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
-    const val NGSILD_GEOPROPERTY_TERM = "GeoProperty"
-    val NGSILD_GEOPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/GeoProperty")
-    const val NGSILD_GEOPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
-    const val NGSILD_RELATIONSHIP_TERM = "Relationship"
-    val NGSILD_RELATIONSHIP_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Relationship")
-    const val NGSILD_RELATIONSHIP_OBJECT = "https://uri.etsi.org/ngsi-ld/hasObject"
-    const val NGSILD_JSONPROPERTY_TERM = "JsonProperty"
-    val NGSILD_JSONPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/JsonProperty")
-    const val NGSILD_JSONPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasJSON"
-    const val NGSILD_LANGUAGEPROPERTY_TERM = "LanguageProperty"
-    val NGSILD_LANGUAGEPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/LanguageProperty")
-    const val NGSILD_LANGUAGEPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasLanguageMap"
-    const val NGSILD_VOCABPROPERTY_TERM = "VocabProperty"
-    val NGSILD_VOCABPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/VocabProperty")
-    const val NGSILD_VOCABPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasVocab"
-
-    const val NGSILD_PROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
-    const val NGSILD_GEOPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
-    const val NGSILD_RELATIONSHIP_OBJECTS = "https://uri.etsi.org/ngsi-ld/hasObjects"
-    const val NGSILD_JSONPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/jsons"
-    const val NGSILD_LANGUAGEPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasLanguageMaps"
-    const val NGSILD_VOCABPROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasVocabs"
-
     private const val JSONLD_GRAPH = "@graph"
-    const val JSONLD_ID_TERM = "id"
-    const val JSONLD_ID = "@id"
-    const val JSONLD_TYPE_TERM = "type"
-    const val JSONLD_TYPE = "@type"
-    const val JSONLD_VALUE_TERM = "value"
-    const val JSONLD_VALUE = "@value"
-    const val JSONLD_OBJECT = "object"
-    const val JSONLD_LIST = "@list"
-    const val JSONLD_JSON_TERM = "json"
-    const val JSONLD_LANGUAGE = "@language"
-    const val JSONLD_LANGUAGEMAP_TERM = "languageMap"
-    const val JSONLD_VOCAB = "@vocab"
-    const val JSONLD_VOCAB_TERM = "vocab"
-    const val JSONLD_JSON = "@json"
-    const val JSONLD_CONTEXT = "@context"
-    const val NGSILD_SCOPE_TERM = "scope"
-    const val NGSILD_SCOPE_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_SCOPE_TERM"
-    const val NGSILD_LANG_TERM = "lang"
-    const val NGSILD_NONE_TERM = "@none"
-    const val NGSILD_DATASET_TERM = "dataset"
-    const val NGSILD_ENTITY_TERM = "entity"
-    const val NGSILD_TITLE_TERM = "title"
-    const val NGSILD_NULL = "urn:ngsi-ld:null"
-    val NGSILD_LOCAL = "urn:ngsi-ld:local".toUri()
-
-    val JSONLD_EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE, NGSILD_SCOPE_PROPERTY)
-
-    const val NGSILD_CREATED_AT_TERM = "createdAt"
-    const val NGSILD_MODIFIED_AT_TERM = "modifiedAt"
-    const val NGSILD_DELETED_AT_TERM = "deletedAt"
-    val NGSILD_SYSATTRS_TERMS = setOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM, NGSILD_DELETED_AT_TERM)
-    const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_CREATED_AT_TERM"
-    const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_MODIFIED_AT_TERM"
-    const val NGSILD_DELETED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_DELETED_AT_TERM"
-    val NGSILD_SYSATTRS_PROPERTIES = setOf(
-        NGSILD_CREATED_AT_PROPERTY,
-        NGSILD_MODIFIED_AT_PROPERTY,
-        NGSILD_DELETED_AT_PROPERTY
-    )
-    const val NGSILD_OBSERVED_AT_TERM = "observedAt"
-    const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/$NGSILD_OBSERVED_AT_TERM"
-
-    // List of members that are part of a core entity base definition (i.e., without attributes)
-    val JSONLD_EXPANDED_ENTITY_CORE_MEMBERS =
-        setOf(
-            JSONLD_ID,
-            JSONLD_TYPE,
-            JSONLD_CONTEXT,
-            NGSILD_SCOPE_PROPERTY,
-            NGSILD_CREATED_AT_PROPERTY,
-            NGSILD_MODIFIED_AT_PROPERTY
-        )
-    val JSONLD_COMPACTED_ENTITY_CORE_MEMBERS =
-        setOf(
-            JSONLD_ID_TERM,
-            JSONLD_TYPE_TERM,
-            JSONLD_CONTEXT,
-            NGSILD_SCOPE_TERM,
-            NGSILD_CREATED_AT_TERM,
-            NGSILD_MODIFIED_AT_TERM
-        )
-    val NGSILD_COMPACTED_ATTRIBUTES_VALUES =
-        setOf(
-            JSONLD_VALUE_TERM,
-            JSONLD_OBJECT,
-            JSONLD_JSON_TERM,
-            JSONLD_LANGUAGEMAP_TERM,
-            JSONLD_VOCAB_TERM
-        )
-
-    const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
-    const val NGSILD_UNIT_CODE_TERM = "unitCode"
-    const val NGSILD_LOCATION_TERM = "location"
-    const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
-    const val NGSILD_OBSERVATION_SPACE_TERM = "observationSpace"
-    const val NGSILD_OBSERVATION_SPACE_PROPERTY = "https://uri.etsi.org/ngsi-ld/observationSpace"
-    const val NGSILD_OPERATION_SPACE_TERM = "operationSpace"
-    const val NGSILD_OPERATION_SPACE_PROPERTY = "https://uri.etsi.org/ngsi-ld/operationSpace"
-    const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
-    const val NGSILD_DATASET_ID_TERM = "datasetId"
-
-    const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
-
-    const val NGSILD_SUBSCRIPTION_TERM = "Subscription"
-    const val NGSILD_NOTIFICATION_TERM = "Notification"
-    const val NGSILD_CSR_TERM = "ContextSourceRegistration"
-
-    const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
-    const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
-    const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
@@ -213,7 +107,7 @@ object JsonLdUtils {
         try {
             val preparedTerm = mapOf(
                 term to mapOf<String, Any>(),
-                JSONLD_CONTEXT to contexts
+                JSONLD_CONTEXT_KW to contexts
             )
             JsonLd.expand(JsonDocument.of(serializeObject(preparedTerm).byteInputStream()))
                 .options(jsonLdOptions)
@@ -230,6 +124,12 @@ object JsonLdUtils {
 
     suspend fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, List<Any>> =
         doJsonLdExpansion(fragment, contexts) as Map<String, List<Any>>
+
+    fun expandGeoPropertyFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, List<Any>> =
+        // as it is called from a non-corouting context (when building temporal entities), wrap it in a blocking call
+        runBlocking {
+            doJsonLdExpansion(fragment, contexts, doGeoPropertyTransformation = false) as Map<String, List<Any>>
+        }
 
     suspend fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, List<Any>> =
         expandJsonLdFragment(fragment.deserializeAsMap(), contexts)
@@ -267,12 +167,20 @@ object JsonLdUtils {
     ): ExpandedAttributes =
         doJsonLdExpansion(fragment, contexts) as ExpandedAttributes
 
-    private suspend fun doJsonLdExpansion(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> {
+    private suspend fun doJsonLdExpansion(
+        fragment: Map<String, Any>,
+        contexts: List<String>,
+        doGeoPropertyTransformation: Boolean = true
+    ): Map<String, Any> {
         // transform the GeoJSON value of geo properties into WKT format before JSON-LD expansion
         // since JSON-LD expansion breaks the data (e.g., flattening the lists of lists)
-        val preparedFragment = fragment
-            .mapValues(transformGeoPropertyToWKT())
-            .plus(JSONLD_CONTEXT to contexts)
+        val preparedFragment =
+            if (doGeoPropertyTransformation)
+                fragment
+                    .mapValues(transformGeoPropertyToWKT())
+                    .plus(JSONLD_CONTEXT_KW to contexts)
+            else
+                fragment.plus(JSONLD_CONTEXT_KW to contexts)
 
         try {
             val expandedFragment = JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))
@@ -305,19 +213,19 @@ object JsonLdUtils {
 
     private fun transformGeoPropertyToWKT(): (Map.Entry<String, Any>) -> Any = {
         when {
-            it.key in JSONLD_COMPACTED_ENTITY_CORE_MEMBERS -> it.value
+            it.key in COMPACTED_ENTITY_CORE_MEMBERS -> it.value
             it.value is Map<*, *> -> {
-                if ((it.value as Map<*, *>)[JSONLD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
+                if ((it.value as Map<*, *>)[NGSILD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
                     val geoProperty = it.value as Map<String, Any>
-                    val wktGeometry = geoPropertyToWKTOrNull(geoProperty[JSONLD_VALUE_TERM]!!)
-                    geoProperty.plus(JSONLD_VALUE_TERM to wktGeometry)
+                    val wktGeometry = geoPropertyToWKTOrNull(geoProperty[NGSILD_VALUE_TERM]!!)
+                    geoProperty.plus(NGSILD_VALUE_TERM to wktGeometry)
                 } else it.value
             }
             it.value is List<*> -> {
                 (it.value as List<Map<String, Any>>).map { geoProperty ->
-                    if (geoProperty[JSONLD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
-                        val wktGeometry = geoPropertyToWKTOrNull(geoProperty[JSONLD_VALUE_TERM]!!)
-                        geoProperty.plus(JSONLD_VALUE_TERM to wktGeometry)
+                    if (geoProperty[NGSILD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
+                        val wktGeometry = geoPropertyToWKTOrNull(geoProperty[NGSILD_VALUE_TERM]!!)
+                        geoProperty.plus(NGSILD_VALUE_TERM to wktGeometry)
                     } else geoProperty
                 }
             }
@@ -333,13 +241,13 @@ object JsonLdUtils {
 
     private fun restoreGeoPropertyFromWKT(): (Map.Entry<String, Any>) -> Any = {
         when {
-            it.key in JSONLD_COMPACTED_ENTITY_CORE_MEMBERS -> it.value
+            it.key in COMPACTED_ENTITY_CORE_MEMBERS -> it.value
             it.value is Map<*, *> -> {
-                if ((it.value as Map<*, *>)[JSONLD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
+                if ((it.value as Map<*, *>)[NGSILD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
                     val geoValues = it.value as MutableMap<String, Any>
                     // in case of an aggregated or temporalValues query, there is no "value" member
-                    if (geoValues.isNotEmpty() && geoValues.containsKey(JSONLD_VALUE_TERM)) {
-                        geoValues[JSONLD_VALUE_TERM] = wktToGeoJson(geoValues[JSONLD_VALUE_TERM] as String)
+                    if (geoValues.isNotEmpty() && geoValues.containsKey(NGSILD_VALUE_TERM)) {
+                        geoValues[NGSILD_VALUE_TERM] = wktToGeoJson(geoValues[NGSILD_VALUE_TERM] as String)
                         geoValues
                     } else geoValues
                 } else it.value
@@ -347,11 +255,11 @@ object JsonLdUtils {
             // case of a multi-instance geoproperty or when retrieving the history of a geoproperty
             it.value is List<*> ->
                 (it.value as List<Map<String, Any>>).map { geoInstance ->
-                    if (geoInstance[JSONLD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
+                    if (geoInstance[NGSILD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
                         val geoValues = geoInstance.toMutableMap()
                         // in case of an aggregated or temporalValues query, there is no "value" member
-                        if (geoValues.containsKey(JSONLD_VALUE_TERM)) {
-                            geoValues[JSONLD_VALUE_TERM] = wktToGeoJson(geoValues[JSONLD_VALUE_TERM] as String)
+                        if (geoValues.containsKey(NGSILD_VALUE_TERM)) {
+                            geoValues[NGSILD_VALUE_TERM] = wktToGeoJson(geoValues[NGSILD_VALUE_TERM] as String)
                             geoValues
                         } else geoValues
                     } else geoInstance
@@ -399,14 +307,14 @@ object JsonLdUtils {
         else {
             // extract the context from the root of the object to inject it back in the compacted entities later
             val context: Any =
-                if (jsonObject[JSONLD_CONTEXT] is JsonArray)
-                    (jsonObject[JSONLD_CONTEXT] as JsonArray).map { (it as JsonString).string }
-                else (jsonObject[JSONLD_CONTEXT] as JsonString).string
+                if (jsonObject[JSONLD_CONTEXT_KW] is JsonArray)
+                    (jsonObject[JSONLD_CONTEXT_KW] as JsonArray).map { (it as JsonString).string }
+                else (jsonObject[JSONLD_CONTEXT_KW] as JsonString).string
             // extract compacted entities from the @graph key
             (jsonObject[JSONLD_GRAPH] as JsonArray).toPrimitiveListOfObjects()
                 .map {
                     it.mapValues(restoreGeoPropertyFromWKT())
-                        .plus(JSONLD_CONTEXT to context)
+                        .plus(JSONLD_CONTEXT_KW to context)
                 }
         }
     }
@@ -458,8 +366,8 @@ object JsonLdUtils {
     fun buildExpandedPropertyValue(value: Any): ExpandedAttributeInstances =
         listOf(
             mapOf(
-                JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
-                NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE to value))
+                JSONLD_TYPE_KW to listOf(NGSILD_PROPERTY_TYPE.uri),
+                NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE_KW to value))
             )
         )
 
@@ -496,7 +404,7 @@ object JsonLdUtils {
     ): ExpandedAttributeInstances =
         listOf(
             mapOf(
-                JSONLD_TYPE to listOf(NGSILD_PROPERTY_TYPE.uri),
+                JSONLD_TYPE_KW to listOf(NGSILD_PROPERTY_TYPE.uri),
                 NGSILD_PROPERTY_VALUE to listOf(
                     expandJsonLdFragment(value, contexts)
                 )
@@ -524,8 +432,8 @@ object JsonLdUtils {
     fun buildExpandedRelationshipValue(value: URI): ExpandedAttributeInstances =
         listOf(
             mapOf(
-                JSONLD_TYPE to listOf(NGSILD_RELATIONSHIP_TYPE.uri),
-                NGSILD_RELATIONSHIP_OBJECT to listOf(mapOf(JSONLD_ID to value.toString()))
+                JSONLD_TYPE_KW to listOf(NGSILD_RELATIONSHIP_TYPE.uri),
+                NGSILD_RELATIONSHIP_OBJECT to listOf(mapOf(JSONLD_ID_KW to value.toString()))
             )
         )
 
@@ -544,8 +452,8 @@ object JsonLdUtils {
     fun buildNonReifiedTemporalValue(value: ZonedDateTime): ExpandedNonReifiedPropertyValue =
         listOf(
             mapOf(
-                JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                JSONLD_VALUE to value.toNgsiLdFormat()
+                JSONLD_TYPE_KW to NGSILD_DATE_TIME_TYPE,
+                JSONLD_VALUE_KW to value.toNgsiLdFormat()
             )
         )
 
@@ -562,7 +470,7 @@ object JsonLdUtils {
      */
     fun buildNonReifiedPropertyValue(value: String): ExpandedNonReifiedPropertyValue =
         listOf(
-            mapOf(JSONLD_ID to value)
+            mapOf(JSONLD_ID_KW to value)
         )
 
     fun <T> buildExpandedTemporalValue(
@@ -571,8 +479,8 @@ object JsonLdUtils {
     ): List<Map<String, List<Any>>> =
         listOf(
             mapOf(
-                JSONLD_LIST to values.map { value ->
-                    mapOf(JSONLD_LIST to transform(value))
+                JSONLD_LIST_KW to values.map { value ->
+                    mapOf(JSONLD_LIST_KW to transform(value))
                 }
             )
         )

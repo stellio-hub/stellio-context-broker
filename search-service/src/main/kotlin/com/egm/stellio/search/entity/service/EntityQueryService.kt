@@ -5,7 +5,6 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.oneToResult
@@ -19,7 +18,6 @@ import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
@@ -34,20 +32,18 @@ class EntityQueryService(
     private val authorizationService: AuthorizationService
 ) {
     suspend fun queryEntity(
-        entityId: URI,
-        sub: Sub? = null
+        entityId: URI
     ): Either<APIException, ExpandedEntity> = either {
         val entity = retrieve(entityId).bind()
-        authorizationService.userCanReadEntity(entityId, sub.toOption()).bind()
+        authorizationService.userCanReadEntity(entityId).bind()
 
         entity.toExpandedEntity()
     }
 
     suspend fun queryEntities(
-        entitiesQuery: EntitiesQuery,
-        sub: Sub? = null
+        entitiesQuery: EntitiesQuery
     ): Either<APIException, Pair<List<ExpandedEntity>, Int>> = either {
-        val accessRightFilter = authorizationService.computeAccessRightFilter(sub.toOption())
+        val accessRightFilter = authorizationService.computeAccessRightFilter()
 
         val entitiesIds = queryEntities(entitiesQuery, accessRightFilter)
         val count = queryEntitiesCount(entitiesQuery, accessRightFilter).bind()

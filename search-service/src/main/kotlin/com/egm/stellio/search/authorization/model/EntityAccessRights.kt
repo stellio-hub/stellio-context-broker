@@ -2,6 +2,9 @@ package com.egm.stellio.search.authorization.model
 
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.addNonReifiedProperty
 import com.egm.stellio.shared.model.addSubAttribute
 import com.egm.stellio.shared.util.AccessRight
@@ -15,9 +18,6 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_OWNER
 import com.egm.stellio.shared.util.AuthContextModel.DATASET_ID_PREFIX
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyMapValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedRelationshipValue
@@ -45,7 +45,7 @@ data class EntityAccessRights(
 
         suspend fun serializeProperties(contexts: List<String>): ExpandedAttributeInstances =
             buildExpandedRelationshipValue(uri)
-                .addNonReifiedProperty(NGSILD_DATASET_ID_PROPERTY, datasetId.toString())
+                .addNonReifiedProperty(NGSILD_DATASET_ID_IRI, datasetId.toString())
                 .addSubAttribute(
                     AUTH_PROP_SUBJECT_INFO,
                     buildExpandedPropertyMapValue(subjectInfo, contexts)
@@ -55,8 +55,8 @@ data class EntityAccessRights(
     suspend fun serializeProperties(contexts: List<String>): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
 
-        resultEntity[JSONLD_ID] = id.toString()
-        resultEntity[JSONLD_TYPE] = types
+        resultEntity[JSONLD_ID_KW] = id.toString()
+        resultEntity[JSONLD_TYPE_KW] = types
         if (isDeleted)
             resultEntity[AUTH_PROP_IS_DELETED] = buildExpandedPropertyValue(true)
         resultEntity[AUTH_PROP_RIGHT] = buildExpandedPropertyValue(right.attributeName)

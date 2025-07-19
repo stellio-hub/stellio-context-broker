@@ -2,23 +2,23 @@ package com.egm.stellio.subscription.service
 
 import arrow.core.filterIsInstance
 import arrow.core.right
+import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_LANG_TERM
+import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
+import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_TERM
+import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
+import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY
-import com.egm.stellio.shared.util.FRIENDLYNAME_LANGUAGEPROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LANG_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TERM
+import com.egm.stellio.shared.util.FRIENDLYNAME_IRI
+import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.MANAGED_BY_COMPACT_RELATIONSHIP
-import com.egm.stellio.shared.util.MANAGED_BY_RELATIONSHIP
-import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.NGSILD_NAME_TERM
+import com.egm.stellio.shared.util.MANAGED_BY_IRI
+import com.egm.stellio.shared.util.MANAGED_BY_TERM
+import com.egm.stellio.shared.util.NAME_IRI
+import com.egm.stellio.shared.util.NAME_TERM
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.expandJsonLdEntity
@@ -143,7 +143,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
-            setOf(NGSILD_NAME_PROPERTY),
+            setOf(NAME_IRI),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -155,7 +155,7 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
-                setOf(NGSILD_NAME_PROPERTY),
+                setOf(NAME_IRI),
                 ATTRIBUTE_UPDATED
             )
         }
@@ -196,7 +196,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
-            setOf(NGSILD_NAME_PROPERTY),
+            setOf(NAME_IRI),
             ATTRIBUTE_UPDATED
         ).shouldSucceed()
 
@@ -215,7 +215,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription(
             withNotifParams = Pair(
                 FormatType.NORMALIZED,
-                listOf(NGSILD_NAME_PROPERTY, NGSILD_LOCATION_PROPERTY)
+                listOf(NAME_IRI, NGSILD_LOCATION_IRI)
             ),
             contexts = APIC_COMPOUND_CONTEXTS
         )
@@ -234,7 +234,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
-            setOf(NGSILD_NAME_PROPERTY),
+            setOf(NAME_IRI),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -243,8 +243,8 @@ class NotificationServiceTests {
             assertEquals(5, it[0].second.data[0].size)
             assertTrue(
                 it[0].second.data[0].all { entry ->
-                    JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
-                        .plus(NGSILD_NAME_TERM)
+                    COMPACTED_ENTITY_CORE_MEMBERS
+                        .plus(NAME_TERM)
                         .plus(NGSILD_LOCATION_TERM)
                         .contains(entry.key)
                 }
@@ -280,16 +280,16 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
-            setOf(NGSILD_NAME_PROPERTY),
+            setOf(NAME_IRI),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
             val notificationResult = notificationResults[0]
             assertEquals(subscription.id, notificationResult.first.id)
             assertEquals(subscription.id, notificationResult.second.subscriptionId)
             assertEquals(1, notificationResult.second.data.size)
-            assertTrue(notificationResult.second.data[0].containsKey(NGSILD_NAME_PROPERTY))
-            assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_RELATIONSHIP))
-            assertEquals(NGSILD_TEST_CORE_CONTEXT, notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT])
+            assertTrue(notificationResult.second.data[0].containsKey(NAME_IRI))
+            assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_IRI))
+            assertEquals(NGSILD_TEST_CORE_CONTEXT, notificationResult.second.data[0][JSONLD_CONTEXT_KW])
             assertTrue(notificationResult.third)
         }
     }
@@ -322,13 +322,13 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
-            setOf(NGSILD_NAME_TERM),
+            setOf(NAME_TERM),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
             val notificationResult = notificationResults[0]
-            assertTrue(notificationResult.second.data[0].containsKey(NGSILD_NAME_TERM))
-            assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_COMPACT_RELATIONSHIP))
-            assertEquals(APIC_COMPOUND_CONTEXT, notificationResult.second.data[0][JsonLdUtils.JSONLD_CONTEXT])
+            assertTrue(notificationResult.second.data[0].containsKey(NAME_TERM))
+            assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_TERM))
+            assertEquals(APIC_COMPOUND_CONTEXT, notificationResult.second.data[0][JSONLD_CONTEXT_KW])
         }
     }
 
@@ -353,7 +353,7 @@ class NotificationServiceTests {
             notificationService.notifyMatchingSubscribers(
                 DEFAULT_TENANT_NAME,
                 Pair(expandedEntity, expandedEntity),
-                setOf(NGSILD_NAME_PROPERTY),
+                setOf(NAME_IRI),
                 ATTRIBUTE_UPDATED
             ).shouldSucceedWith {
                 assertEquals(1, it.size)
@@ -365,7 +365,7 @@ class NotificationServiceTests {
             coVerify {
                 subscriptionService.getMatchingSubscriptions(
                     expandedEntity,
-                    setOf(NGSILD_NAME_PROPERTY),
+                    setOf(NAME_IRI),
                     ATTRIBUTE_UPDATED
                 )
             }
@@ -392,7 +392,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
-            setOf(NGSILD_NAME_PROPERTY),
+            setOf(NAME_IRI),
             ATTRIBUTE_DELETED
         ).shouldSucceedWith {
             assertEquals(2, it.size)
@@ -401,7 +401,7 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
-                setOf(NGSILD_NAME_PROPERTY),
+                setOf(NAME_IRI),
                 ATTRIBUTE_DELETED
             )
         }
@@ -439,7 +439,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
-            setOf(NGSILD_NAME_PROPERTY),
+            setOf(NAME_IRI),
             ATTRIBUTE_CREATED
         ).shouldSucceedWith { results ->
             assertEquals(2, results.size)
@@ -454,7 +454,7 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
-                setOf(NGSILD_NAME_PROPERTY),
+                setOf(NAME_IRI),
                 ATTRIBUTE_CREATED
             )
         }
@@ -601,7 +601,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
-            setOf(NGSILD_NAME_PROPERTY),
+            setOf(NAME_IRI),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             val entity = it[0].second.data[0]
@@ -644,7 +644,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
-            setOf(NGSILD_NAME_PROPERTY),
+            setOf(NAME_IRI),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             val entity = it[0].second.data[0]
@@ -704,16 +704,16 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(expandedEntity, expandedEntity),
-            setOf(FRIENDLYNAME_LANGUAGEPROPERTY),
+            setOf(FRIENDLYNAME_IRI),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             val entity = it[0].second.data[0]
-            entity.filterKeys { key -> key == FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY }
+            entity.filterKeys { key -> key == FRIENDLYNAME_TERM }
                 .also { property ->
-                    val propertyValues = property[FRIENDLYNAME_COMPACT_LANGUAGEPROPERTY] as Map<String, Any>
+                    val propertyValues = property[FRIENDLYNAME_TERM] as Map<String, Any>
                     assertThat(propertyValues)
-                        .containsEntry(JSONLD_TYPE_TERM, NGSILD_PROPERTY_TERM)
-                        .containsEntry(JSONLD_VALUE_TERM, "Le rucher de Nantes")
+                        .containsEntry(NGSILD_TYPE_TERM, NGSILD_PROPERTY_TERM)
+                        .containsEntry(NGSILD_VALUE_TERM, "Le rucher de Nantes")
                         .containsEntry(NGSILD_LANG_TERM, "fr")
                 }
         }

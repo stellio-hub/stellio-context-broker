@@ -1,7 +1,7 @@
 package com.egm.stellio.subscription.listener
 
 import arrow.core.right
-import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
+import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.subscription.model.Notification
@@ -49,7 +49,7 @@ class EntityEventListenerServiceTests {
             notificationService.notifyMatchingSubscribers(
                 DEFAULT_TENANT_NAME,
                 any(),
-                setOf(NGSILD_NAME_PROPERTY),
+                setOf(NAME_IRI),
                 NotificationTrigger.ATTRIBUTE_UPDATED
             )
         }

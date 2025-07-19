@@ -3,9 +3,9 @@ package com.egm.stellio.search.temporal.model
 import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.model.NGSILD_INSTANCE_ID_IRI
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.WKTCoordinates
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.toUri
@@ -68,11 +68,11 @@ data class AttributeInstance private constructor(
         )
 
         private fun ExpandedAttributeInstance.addInstanceId(instanceId: URI): ExpandedAttributeInstance =
-            this.plus(NGSILD_INSTANCE_ID_PROPERTY to buildNonReifiedPropertyValue(instanceId.toString()))
+            this.plus(NGSILD_INSTANCE_ID_IRI to buildNonReifiedPropertyValue(instanceId.toString()))
 
         private fun ExpandedAttributeInstance.addModifiedAt(modifiedAt: ZonedDateTime?): ExpandedAttributeInstance =
             modifiedAt?.let {
-                this.plus(NGSILD_MODIFIED_AT_PROPERTY to buildNonReifiedTemporalValue(modifiedAt))
+                this.plus(NGSILD_MODIFIED_AT_IRI to buildNonReifiedTemporalValue(modifiedAt))
             } ?: this
 
         private fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()

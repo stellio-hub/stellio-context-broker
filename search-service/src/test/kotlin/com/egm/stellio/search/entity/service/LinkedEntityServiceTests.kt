@@ -9,10 +9,9 @@ import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinTyp
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.LINKED_ENTITY_COMPACT_TYPE
+import com.egm.stellio.shared.util.LINKED_ENTITY_TERM
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
-import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadAndExpandMinimalEntity
 import com.egm.stellio.shared.util.shouldSucceedAndResult
@@ -85,8 +84,7 @@ class LinkedEntityServiceTests {
             EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(0, 100),
                 contexts = NGSILD_TEST_CORE_CONTEXTS
-            ),
-            null
+            )
         ).shouldSucceedAndResult()
 
         assertEquals(1, compactedEntities.size)
@@ -96,7 +94,7 @@ class LinkedEntityServiceTests {
         )
 
         coVerify(exactly = 0) {
-            entityQueryService.queryEntities(any(), any<Sub>())
+            entityQueryService.queryEntities(any())
         }
     }
 
@@ -108,8 +106,7 @@ class LinkedEntityServiceTests {
                 linkedEntityQuery = LinkedEntityQuery(),
                 paginationQuery = PaginationQuery(0, 100),
                 contexts = NGSILD_TEST_CORE_CONTEXTS
-            ),
-            null
+            )
         ).shouldSucceedAndResult()
 
         assertEquals(1, compactedEntities.size)
@@ -119,7 +116,7 @@ class LinkedEntityServiceTests {
         )
 
         coVerify(exactly = 0) {
-            entityQueryService.queryEntities(any(), any<Sub>())
+            entityQueryService.queryEntities(any())
         }
     }
 
@@ -130,8 +127,7 @@ class LinkedEntityServiceTests {
             EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(0, 100),
                 contexts = NGSILD_TEST_CORE_CONTEXTS
-            ),
-            null
+            )
         ).shouldSucceedAndResult()
 
         assertEquals(2, compactedEntities.size)
@@ -141,7 +137,7 @@ class LinkedEntityServiceTests {
         )
 
         coVerify(exactly = 0) {
-            entityQueryService.queryEntities(any(), any<Sub>())
+            entityQueryService.queryEntities(any())
         }
     }
 
@@ -153,8 +149,7 @@ class LinkedEntityServiceTests {
                 linkedEntityQuery = LinkedEntityQuery(JoinType.FLAT, 1.toUInt()),
                 paginationQuery = PaginationQuery(0, 100),
                 contexts = NGSILD_TEST_CORE_CONTEXTS
-            ),
-            null
+            )
         ).shouldSucceedAndResult()
 
         assertEquals(1, compactedEntities.size)
@@ -164,7 +159,7 @@ class LinkedEntityServiceTests {
         )
 
         coVerify(exactly = 0) {
-            entityQueryService.queryEntities(any(), any<Sub>())
+            entityQueryService.queryEntities(any())
         }
     }
 
@@ -175,14 +170,13 @@ class LinkedEntityServiceTests {
             EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(0, 100),
                 contexts = NGSILD_TEST_CORE_CONTEXTS
-            ),
-            null
+            )
         ).shouldSucceedAndResult()
 
         assertEquals(0, compactedEntities.size)
 
         coVerify(exactly = 0) {
-            entityQueryService.queryEntities(any(), any<Sub>())
+            entityQueryService.queryEntities(any())
         }
     }
 
@@ -248,7 +242,7 @@ class LinkedEntityServiceTests {
 
     private fun prepareMockedAnswersForJoinLevel2OnEntity() {
         coEvery {
-            entityQueryService.queryEntities(any(), any<Sub>())
+            entityQueryService.queryEntities(any())
         } coAnswers {
             Pair(
                 listOf(
@@ -295,8 +289,7 @@ class LinkedEntityServiceTests {
                     linkedEntityQuery = LinkedEntityQuery(JoinType.FLAT, 2.toUInt()),
                     paginationQuery = PaginationQuery(0, 100),
                     contexts = NGSILD_TEST_CORE_CONTEXTS
-                ),
-                null
+                )
             ).shouldSucceedAndResult()
 
         assertJsonPayloadsAreEqual(
@@ -357,8 +350,7 @@ class LinkedEntityServiceTests {
                     linkedEntityQuery = LinkedEntityQuery(JoinType.INLINE, 2.toUInt()),
                     paginationQuery = PaginationQuery(0, 100),
                     contexts = NGSILD_TEST_CORE_CONTEXTS
-                ),
-                null
+                )
             ).shouldSucceedAndResult()
 
         assertJsonPayloadsAreEqual(
@@ -406,7 +398,7 @@ class LinkedEntityServiceTests {
 
     private fun prepareMockedAnswersForJoinLevel2OnEntities() {
         coEvery {
-            entityQueryService.queryEntities(any(), any<Sub>())
+            entityQueryService.queryEntities(any())
         } coAnswers {
             Pair(
                 listOf(
@@ -463,8 +455,7 @@ class LinkedEntityServiceTests {
                     linkedEntityQuery = LinkedEntityQuery(JoinType.FLAT, 2.toUInt()),
                     paginationQuery = PaginationQuery(0, 100),
                     contexts = NGSILD_TEST_CORE_CONTEXTS
-                ),
-                null
+                )
             ).shouldSucceedAndResult()
 
         val expectedEntitiesIds = setOf(
@@ -493,8 +484,7 @@ class LinkedEntityServiceTests {
                     linkedEntityQuery = LinkedEntityQuery(JoinType.INLINE, 2.toUInt()),
                     paginationQuery = PaginationQuery(0, 100),
                     contexts = NGSILD_TEST_CORE_CONTEXTS
-                ),
-                null
+                )
             ).shouldSucceedAndResult()
 
         assertJsonPayloadsAreEqual(
@@ -577,5 +567,5 @@ class LinkedEntityServiceTests {
     }
 
     private suspend fun loadAndExpandMinimalLinkedEntity(id: String, attributes: String? = null): ExpandedEntity =
-        loadAndExpandMinimalEntity(id, LINKED_ENTITY_COMPACT_TYPE, attributes)
+        loadAndExpandMinimalEntity(id, LINKED_ENTITY_TERM, attributes)
 }

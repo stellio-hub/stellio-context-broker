@@ -349,7 +349,7 @@ class IAMListenerTests {
             entityAccessRightsService.getEntitiesIdsOwnedBySubject("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")
         } returns listOf(entityId).right()
         coEvery {
-            entityService.permanentlyDeleteEntity(entityId, "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")
+            entityService.permanentlyDeleteEntity(entityId, true)
         } returns Unit.right()
 
         iamListener.dispatchIamMessage(subjectDeleteEvent)
@@ -364,7 +364,7 @@ class IAMListenerTests {
         coVerify {
             entityService.permanentlyDeleteEntity(
                 eq(entityId),
-                eq("6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")
+                eq(true)
             )
         }
     }

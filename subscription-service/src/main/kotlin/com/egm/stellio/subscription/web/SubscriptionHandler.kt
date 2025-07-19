@@ -10,6 +10,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
@@ -18,7 +19,6 @@ import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
@@ -30,9 +30,9 @@ import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.web.BaseHandler
 import com.egm.stellio.subscription.model.Subscription
-import com.egm.stellio.subscription.model.serialize
+import com.egm.stellio.subscription.model.Subscription.Companion.deserialize
+import com.egm.stellio.subscription.model.prepareForRendering
 import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -75,10 +75,11 @@ class SubscriptionHandler(
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
         val sub = getSubFromSecurityContext()
 
-        val subscription = parseSubscription(body, contexts).bind()
+        val subscription = deserialize(body, contexts).bind()
+        subscription.validate().bind()
         checkSubscriptionNotExists(subscription).bind()
 
-        subscriptionService.create(subscription, sub).bind()
+        subscriptionService.upsert(subscription, sub).bind()
 
         ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${subscription.id}"))
@@ -112,7 +113,7 @@ class SubscriptionHandler(
             applicationProperties.pagination.limitMax
         ).bind()
         val subscriptions = subscriptionService.getSubscriptions(paginationQuery.limit, paginationQuery.offset, sub)
-            .serialize(contexts, mediaType, includeSysAttrs)
+            .prepareForRendering(contexts, mediaType, includeSysAttrs)
         val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).bind()
 
         buildQueryResponse(
@@ -153,7 +154,7 @@ class SubscriptionHandler(
         val subscription = subscriptionService.getById(subscriptionId)
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .body(subscription.serialize(contexts, mediaType, includeSysAttrs))
+            .body(subscription.prepareForRendering(contexts, mediaType, includeSysAttrs))
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -169,7 +170,7 @@ class SubscriptionHandler(
     suspend fun getSubscriptionContext(@PathVariable subscriptionId: URI): ResponseEntity<*> = either {
         val contexts = subscriptionService.getContextsForSubscription(subscriptionId).bind()
 
-        ResponseEntity.ok(serializeObject(mapOf(JSONLD_CONTEXT to contexts)))
+        ResponseEntity.ok(serializeObject(mapOf(JSONLD_CONTEXT_KW to contexts)))
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -193,9 +194,17 @@ class SubscriptionHandler(
 
         val sub = getSubFromSecurityContext()
         checkIsAllowed(subscriptionId, sub).bind()
-        val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
-        subscriptionService.update(subscriptionId, body, contexts).bind()
+        val fragment = requestBody.awaitFirst()
+        val contexts = checkAndGetContext(
+            httpHeaders,
+            fragment.deserializeAsMap(),
+            applicationProperties.contexts.core
+        ).bind()
+        val subscription = subscriptionService.getById(subscriptionId)
+            .mergeWithFragment(fragment, contexts).bind()
+            .validate()
+            .bind()
+        subscriptionService.upsert(subscription, sub).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

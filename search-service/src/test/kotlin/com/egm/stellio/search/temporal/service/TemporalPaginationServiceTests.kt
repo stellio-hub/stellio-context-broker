@@ -16,8 +16,8 @@ import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -43,7 +43,7 @@ class TemporalPaginationServiceTests {
 
     private val attributeIncoming = Attribute(
         entityId = entityUri,
-        attributeName = INCOMING_PROPERTY,
+        attributeName = INCOMING_IRI,
         attributeValueType = Attribute.AttributeValueType.NUMBER,
         createdAt = now(),
         payload = EMPTY_JSON_PAYLOAD
@@ -51,7 +51,7 @@ class TemporalPaginationServiceTests {
 
     private val attributeOutgoing = Attribute(
         entityId = entityUri,
-        attributeName = OUTGOING_PROPERTY,
+        attributeName = OUTGOING_IRI,
         attributeValueType = Attribute.AttributeValueType.NUMBER,
         createdAt = now(),
         payload = EMPTY_JSON_PAYLOAD
@@ -136,7 +136,7 @@ class TemporalPaginationServiceTests {
         temporalQuery = temporalQuery,
         entitiesQuery = EntitiesQueryFromGet(
             paginationQuery = PaginationQuery(limit = 0, offset = 50),
-            attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+            attrs = setOf(INCOMING_IRI, OUTGOING_IRI),
             contexts = APIC_COMPOUND_CONTEXTS
         ),
         temporalRepresentation = TemporalRepresentation.NORMALIZED,
@@ -279,7 +279,7 @@ class TemporalPaginationServiceTests {
             ),
             entitiesQuery = EntitiesQueryFromGet(
                 paginationQuery = PaginationQuery(limit = 0, offset = 50),
-                attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY),
+                attrs = setOf(INCOMING_IRI, OUTGOING_IRI),
                 contexts = APIC_COMPOUND_CONTEXTS
             ),
             temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,

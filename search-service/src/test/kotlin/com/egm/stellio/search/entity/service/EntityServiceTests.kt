@@ -2,7 +2,7 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.left
 import arrow.core.right
-import arrow.core.toOption
+import com.egm.stellio.search.authorization.USER_UUID
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.entity.model.Entity
@@ -11,29 +11,30 @@ import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.gimmeSucceededAttributeOperationResult
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.CompactedAttributeInstances
+import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
+import com.egm.stellio.shared.model.NGSILD_TITLE_TERM
+import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DELETED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TITLE_TERM
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
-import com.egm.stellio.shared.util.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.NGSILD_NAME_TERM
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.NAME_IRI
+import com.egm.stellio.shared.util.NAME_TERM
+import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.loadAndExpandDeletedEntity
 import com.egm.stellio.shared.util.loadAndPrepareSampleData
 import com.egm.stellio.shared.util.loadMinimalEntity
@@ -88,7 +89,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     private val entity01Uri = "urn:ngsi-ld:Entity:01".toUri()
     private val beehiveTestCId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-    private val sub = "0123456789-1234-5678-987654321"
     private val now = ngsiLdDateTime()
 
     @AfterEach
@@ -98,7 +98,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should create an entity payload from string if none existed yet`() = runTest {
-        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
                 entityService.createEntityPayload(
@@ -124,51 +124,50 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
     fun `it should only create an entity payload for a minimal entity`() = runTest {
-        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
         coEvery {
-            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
+            entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
-        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityService.createEntity(
             ngsiLdEntity,
-            expandedEntity,
-            sub
+            expandedEntity
         ).shouldSucceed()
 
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(beehiveTestCId, it.entityId)
-                assertEquals(listOf(BEEHIVE_TYPE), it.types)
+                assertEquals(listOf(BEEHIVE_IRI), it.types)
             }
 
         coVerify {
-            authorizationService.userCanCreateEntities(eq(sub.toOption()))
+            authorizationService.userCanCreateEntities()
             entityAttributeService.createAttributes(
                 any(),
                 any(),
                 emptyList(),
-                any(),
-                eq(sub)
+                any()
             )
             entityEventService.publishEntityCreateEvent(
-                eq(sub),
+                eq(USER_UUID),
                 eq(beehiveTestCId),
                 any()
             )
-            authorizationService.createOwnerRight(beehiveTestCId, sub.toOption())
+            authorizationService.createOwnerRight(beehiveTestCId)
         }
     }
 
     @Test
     fun `it should not create an entity payload if one already exists`() = runTest {
         val (jsonLdEntity, ngsiLdEntity) =
-            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE)).sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI)).sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityService.createEntityPayload(
             ngsiLdEntity,
             jsonLdEntity,
@@ -177,8 +176,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         entityService.createEntity(
             ngsiLdEntity,
-            jsonLdEntity,
-            sub,
+            jsonLdEntity
         ).shouldFail { assertInstanceOf(AlreadyExistsException::class.java, it) }
     }
 
@@ -187,14 +185,14 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             entityAttributeService.deleteAttributes(any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery {
-            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
+            entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
-        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
-            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
                 .sampleDataToNgsiLdEntity()
                 .shouldSucceedAndResult()
 
@@ -210,7 +208,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 assertNotNull(it.payload)
             }
 
-        entityService.createEntity(ngsiLdEntity, expandedEntity, null)
+        entityService.createEntity(ngsiLdEntity, expandedEntity)
             .shouldSucceed()
     }
 
@@ -220,11 +218,11 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             entityAttributeService.deleteAttributes(any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery {
-            authorizationService.userCanAdminEntity(any(), any())
+            authorizationService.userCanAdminEntity(any())
         } returns AccessDeniedException("Unauthorized").left()
 
         val (expandedEntity, ngsiLdEntity) =
-            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
                 .sampleDataToNgsiLdEntity()
                 .shouldSucceedAndResult()
 
@@ -240,14 +238,14 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 assertNotNull(it.payload)
             }
 
-        entityService.createEntity(ngsiLdEntity, expandedEntity, null)
+        entityService.createEntity(ngsiLdEntity, expandedEntity)
             .shouldFail { assertInstanceOf(AccessDeniedException::class.java, it) }
     }
 
     @Test
     fun `it should create the deleted representation of an entity when deleting it`() = runTest {
         val (expandedEntity, ngsiLdEntity) =
-            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+            loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
                 .sampleDataToNgsiLdEntity()
                 .shouldSucceedAndResult()
 
@@ -265,32 +263,31 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 val payload = entity.payload.deserializeAsMap()
                 assertThat(payload)
                     .hasSize(2)
-                    .containsKeys(JSONLD_ID, NGSILD_DELETED_AT_PROPERTY)
+                    .containsKeys(JSONLD_ID_KW, NGSILD_DELETED_AT_IRI)
             }
     }
 
     @Test
     fun `it should merge an entity`() = runTest {
-        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
-        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
-            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
+            entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery {
-            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
+            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any())
         } returns listOf(
-            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.CREATED, emptyMap()),
+            SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap()),
         ).right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
-        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityService.createEntity(
             ngsiLdEntity,
-            expandedEntity,
-            sub
+            expandedEntity
         ).shouldSucceed()
 
         val (jsonLdEntity, _) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
@@ -298,8 +295,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityService.mergeEntity(
             beehiveTestCId,
             jsonLdEntity.getModifiableMembers(),
-            now,
-            sub
+            now
         ).shouldSucceed()
 
         entityQueryService.retrieve(beehiveTestCId)
@@ -308,54 +304,51 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             }
 
         coVerify {
-            authorizationService.userCanCreateEntities(sub.toOption())
-            authorizationService.userCanUpdateEntity(beehiveTestCId, sub.toOption())
+            authorizationService.userCanCreateEntities()
+            authorizationService.userCanUpdateEntity(beehiveTestCId)
             entityAttributeService.createAttributes(
                 any(),
                 any(),
                 emptyList(),
-                any(),
-                eq(sub)
+                any()
             )
             entityAttributeService.mergeAttributes(
                 eq(beehiveTestCId),
                 any(),
                 any(),
                 any(),
-                any(),
-                eq(sub)
+                any()
             )
             entityAttributeService.getForEntity(
                 eq(beehiveTestCId),
                 emptySet(),
                 emptySet()
             )
-            authorizationService.createOwnerRight(beehiveTestCId, sub.toOption())
+            authorizationService.createOwnerRight(beehiveTestCId)
         }
     }
 
     @Test
     fun `it should merge an entity with new types`() = runTest {
-        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
-        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
-            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
+            entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery {
-            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
+            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any())
         } returns listOf(
-            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.CREATED, emptyMap())
+            SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap())
         ).right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
-        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityService.createEntity(
             ngsiLdEntity,
-            expandedEntity,
-            sub
+            expandedEntity
         ).shouldSucceed()
 
         val expandedAttributes = expandAttributes(
@@ -366,38 +359,36 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityService.mergeEntity(
             beehiveTestCId,
             expandedAttributes,
-            now,
-            sub
+            now
         ).shouldSucceed()
 
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertTrue(it.types.containsAll(setOf(BEEHIVE_TYPE, NGSILD_DEFAULT_VOCAB + "Distribution")))
+                assertTrue(it.types.containsAll(setOf(BEEHIVE_IRI, NGSILD_DEFAULT_VOCAB + "Distribution")))
             }
     }
 
     @Test
     fun `it should merge an entity with new types and scopes`() = runTest {
-        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
-        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
-            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
+            entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery {
-            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any(), any())
+            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any())
         } returns listOf(
-            SucceededAttributeOperationResult(INCOMING_PROPERTY, null, OperationStatus.CREATED, emptyMap())
+            SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap())
         ).right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
-        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
 
         entityService.createEntity(
             ngsiLdEntity,
-            expandedEntity,
-            sub
+            expandedEntity
         ).shouldSucceed()
 
         val expandedAttributes = expandAttributes(
@@ -408,13 +399,12 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityService.mergeEntity(
             beehiveTestCId,
             expandedAttributes,
-            now,
-            sub
+            now
         ).shouldSucceed()
 
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertTrue(it.types.containsAll(setOf(BEEHIVE_TYPE, NGSILD_DEFAULT_VOCAB + "Distribution")))
+                assertTrue(it.types.containsAll(setOf(BEEHIVE_IRI, NGSILD_DEFAULT_VOCAB + "Distribution")))
                 assertTrue(it.scopes?.containsAll(setOf("/Nantes/BottiereChenaie", "/Agri/Beekeeping")) ?: false)
             }
     }
@@ -430,15 +420,15 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should replace an entity`() = runTest {
         // called when creating the initial entity
-        coEvery { authorizationService.userCanCreateEntities(any()) } returns Unit.right()
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery {
-            entityAttributeService.createAttributes(any(), any(), any(), any(), any())
+            entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
-        coEvery { authorizationService.createOwnerRight(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
         // called when replacing the initial entity
-        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
-            entityAttributeService.appendAttributes(any(), any(), any(), any(), any(), any())
+            entityAttributeService.appendAttributes(any(), any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
         coEvery {
             entityAttributeService.deleteAttribute(any(), any(), any(), any(), any())
@@ -449,8 +439,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         entityService.createEntity(
             ngsiLdEntity,
-            expandedEntity,
-            sub
+            expandedEntity
         ).shouldSucceed()
 
         val (newExpandedEntity, newNgsiLdEntity) =
@@ -459,8 +448,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityService.replaceEntity(
             beehiveTestCId,
             newNgsiLdEntity,
-            newExpandedEntity,
-            sub
+            newExpandedEntity
         ).shouldSucceed()
 
         entityQueryService.retrieve(beehiveTestCId)
@@ -470,37 +458,36 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 assertThat(compactedEntity)
                     .hasSize(7)
                     .containsKey(NGSILD_TITLE_TERM)
-                    .doesNotContainKey(NGSILD_NAME_TERM)
-                val incomingProperty = compactedEntity[INCOMING_COMPACT_PROPERTY] as CompactedAttributeInstances
+                    .doesNotContainKey(NAME_TERM)
+                val incomingProperty = compactedEntity[INCOMING_TERM] as CompactedAttributeInstances
                 assertThat(incomingProperty)
                     .hasSize(2)
                     .allMatch {
-                        it[JSONLD_VALUE_TERM] == 5678
+                        it[NGSILD_VALUE_TERM] == 5678
                     }
             }
 
         coVerify {
-            authorizationService.userCanUpdateEntity(beehiveTestCId, sub.toOption())
-            entityAttributeService.deleteAttribute(beehiveTestCId, NGSILD_NAME_PROPERTY, null, false, any())
+            authorizationService.userCanUpdateEntity(beehiveTestCId)
+            entityAttributeService.deleteAttribute(beehiveTestCId, NAME_IRI, null, false, any())
             entityAttributeService.appendAttributes(
                 beehiveTestCId,
                 any(),
                 any(),
                 false,
-                any(),
-                eq(sub)
+                any()
             )
         }
     }
 
     @Test
     fun `it should replace an attribute`() = runTest {
-        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
         coEvery {
-            entityAttributeService.replaceAttribute(any(), any(), any(), any(), any())
+            entityAttributeService.replaceAttribute(any(), any(), any(), any())
         } returns SucceededAttributeOperationResult(
-            attributeName = INCOMING_PROPERTY,
+            attributeName = INCOMING_IRI,
             operationStatus = OperationStatus.UPDATED,
             newExpandedValue = emptyMap()
         ).right()
@@ -513,11 +500,11 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             APIC_COMPOUND_CONTEXTS
         )
 
-        entityService.replaceAttribute(beehiveTestCId, expandedAttribute, sub)
+        entityService.replaceAttribute(beehiveTestCId, expandedAttribute)
             .shouldSucceedWith {
                 it.updated.size == 1 &&
                     it.notUpdated.isEmpty() &&
-                    it.updated[0] == INCOMING_PROPERTY
+                    it.updated[0] == INCOMING_IRI
             }
     }
 
@@ -532,26 +519,26 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             )
         }
 
-        entityService.updateTypes(beehiveTestCId, listOf(BEEHIVE_TYPE, APIARY_TYPE), ngsiLdDateTime(), false)
+        entityService.updateTypes(beehiveTestCId, listOf(BEEHIVE_IRI, APIARY_IRI), ngsiLdDateTime(), false)
             .shouldSucceedWith {
                 assertInstanceOf(SucceededAttributeOperationResult::class.java, it)
-                assertEquals(JSONLD_TYPE, it.attributeName)
+                assertEquals(JSONLD_TYPE_KW, it.attributeName)
                 assertEquals(OperationStatus.CREATED, it.operationStatus)
             }
 
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
-                assertEquals(listOf(BEEHIVE_TYPE, APIARY_TYPE), it.types)
+                assertEquals(listOf(BEEHIVE_IRI, APIARY_IRI), it.types)
                 assertEquals(
-                    listOf(BEEHIVE_TYPE, APIARY_TYPE),
-                    it.payload.asString().deserializeExpandedPayload()[JSONLD_TYPE]
+                    listOf(BEEHIVE_IRI, APIARY_IRI),
+                    it.payload.asString().deserializeExpandedPayload()[JSONLD_TYPE_KW]
                 )
             }
     }
 
     @Test
     fun `it should add a type to an entity even if existing types are not in the list of types to add`() = runTest {
-        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
                 entityService.createEntityPayload(
@@ -560,24 +547,24 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     now
                 )
             }
-        entityService.updateTypes(entity01Uri, listOf(APIARY_TYPE), ngsiLdDateTime(), false)
+        entityService.updateTypes(entity01Uri, listOf(APIARY_IRI), ngsiLdDateTime(), false)
             .shouldSucceed()
 
         entityQueryService.retrieve(entity01Uri)
             .shouldSucceedWith {
-                assertEquals(listOf(BEEHIVE_TYPE, APIARY_TYPE), it.types)
+                assertEquals(listOf(BEEHIVE_IRI, APIARY_IRI), it.types)
                 assertEquals(
-                    listOf(BEEHIVE_TYPE, APIARY_TYPE),
-                    it.payload.asString().deserializeExpandedPayload()[JSONLD_TYPE]
+                    listOf(BEEHIVE_IRI, APIARY_IRI),
+                    it.payload.asString().deserializeExpandedPayload()[JSONLD_TYPE_KW]
                 )
             }
     }
 
     @Test
     fun `it should remove the scopes from an entity`() = runTest {
-        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
-            entityAttributeService.addOrReplaceAttribute(any(), any(), any(), any(), any(), any())
+            entityAttributeService.addOrReplaceAttribute(any(), any(), any(), any(), any())
         } returns gimmeSucceededAttributeOperationResult().right()
         coEvery {
             entityAttributeService.getForEntity(any(), any(), any())
@@ -593,7 +580,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             }
 
-        entityService.deleteAttribute(beehiveTestCId, NGSILD_SCOPE_PROPERTY, null)
+        entityService.deleteAttribute(beehiveTestCId, NGSILD_SCOPE_IRI, null)
             .shouldSucceed()
 
         entityQueryService.retrieve(beehiveTestCId)
@@ -604,11 +591,11 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should permanently delete an entity`() = runTest {
-        coEvery { authorizationService.userCanAdminEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityAttributeService.permanentlyDeleteAttributes(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
 
-        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_TYPE))
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
                 entityService.createEntityPayload(
@@ -628,7 +615,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `it should permanently delete an attribute`() = runTest {
-        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery { entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any()) } returns Unit.right()
         coEvery { entityAttributeService.permanentlyDeleteAttribute(any(), any(), any(), any()) } returns Unit.right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
@@ -642,18 +629,18 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             }
 
-        entityService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_PROPERTY, null).shouldSucceed()
+        entityService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_IRI, null).shouldSucceed()
 
         coVerify {
-            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY, null)
-            entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_PROPERTY, null, false)
+            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_IRI, null)
+            entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_IRI, null, false)
             entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
         }
     }
 
     @Test
     fun `it should return a ResourceNotFound error if trying to permanently delete an unknown attribute`() = runTest {
-        coEvery { authorizationService.userCanUpdateEntity(any(), any()) } returns Unit.right()
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
             entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
         } returns ResourceNotFoundException("Entity does not exist").left()
@@ -667,15 +654,15 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 )
             }
 
-        entityService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_PROPERTY, null).shouldFail {
+        entityService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_IRI, null).shouldFail {
             assertInstanceOf(ResourceNotFoundException::class.java, it)
         }
 
         coVerify {
-            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, OUTGOING_PROPERTY, null)
+            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, OUTGOING_IRI, null)
         }
         coVerify(exactly = 0) {
-            entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_PROPERTY, null, false)
+            entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_IRI, null, false)
             entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
         }
     }

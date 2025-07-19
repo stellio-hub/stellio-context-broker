@@ -12,7 +12,6 @@ import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.getSubFromSecurityContext
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -50,7 +49,6 @@ class TemporalEntityOperationsHandler(
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val query = Query(requestBody.awaitFirst()).bind()
@@ -64,8 +62,7 @@ class TemporalEntityOperationsHandler(
             ).bind()
 
         val (temporalEntities, total, range) = temporalQueryService.queryTemporalEntities(
-            temporalEntitiesQuery,
-            sub.getOrNull()
+            temporalEntitiesQuery
         ).bind()
 
         val compactedEntities = compactEntities(temporalEntities, contexts)

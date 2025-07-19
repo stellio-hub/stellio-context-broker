@@ -13,6 +13,7 @@ import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.NgsiLdRelationship
 import com.egm.stellio.shared.model.toFinalRepresentation
@@ -29,7 +30,6 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.ENTITY_REMOVE_OWNERSHIP_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
@@ -38,7 +38,6 @@ import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.replaceDefaultContextToAuthzContext
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
@@ -78,7 +77,6 @@ class EntityAccessControlHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
 
-        val sub = getSubFromSecurityContext()
         val includeDeleted = queryParams.getFirst(QueryParameter.INCLUDE_DELETED.key)?.toBoolean() == true
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
@@ -97,8 +95,7 @@ class EntityAccessControlHandler(
         val (count, entities) = authorizationService.getAuthorizedEntities(
             entitiesQuery,
             includeDeleted,
-            contexts,
-            sub
+            contexts
         ).bind()
 
         if (count == -1) {
@@ -130,8 +127,6 @@ class EntityAccessControlHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
 
-        val sub = getSubFromSecurityContext()
-
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val entitiesQuery = composeEntitiesQueryFromGet(
             applicationProperties.pagination,
@@ -143,8 +138,7 @@ class EntityAccessControlHandler(
             authorizationService.getGroupsMemberships(
                 entitiesQuery.paginationQuery.offset,
                 entitiesQuery.paginationQuery.limit,
-                contexts,
-                sub
+                contexts
             ).bind()
 
         if (count == -1) {
@@ -176,9 +170,7 @@ class EntityAccessControlHandler(
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val ngsiLdDataRepresentation = parseRepresentations(params, mediaType).bind()
 
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userIsAdmin(sub).bind()
+        authorizationService.userIsAdmin().bind()
 
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val entitiesQuery = composeEntitiesQueryFromGet(
@@ -222,8 +214,6 @@ class EntityAccessControlHandler(
         @AllowedParameters
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
             .replaceDefaultContextToAuthzContext(applicationProperties.contexts)
@@ -244,7 +234,7 @@ class EntityAccessControlHandler(
             .map { ngsiLdAttribute -> ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) } }
             .flatten()
             .partition {
-                authorizationService.userCanAdminEntity(it.second.objectId, sub).isRight()
+                authorizationService.userCanAdminEntity(it.second.objectId).isRight()
             }
         val unauthorizedInstancesDetails = unauthorizedInstances.map {
             NotUpdatedDetails(
@@ -302,9 +292,7 @@ class EntityAccessControlHandler(
         @AllowedParameters
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
+        authorizationService.userCanAdminEntity(entityId).bind()
 
         val isOwnerOfEntity = entityAccessRightsService.isOwnerOfEntity(subjectId, entityId).bind()
         if (!isOwnerOfEntity) {
@@ -327,14 +315,12 @@ class EntityAccessControlHandler(
         @AllowedParameters
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
+        authorizationService.userCanAdminEntity(entityId).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
             .replaceDefaultContextToAuthzContext(applicationProperties.contexts)
-        val expandedAttribute = expandAttribute(AUTH_TERM_SAP, body.minus(JSONLD_CONTEXT), contexts)
+        val expandedAttribute = expandAttribute(AUTH_TERM_SAP, body.minus(JSONLD_CONTEXT_KW), contexts)
         if (expandedAttribute.first != AUTH_PROP_SAP)
             BadRequestDataException("${expandedAttribute.first} is not authorized property name")
                 .left().bind<ResponseEntity<*>>()
@@ -355,9 +341,7 @@ class EntityAccessControlHandler(
         @AllowedParameters
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-
-        authorizationService.userCanAdminEntity(entityId, sub).bind()
+        authorizationService.userCanAdminEntity(entityId).bind()
 
         entityAccessRightsService.removeSpecificAccessPolicy(entityId).bind()
 

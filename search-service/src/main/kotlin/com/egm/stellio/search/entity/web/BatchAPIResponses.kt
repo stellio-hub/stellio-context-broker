@@ -4,9 +4,9 @@ import arrow.core.Either
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NGSILD_LOCAL
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toErrorResponse
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCAL
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue

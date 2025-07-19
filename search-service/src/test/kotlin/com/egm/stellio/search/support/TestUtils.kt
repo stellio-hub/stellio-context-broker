@@ -5,18 +5,18 @@ import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Aggregate
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
+import com.egm.stellio.shared.model.NGSILD_INSTANCE_ID_IRI
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
@@ -65,16 +65,16 @@ fun buildAttributeInstancePayload(
     attributeType: Attribute.AttributeType = Attribute.AttributeType.Property
 ): String = serializeObject(
     mutableMapOf(
-        JSONLD_TYPE to listOf(attributeType.toExpandedName()),
-        NGSILD_OBSERVED_AT_PROPERTY to buildNonReifiedTemporalValue(observedAt),
-        NGSILD_INSTANCE_ID_PROPERTY to buildNonReifiedPropertyValue(instanceId.toString())
+        JSONLD_TYPE_KW to listOf(attributeType.toExpandedName()),
+        NGSILD_OBSERVED_AT_IRI to buildNonReifiedTemporalValue(observedAt),
+        NGSILD_INSTANCE_ID_IRI to buildNonReifiedPropertyValue(instanceId.toString())
     ).apply {
         if (datasetId != null)
-            put(NGSILD_DATASET_ID_PROPERTY, buildNonReifiedPropertyValue(datasetId.toString()))
+            put(NGSILD_DATASET_ID_IRI, buildNonReifiedPropertyValue(datasetId.toString()))
         if (attributeType == Attribute.AttributeType.Property)
-            put(NGSILD_PROPERTY_VALUE, listOf(mapOf(JSONLD_VALUE to value)))
+            put(NGSILD_PROPERTY_VALUE, listOf(mapOf(JSONLD_VALUE_KW to value)))
         else
-            put(NGSILD_RELATIONSHIP_OBJECT, listOf(mapOf(JSONLD_ID to value.toString())))
+            put(NGSILD_RELATIONSHIP_OBJECT, listOf(mapOf(JSONLD_ID_KW to value.toString())))
     }
 )
 
@@ -126,6 +126,39 @@ val SAMPLE_VOCAB_PROPERTY_PAYLOAD = Json.of(
       ],
       "@type": [
         "https://uri.etsi.org/ngsi-ld/VocabProperty"
+      ]
+    }
+    """.trimIndent()
+)
+
+val SAMPLE_LOCATION_PROPERTY_PAYLOAD = Json.of(
+    """
+    {
+      "https://uri.etsi.org/ngsi-ld/location": [
+        {
+          "@type": [
+            "https://uri.etsi.org/ngsi-ld/GeoProperty"
+          ],
+          "https://uri.etsi.org/ngsi-ld/hasValue": [
+            {
+              "https://purl.org/geojson/vocab#coordinates": [
+                {
+                  "@list": [
+                    {
+                      "@value": 1
+                    },
+                    {
+                      "@value": 1
+                    }
+                  ]
+                }
+              ],
+              "@type": [
+                "https://purl.org/geojson/vocab#Point"
+              ]
+            }
+          ]
+        }
       ]
     }
     """.trimIndent()

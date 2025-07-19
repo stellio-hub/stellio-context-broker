@@ -1,7 +1,8 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>CyclomaticComplexMethod:QueryUtils.kt$private fun transformQQueryToSqlJsonPath( mainAttributePath: List&lt;ExpandedTerm&gt;, trailingAttributePath: List&lt;ExpandedTerm&gt;, operator: String, value: String )</ID>
     <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `it should inline two entities with their respective relationhips`()</ID>
     <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `it should simplify relationships for inlined entities`()</ID>
     <ID>LongMethod:QueryUtils.kt$private fun transformQQueryToSqlJsonPath( mainAttributePath: List&lt;ExpandedTerm&gt;, trailingAttributePath: List&lt;ExpandedTerm&gt;, operator: String, value: String )</ID>

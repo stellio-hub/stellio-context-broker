@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
-import com.egm.stellio.shared.util.INCOMING_COMPACT_PROPERTY
+import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
@@ -115,7 +115,7 @@ class CoreAPIServiceTests {
                 DEFAULT_TENANT_NAME,
                 beehiveTestCId,
                 NotificationParams(
-                    attributes = listOf(INCOMING_COMPACT_PROPERTY),
+                    attributes = listOf(INCOMING_TERM),
                     format = FormatType.NORMALIZED,
                     endpoint = Endpoint(
                         uri = "http://localhost:8089/notification".toUri(),
@@ -139,7 +139,7 @@ class CoreAPIServiceTests {
                 .withQueryParam(QueryParameter.JOIN.key, equalTo(JoinType.FLAT.join))
                 .withQueryParam(QueryParameter.JOIN_LEVEL.key, equalTo("1"))
                 .withQueryParam(QueryParameter.OPTIONS.key, equalTo(FormatType.NORMALIZED.format))
-                .withQueryParam(QueryParameter.ATTRS.key, equalTo(INCOMING_COMPACT_PROPERTY))
+                .withQueryParam(QueryParameter.ATTRS.key, equalTo(INCOMING_TERM))
         )
     }
 }

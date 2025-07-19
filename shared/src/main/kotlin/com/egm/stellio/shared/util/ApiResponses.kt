@@ -1,8 +1,8 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.queryparameter.PaginationQuery
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -48,7 +48,7 @@ fun invalidCharacterInScope(name: Any?) =
 const val NULL_VALUE_IN_CONTENT = "The JSON-LD object contains a member with a null value (5.5.4)"
 
 fun invalidTemporalInstanceMessage() =
-    "One attribute instance is missing the required $NGSILD_OBSERVED_AT_PROPERTY temporal property"
+    "One attribute instance is missing the required ${NGSILD_OBSERVED_AT_IRI} temporal property"
 
 const val INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE =
     "One of the aggregation methods tried to aggregate inconsistent types of values"

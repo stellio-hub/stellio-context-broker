@@ -13,14 +13,13 @@ import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.ENTITY_ALREADY_EXISTS_MESSAGE
 import com.egm.stellio.shared.util.ENTITY_DOES_NOT_EXIST_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.util.MOCK_USER_SUB
-import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -100,7 +99,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = validJsonFile
 
         coEvery {
-            entityOperationService.update(any(), any(), any())
+            entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
 
         webClient.post()
@@ -111,7 +110,7 @@ class EntityOperationHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            entityOperationService.update(any(), false, eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
+            entityOperationService.update(any())
         }
     }
 
@@ -129,7 +128,7 @@ class EntityOperationHandlerTests {
             )
         )
 
-        coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             mutableListOf(),
             errors
         )
@@ -168,7 +167,7 @@ class EntityOperationHandlerTests {
     fun `update batch entity should return a 207 if one entity has an invalid NGSI-LD payload`() = runTest {
         val jsonLdFile = twoEntityOneInvalidJsonLDFile
 
-        coEvery { entityOperationService.update(any(), any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             mutableListOf(BatchEntitySuccess(temperatureSensorUri, EMPTY_UPDATE_RESULT)),
             mutableListOf()
         )
@@ -207,7 +206,7 @@ class EntityOperationHandlerTests {
     fun `update batch entity with noOverwrite should return 204 if all entities have been updated`() = runTest {
         val jsonLdFile = validJsonFile
         coEvery {
-            entityOperationService.update(any(), any(), any())
+            entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
 
         webClient.post()
@@ -218,7 +217,7 @@ class EntityOperationHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            entityOperationService.update(any(), true, eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
+            entityOperationService.update(any(), true)
         }
     }
 
@@ -226,7 +225,7 @@ class EntityOperationHandlerTests {
     fun `create batch entity should return a 201 if all entities have been created`() = runTest {
         val jsonLdFile = validJsonFile
 
-        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.create(any()) } returns BatchOperationResult(
             allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
@@ -246,7 +245,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = validJsonFile
         val createdEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
 
-        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.create(any()) } returns BatchOperationResult(
             createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             mutableListOf(
                 BatchEntityError(
@@ -292,7 +291,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = oneEntityMissingContextJsonFile
         val createdEntitiesIds = arrayListOf(temperatureSensorUri, deviceUri)
 
-        coEvery { entityOperationService.create(any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.create(any()) } returns BatchOperationResult(
             createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList()
         )
 
@@ -335,7 +334,7 @@ class EntityOperationHandlerTests {
             updatedEntitiesIds.map { BatchEntitySuccess(it, mockkClass(UpdateResult::class)) }.toMutableList()
         )
 
-        coEvery { entityOperationService.upsert(any(), any(), any(), any()) } returns (
+        coEvery { entityOperationService.upsert(any(), any(), any()) } returns (
             updatedBatchResult to createdEntitiesIds
             )
 
@@ -352,7 +351,7 @@ class EntityOperationHandlerTests {
     fun `upsert batch entity should return a 204 if it has only updated existing entities`() = runTest {
         val jsonLdFile = validJsonFile
         coEvery {
-            entityOperationService.upsert(any(), any(), any(), any())
+            entityOperationService.upsert(any(), any(), any())
         } returns (BatchOperationResult(success = mutableListOf(), errors = mutableListOf()) to emptyList())
 
         webClient.post()
@@ -378,7 +377,7 @@ class EntityOperationHandlerTests {
             )
         )
 
-        coEvery { entityOperationService.upsert(any(), any(), any(), any()) } returns (
+        coEvery { entityOperationService.upsert(any(), any(), any()) } returns (
             BatchOperationResult(
                 arrayListOf(BatchEntitySuccess(deviceUri, mockkClass(UpdateResult::class))),
                 errors
@@ -418,7 +417,7 @@ class EntityOperationHandlerTests {
     @Test
     fun `upsert batch entity should update entities without overwriting if update and noOverwrite options`() = runTest {
         coEvery {
-            entityOperationService.upsert(any(), any(), any(), any())
+            entityOperationService.upsert(any(), any(), any())
         } returns (BatchOperationResult(success = mutableListOf(), errors = mutableListOf()) to emptyList())
 
         webClient.post()
@@ -429,7 +428,7 @@ class EntityOperationHandlerTests {
             .expectBody().isEmpty
 
         coVerify(exactly = 1) {
-            entityOperationService.upsert(any(), true, true, any())
+            entityOperationService.upsert(any(), true, true)
         }
     }
 
@@ -490,7 +489,7 @@ class EntityOperationHandlerTests {
     fun `delete batch entity should return a 204 if all entities have been deleted`() = runTest {
         val jsonLdFile = deleteAllJsonFile
 
-        coEvery { entityOperationService.delete(any(), any()) } returns
+        coEvery { entityOperationService.delete(any()) } returns
             BatchOperationResult(
                 allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
                 mutableListOf()
@@ -505,7 +504,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `delete batch entity should return a 207 if some entities could not be deleted`() = runTest {
-        coEvery { entityOperationService.delete(any(), any()) } returns
+        coEvery { entityOperationService.delete(any()) } returns
             BatchOperationResult(
                 mutableListOf(BatchEntitySuccess(temperatureSensorUri), BatchEntitySuccess(dissolvedOxygenSensorUri)),
                 mutableListOf(
@@ -544,14 +543,14 @@ class EntityOperationHandlerTests {
     @Test
     fun `query entities should return a 200 if the query is correct`() = runTest {
         coEvery {
-            entityQueryService.queryEntities(any(), any<Sub>())
+            entityQueryService.queryEntities(any())
         } returns Pair(emptyList<ExpandedEntity>(), 0).right()
 
         val query = """
             {
                 "type": "Query",
                 "entities": [{
-                    "type": "$BEEHIVE_TYPE"
+                    "type": "$BEEHIVE_IRI"
                 }],
                 "attrs": ["attr1", "attr2"]
             }
@@ -569,10 +568,9 @@ class EntityOperationHandlerTests {
                     it.paginationQuery.limit == 10 &&
                         it.paginationQuery.offset == 20 &&
                         it is EntitiesQueryFromPost &&
-                        it.entitySelectors!![0].typeSelection == BEEHIVE_TYPE &&
+                        it.entitySelectors!![0].typeSelection == BEEHIVE_IRI &&
                         it.attrs == setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2")
-                },
-                any<Sub>()
+                }
             )
         }
     }
@@ -582,7 +580,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = validJsonFile
 
         coEvery {
-            entityOperationService.merge(any(), any())
+            entityOperationService.merge(any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
 
         webClient.post()
@@ -593,7 +591,7 @@ class EntityOperationHandlerTests {
             .expectBody().isEmpty
 
         coVerify {
-            entityOperationService.merge(any(), eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
+            entityOperationService.merge(any())
         }
     }
 
@@ -606,7 +604,7 @@ class EntityOperationHandlerTests {
             BatchEntityError(dissolvedOxygenSensorUri, internalError)
         )
 
-        coEvery { entityOperationService.merge(any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.merge(any()) } returns BatchOperationResult(
             mutableListOf(),
             errors
         )
@@ -645,7 +643,7 @@ class EntityOperationHandlerTests {
     fun `merge batch entity should return a 207 if one entity has an invalid NGSI-LD payload`() = runTest {
         val jsonLdFile = twoEntityOneInvalidJsonLDFile
 
-        coEvery { entityOperationService.merge(any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.merge(any()) } returns BatchOperationResult(
             mutableListOf(BatchEntitySuccess(temperatureSensorUri, EMPTY_UPDATE_RESULT)),
             mutableListOf()
         )
@@ -684,7 +682,7 @@ class EntityOperationHandlerTests {
     fun `merge batch entity should return 207 if there is a non existing entity in the payload`() = runTest {
         val jsonLdFile = validJsonFile
 
-        coEvery { entityOperationService.merge(any(), any()) } returns BatchOperationResult(
+        coEvery { entityOperationService.merge(any()) } returns BatchOperationResult(
             success = mutableListOf(BatchEntitySuccess(temperatureSensorUri, mockkClass(UpdateResult::class))),
             errors = mutableListOf(
                 BatchEntityError(

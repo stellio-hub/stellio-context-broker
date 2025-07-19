@@ -2,11 +2,11 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
+import com.egm.stellio.shared.model.NGSILD_OPERATION_SPACE_IRI
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.queryparameter.GeoQuery.GeometryType
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -27,7 +27,7 @@ class GeoQueryUtilsTests {
             geometry = GeometryType.POINT,
             coordinates = "[57.5522, -20.3484]",
             wktCoordinates = geoJsonToWkt(GeometryType.POINT, "[57.5522, -20.3484]").getOrNull()!!,
-            geoproperty = NGSILD_LOCATION_PROPERTY
+            geoproperty = NGSILD_LOCATION_IRI
         )
         assertEquals(geoQuery, geoQueryParams)
     }
@@ -45,7 +45,7 @@ class GeoQueryUtilsTests {
             geometry = GeometryType.POINT,
             coordinates = "[57.5522, -20.3484]",
             wktCoordinates = geoJsonToWkt(GeometryType.POINT, "[57.5522, -20.3484]").getOrNull()!!,
-            geoproperty = NGSILD_LOCATION_PROPERTY
+            geoproperty = NGSILD_LOCATION_IRI
         )
         assertEquals(geoQuery, geoQueryParams)
     }
@@ -62,7 +62,7 @@ class GeoQueryUtilsTests {
             geometry = GeometryType.POINT,
             coordinates = "[57.5522, -20.3484]",
             wktCoordinates = geoJsonToWkt(GeometryType.POINT, "[57.5522, -20.3484]").getOrNull()!!,
-            geoproperty = NGSILD_OPERATION_SPACE_PROPERTY
+            geoproperty = NGSILD_OPERATION_SPACE_IRI
         )
         assertEquals(geoQuery, geoQueryParams)
     }

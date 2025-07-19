@@ -1,13 +1,15 @@
 package com.egm.stellio.search.authorization.service
 
 import arrow.core.Either
-import arrow.core.Some
 import arrow.core.right
+import com.egm.stellio.search.authorization.GROUP_UUID
+import com.egm.stellio.search.authorization.USER_UUID
 import com.egm.stellio.search.authorization.model.EntityAccessRights
 import com.egm.stellio.search.authorization.model.EntityAccessRights.SubjectRightInfo
 import com.egm.stellio.search.authorization.model.Group
 import com.egm.stellio.search.authorization.model.User
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -25,7 +27,7 @@ import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_RE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
+import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.CREATION_ROLES
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -64,41 +66,38 @@ class EnabledAuthorizationServiceTests {
     @MockkBean
     private lateinit var entityAccessRightsService: EntityAccessRightsService
 
-    private val subjectUuid = "0768A6D5-D87B-4209-9A22-8C40A8961A79"
-    private val groupUuid = "220FC854-3609-404B-BC77-F2DFE332B27B"
-
     private val entityId01 = "urn:ngsi-ld:Beehive:01".toUri()
     private val entityId02 = "urn:ngsi-ld:Beehive:02".toUri()
 
     @Test
     fun `it should return false if user has no global role`() = runTest {
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(USER_UUID).right()
         coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns false.right()
 
-        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
+        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES)
             .shouldSucceedWith { assertFalse(it) }
 
-        coVerify { subjectReferentialService.getSubjectAndGroupsUUID(eq(Some(subjectUuid))) }
-        coVerify { subjectReferentialService.hasOneOfGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
+        coVerify { subjectReferentialService.getSubjectAndGroupsUUID() }
+        coVerify { subjectReferentialService.hasOneOfGlobalRoles(eq(listOf(USER_UUID)), eq(CREATION_ROLES)) }
     }
 
     @Test
     fun `it should return true if user has one of the required roles`() = runTest {
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(USER_UUID).right()
         coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns true.right()
 
-        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES, Some(subjectUuid))
+        enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES)
             .shouldSucceedWith { assertTrue(it) }
 
-        coVerify { subjectReferentialService.getSubjectAndGroupsUUID(eq(Some(subjectUuid))) }
-        coVerify { subjectReferentialService.hasOneOfGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
+        coVerify { subjectReferentialService.getSubjectAndGroupsUUID() }
+        coVerify { subjectReferentialService.hasOneOfGlobalRoles(eq(listOf(USER_UUID)), eq(CREATION_ROLES)) }
     }
 
     @Test
     fun `it should return an access denied if user cannot read the given entity`() = runTest {
-        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns false.right()
+        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any()) } returns false.right()
 
-        enabledAuthorizationService.userCanReadEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanReadEntity(entityId01)
             .shouldFail {
                 assertInstanceOf(AccessDeniedException::class.java, it)
                 assertEquals("User forbidden to read entity", it.message)
@@ -106,7 +105,6 @@ class EnabledAuthorizationServiceTests {
 
         coVerify {
             entityAccessRightsService.checkHasRightOnEntity(
-                eq(Some(subjectUuid)),
                 eq(entityId01),
                 listOf(AUTH_WRITE, AUTH_READ),
                 listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE, CAN_READ)
@@ -116,14 +114,13 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should allow an user that has the right to read an entity`() = runTest {
-        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns true.right()
+        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any()) } returns true.right()
 
-        enabledAuthorizationService.userCanReadEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanReadEntity(entityId01)
             .shouldSucceed()
 
         coVerify {
             entityAccessRightsService.checkHasRightOnEntity(
-                eq(Some(subjectUuid)),
                 eq(entityId01),
                 listOf(AUTH_WRITE, AUTH_READ),
                 listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE, CAN_READ)
@@ -133,9 +130,9 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return an access denied if user cannot update the given entity`() = runTest {
-        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns false.right()
+        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any()) } returns false.right()
 
-        enabledAuthorizationService.userCanUpdateEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanUpdateEntity(entityId01)
             .shouldFail {
                 assertInstanceOf(AccessDeniedException::class.java, it)
                 assertEquals("User forbidden to modify entity", it.message)
@@ -143,7 +140,6 @@ class EnabledAuthorizationServiceTests {
 
         coVerify {
             entityAccessRightsService.checkHasRightOnEntity(
-                eq(Some(subjectUuid)),
                 eq(entityId01),
                 listOf(AUTH_WRITE),
                 listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE)
@@ -153,14 +149,13 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should allow an user that has the right to update an entity`() = runTest {
-        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns true.right()
+        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any()) } returns true.right()
 
-        enabledAuthorizationService.userCanUpdateEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanUpdateEntity(entityId01)
             .shouldSucceed()
 
         coVerify {
             entityAccessRightsService.checkHasRightOnEntity(
-                eq(Some(subjectUuid)),
                 eq(entityId01),
                 listOf(AUTH_WRITE),
                 listOf(IS_OWNER, CAN_ADMIN, CAN_WRITE)
@@ -170,9 +165,9 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return an access denied if user cannot admin the given entity`() = runTest {
-        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns false.right()
+        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any()) } returns false.right()
 
-        enabledAuthorizationService.userCanAdminEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanAdminEntity(entityId01)
             .shouldFail {
                 assertInstanceOf(AccessDeniedException::class.java, it)
                 assertEquals("User forbidden to admin entity", it.message)
@@ -180,7 +175,6 @@ class EnabledAuthorizationServiceTests {
 
         coVerify {
             entityAccessRightsService.checkHasRightOnEntity(
-                eq(Some(subjectUuid)),
                 eq(entityId01),
                 emptyList(),
                 listOf(IS_OWNER, CAN_ADMIN)
@@ -190,14 +184,13 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should allow an user that has the right to admin an entity`() = runTest {
-        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any(), any()) } returns true.right()
+        coEvery { entityAccessRightsService.checkHasRightOnEntity(any(), any(), any()) } returns true.right()
 
-        enabledAuthorizationService.userCanAdminEntity(entityId01, Some(subjectUuid))
+        enabledAuthorizationService.userCanAdminEntity(entityId01)
             .shouldSucceed()
 
         coVerify {
             entityAccessRightsService.checkHasRightOnEntity(
-                eq(Some(subjectUuid)),
                 eq(entityId01),
                 emptyList(),
                 listOf(IS_OWNER, CAN_ADMIN)
@@ -206,37 +199,38 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
+    @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
     fun `it should create owner link for a set of entities`() = runTest {
         coEvery { entityAccessRightsService.setOwnerRoleOnEntity(any(), any()) } returns Unit.right()
 
-        enabledAuthorizationService.createOwnerRights(listOf(entityId01, entityId02), Some(subjectUuid))
+        enabledAuthorizationService.createOwnerRights(listOf(entityId01, entityId02))
             .shouldSucceed()
 
         coVerifyAll {
-            entityAccessRightsService.setOwnerRoleOnEntity(eq(subjectUuid), eq(entityId01))
-            entityAccessRightsService.setOwnerRoleOnEntity(eq(subjectUuid), eq(entityId02))
+            entityAccessRightsService.setOwnerRoleOnEntity(eq(USER_UUID), eq(entityId01))
+            entityAccessRightsService.setOwnerRoleOnEntity(eq(USER_UUID), eq(entityId02))
         }
     }
 
     @Test
     fun `it should return a null filter is user has the stellio-admin role`() = runTest {
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
-        } returns listOf(subjectUuid).right()
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid)) } returns true.right()
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } returns listOf(USER_UUID).right()
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(USER_UUID)) } returns true.right()
 
-        val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter(Some(subjectUuid))
+        val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter()
         assertNull(accessRightFilter())
     }
 
     @Test
     fun `it should return a valid entity filter if user does not have the stellio-admin role`() = runTest {
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
-        } returns listOf(subjectUuid, groupUuid).right()
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } returns listOf(USER_UUID, GROUP_UUID).right()
         coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
 
-        val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter(Some(subjectUuid))
+        val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter()
         assertEquals(
             """
             ( 
@@ -245,22 +239,22 @@ class EnabledAuthorizationServiceTests {
                 (entity_payload.entity_id IN (
                     SELECT entity_id
                     FROM entity_access_rights
-                    WHERE subject_id IN ('$subjectUuid','$groupUuid')
+                    WHERE subject_id IN ('$USER_UUID','$GROUP_UUID')
                 ))
             )
             """.trimIndent(),
             accessRightFilter()
         )
 
-        coVerify { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid, groupUuid)) }
+        coVerify { subjectReferentialService.hasStellioAdminRole(listOf(USER_UUID, GROUP_UUID)) }
     }
 
     @Test
     fun `it should return serialized groups memberships along with a count for an admin`() = runTest {
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(USER_UUID).right()
         coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns true.right()
         coEvery {
-            subjectReferentialService.getAllGroups(any(), any(), any())
+            subjectReferentialService.getAllGroups(any(), any())
         } returns listOf(
             Group(
                 id = UUID.randomUUID().toString(),
@@ -273,7 +267,7 @@ class EnabledAuthorizationServiceTests {
         )
         coEvery { subjectReferentialService.getCountAllGroups() } returns Either.Right(2)
 
-        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS, Some(subjectUuid))
+        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .shouldSucceedWith {
                 assertEquals(2, it.first)
                 it.second.forEach { jsonLdEntity ->
@@ -286,19 +280,19 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return serialized groups memberships along with a count for an user without any roles`() = runTest {
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(USER_UUID).right()
         coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns false.right()
         coEvery {
-            subjectReferentialService.getGroups(any(), any(), any())
+            subjectReferentialService.getGroups(any(), any())
         } returns listOf(
             Group(
                 id = UUID.randomUUID().toString(),
                 name = "Group 1"
             )
         )
-        coEvery { subjectReferentialService.getCountGroups(any()) } returns Either.Right(1)
+        coEvery { subjectReferentialService.getCountGroups() } returns Either.Right(1)
 
-        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS, Some(subjectUuid))
+        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS)
             .shouldSucceedWith {
                 assertEquals(1, it.first)
                 assertEquals(1, it.second[0].types.size)
@@ -307,8 +301,8 @@ class EnabledAuthorizationServiceTests {
             }
 
         coVerify {
-            subjectReferentialService.getGroups(eq(Some(subjectUuid)), eq(0), eq(2))
-            subjectReferentialService.getCountGroups(eq(Some(subjectUuid)))
+            subjectReferentialService.getGroups(eq(0), eq(2))
+            subjectReferentialService.getCountGroups()
         }
     }
 
@@ -347,67 +341,63 @@ class EnabledAuthorizationServiceTests {
     @Test
     fun `it should returned serialized access control entities with a count`() = runTest {
         coEvery {
-            entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any())
+            entityAccessRightsService.getSubjectAccessRights(any(), any(), any())
         } returns listOf(
             EntityAccessRights(
                 id = entityId01,
-                types = listOf(BEEHIVE_TYPE),
+                types = listOf(BEEHIVE_IRI),
                 right = CAN_WRITE
             )
         ).right()
         coEvery {
-            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any(), any())
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
         } returns Either.Right(1)
         coEvery {
-            entityAccessRightsService.getAccessRightsForEntities(any(), any())
+            entityAccessRightsService.getAccessRightsForEntities(any())
         } returns emptyMap<URI, Map<AccessRight, List<SubjectRightInfo>>>().right()
 
         enabledAuthorizationService.getAuthorizedEntities(
             EntitiesQueryFromGet(
-                typeSelection = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_IRI,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
             ),
-            contexts = APIC_COMPOUND_CONTEXTS,
             includeDeleted = false,
-            sub = Some(subjectUuid)
+            contexts = APIC_COMPOUND_CONTEXTS
         ).shouldSucceedWith {
             assertEquals(1, it.first)
             it.second.forEach { jsonLdEntity ->
                 assertEquals(1, jsonLdEntity.types.size)
-                assertEquals(BEEHIVE_TYPE, jsonLdEntity.types[0])
+                assertEquals(BEEHIVE_IRI, jsonLdEntity.types[0])
             }
         }
 
         coVerify {
-            entityAccessRightsService.getAccessRightsForEntities(
-                eq(Some(subjectUuid)),
-                emptyList()
-            )
+            entityAccessRightsService.getAccessRightsForEntities(emptyList())
         }
     }
 
     @Test
     fun `it should returned serialized access control entities with other rigths if user is admin`() = runTest {
         coEvery {
-            entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any())
+            entityAccessRightsService.getSubjectAccessRights(any(), any(), any())
         } returns listOf(
             EntityAccessRights(
                 id = entityId01,
-                types = listOf(BEEHIVE_TYPE),
+                types = listOf(BEEHIVE_IRI),
                 right = CAN_ADMIN
             ),
             EntityAccessRights(
                 id = entityId02,
-                types = listOf(BEEHIVE_TYPE),
+                types = listOf(BEEHIVE_IRI),
                 right = CAN_WRITE
             )
         ).right()
         coEvery {
-            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any(), any())
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
         } returns Either.Right(1)
         coEvery {
-            entityAccessRightsService.getAccessRightsForEntities(any(), any())
+            entityAccessRightsService.getAccessRightsForEntities(any())
         } returns mapOf(
             entityId01 to mapOf(
                 CAN_WRITE to listOf(
@@ -421,13 +411,12 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             EntitiesQueryFromGet(
-                typeSelection = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_IRI,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
             ),
             includeDeleted = false,
-            contexts = APIC_COMPOUND_CONTEXTS,
-            sub = Some(subjectUuid)
+            contexts = APIC_COMPOUND_CONTEXTS
         ).shouldSucceedWith {
             assertEquals(1, it.first)
             assertEquals(2, it.second.size)
@@ -438,23 +427,20 @@ class EnabledAuthorizationServiceTests {
         }
 
         coVerify {
-            entityAccessRightsService.getAccessRightsForEntities(
-                eq(Some(subjectUuid)),
-                listOf(entityId01)
-            )
+            entityAccessRightsService.getAccessRightsForEntities(listOf(entityId01))
         }
     }
 
     @Test
     fun `it should return serialized access control entities with other rigths if user is owner`() = runTest {
         coEvery {
-            entityAccessRightsService.getSubjectAccessRights(any(), any(), any(), any())
-        } returns listOf(EntityAccessRights(id = entityId01, types = listOf(BEEHIVE_TYPE), right = IS_OWNER)).right()
+            entityAccessRightsService.getSubjectAccessRights(any(), any(), any())
+        } returns listOf(EntityAccessRights(id = entityId01, types = listOf(BEEHIVE_IRI), right = IS_OWNER)).right()
         coEvery {
-            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any(), any())
+            entityAccessRightsService.getSubjectAccessRightsCount(any(), any(), any(), any())
         } returns Either.Right(1)
         coEvery {
-            entityAccessRightsService.getAccessRightsForEntities(any(), any())
+            entityAccessRightsService.getAccessRightsForEntities(any())
         } returns mapOf(
             entityId01 to mapOf(
                 CAN_WRITE to listOf(
@@ -474,13 +460,12 @@ class EnabledAuthorizationServiceTests {
 
         enabledAuthorizationService.getAuthorizedEntities(
             EntitiesQueryFromGet(
-                typeSelection = BEEHIVE_TYPE,
+                typeSelection = BEEHIVE_IRI,
                 paginationQuery = PaginationQuery(limit = 10, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
             ),
             includeDeleted = false,
-            contexts = AUTHZ_TEST_COMPOUND_CONTEXTS,
-            sub = Some(subjectUuid)
+            contexts = AUTHZ_TEST_COMPOUND_CONTEXTS
         ).shouldSucceedWith {
             assertEquals(1, it.first)
             assertEquals(1, it.second.size)
@@ -527,10 +512,7 @@ class EnabledAuthorizationServiceTests {
         }
 
         coVerify {
-            entityAccessRightsService.getAccessRightsForEntities(
-                eq(Some(subjectUuid)),
-                listOf(entityId01)
-            )
+            entityAccessRightsService.getAccessRightsForEntities(listOf(entityId01))
         }
     }
 }

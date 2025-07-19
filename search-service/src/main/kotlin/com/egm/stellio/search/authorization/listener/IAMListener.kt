@@ -16,16 +16,16 @@ import com.egm.stellio.shared.model.AttributeCreateEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.NGSILD_OBJECT_TERM
+import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
 import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_COMPACTED_ENTITY_CORE_MEMBERS
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_TERM
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.SubjectType
@@ -84,7 +84,7 @@ class IAMListener(
         val subjectType = SubjectType.valueOf(entityCreateEvent.entityTypes.first().uppercase())
         val operationPayload = entityCreateEvent.operationPayload.deserializeAsMap()
         val subjectInfo = operationPayload
-            .filter { !JSONLD_COMPACTED_ENTITY_CORE_MEMBERS.contains(it.key) }
+            .filter { !COMPACTED_ENTITY_CORE_MEMBERS.contains(it.key) }
             .toSubjectInfo()
         val roles = extractRoles(operationPayload)
         val subjectReferential = SubjectReferential(
@@ -104,7 +104,7 @@ class IAMListener(
 
     private fun extractRoles(operationPayload: Map<String, Any>): List<GlobalRole>? =
         if (operationPayload.containsKey(AUTH_TERM_ROLES)) {
-            when (val rolesValue = (operationPayload[AUTH_TERM_ROLES] as Map<String, Any>)[JSONLD_VALUE_TERM]) {
+            when (val rolesValue = (operationPayload[AUTH_TERM_ROLES] as Map<String, Any>)[NGSILD_VALUE_TERM]) {
                 is String -> GlobalRole.forKey(rolesValue).map { listOf(it) }.getOrNull()
                 is List<*> -> rolesValue.map { GlobalRole.forKey(it as String) }.flattenOption()
                 else -> null
@@ -122,11 +122,11 @@ class IAMListener(
             // (if it no longer exists, it fails because of access rights checks)
             if (searchProperties.onOwnerDeleteCascadeEntities && subjectType == SubjectType.USER) {
                 entityAccessRightsService.getEntitiesIdsOwnedBySubject(sub).getOrNull()?.forEach { entityId ->
-                    entityService.permanentlyDeleteEntity(entityId, sub)
+                    entityService.permanentlyDeleteEntity(entityId, inUserDeletion = true)
                 }
                 Unit.right()
             } else Unit.right()
-            subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub())
+            subjectReferentialService.delete(sub)
         }.writeContextAndSubscribe(tenantName, entityDeleteEvent)
     }
 
@@ -139,7 +139,7 @@ class IAMListener(
         mono {
             when (attributeCreateEvent.attributeName) {
                 AUTH_TERM_ROLES -> {
-                    val newRoles = (operationPayload[JSONLD_VALUE_TERM] as List<*>).map {
+                    val newRoles = (operationPayload[NGSILD_VALUE_TERM] as List<*>).map {
                         GlobalRole.forKey(it as String)
                     }.flattenOption()
                     if (newRoles.isNotEmpty())
@@ -148,7 +148,7 @@ class IAMListener(
                         subjectReferentialService.resetGlobalRoles(subjectUuid)
                 }
                 AUTH_TERM_IS_MEMBER_OF -> {
-                    val groupId = operationPayload[JSONLD_OBJECT] as String
+                    val groupId = operationPayload[NGSILD_OBJECT_TERM] as String
                     subjectReferentialService.addGroupMembershipToUser(
                         subjectUuid,
                         groupId.extractSub()
@@ -168,7 +168,7 @@ class IAMListener(
     ): Either<APIException, Unit> = either {
         val operationPayload = attributeUpdateEvent.operationPayload.deserializeAsMap()
         val subjectUuid = attributeUpdateEvent.entityId.extractSub()
-        val newSubjectInfo = Pair(attributeUpdateEvent.attributeName, operationPayload[JSONLD_VALUE_TERM] as String)
+        val newSubjectInfo = Pair(attributeUpdateEvent.attributeName, operationPayload[NGSILD_VALUE_TERM] as String)
 
         mono {
             subjectReferentialService.updateSubjectInfo(

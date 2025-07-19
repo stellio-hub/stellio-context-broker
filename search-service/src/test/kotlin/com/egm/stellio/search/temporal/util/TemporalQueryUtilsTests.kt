@@ -10,11 +10,11 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.InvalidRequestException
-import com.egm.stellio.shared.util.APIARY_TYPE
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.BEEHIVE_TYPE
-import com.egm.stellio.shared.util.INCOMING_PROPERTY
-import com.egm.stellio.shared.util.OUTGOING_PROPERTY
+import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
@@ -176,10 +176,10 @@ class TemporalQueryUtilsTests {
             temporalEntitiesQuery.entitiesQuery.ids
         )
         assertEquals(
-            "$BEEHIVE_TYPE,$APIARY_TYPE",
+            "$BEEHIVE_IRI,$APIARY_IRI",
             temporalEntitiesQuery.entitiesQuery.typeSelection
         )
-        assertEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalEntitiesQuery.entitiesQuery.attrs)
+        assertEquals(setOf(INCOMING_IRI, OUTGOING_IRI), temporalEntitiesQuery.entitiesQuery.attrs)
         assertEquals(
             buildDefaultTestTemporalQuery(
                 timerel = TemporalQuery.Timerel.BETWEEN,
@@ -245,7 +245,7 @@ class TemporalQueryUtilsTests {
                 .shouldSucceedAndResult()
 
         assertEquals(1, temporalQuery.entitiesQuery.attrs.size)
-        assertTrue(temporalQuery.entitiesQuery.attrs.contains(OUTGOING_PROPERTY))
+        assertTrue(temporalQuery.entitiesQuery.attrs.contains(OUTGOING_IRI))
     }
 
     @Test
@@ -265,7 +265,7 @@ class TemporalQueryUtilsTests {
                 .shouldSucceedAndResult()
 
         assertEquals(2, temporalQuery.entitiesQuery.attrs.size)
-        assertIterableEquals(setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY), temporalQuery.entitiesQuery.attrs)
+        assertIterableEquals(setOf(INCOMING_IRI, OUTGOING_IRI), temporalQuery.entitiesQuery.attrs)
     }
 
     @Test
@@ -451,7 +451,7 @@ class TemporalQueryUtilsTests {
         ).shouldSucceedWith {
             assertThat((it.entitiesQuery as EntitiesQueryFromPost).entitySelectors)
                 .hasSize(1)
-                .contains(EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_TYPE))
+                .contains(EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI))
             assertThat(it.temporalQuery)
                 .isEqualTo(
                     TemporalQuery(

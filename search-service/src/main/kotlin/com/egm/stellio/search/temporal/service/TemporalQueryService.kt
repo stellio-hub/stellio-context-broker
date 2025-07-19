@@ -5,7 +5,6 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import arrow.core.toOption
 import com.egm.stellio.search.authorization.service.AuthorizationService
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.service.EntityAttributeService
@@ -19,11 +18,11 @@ import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.search.temporal.web.Range
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SCOPE_PROPERTY
-import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
@@ -36,16 +35,16 @@ class TemporalQueryService(
     private val scopeService: ScopeService,
     private val attributeInstanceService: AttributeInstanceService,
     private val entityAttributeService: EntityAttributeService,
-    private val authorizationService: AuthorizationService
+    private val authorizationService: AuthorizationService,
+    private val applicationProperties: ApplicationProperties
 ) {
 
     suspend fun queryTemporalEntity(
         entityId: URI,
-        temporalEntitiesQuery: TemporalEntitiesQuery,
-        sub: Sub? = null
+        temporalEntitiesQuery: TemporalEntitiesQuery
     ): Either<APIException, Pair<ExpandedEntity, Range?>> = either {
         val entity = entityQueryService.retrieve(entityId, false).bind()
-        authorizationService.userCanReadEntity(entityId, sub.toOption()).bind()
+        authorizationService.userCanReadEntity(entityId).bind()
 
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val datasetIds = temporalEntitiesQuery.entitiesQuery.datasetId
@@ -60,7 +59,7 @@ class TemporalQueryService(
         val origin = calculateOldestTimestamp(entityId, temporalEntitiesQuery, attributes)
 
         val scopeHistory =
-            if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_PROPERTY))
+            if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_IRI))
                 scopeService.retrieveHistory(listOf(entityId), temporalEntitiesQuery, origin).bind()
             else emptyList()
 
@@ -72,12 +71,10 @@ class TemporalQueryService(
             temporalEntitiesQuery
         )
 
-        val attributesWithInstances =
-            fillWithAttributesWithEmptyInstances(attributes, paginatedAttributesWithInstances)
-
         TemporalEntityBuilder.buildTemporalEntity(
-            EntityTemporalResult(entity, scopeHistory, attributesWithInstances),
-            temporalEntitiesQuery
+            EntityTemporalResult(entity, scopeHistory, paginatedAttributesWithInstances),
+            temporalEntitiesQuery,
+            applicationProperties.contexts.core
         ) to range
     }
 
@@ -104,7 +101,7 @@ class TemporalQueryService(
 
             val attrs = temporalEntitiesQuery.entitiesQuery.attrs
             val originForScope =
-                if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_PROPERTY))
+                if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_IRI))
                     scopeService.selectOldestDate(entityId, temporalEntitiesQuery.temporalQuery.timeproperty)
                 else null
 
@@ -117,10 +114,9 @@ class TemporalQueryService(
     }
 
     suspend fun queryTemporalEntities(
-        temporalEntitiesQuery: TemporalEntitiesQuery,
-        sub: Sub? = null
+        temporalEntitiesQuery: TemporalEntitiesQuery
     ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
-        val accessRightFilter = authorizationService.computeAccessRightFilter(sub.toOption())
+        val accessRightFilter = authorizationService.computeAccessRightFilter()
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val entitiesIds =
             entityQueryService.queryEntities(temporalEntitiesQuery.entitiesQuery, false, accessRightFilter)
@@ -130,7 +126,7 @@ class TemporalQueryService(
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
-            return@either Triple<List<ExpandedEntity>, Int, Range?>(emptyList(), count, null)
+            return@either Triple(emptyList(), count, null)
 
         val attributes = entityAttributeService.getForEntities(
             entitiesIds,
@@ -138,7 +134,7 @@ class TemporalQueryService(
         )
 
         val scopesHistory =
-            if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_PROPERTY))
+            if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_IRI))
                 scopeService.retrieveHistory(entitiesIds, temporalEntitiesQuery).bind().groupBy { it.entityId }
             else emptyMap()
 
@@ -149,11 +145,9 @@ class TemporalQueryService(
             attributesWithMatchingInstances,
             temporalEntitiesQuery
         )
-        val attributesWithInstances =
-            fillWithAttributesWithEmptyInstances(attributes, paginatedAttributesWithInstances)
 
         val attributeInstancesPerEntityAndAttribute =
-            attributesWithInstances
+            paginatedAttributesWithInstances
                 .toList()
                 .groupBy {
                     // then, group them by entity
@@ -175,7 +169,8 @@ class TemporalQueryService(
         Triple(
             TemporalEntityBuilder.buildTemporalEntities(
                 attributeInstancesPerEntityAndAttribute,
-                temporalEntitiesQuery
+                temporalEntitiesQuery,
+                applicationProperties.contexts.core
             ),
             count,
             range
@@ -218,20 +213,5 @@ class TemporalQueryService(
                 }!!
             }
             .mapValues { it.value.sorted() }
-    }
-
-    private fun fillWithAttributesWithEmptyInstances(
-        attributes: List<Attribute>,
-        attributesWithInstances: AttributesWithInstances
-    ): AttributesWithInstances {
-        // filter the temporal entity attributes for which there are no attribute instances
-        val attributesWithoutInstances =
-            attributes.filter {
-                !attributesWithInstances.keys.contains(it)
-            }
-        // add them in the result set accompanied by an empty list
-        return attributesWithInstances.plus(
-            attributesWithoutInstances.map { it to emptyList() }
-        )
     }
 }

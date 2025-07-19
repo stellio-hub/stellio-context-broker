@@ -59,7 +59,7 @@ pipeline {
             }
         }
         /* Publish images for develop and master branches, using version defined in build.gradle.kts
-        For develop branch, produce an additional latest-dev tag */
+        For develop branch, it is always set to latest-dev */
         stage('Dockerize Services') {
             when {
                 anyOf {
@@ -69,14 +69,6 @@ pipeline {
             }
             steps {
                 sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW'
-            }
-        }
-        stage('Dockerize Latest Dev Services') {
-            when {
-                branch 'develop'
-            }
-            steps {
-                sh './gradlew jib -Djib.to.tags=latest-dev -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW'
             }
         }
         /* Used when we want to publish images for a specific tag (e.g., FIWARE versions) */

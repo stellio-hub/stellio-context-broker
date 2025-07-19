@@ -12,32 +12,38 @@
         </encoder>
     </appender>
 
-    <appender name="gelf" class="de.siegmar.logbackgelf.GelfTcpAppender">
-        <graylogHost>${graylogHost}</graylogHost>
-        <graylogPort>${graylogPort}</graylogPort>
-        <encoder class="de.siegmar.logbackgelf.GelfEncoder">
-            <includeLevelName>true</includeLevelName>
-            <staticField>app_name:subscription-service</staticField>
-            <staticField>platform:${graylogSource}</staticField>
-        </encoder>
-    </appender>
-
-    <!-- Use AsyncAppender to prevent slowdowns -->
-    <appender name="async_gelf" class="ch.qos.logback.classic.AsyncAppender">
-        <!-- do not block the queue if Graylog is unavailable -->
-        <neverBlock>true</neverBlock>
-        <appender-ref ref="gelf" />
-    </appender>
-
     <logger name="com.egm.stellio" level="DEBUG"/>
     <logger name="org.flywaydb" level="DEBUG"/>
     <logger name="org.apache.kafka" level="WARN"/>
 
-    <root level="INFO">
-        <appender-ref ref="console" />
-        <springProfile name="gelflogs">
+    <springProfile name="!gelflogs">
+        <root level="INFO">
+            <appender-ref ref="console" />
+        </root>
+    </springProfile>
+
+    <springProfile name="gelflogs">
+        <appender name="gelf" class="de.siegmar.logbackgelf.GelfTcpAppender">
+            <graylogHost>${graylogHost}</graylogHost>
+            <graylogPort>${graylogPort}</graylogPort>
+            <encoder class="de.siegmar.logbackgelf.GelfEncoder">
+                <includeLevelName>true</includeLevelName>
+                <staticField>app_name:subscription-service</staticField>
+                <staticField>platform:${graylogSource}</staticField>
+            </encoder>
+        </appender>
+
+        <!-- Use AsyncAppender to prevent slowdowns -->
+        <appender name="async_gelf" class="ch.qos.logback.classic.AsyncAppender">
+            <!-- do not block the queue if Graylog is unavailable -->
+            <neverBlock>true</neverBlock>
+            <appender-ref ref="gelf" />
+        </appender>
+
+        <root level="INFO">
             <appender-ref ref="async_gelf" />
-        </springProfile>
-    </root>
+            <appender-ref ref="console" />
+        </root>
+    </springProfile>
 
 </configuration>

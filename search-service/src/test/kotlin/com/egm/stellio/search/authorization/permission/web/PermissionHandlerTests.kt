@@ -514,10 +514,13 @@ class PermissionHandlerTests {
     fun `create Permission should return the errors from the service`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal.json")
 
-        coEvery { permissionService.create(any()) } returns AlreadyExistsException("").left()
         coEvery {
             permissionService.checkHasPermissionOnEntity(any(), any())
         } returns true.right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
+
+        coEvery { permissionService.create(any()) } returns AlreadyExistsException("").left()
 
         webClient.post()
             .uri(permissionUri)
@@ -537,8 +540,11 @@ class PermissionHandlerTests {
     fun `create Permission should return a 204 if the creation succeeded`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal.json")
 
-        coEvery { permissionService.create(any()) } returns Unit.right()
         coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns true.right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
+
+        coEvery { permissionService.create(any()) } returns Unit.right()
 
         webClient.post()
             .uri(permissionUri)
@@ -559,8 +565,11 @@ class PermissionHandlerTests {
     fun `create Permission with JSON-LD payload should succeed`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission.jsonld")
 
-        coEvery { permissionService.create(any()) } returns Unit.right()
         coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns true.right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
+
+        coEvery { permissionService.create(any()) } returns Unit.right()
 
         webClient.post()
             .uri(permissionUri)

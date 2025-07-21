@@ -90,12 +90,7 @@ class PermissionHandler(
         val sub = getSubFromSecurityContext()
 
         val permission = deserialize(body, contexts).bind().copy(assigner = sub.orEmpty())
-        checkIsAdmin(permission).bind()
-
-        if (permission.action == Action.OWN) {
-            CHANGE_OWNER_EXCEPTION
-                .left().bind<APIException>()
-        }
+        checkCanModify(permission).bind()
 
         if (permission.action == Action.ADMIN && permission.assignee == null) {
             EVERYONE_AS_ADMIN_EXCEPTION.left()
@@ -225,7 +220,7 @@ class PermissionHandler(
 
         val permission = permissionService.getById(permissionId).bind()
 
-        if (permission.assignee !in subjects && checkIsAdmin(permissionId).isLeft()) {
+        if (permission.assignee !in subjects && checkCanModify(permissionId).isLeft()) {
             AccessDeniedException(unauthorizedRetrieveMessage(permissionId)).left().bind<String>()
         }
 
@@ -256,7 +251,7 @@ class PermissionHandler(
         @AllowedParameters // no query parameter is allowed
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        checkIsAdmin(permissionId).bind()
+        checkCanModify(permissionId).bind()
         val currentPermission = permissionService.getById(permissionId).bind()
 
         if (currentPermission.action == Action.OWN) {
@@ -302,11 +297,8 @@ class PermissionHandler(
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val currentPermission = permissionService.getById(permissionId).bind()
-        checkIsAdmin(currentPermission).bind()
+        checkCanModify(currentPermission, isDelete = true).bind()
 
-        if (currentPermission.action == Action.OWN) {
-            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
-        }
         permissionService.delete(permissionId).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -315,7 +307,7 @@ class PermissionHandler(
         { it }
     )
 
-    private suspend fun checkIsAdmin(permissionId: URI): Either<APIException, Unit> =
+    private suspend fun checkCanModify(permissionId: URI): Either<APIException, Unit> =
         permissionService.isAdminOf(permissionId)
             .flatMap {
                 if (!it)
@@ -326,16 +318,26 @@ class PermissionHandler(
                     Unit.right()
             }
 
-    private suspend fun checkIsAdmin(permission: Permission): Either<APIException, Unit> =
-        permissionService.checkHasPermissionOnEntity(permission.target.id, Action.ADMIN)
-            .flatMap {
-                if (!it)
-                    AccessDeniedException(
-                        unauthorizedCreateMessage(permission.target.id)
-                    ).left()
-                else
-                    Unit.right()
+    private suspend fun checkCanModify(
+        permission: Permission,
+        isDelete: Boolean = false
+    ): Either<APIException, Unit> = either {
+        if (permission.action == Action.OWN) {
+            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+        }
+
+        val hasPermission = permissionService.checkHasPermissionOnEntity(permission.target.id, Action.ADMIN).bind()
+
+        if (!hasPermission)
+            AccessDeniedException(unauthorizedCreateMessage(permission.target.id)).left().bind()
+
+        if (!isDelete) {
+            permission.assignee?.let { subjectReferentialService.getSubjectAndGroupsUUID(it).bind() }
+            permission.target.id.let {
+                entityQueryService.checkEntityExistence(it, excludeDeleted = false).bind()
             }
+        }
+    }
 
     private suspend fun serializePermission(
         permission: Permission,

@@ -8,7 +8,7 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
-import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.OnlyGetPermission
+import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.common.util.allToMappedList
@@ -238,7 +238,7 @@ class PermissionService(
         offset: Int = 0,
     ): Either<APIException, List<Permission>> = either {
         val filterQuery = buildWhereStatement(filters).bind()
-        val authorizationFilter = buildAuthorizationFilter(filters.onlyGetPermission).bind()
+        val authorizationFilter = buildAuthorizationFilter(filters.kind).bind()
         val selectStatement =
             """
             SELECT id,
@@ -266,7 +266,7 @@ class PermissionService(
         filters: PermissionFilters = PermissionFilters(),
     ): Either<APIException, Int> = either {
         val filterQuery = buildWhereStatement(filters).bind()
-        val authorizationFilter = buildAuthorizationFilter(filters.onlyGetPermission).bind()
+        val authorizationFilter = buildAuthorizationFilter(filters.kind).bind()
 
         val selectStatement =
             """
@@ -345,13 +345,14 @@ class PermissionService(
             .allToMappedList { toUri(it["target_id"]) }
     }
 
-    private suspend fun buildAuthorizationFilter(onlyPermission: OnlyGetPermission?): Either<APIException, String> =
+    private suspend fun buildAuthorizationFilter(
+        kind: PermissionKind = PermissionKind.ADMIN
+    ): Either<APIException, String> =
         either {
             val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
-            when (onlyPermission) {
-                OnlyGetPermission.ADMIN -> buildIsAdminFilter(uuids).bind()
-                OnlyGetPermission.ASSIGNED -> buildIsAssigneeFilter(uuids)
-                else -> buildIsAdminFilter(uuids).bind()
+            when (kind) {
+                PermissionKind.ADMIN -> buildIsAdminFilter(uuids).bind()
+                PermissionKind.ASSIGNED -> buildIsAssigneeFilter(uuids)
             }
         }
 

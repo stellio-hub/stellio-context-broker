@@ -16,11 +16,11 @@ open class PermissionFilters(
     val assignee: Sub? = null,
     val assigner: Sub? = null,
     val targetTypeSelection: String? = null,
-    val onlyGetPermission: OnlyGetPermission? = OnlyGetPermission.ADMIN,
+    val kind: PermissionKind = PermissionKind.ADMIN,
 ) {
 
     companion object {
-        enum class OnlyGetPermission(val value: String) {
+        enum class PermissionKind(val value: String) {
             ADMIN("admin"),
             ASSIGNED("assigned")
         }
@@ -28,16 +28,16 @@ open class PermissionFilters(
         fun fromQueryParameters(
             queryParams: MultiValueMap<String, String>,
             contexts: List<String>,
-            onlyGetPermission: OnlyGetPermission? = null
+            kind: PermissionKind = PermissionKind.ADMIN
         ): Either<APIException, PermissionFilters> = either {
-            val ids = queryParams.getFirst(QueryParameter.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
+            val ids = queryParams.getFirst(QueryParameter.TARGET_ID.key)?.split(",").orEmpty().toListOfUri().toSet()
 
             val action = queryParams.getFirst(QueryParameter.ACTION.key)?.let { Action.fromString(it).bind() }
             val assignee = queryParams.getFirst(QueryParameter.ASSIGNEE.key)
             val assigner = queryParams.getFirst(QueryParameter.ASSIGNER.key)
-            val targetType = expandTypeSelection(queryParams.getFirst(QueryParameter.TYPE.key), contexts)
+            val targetType = expandTypeSelection(queryParams.getFirst(QueryParameter.TARGET_TYPE.key), contexts)
 
-            PermissionFilters(ids, action, assignee, assigner, targetType, onlyGetPermission)
+            PermissionFilters(ids, action, assignee, assigner, targetType, kind)
         }
     }
 }

@@ -14,7 +14,7 @@ import com.egm.stellio.search.authorization.permission.model.Permission.Companio
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedEditMessage
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedRetrieveMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
-import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.OnlyGetPermission
+import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.permission.service.PermissionService
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
@@ -112,55 +112,55 @@ class PermissionHandler(
         { it }
     )
 
-    @GetMapping(path = ["", "/admin"], produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun queryOnlyAssigned(
-        @RequestHeader httpHeaders: HttpHeaders,
-        @AllowedParameters(
-            implemented = [
-                QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
-                QP.ACTION, QP.ASSIGNEE, QP.ASSIGNER,
-                QP.ID, QP.DETAILS, QP.DETAILS_PICK,
-                QP.TYPE, // could also be targetType,
-            ],
-            notImplemented = [
-                QP.SCOPEQ
-            ]
-        )
-        @RequestParam queryParams: MultiValueMap<String, String>
-    ): ResponseEntity<*> = query(
-        httpHeaders,
-        queryParams,
-        onlyGet = PermissionFilters.Companion.OnlyGetPermission.ADMIN
-    )
-
-    @GetMapping(path = [ "/assigned"], produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun queryOnlyAdmin(
         @RequestHeader httpHeaders: HttpHeaders,
         @AllowedParameters(
             implemented = [
                 QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
                 QP.ACTION, QP.ASSIGNEE, QP.ASSIGNER,
-                QP.ID, QP.DETAILS, QP.DETAILS_PICK,
-                QP.TYPE, // could also be targetType,
+                QP.TARGET_ID, QP.DETAILS, QP.DETAILS_PICK,
+                QP.TARGET_TYPE,
             ],
             notImplemented = [
-                QP.SCOPEQ
+                QP.TARGET_SCOPEQ
             ]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
-    ): ResponseEntity<*> = query(httpHeaders, queryParams, onlyGet = OnlyGetPermission.ASSIGNED)
+    ): ResponseEntity<*> = query(
+        httpHeaders,
+        queryParams,
+        kind = PermissionFilters.Companion.PermissionKind.ADMIN
+    )
+
+    @GetMapping(path = [ "/assigned"], produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun queryOnlyAssigned(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @AllowedParameters(
+            implemented = [
+                QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
+                QP.ACTION, QP.ASSIGNEE, QP.ASSIGNER,
+                QP.TARGET_ID, QP.DETAILS, QP.DETAILS_PICK,
+                QP.TARGET_TYPE,
+            ],
+            notImplemented = [
+                QP.TARGET_SCOPEQ
+            ]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
+    ): ResponseEntity<*> = query(httpHeaders, queryParams, kind = PermissionKind.ASSIGNED)
 
     suspend fun query(
         httpHeaders: HttpHeaders,
         queryParams: MultiValueMap<String, String>,
-        onlyGet: OnlyGetPermission
+        kind: PermissionKind
     ) = either {
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val permissionFilters = PermissionFilters.fromQueryParameters(
             queryParams,
             contexts,
-            onlyGet
+            kind
         ).bind()
         val includeSysAttrs = queryParams.getOrDefault(QP.OPTIONS.key, emptyList())
             .contains(OptionsValue.SYS_ATTRS.value)

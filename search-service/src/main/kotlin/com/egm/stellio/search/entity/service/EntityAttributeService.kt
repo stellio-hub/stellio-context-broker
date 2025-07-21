@@ -73,7 +73,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.attributeNotFoundMessage
 import com.egm.stellio.shared.util.entityNotFoundMessage
-import com.egm.stellio.shared.util.getNullableSubFromSecurityContext
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -232,7 +232,7 @@ class EntityAttributeService(
             time = createdAt,
             attributeMetadata = attributeMetadata,
             payload = attributePayload,
-            sub = getNullableSubFromSecurityContext()
+            sub = getSubFromSecurityContext()
         )
         attributeInstanceService.create(attributeInstance).bind()
 
@@ -950,7 +950,7 @@ class EntityAttributeService(
             timeAndProperty = timeAndProperty,
             value = value,
             payload = expandedAttributeInstance,
-            sub = getNullableSubFromSecurityContext()
+            sub = getSubFromSecurityContext()
         )
     }
 

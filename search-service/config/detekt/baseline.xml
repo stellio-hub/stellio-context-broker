@@ -10,6 +10,7 @@
     <ID>LongMethod:LinkedEntityServiceTests.kt$LinkedEntityServiceTests$@Test fun `it should inline entities up to the asked 2nd level`()</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun mergePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun partialUpdatePatchProvider(): Stream&lt;Arguments&gt;</ID>
+    <ID>LongMethod:PermissionHandlerTests.kt$PermissionHandlerTests$@Test fun `query Permissions with details=true should return entire entity and subject information`()</ID>
     <ID>LongMethod:TemporalEntityBuilder.kt$TemporalEntityBuilder$private fun buildAttributesSimplifiedRepresentation( attributeAndResultsMap: AttributesWithInstances, coreContext: String ): Map&lt;Attribute, SimplifiedTemporalAttribute&gt;</ID>
     <ID>LongMethod:TemporalQueryServiceTests.kt$TemporalQueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
     <ID>LongMethod:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>

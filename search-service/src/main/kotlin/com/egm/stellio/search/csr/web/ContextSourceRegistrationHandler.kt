@@ -1,7 +1,6 @@
 package com.egm.stellio.search.csr.web
 
 import arrow.core.Either
-import arrow.core.Option
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
@@ -180,7 +179,7 @@ class ContextSourceRegistrationHandler(
         { it }
     )
 
-    private suspend fun checkIsAllowed(contextSourceRegistrationId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+    private suspend fun checkIsAllowed(contextSourceRegistrationId: URI, sub: Sub?): Either<APIException, Unit> =
         contextSourceRegistrationService.isCreatorOf(contextSourceRegistrationId, sub)
             .flatMap {
                 if (!it)

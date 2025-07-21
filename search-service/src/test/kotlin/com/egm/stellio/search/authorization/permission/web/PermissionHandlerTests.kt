@@ -4,7 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
-import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.OnlyGetPermission
+import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.permission.service.PermissionService
@@ -212,7 +212,7 @@ class PermissionHandlerTests {
         coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
 
         webClient.get()
-            .uri("$permissionUri?id=$id")
+            .uri("$permissionUri?targetId=$id")
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -240,7 +240,7 @@ class PermissionHandlerTests {
         coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
 
         webClient.get()
-            .uri("$permissionUri?id=$id&details=true")
+            .uri("$permissionUri?targetId=$id&details=true")
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isOk
@@ -306,7 +306,7 @@ class PermissionHandlerTests {
         coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
 
         webClient.get()
-            .uri("$permissionUri?id=$id&details=true&detailsPick=attr1")
+            .uri("$permissionUri?targetId=$id&details=true&detailsPick=attr1")
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isOk
@@ -360,7 +360,7 @@ class PermissionHandlerTests {
         coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
 
         webClient.get()
-            .uri("$permissionUri?id=$id&count=true")
+            .uri("$permissionUri?targetId=$id&count=true")
             .exchange()
             .expectStatus().isOk
             .expectHeader().exists(RESULTS_COUNT_HEADER)
@@ -381,7 +381,7 @@ class PermissionHandlerTests {
 
         webClient.get()
             .uri(
-                "$permissionUri?id=$id&action=${Action.OWN.value}&assignee=assigneeId&assigner=assignerId&type=${BEEHIVE_TERM}"
+                "$permissionUri?targetId=$id&action=${Action.OWN.value}&assignee=assigneeId&assigner=assignerId&targetType=${BEEHIVE_TERM}"
             )
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .exchange()
@@ -403,7 +403,7 @@ class PermissionHandlerTests {
     }
 
     @Test
-    fun `query base Permissions endpoint should only ask for permission you admin`() = runTest {
+    fun `query Permissions endpoint should only ask for permission you admin`() = runTest {
         val permission = gimmeRawPermission()
 
         coEvery {
@@ -413,7 +413,7 @@ class PermissionHandlerTests {
         coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
 
         webClient.get()
-            .uri("$permissionUri?id=$id")
+            .uri("$permissionUri?targetId=$id")
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -421,7 +421,7 @@ class PermissionHandlerTests {
         coVerify {
             permissionService.getPermissions(
                 match {
-                    it.onlyGetPermission == OnlyGetPermission.ADMIN
+                    it.kind == PermissionKind.ADMIN
                 },
                 any()
             )
@@ -439,7 +439,7 @@ class PermissionHandlerTests {
         coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
 
         webClient.get()
-            .uri("$permissionUri/assigned?id=$id")
+            .uri("$permissionUri/assigned?targetId=$id")
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -447,7 +447,7 @@ class PermissionHandlerTests {
         coVerify {
             permissionService.getPermissions(
                 match {
-                    it.onlyGetPermission == OnlyGetPermission.ASSIGNED
+                    it.kind == PermissionKind.ASSIGNED
                 },
                 any()
             )

@@ -220,7 +220,7 @@ class PermissionHandler(
 
         val permission = permissionService.getById(permissionId).bind()
 
-        if (permission.assignee !in subjects && checkCanModify(permissionId).isLeft()) {
+        if (permission.assignee !in subjects && checkIsAdmin(permissionId).isLeft()) {
             AccessDeniedException(unauthorizedRetrieveMessage(permissionId)).left().bind<String>()
         }
 
@@ -251,7 +251,7 @@ class PermissionHandler(
         @AllowedParameters // no query parameter is allowed
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        checkCanModify(permissionId).bind()
+        checkIsAdmin(permissionId).bind()
         val currentPermission = permissionService.getById(permissionId).bind()
 
         if (currentPermission.action == Action.OWN) {
@@ -307,7 +307,7 @@ class PermissionHandler(
         { it }
     )
 
-    private suspend fun checkCanModify(permissionId: URI): Either<APIException, Unit> =
+    private suspend fun checkIsAdmin(permissionId: URI): Either<APIException, Unit> =
         permissionService.isAdminOf(permissionId)
             .flatMap {
                 if (!it)

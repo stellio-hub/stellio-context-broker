@@ -1,7 +1,6 @@
 package com.egm.stellio.search.authorization.permission.service
 
 import arrow.core.Either
-import arrow.core.Some
 import arrow.core.flatMap
 import arrow.core.getOrElse
 import arrow.core.left
@@ -22,7 +21,6 @@ import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.ENTITY_UPDATE_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.toStringValue
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -88,7 +86,7 @@ class EnabledAuthorizationService(
 
     override suspend fun createOwnerRights(entitiesId: List<URI>): Either<APIException, Unit> =
         either {
-            val subValue = (getSubFromSecurityContext() as Some).value
+            val subValue = getSubFromSecurityContext()
             entitiesId.parMap {
                 permissionService.create(
                     Permission(
@@ -107,7 +105,7 @@ class EnabledAuthorizationService(
     ): Either<APIException, Unit> = permissionService.create(
         Permission(
             assignee = null,
-            assigner = getSubFromSecurityContext().toStringValue(),
+            assigner = getSubFromSecurityContext().orEmpty(),
             target = TargetAsset(id = entityId),
             action = action
         )

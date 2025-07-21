@@ -146,7 +146,7 @@ class JsonUtilsTests {
         val exception = assertThrows<InvalidRequestException> {
             rawEntity.deserializeAsMap()
         }
-        assertThat(exception.message)
+        assertThat(exception.detail)
             .startsWith("Unexpected character (',' (code 44)): was expecting double-quote to start field name")
     }
 }

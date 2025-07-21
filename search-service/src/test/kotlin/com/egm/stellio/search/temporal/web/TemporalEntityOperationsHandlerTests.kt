@@ -8,7 +8,6 @@ import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIARY_TERM
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
@@ -186,8 +185,7 @@ class TemporalEntityOperationsHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"'timerel' and 'time' must be used in conjunction",
-                    "detail":"$DEFAULT_DETAIL"
+                    "title":"'timerel' and 'time' must be used in conjunction"
                 }
                 """
             )

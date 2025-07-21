@@ -11,7 +11,6 @@ import com.egm.stellio.search.discovery.model.EntityTypeList
 import com.egm.stellio.search.discovery.service.EntityTypeService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.config.FirewallConfig
-import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
@@ -312,8 +311,7 @@ class EntityTypeHandlerTests {
                 """
                       {
                         "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title": "${typeNotFoundMessage(BEEHIVE_IRI)}",
-                        "detail": "$DEFAULT_DETAIL"
+                        "title": "${typeNotFoundMessage(BEEHIVE_IRI)}"
                       }
                 """
             )

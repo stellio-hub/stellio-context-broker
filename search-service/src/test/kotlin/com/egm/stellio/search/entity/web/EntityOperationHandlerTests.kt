@@ -9,7 +9,6 @@ import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
@@ -313,8 +312,7 @@ class EntityOperationHandlerTests {
                             "error": {
                                 "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                                 "title": "Request payload must contain @context term for a request having an application/ld+json content type",
-                                "status": 400,
-                                "detail": "$DEFAULT_DETAIL"
+                                "status": 400
                             },
                             "registrationId": null
                         }
@@ -454,8 +452,7 @@ class EntityOperationHandlerTests {
                             "error": {
                                 "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                                 "title": "Request payload must contain @context term for a request having an application/ld+json content type",
-                                "status": 400,
-                                "detail": "$DEFAULT_DETAIL"
+                                "status": 400
                             },
                             "registrationId": null
                         },
@@ -464,8 +461,7 @@ class EntityOperationHandlerTests {
                             "error": {
                                 "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                                 "title": "Request payload must contain @context term for a request having an application/ld+json content type",
-                                "status": 400,
-                                "detail": "$DEFAULT_DETAIL"
+                                "status": 400
                             },
                             "registrationId": null
                         },
@@ -474,8 +470,7 @@ class EntityOperationHandlerTests {
                             "error": {
                                 "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                                 "title": "Request payload must contain @context term for a request having an application/ld+json content type",
-                                "status": 400,
-                                "detail": "$DEFAULT_DETAIL"
+                                "status": 400
                             },
                             "registrationId": null
                         }

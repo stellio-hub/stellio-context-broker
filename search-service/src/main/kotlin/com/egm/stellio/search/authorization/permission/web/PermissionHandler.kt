@@ -46,7 +46,6 @@ import com.egm.stellio.shared.util.getAuthzContextFromRequestOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
-import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
 import com.fasterxml.jackson.module.kotlin.convertValue
@@ -90,7 +89,7 @@ class PermissionHandler(
         val contexts = getAuthzContextFromRequestOrDefault(httpHeaders, body, applicationProperties.contexts).bind()
         val sub = getSubFromSecurityContext()
 
-        val permission = deserialize(body, contexts).bind().copy(assigner = sub.toStringValue())
+        val permission = deserialize(body, contexts).bind().copy(assigner = sub.orEmpty())
         checkIsAdmin(permission).bind()
 
         if (permission.action == Action.OWN) {
@@ -353,11 +352,11 @@ class PermissionHandler(
         if (includeDetails) {
             permission.assignee?.let { assignee ->
                 permissionMap[AUTH_ASSIGNEE_TERM] = subjectReferentialService.retrieve(assignee)
-                    .bind().getSubjectInfoValue()
+                    .bind().toSerializableMap()
             }
             permission.assigner?.let { assigner ->
                 permissionMap[AUTH_ASSIGNER_TERM] = subjectReferentialService.retrieve(assigner)
-                    .bind().getSubjectInfoValue()
+                    .bind().toSerializableMap()
             }
             permission.target.id.let { id ->
                 permissionMap[AUTH_TARGET_TERM] = compactEntity(

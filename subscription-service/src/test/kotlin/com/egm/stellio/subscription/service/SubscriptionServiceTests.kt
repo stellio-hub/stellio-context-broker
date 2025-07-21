@@ -1,6 +1,5 @@
 package com.egm.stellio.subscription.service
 
-import arrow.core.Some
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
@@ -85,7 +84,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    private val mockUserSub = Some(UUID.randomUUID().toString())
+    private val mockUserSub = UUID.randomUUID().toString()
 
     private val entity =
         ClassPathResource("/ngsild/aquac/FeedingService.json").inputStream.readBytes().toString(Charsets.UTF_8)

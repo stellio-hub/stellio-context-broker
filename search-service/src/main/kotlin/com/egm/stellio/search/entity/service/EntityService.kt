@@ -48,7 +48,7 @@ import com.egm.stellio.shared.model.flattenOnAttributeAndDatasetId
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.entityAlreadyExistsMessage
-import com.egm.stellio.shared.util.getNullableSubFromSecurityContext
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -75,7 +75,7 @@ class EntityService(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity
     ): Either<APIException, Unit> = either {
-        val sub = getNullableSubFromSecurityContext()
+        val sub = getSubFromSecurityContext()
         entityQueryService.isMarkedAsDeleted(ngsiLdEntity.id).let {
             when (it) {
                 is Left -> authorizationService.userCanCreateEntities().bind()
@@ -238,7 +238,7 @@ class EntityService(
         val operationResult = deleteOperationResults.plus(createOrReplaceOperationResult)
         operationResult.filterIsInstance<SucceededAttributeOperationResult>()
             .forEach {
-                val sub = getNullableSubFromSecurityContext()
+                val sub = getSubFromSecurityContext()
                 if (it.operationStatus == OperationStatus.DELETED)
                     entityEventService.publishAttributeDeleteEvent(sub, entityId, it)
                 else
@@ -489,7 +489,7 @@ class EntityService(
     ): Either<APIException, Unit> = either {
         // update modifiedAt in entity if at least one attribute has been added
         if (operationResult.hasSuccessfulResult()) {
-            val sub = getNullableSubFromSecurityContext()
+            val sub = getSubFromSecurityContext()
             val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
             updateState(entityId, createdAt, attributes).bind()
 
@@ -548,7 +548,7 @@ class EntityService(
 
     @Transactional
     suspend fun deleteEntity(entityId: URI): Either<APIException, Unit> = either {
-        val sub = getNullableSubFromSecurityContext()
+        val sub = getSubFromSecurityContext()
         val currentEntity = entityQueryService.retrieve(entityId).bind()
         authorizationService.userCanAdminEntity(entityId).bind()
 
@@ -603,7 +603,7 @@ class EntityService(
         entityId: URI,
         inUserDeletion: Boolean = false
     ): Either<APIException, Unit> = either {
-        val sub = getNullableSubFromSecurityContext()
+        val sub = getSubFromSecurityContext()
         val currentEntity = entityQueryService.retrieve(entityId, false).bind()
         if (!inUserDeletion)
             authorizationService.userCanAdminEntity(entityId).bind()
@@ -642,7 +642,7 @@ class EntityService(
         datasetId: URI?,
         deleteAll: Boolean = false
     ): Either<APIException, Unit> = either {
-        val sub = getNullableSubFromSecurityContext()
+        val sub = getSubFromSecurityContext()
         authorizationService.userCanUpdateEntity(entityId).bind()
 
         val deleteAttributeResults = if (attributeName == NGSILD_SCOPE_IRI) {

@@ -11,7 +11,6 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
-import com.egm.stellio.shared.util.sub
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.support.gimmeRawSubscription
@@ -78,7 +77,7 @@ class SubscriptionHandlerTests {
             .jsonPath("$..modifiedAt").doesNotExist()
 
         coVerify { subscriptionService.exists(subscription.id) }
-        coVerify { subscriptionService.isCreatorOf(subscription.id, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscription.id, MOCK_USER_SUB) }
         coVerify { subscriptionService.getById(subscription.id) }
     }
 
@@ -99,7 +98,7 @@ class SubscriptionHandlerTests {
             .jsonPath("$..modifiedAt").exists()
 
         coVerify { subscriptionService.exists(subscription.id) }
-        coVerify { subscriptionService.isCreatorOf(subscription.id, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscription.id, MOCK_USER_SUB) }
         coVerify { subscriptionService.getById(subscription.id) }
     }
 
@@ -142,7 +141,7 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(subscriptionId) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId, MOCK_USER_SUB) }
     }
 
     @Test
@@ -496,7 +495,7 @@ class SubscriptionHandlerTests {
             .expectStatus().isNoContent
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId, MOCK_USER_SUB) }
         coVerify { subscriptionService.getById(subscriptionId) }
         coVerify { subscriptionService.upsert(any(), any()) }
 
@@ -528,7 +527,7 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId, MOCK_USER_SUB) }
         coVerify { subscriptionService.getById(subscriptionId) }
         coVerify { subscriptionService.upsert(any(), any()) }
 
@@ -582,7 +581,7 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId, MOCK_USER_SUB) }
     }
 
     @Test
@@ -608,7 +607,7 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(eq(subscriptionId)) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId, MOCK_USER_SUB) }
 
         confirmVerified(subscriptionService)
     }
@@ -627,7 +626,7 @@ class SubscriptionHandlerTests {
             .expectBody().isEmpty
 
         coVerify { subscriptionService.exists(subscription.id) }
-        coVerify { subscriptionService.isCreatorOf(subscription.id, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscription.id, MOCK_USER_SUB) }
         coVerify { subscriptionService.delete(eq(subscription.id)) }
 
         confirmVerified(subscriptionService)
@@ -677,7 +676,7 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(subscriptionId) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId, MOCK_USER_SUB) }
         coVerify { subscriptionService.delete(eq(subscriptionId)) }
     }
 
@@ -700,6 +699,6 @@ class SubscriptionHandlerTests {
             )
 
         coVerify { subscriptionService.exists(subscriptionId) }
-        coVerify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+        coVerify { subscriptionService.isCreatorOf(subscriptionId, MOCK_USER_SUB) }
     }
 }

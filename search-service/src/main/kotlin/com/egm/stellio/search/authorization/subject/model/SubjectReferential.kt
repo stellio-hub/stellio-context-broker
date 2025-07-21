@@ -30,6 +30,13 @@ data class SubjectReferential(
 
     fun getSubjectInfoValue(): Map<String, String> =
         subjectInfo.deserializeAsMap()[NGSILD_VALUE_TERM] as Map<String, String>
+
+    fun toSerializableMap(): Map<String, Any> =
+        mapOf(
+            "subjectId" to subjectId,
+            "subjectType" to subjectType.name,
+            "subjectInfo" to getSubjectInfoValue()
+        )
 }
 
 internal fun Map<String, Any>.toSubjectInfo(): String {

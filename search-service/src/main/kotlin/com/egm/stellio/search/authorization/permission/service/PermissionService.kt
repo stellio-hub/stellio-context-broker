@@ -36,7 +36,6 @@ import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.shared.util.toUri
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
@@ -174,7 +173,7 @@ class PermissionService(
 
         input.filterKeys {
             it !in COMPACTED_ENTITY_CORE_MEMBERS + AUTH_ASSIGNER_TERM
-        }.plus(NGSILD_MODIFIED_AT_TERM to ngsiLdDateTime()).plus(AUTH_ASSIGNER_TERM to sub.toStringValue())
+        }.plus(NGSILD_MODIFIED_AT_TERM to ngsiLdDateTime()).plus(AUTH_ASSIGNER_TERM to sub.orEmpty())
             .forEach {
                 when {
                     it.key == AUTH_TARGET_TERM -> {

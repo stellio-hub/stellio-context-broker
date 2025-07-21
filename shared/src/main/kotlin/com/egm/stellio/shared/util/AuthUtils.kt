@@ -64,20 +64,15 @@ object AuthContextModel {
 // sub as per https://openid.net/specs/openid-connect-core-1_0.html#IDToken
 typealias Sub = String
 
-suspend fun getSubFromSecurityContext(): Option<Sub> {
+suspend fun getSubFromSecurityContext(): Sub? {
     return ReactiveSecurityContextHolder.getContext()
         .switchIfEmpty(Mono.just(SecurityContextImpl()))
         .map { context ->
             // Authentication#getName maps to the JWT’s sub property, if one is present.
             context.authentication?.name.toOption()
         }
-        .awaitFirst()
+        .awaitFirst().getOrElse { null }
 }
-
-suspend fun getNullableSubFromSecurityContext(): Sub? =
-    getSubFromSecurityContext().getOrElse { null }
-
-fun Option<Sub>.toStringValue(): String = this.getOrElse { "" }
 
 fun URI.extractSub(): Sub =
     this.toString().extractSub()

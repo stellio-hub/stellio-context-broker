@@ -1,7 +1,6 @@
 package com.egm.stellio.subscription.service
 
 import arrow.core.Either
-import arrow.core.Option
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
@@ -23,7 +22,6 @@ import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.Endpoint.Companion.deserialize
@@ -72,7 +70,7 @@ class SubscriptionService(
 ) {
 
     @Transactional
-    suspend fun upsert(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> = either {
+    suspend fun upsert(subscription: Subscription, sub: Sub?): Either<APIException, Unit> = either {
         val endpoint = subscription.notification.endpoint
         val insertStatement =
             """
@@ -119,7 +117,7 @@ class SubscriptionService(
             .bind("times_sent", subscription.notification.timesSent)
             .bind("is_active", subscription.isActive)
             .bind("expires_at", subscription.expiresAt)
-            .bind("sub", sub.toStringValue())
+            .bind("sub", sub.orEmpty())
             .bind("contexts", subscription.contexts.toTypedArray())
             .bind("throttling", subscription.throttling)
             .bind("sys_attrs", subscription.notification.sysAttrs)
@@ -252,7 +250,7 @@ class SubscriptionService(
         return buildContextLinkHeader(contextLink)
     }
 
-    suspend fun isCreatorOf(subscriptionId: URI, sub: Option<Sub>): Either<APIException, Boolean> {
+    suspend fun isCreatorOf(subscriptionId: URI, sub: Sub?): Either<APIException, Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -263,7 +261,7 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("id", subscriptionId)
             .oneToResult {
-                it["sub"] == sub.toStringValue()
+                it["sub"] == sub.orEmpty()
             }
     }
 
@@ -360,7 +358,7 @@ class SubscriptionService(
             .bind("subscription_id", subscriptionId)
             .execute()
 
-    suspend fun getSubscriptions(limit: Int, offset: Int, sub: Option<Sub>): List<Subscription> {
+    suspend fun getSubscriptions(limit: Int, offset: Int, sub: Sub?): List<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at, 
@@ -384,12 +382,12 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
-            .bind("sub", sub.toStringValue())
+            .bind("sub", sub.orEmpty())
             .allToMappedList { rowToSubscription(it) }
             .mergeEntitySelectorsOnSubscriptions()
     }
 
-    suspend fun getSubscriptionsCount(sub: Option<Sub>): Either<APIException, Int> {
+    suspend fun getSubscriptionsCount(sub: Sub?): Either<APIException, Int> {
         val selectStatement =
             """
             SELECT count(*)
@@ -397,7 +395,7 @@ class SubscriptionService(
             WHERE subscription.sub = :sub
             """.trimIndent()
         return databaseClient.sql(selectStatement)
-            .bind("sub", sub.toStringValue())
+            .bind("sub", sub.orEmpty())
             .oneToResult { toInt(it["count"]) }
     }
 

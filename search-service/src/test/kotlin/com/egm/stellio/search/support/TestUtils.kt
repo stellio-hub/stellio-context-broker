@@ -13,15 +13,9 @@ import com.egm.stellio.shared.model.NGSILD_INSTANCE_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
-import com.egm.stellio.shared.model.NgsiLdAttribute
-import com.egm.stellio.shared.model.toNgsiLdAttributes
-import com.egm.stellio.shared.util.AuthContextModel
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
-import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.shouldSucceedAndResult
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.ZonedDateTime
@@ -77,11 +71,6 @@ fun buildAttributeInstancePayload(
             put(NGSILD_RELATIONSHIP_OBJECT, listOf(mapOf(JSONLD_ID_KW to value.toString())))
     }
 )
-
-suspend fun buildSapAttribute(specificAccessPolicy: AuthContextModel.SpecificAccessPolicy): NgsiLdAttribute =
-    mapOf(AUTH_PROP_SAP to buildExpandedPropertyValue(specificAccessPolicy))
-        .toNgsiLdAttributes()
-        .shouldSucceedAndResult()[0]
 
 const val EMPTY_PAYLOAD = "{}"
 val EMPTY_JSON_PAYLOAD = Json.of(EMPTY_PAYLOAD)

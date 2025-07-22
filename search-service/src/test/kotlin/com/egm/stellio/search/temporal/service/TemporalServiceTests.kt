@@ -2,7 +2,7 @@ package com.egm.stellio.search.temporal.service
 
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.ResourceNotFoundException

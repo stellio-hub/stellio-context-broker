@@ -1,7 +1,7 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.right
-import com.egm.stellio.search.authorization.USER_UUID
+import com.egm.stellio.search.authorization.subject.USER_UUID
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.Entity

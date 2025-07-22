@@ -1,6 +1,5 @@
 package com.egm.stellio.search.csr.service
 
-import arrow.core.Some
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.notFoundMessage
@@ -33,7 +32,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -46,7 +45,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    private val mockUserSub = Some(UUID.randomUUID().toString())
+    private val mockUserSub = UUID.randomUUID().toString()
 
     @AfterEach
     fun deleteContextSourceRegistrations() {

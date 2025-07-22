@@ -1,5 +1,6 @@
 package com.egm.stellio.search.entity.model
 
+import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.common.util.deserializeExpandedPayload
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
@@ -11,7 +12,6 @@ import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.util.AuthContextModel
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import io.r2dbc.postgresql.codec.Json
@@ -26,7 +26,7 @@ data class Entity(
     val modifiedAt: ZonedDateTime = createdAt,
     val deletedAt: ZonedDateTime? = null,
     val payload: Json,
-    val specificAccessPolicy: SpecificAccessPolicy? = null
+    val specificAccessPolicy: Action? = null
 ) {
     fun serializeProperties(): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()

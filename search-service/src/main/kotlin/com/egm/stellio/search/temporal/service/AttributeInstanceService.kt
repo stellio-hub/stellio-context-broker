@@ -153,7 +153,7 @@ class AttributeInstanceService(
             timeAndProperty = deletedAt to DELETED_AT,
             value = Triple(value, null, null),
             payload = attributeValues,
-            sub = getSubFromSecurityContext().getOrNull()
+            sub = getSubFromSecurityContext()
         )
         return create(attributeInstance)
     }

@@ -232,7 +232,8 @@ class DistributedEntityProvisionService(
                 logger.warn("Error contacting CSR at $uri: ${e.message}")
                 logger.warn(e.stackTraceToString())
                 GatewayTimeoutException(
-                    "Error connecting to CSR at $uri: \"${e.cause}:${e.message}\""
+                    "Error connecting to CSR at $uri",
+                    detail = "${e.cause}:${e.message}"
                 ).left()
             }
         )

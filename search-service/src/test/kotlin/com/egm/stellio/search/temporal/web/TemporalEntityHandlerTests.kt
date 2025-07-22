@@ -12,7 +12,6 @@ import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -216,8 +215,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Unable to expand input payload",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Unable to expand input payload"
                 }
                 """
             )
@@ -251,8 +249,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "'timerel' and 'time' must be used in conjunction",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'timerel' and 'time' must be used in conjunction"
                 }
                 """
             )
@@ -268,8 +265,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "'timerel' and 'time' must be used in conjunction",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'timerel' and 'time' must be used in conjunction"
                 }
                 """
             )
@@ -298,8 +294,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "'endTimeAt' request parameter is mandatory if 'timerel' is 'between'",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'endTimeAt' request parameter is mandatory if 'timerel' is 'between'"
                 } 
                 """
             )
@@ -315,8 +310,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "'timeAt' parameter is not a valid date",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'timeAt' parameter is not a valid date"
                 } 
                 """
             )
@@ -332,8 +326,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "'timerel' is not valid, it should be one of 'before', 'between', or 'after'",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'timerel' is not valid, it should be one of 'before', 'between', or 'after'"
                 }
                 """
             )
@@ -352,8 +345,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "'endTimeAt' parameter is not a valid date",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'endTimeAt' parameter is not a valid date"
                 } 
                 """
             )
@@ -372,8 +364,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "'aggrMethods' is mandatory if 'aggregatedValues' option is specified",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'aggrMethods' is mandatory if 'aggregatedValues' option is specified"
                 } 
                 """
             )
@@ -392,8 +383,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "'unknown' is not a recognized aggregation method for 'aggrMethods' parameter",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'unknown' is not a recognized aggregation method for 'aggrMethods' parameter"
                 } 
                 """
             )
@@ -412,8 +402,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "'aggrMethods' is mandatory if 'aggregatedValues' option is specified",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'aggrMethods' is mandatory if 'aggregatedValues' option is specified"
                 } 
                 """
             )
@@ -433,8 +422,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Found different temporal representations in options query parameter, only one can be provided",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Found different temporal representations in options query parameter, only one can be provided"
                 } 
                 """
             )
@@ -454,8 +442,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
-                    "title": "'invalid' is not a valid temporal representation",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'invalid' is not a valid temporal representation"
                 } 
                 """
             )
@@ -475,8 +462,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
-                    "title": "'invalidOptions' is not a valid value for the options query parameter",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'invalidOptions' is not a valid value for the options query parameter"
                 } 
                 """
             )
@@ -499,8 +485,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "${entityNotFoundMessage(entityUri.toString())}",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "${entityNotFoundMessage(entityUri.toString())}"
                 }
                 """
             )
@@ -642,8 +627,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "'timerel' and 'time' must be used in conjunction",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "'timerel' and 'time' must be used in conjunction"
                 }
                 """
             )
@@ -874,8 +858,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Offset must be greater than zero and limit must be strictly greater than zero",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Offset must be greater than zero and limit must be strictly greater than zero"
                 }
                 """.trimIndent()
             )
@@ -901,8 +884,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Offset must be greater than zero and limit must be strictly greater than zero",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Offset must be greater than zero and limit must be strictly greater than zero"
                 }
                 """.trimIndent()
             )
@@ -928,8 +910,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/TooManyResults",
-                    "title": "You asked for 200 results, but the supported maximum limit is 100",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "You asked for 200 results, but the supported maximum limit is 100"
                 }
                 """.trimIndent()
             )
@@ -980,8 +961,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "User forbidden write access to entity $entityUri",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "User forbidden write access to entity $entityUri"
                 }
                 """.trimIndent()
             )
@@ -1007,8 +987,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "Entity urn:ngsi-ld:BeeHive:TESTC was not found",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Entity urn:ngsi-ld:BeeHive:TESTC was not found"
                 }
                 """.trimIndent()
             )
@@ -1037,8 +1016,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "${attributeOrInstanceNotFoundMessage(expandedAttr, attributeInstanceId.toString())}",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "${attributeOrInstanceNotFoundMessage(expandedAttr, attributeInstanceId.toString())}"
                 }
                 """.trimIndent()
             )
@@ -1073,8 +1051,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "${entityNotFoundMessage(entityUri.toString())}",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "${entityNotFoundMessage(entityUri.toString())}"
                 }
                 """.trimIndent()
             )
@@ -1090,8 +1067,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "The supplied identifier was expected to be an URI but it is not: beehive",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "The supplied identifier was expected to be an URI but it is not: beehive"
                 }
                 """.trimIndent()
             )
@@ -1120,7 +1096,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                     {
                         "type": "https://uri.etsi.org/ngsi-ld/errors/InternalError",
                         "title": "java.lang.RuntimeException: Unexpected server error",
-                        "detail": "$DEFAULT_DETAIL"
+  
                     }
                     """
             )
@@ -1141,8 +1117,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "User forbidden admin access to entity $entityUri",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "User forbidden admin access to entity $entityUri"
                 }
                 """.trimIndent()
             )
@@ -1237,8 +1212,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "Entity urn:ngsi-ld:BeeHive:TESTC was not found",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Entity urn:ngsi-ld:BeeHive:TESTC was not found"
                 }
                 """.trimIndent()
             )
@@ -1260,8 +1234,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "Attribute Not Found",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Attribute Not Found"
                 }
                 """.trimIndent()
             )
@@ -1283,8 +1256,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Something is wrong with the request",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Something is wrong with the request"
                 }
                 """.trimIndent()
             )
@@ -1300,8 +1272,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "The supplied identifier was expected to be an URI but it is not: beehive",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "The supplied identifier was expected to be an URI but it is not: beehive"
                 }
                 """.trimIndent()
             )
@@ -1317,8 +1288,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Missing entity id or attribute id when trying to delete an attribute temporal",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Missing entity id or attribute id when trying to delete an attribute temporal"
                 }
                 """.trimIndent()
             )
@@ -1334,8 +1304,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Missing entity id or attribute id when trying to delete an attribute temporal",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Missing entity id or attribute id when trying to delete an attribute temporal"
                 }
                 """.trimIndent()
             )
@@ -1357,8 +1326,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "User forbidden write access to entity urn:ngsi-ld:BeeHive:TESTC",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "User forbidden write access to entity urn:ngsi-ld:BeeHive:TESTC"
                 }
                 """.trimIndent()
             )
@@ -1400,8 +1368,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "${entityNotFoundMessage(entityUri.toString())}",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "${entityNotFoundMessage(entityUri.toString())}"
                 }
                 """.trimIndent()
             )
@@ -1435,8 +1402,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "${attributeOrInstanceNotFoundMessage(expandedAttr, attributeInstanceId.toString())}",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "${attributeOrInstanceNotFoundMessage(expandedAttr, attributeInstanceId.toString())}"
                 }
                 """.trimIndent()
             )
@@ -1462,8 +1428,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "User forbidden write access to entity $entityUri",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "User forbidden write access to entity $entityUri"
                 }
                 """.trimIndent()
             )
@@ -1481,8 +1446,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query unless local is true",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query unless local is true"
                 }
                 """.trimIndent()
             )

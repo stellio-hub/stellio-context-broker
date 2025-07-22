@@ -13,6 +13,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
@@ -327,7 +328,18 @@ class EntityOperationHandler(
         requestBody: Mono<String>,
         httpHeaders: HttpHeaders,
     ): Either<APIException, BatchEntityPreparation> = either {
-        val body = requestBody.awaitFirst().deserializeAsList()
+        val body = kotlin.runCatching {
+            requestBody.awaitFirst().deserializeAsList()
+        }.fold(
+            { it },
+            { e ->
+                InvalidRequestException(
+                    "Can't deserialize into a list of object. Make sure the provided payload is a list",
+                    e.localizedMessage
+                ).left().bind()
+            }
+        )
+
         checkBatchRequestBody(body).bind()
         val context = checkLinkHeader(httpHeaders).bind()
         checkAndExpandBatchOfEntities(body, context, httpHeaders)

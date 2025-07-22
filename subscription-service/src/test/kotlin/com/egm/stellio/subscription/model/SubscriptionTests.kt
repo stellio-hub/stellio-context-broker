@@ -301,11 +301,15 @@ class SubscriptionTests {
         result.fold({
             assertTrue(it is LdContextNotAvailableException)
             assertEquals(
-                "Unable to load remote context (cause was: JsonLdError[code=There was a problem encountered " +
+                "Unable to load remote context",
+                it.message
+            )
+            assertEquals(
+                "caused by: JsonLdError[code=There was a problem encountered " +
                     "loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There was a problem " +
                     "encountered loading a remote context " +
-                    "[https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld]])",
-                it.message
+                    "[https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld]]",
+                it.detail
             )
         }, {
             fail("it should not have allowed a subscription if remote JSON-LD @context cannot be retrieved")

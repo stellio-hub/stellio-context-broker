@@ -10,7 +10,6 @@ import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
@@ -355,9 +354,8 @@ class EntityAccessControlHandlerTests {
                 """
                 {
                     "title": "User forbidden to remove ownership of entity",
-                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "detail": "$DEFAULT_DETAIL"
-                }
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied"
+}
                 """.trimIndent()
             )
 
@@ -397,7 +395,6 @@ class EntityAccessControlHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail": "$DEFAULT_DETAIL",
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                     "title": "No right found for urn:ngsi-ld:User:0123 on urn:ngsi-ld:Entity:entityId1"
                 }
@@ -501,8 +498,7 @@ class EntityAccessControlHandlerTests {
                 """
                 {
                     "title": "$expectedAttr is not authorized property name",
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "detail":"$DEFAULT_DETAIL"
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData"
                 }
                 """.trimIndent()
             )

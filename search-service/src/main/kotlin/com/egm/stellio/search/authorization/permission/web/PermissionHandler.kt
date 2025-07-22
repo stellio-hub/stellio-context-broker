@@ -90,7 +90,11 @@ class PermissionHandler(
         val sub = getSubFromSecurityContext()
 
         val permission = deserialize(body, contexts).bind().copy(assigner = sub.orEmpty())
-        checkCanModify(permission).bind()
+        checkCanCreate(permission).bind()
+
+        if (permission.action == Action.OWN) {
+            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+        }
 
         if (permission.action == Action.ADMIN && permission.assignee == null) {
             EVERYONE_AS_ADMIN_EXCEPTION.left()
@@ -297,7 +301,11 @@ class PermissionHandler(
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val currentPermission = permissionService.getById(permissionId).bind()
-        checkCanModify(currentPermission, isDelete = true).bind()
+        checkCanDelete(currentPermission).bind()
+
+        if (currentPermission.action == Action.OWN) {
+            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+        }
 
         permissionService.delete(permissionId).bind()
 
@@ -318,25 +326,22 @@ class PermissionHandler(
                     Unit.right()
             }
 
-    private suspend fun checkCanModify(
-        permission: Permission,
-        isDelete: Boolean = false
-    ): Either<APIException, Unit> = either {
-        if (permission.action == Action.OWN) {
-            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
-        }
-
+    private suspend fun checkCanCreate(permission: Permission): Either<APIException, Unit> = either {
         val hasPermission = permissionService.checkHasPermissionOnEntity(permission.target.id, Action.ADMIN).bind()
 
         if (!hasPermission)
             AccessDeniedException(unauthorizedCreateMessage(permission.target.id)).left().bind()
 
-        if (!isDelete) {
-            permission.assignee?.let { subjectReferentialService.getSubjectAndGroupsUUID(it).bind() }
-            permission.target.id.let {
-                entityQueryService.checkEntityExistence(it, excludeDeleted = false).bind()
-            }
+        permission.assignee?.let { subjectReferentialService.getSubjectAndGroupsUUID(it).bind() }
+        permission.target.id.let {
+            entityQueryService.checkEntityExistence(it, excludeDeleted = false).bind()
         }
+    }
+
+    private suspend fun checkCanDelete(permission: Permission): Either<APIException, Unit> = either {
+        val hasPermission = permissionService.checkHasPermissionOnEntity(permission.target.id, Action.ADMIN).bind()
+        if (!hasPermission)
+            AccessDeniedException(unauthorizedEditMessage(permission.target.id)).left().bind()
     }
 
     private suspend fun serializePermission(

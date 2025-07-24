@@ -32,7 +32,7 @@ object JsonUtils {
                 mapper.typeFactory.constructMapLikeType(Map::class.java, String::class.java, Any::class.java)
             )
         } catch (e: JsonProcessingException) {
-            throw InvalidRequestException(e.message!!)
+            throw InvalidRequestException("Can't deserialize data into an object", e.message!!)
         }
 
     fun String.deserializeAsMap(): Map<String, Any> =
@@ -50,7 +50,7 @@ object JsonUtils {
                 mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
             )
         } catch (e: JsonProcessingException) {
-            throw InvalidRequestException(e.message!!)
+            throw InvalidRequestException("Can't deserialize data into list of objects", e.message!!)
         }
 
     fun String.deserializeAsList(): List<Map<String, Any>> =

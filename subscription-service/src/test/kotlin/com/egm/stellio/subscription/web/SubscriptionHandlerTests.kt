@@ -5,7 +5,6 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -116,8 +115,7 @@ class SubscriptionHandlerTests {
                 """
                       {
                         "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title": "${subscriptionNotFoundMessage(subscriptionId)}",
-                        "detail": "$DEFAULT_DETAIL"
+                        "title": "${subscriptionNotFoundMessage(subscriptionId)}"
                       }
                 """
             )
@@ -138,8 +136,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "${subscriptionUnauthorizedMessage(subscriptionId)}",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "${subscriptionUnauthorizedMessage(subscriptionId)}"
                 }
                 """.trimIndent()
             )
@@ -208,8 +205,7 @@ class SubscriptionHandlerTests {
                 """
                       {
                         "type": "https://uri.etsi.org/ngsi-ld/errors/AlreadyExists",
-                        "title": "${subscriptionAlreadyExistsMessage(subscriptionId)}",
-                        "detail": "$DEFAULT_DETAIL"
+                        "title": "${subscriptionAlreadyExistsMessage(subscriptionId)}"
                       }
                 """
             )
@@ -231,8 +227,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                    "title": "Internal Server Exception",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Internal Server Exception"
                 }
                 """
             )
@@ -252,8 +247,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Request payload must contain @context term for a request having an application/ld+json content type",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Request payload must contain @context term for a request having an application/ld+json content type"
                 } 
                 """.trimIndent()
             )
@@ -290,8 +284,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "You can't use 'timeInterval' in conjunction with 'watchedAttributes'",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
                 } 
                 """.trimIndent()
             )
@@ -443,8 +436,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Offset must be greater than zero and limit must be strictly greater than zero",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Offset must be greater than zero and limit must be strictly greater than zero"
                 } 
                 """.trimIndent()
             )
@@ -465,8 +457,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Offset must be greater than zero and limit must be strictly greater than zero",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Offset must be greater than zero and limit must be strictly greater than zero"
                 }
                 """.trimIndent()
             )
@@ -482,8 +473,7 @@ class SubscriptionHandlerTests {
                 """
                {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/TooManyResults",
-                    "title": "You asked for 200 results, but the supported maximum limit is 100",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "You asked for 200 results, but the supported maximum limit is 100"
                 }
                 """.trimIndent()
             )
@@ -532,8 +522,7 @@ class SubscriptionHandlerTests {
                 """
                     {
                         "type": "https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                        "title": "java.lang.RuntimeException: Update failed",
-                        "detail": "$DEFAULT_DETAIL"
+                        "title": "java.lang.RuntimeException: Update failed"
                     }
                     """
             )
@@ -562,8 +551,7 @@ class SubscriptionHandlerTests {
                 """
                       {
                         "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title": "${subscriptionNotFoundMessage(subscriptionId)}",
-                        "detail": "$DEFAULT_DETAIL"
+                        "title": "${subscriptionNotFoundMessage(subscriptionId)}"
                       }
                 """
             )
@@ -588,8 +576,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Request payload must contain @context term for a request having an application/ld+json content type",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Request payload must contain @context term for a request having an application/ld+json content type"
                 } 
                 """.trimIndent()
             )
@@ -615,8 +602,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "${subscriptionUnauthorizedMessage(subscriptionId)}",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "${subscriptionUnauthorizedMessage(subscriptionId)}"
                 }
                 """.trimIndent()
             )
@@ -659,8 +645,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "${subscriptionNotFoundMessage(subscriptionId)}",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "${subscriptionNotFoundMessage(subscriptionId)}"
 
                 }
                 """.trimIndent()
@@ -686,8 +671,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                    "title": "java.lang.RuntimeException: Unexpected server error",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "java.lang.RuntimeException: Unexpected server error"
                 }
                 """
             )
@@ -710,8 +694,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "${subscriptionUnauthorizedMessage(subscriptionId)}",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "${subscriptionUnauthorizedMessage(subscriptionId)}"
                 }
                 """.trimIndent()
             )

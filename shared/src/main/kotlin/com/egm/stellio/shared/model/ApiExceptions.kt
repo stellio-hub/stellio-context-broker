@@ -12,10 +12,6 @@ import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import java.net.URI
 
-const val DEFAULT_DETAIL = "If you have difficulty identifying the exact cause of the error, " +
-    "please check the list of some usual causes on https://stellio.readthedocs.io/en/latest/TROUBLESHOOT.html . " +
-    "If the error is still not clear or if you think it is a bug, feel free to open an issue on " +
-    "https://github.com/stellio-hub/stellio-context-broker"
 const val TYPE_PROPERTY = "type"
 const val TITLE_PROPERTY = "title"
 const val STATUS_PROPERTY = "status"
@@ -25,7 +21,7 @@ sealed class APIException(
     open val type: URI,
     open val status: HttpStatus,
     override val message: String,
-    open val detail: String = DEFAULT_DETAIL
+    open val detail: String? = null
 ) : Exception(message) {
 
     fun toProblemDetail(): ProblemDetail = ProblemDetail.forStatusAndDetail(status, this.detail).also {
@@ -88,104 +84,122 @@ data class ContextSourceException(
     }
 }
 
-data class ConflictException(override val message: String) : APIException(
+data class ConflictException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.CONFLICT.type,
     HttpStatus.CONFLICT,
-    message
+    message,
+    detail
 )
 
-data class GatewayTimeoutException(override val message: String) : APIException(
+data class GatewayTimeoutException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.GATEWAY_TIMEOUT.type,
     HttpStatus.GATEWAY_TIMEOUT,
-    message
+    message,
+    detail
 )
 
-data class BadGatewayException(override val message: String) : APIException(
+data class BadGatewayException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.BAD_GATEWAY.type,
     HttpStatus.BAD_GATEWAY,
-    message
+    message,
+    detail
 )
 
-data class AlreadyExistsException(override val message: String) : APIException(
+data class AlreadyExistsException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.ALREADY_EXISTS.type,
     HttpStatus.CONFLICT,
-    message
+    message,
+    detail
 )
 
-data class InvalidRequestException(override val message: String) : APIException(
+data class InvalidRequestException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.INVALID_REQUEST.type,
     HttpStatus.BAD_REQUEST,
-    message
+    message,
+    detail
 )
 
-data class BadRequestDataException(override val message: String) : APIException(
+data class BadRequestDataException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.BAD_REQUEST_DATA.type,
     HttpStatus.BAD_REQUEST,
-    message
+    message,
+    detail
 )
-data class OperationNotSupportedException(override val message: String) : APIException(
-    ErrorType.OPERATION_NOT_SUPPORTED.type,
-    HttpStatus.BAD_REQUEST,
-    message
-)
-data class ResourceNotFoundException(override val message: String) : APIException(
+data class OperationNotSupportedException(override val message: String, override val detail: String? = null) :
+    APIException(
+        ErrorType.OPERATION_NOT_SUPPORTED.type,
+        HttpStatus.BAD_REQUEST,
+        message
+    )
+data class ResourceNotFoundException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.RESOURCE_NOT_FOUND.type,
     HttpStatus.NOT_FOUND,
-    message
+    message,
+    detail
 )
-data class InternalErrorException(override val message: String) : APIException(
+data class InternalErrorException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.INTERNAL_ERROR.type,
     HttpStatus.INTERNAL_SERVER_ERROR,
-    message
+    message,
+    detail
 )
 
-data class TooManyResultsException(override val message: String) : APIException(
+data class TooManyResultsException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.TOO_MANY_RESULTS.type,
     HttpStatus.FORBIDDEN,
-    message
+    message,
+    detail
 )
-data class AccessDeniedException(override val message: String) : APIException(
+data class AccessDeniedException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.ACCESS_DENIED.type,
     HttpStatus.FORBIDDEN,
-    message
+    message,
+    detail
 )
-data class NotImplementedException(override val message: String) : APIException(
-    ErrorType.NOT_IMPLEMENTED.type,
-    HttpStatus.NOT_IMPLEMENTED,
-    message
-)
-data class LdContextNotAvailableException(override val message: String) : APIException(
-    ErrorType.LD_CONTEXT_NOT_AVAILABLE.type,
-    HttpStatus.SERVICE_UNAVAILABLE,
-    message
-)
-data class NonexistentTenantException(override val message: String) : APIException(
+data class NotImplementedException(override val message: String, override val detail: String? = null) :
+    APIException(
+        ErrorType.NOT_IMPLEMENTED.type,
+        HttpStatus.NOT_IMPLEMENTED,
+        message
+    )
+data class LdContextNotAvailableException(override val message: String, override val detail: String? = null) :
+    APIException(
+        ErrorType.LD_CONTEXT_NOT_AVAILABLE.type,
+        HttpStatus.SERVICE_UNAVAILABLE,
+        message
+    )
+data class NonexistentTenantException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.NONEXISTENT_TENANT.type,
     HttpStatus.NOT_FOUND,
-    message
+    message,
+    detail
 )
-data class TooComplexQueryException(override val message: String) : APIException(
+data class TooComplexQueryException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.TOO_COMPLEX_QUERY.type,
     HttpStatus.FORBIDDEN,
-    message
+    message,
+    detail
 )
-data class NotAcceptableException(override val message: String) : APIException(
+data class NotAcceptableException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.NOT_ACCEPTABLE.type,
     HttpStatus.NOT_ACCEPTABLE,
-    message
+    message,
+    detail
 )
 
-data class JsonParseApiException(override val message: String) : APIException(
+data class JsonParseApiException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.INVALID_REQUEST.type,
     HttpStatus.BAD_REQUEST,
-    message
+    message,
+    detail
 )
 
-data class UnsupportedMediaTypeStatusApiException(override val message: String) : APIException(
-    ErrorType.UNSUPPORTED_MEDIA_TYPE.type,
-    HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-    message
-)
+data class UnsupportedMediaTypeStatusApiException(override val message: String, override val detail: String? = null) :
+    APIException(
+        ErrorType.UNSUPPORTED_MEDIA_TYPE.type,
+        HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+        message
+    )
 
 data class JsonLdErrorApiResponse(override val message: String, override val detail: String) : APIException(
     ErrorType.BAD_REQUEST_DATA.type,
@@ -201,8 +215,8 @@ fun Throwable.toAPIException(specificMessage: String? = null): APIException =
             if (this.code == JsonLdErrorCode.LOADING_REMOTE_CONTEXT_FAILED ||
                 this.code == JsonLdErrorCode.LOADING_DOCUMENT_FAILED
             )
-                LdContextNotAvailableException(specificMessage ?: "Unable to load remote context (cause was: $this)")
-            else BadRequestDataException("Unexpected error while parsing payload (cause was: $this)")
+                LdContextNotAvailableException(specificMessage ?: "Unable to load remote context", "caused by: $this")
+            else BadRequestDataException("Unexpected error while parsing payload", "caused by: $this")
         else -> BadRequestDataException(specificMessage ?: this.localizedMessage)
     }
 

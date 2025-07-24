@@ -130,7 +130,7 @@ fun NgsiLdAttribute.getSpecificAccessPolicy(): Either<APIException, AuthContextM
     return try {
         AuthContextModel.SpecificAccessPolicy.valueOf(ngsiLdAttributeInstance.value.toString()).right()
     } catch (e: java.lang.IllegalArgumentException) {
-        BadRequestDataException("Value must be one of AUTH_READ or AUTH_WRITE (${e.message})").left()
+        BadRequestDataException("Value must be one of AUTH_READ or AUTH_WRITE", e.message).left()
     }
 }
 

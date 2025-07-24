@@ -136,15 +136,16 @@ class AuthUtilsTests {
                 .toNgsiLdAttribute()
                 .shouldSucceedAndResult()
 
-        val expectedMessage =
-            "Value must be one of AUTH_READ or AUTH_WRITE " +
-                "(No enum constant com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.someValue)"
+        val expectedMessage = "Value must be one of AUTH_READ or AUTH_WRITE"
+        val expectedDetails =
+            "No enum constant com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.someValue"
 
         ngsiLdAttribute.getSpecificAccessPolicy()
             .shouldFail {
                 assertThat(it)
                     .isInstanceOf(BadRequestDataException::class.java)
                     .hasFieldOrPropertyWithValue("message", expectedMessage)
+                    .hasFieldOrPropertyWithValue("detail", expectedDetails)
             }
     }
 

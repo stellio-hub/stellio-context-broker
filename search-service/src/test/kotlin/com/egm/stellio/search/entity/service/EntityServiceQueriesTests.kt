@@ -260,6 +260,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "relationship==\"urn:ngsi-ld:AnotherEntity:01\", 1, urn:ngsi-ld:BeeHive:01",
         "relationship==urn:ngsi-ld:YetAnotherEntity:01, 0, ",
         "relationship==\"urn:ngsi-ld:YetAnotherEntity:01\", 0, ",
+        "relationship==urn:ngsi-ld:AnotherEntity:01;name==\"name\", 1, urn:ngsi-ld:BeeHive:01",
+        "relationship==urn:ngsi-ld:AnotherEntity:01;name==\"anotherName\", 0, ",
         "(float==21.34|float==44.75), 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "integer==213;boolean==true, 1, urn:ngsi-ld:BeeHive:01",
         "(integer>200|integer<100);observedProperty.observedAt<2023-02-25T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",

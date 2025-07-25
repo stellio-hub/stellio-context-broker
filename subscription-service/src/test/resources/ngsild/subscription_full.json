@@ -36,7 +36,8 @@
     },
     "sysAttrs": true,
     "join": "flat",
-    "joinLevel": 2
+    "joinLevel": 2,
+    "showChanges": true
   },
   "expiresAt": "2100-01-01T00:00:00Z",
   "throttling": 60,

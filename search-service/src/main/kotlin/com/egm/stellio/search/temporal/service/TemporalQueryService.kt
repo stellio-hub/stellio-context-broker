@@ -5,7 +5,7 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.service.EntityAttributeService
 import com.egm.stellio.search.entity.service.EntityQueryService

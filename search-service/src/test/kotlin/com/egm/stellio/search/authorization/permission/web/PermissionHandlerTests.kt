@@ -15,7 +15,6 @@ import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.DEFAULT_DETAIL
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
@@ -617,8 +616,7 @@ class PermissionHandlerTests {
                 """
                     {
                         "type": "https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                        "title": "java.lang.RuntimeException: Update failed",
-                        "detail": "$DEFAULT_DETAIL"
+                        "title": "java.lang.RuntimeException: Update failed"
                     }
                     """
             )
@@ -671,8 +669,7 @@ class PermissionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Request payload must contain @context term for a request having an application/ld+json content type",
-                    "detail": "$DEFAULT_DETAIL"
+                    "title": "Request payload must contain @context term for a request having an application/ld+json content type"
                 } 
                 """.trimIndent()
             )

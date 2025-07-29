@@ -8,6 +8,7 @@ import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.encode
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Notification
+import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.CoreAPIService
 import com.egm.stellio.subscription.service.NotificationService
@@ -66,6 +67,8 @@ class TimeIntervalNotificationJob(
     ): Triple<Subscription, Notification, Boolean> =
         notificationService.callSubscriber(
             subscription,
+            // recurring subscriptions do not really apply to notification triggers, take the 1st as a default
+            NotificationTrigger.forTrigger(subscription.notificationTrigger.first())!!,
             listOf(compactedEntity)
         )
 

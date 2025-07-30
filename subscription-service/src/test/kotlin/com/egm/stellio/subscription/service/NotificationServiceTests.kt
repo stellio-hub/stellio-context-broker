@@ -8,12 +8,12 @@ import com.egm.stellio.shared.model.NGSILD_LANG_TERM
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TERM
-import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MANAGED_BY_IRI
 import com.egm.stellio.shared.util.MANAGED_BY_TERM
@@ -125,6 +125,15 @@ class NotificationServiceTests {
         }
         """.trimIndent()
 
+    private suspend fun previousPayload() = expandAttribute(
+        NAME_TERM,
+        mapOf(
+            "type" to "Property",
+            "value" to "Rucher Nantais"
+        ),
+        APIC_COMPOUND_CONTEXTS
+    ).second[0]
+
     @Test
     fun `it should notify the subscriber and update the subscription`() = runTest {
         val subscription = gimmeRawSubscription()
@@ -143,7 +152,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(NAME_IRI, null),
-            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            previousPayload(),
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
@@ -197,7 +206,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(NAME_IRI, null),
-            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            previousPayload(),
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceed()
@@ -236,7 +245,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(NAME_IRI, null),
-            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            previousPayload(),
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
@@ -283,7 +292,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(NAME_IRI, null),
-            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            previousPayload(),
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
@@ -326,7 +335,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(NAME_IRI, null),
-            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            previousPayload(),
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
@@ -358,7 +367,7 @@ class NotificationServiceTests {
             notificationService.notifyMatchingSubscribers(
                 DEFAULT_TENANT_NAME,
                 Pair(NAME_IRI, null),
-                Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+                previousPayload(),
                 expandedEntity,
                 ATTRIBUTE_UPDATED
             ).shouldSucceedWith {
@@ -398,7 +407,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(NAME_IRI, null),
-            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            previousPayload(),
             expandedEntity,
             ATTRIBUTE_DELETED
         ).shouldSucceedWith {
@@ -446,7 +455,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(NAME_IRI, null),
-            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            previousPayload(),
             expandedEntity,
             ATTRIBUTE_CREATED
         ).shouldSucceedWith { results ->
@@ -609,7 +618,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(NAME_IRI, null),
-            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            previousPayload(),
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
@@ -653,7 +662,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(NAME_IRI, null),
-            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            previousPayload(),
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
@@ -714,7 +723,7 @@ class NotificationServiceTests {
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
             Pair(NAME_IRI, null),
-            Pair(NGSILD_PROPERTY_VALUE, "Rucher Nantais"),
+            previousPayload(),
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
@@ -728,6 +737,41 @@ class NotificationServiceTests {
                         .containsEntry(NGSILD_LANG_TERM, "fr")
                 }
         }
+    }
+
+    @Test
+    fun `it should inject the previous value of a property`() = runTest {
+        val rawEntity =
+            """
+            {
+               "id":"$apiaryId",
+               "type":"Apiary",
+               "name": {
+                  "type":"Property",
+                  "value": "Le rucher de Nantes"
+               },
+               "@context":[ "$APIC_COMPOUND_CONTEXT" ]
+            }
+            """.trimIndent()
+
+        val compactedEntityWithPreviousValue = notificationService.injectPreviousValues(
+            apiaryId.toUri(),
+            listOf(rawEntity.deserializeAsMap()),
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            ATTRIBUTE_UPDATED,
+            APIC_COMPOUND_CONTEXTS
+        )[0]
+
+        val expectedNameProperty =
+            """
+            {
+              "type":"Property",
+              "previousValue": "Rucher Nantais",
+              "value": "Le rucher de Nantes"
+            }
+            """.trimIndent()
+        assertEquals(expectedNameProperty.deserializeAsMap(), compactedEntityWithPreviousValue[NAME_TERM])
     }
 
     @Test

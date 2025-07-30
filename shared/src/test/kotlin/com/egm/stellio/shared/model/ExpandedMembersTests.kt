@@ -1,5 +1,7 @@
 package com.egm.stellio.shared.model
 
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedRelationshipValue
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.fail
 
 class ExpandedMembersTests {
 
@@ -195,5 +198,52 @@ class ExpandedMembersTests {
             .shouldSucceedWith {
                 assertEquals(relationshipObjectId.toUri(), it)
             }
+    }
+
+    @Test
+    fun `it should find the value of a property`() = runTest {
+        val entityFragment =
+            """
+            {
+                "incoming": {
+                    "type": "Property",
+                    "value": 12
+                }
+            }
+            """.trimIndent()
+
+        val expandedAttributeInstance = JsonLdUtils.expandAttributes(entityFragment, APIC_COMPOUND_CONTEXTS)
+            .getAttributeFromExpandedAttributes(INCOMING_IRI, null)
+        assertNotNull(expandedAttributeInstance)
+        expandedAttributeInstance?.getAttributeValue()?.let {
+            assertEquals(NGSILD_PROPERTY_VALUE, it.first)
+            assertTrue(it.second is List<*>)
+            assertEquals(mapOf(JSONLD_VALUE_KW to 12), (it.second as List<*>)[0])
+        } ?: fail("it should have found the value of the property")
+    }
+
+    @Test
+    fun `it should find the value of a language property`() = runTest {
+        val entityFragment =
+            """
+            {
+                "incoming": {
+                    "type": "LanguageProperty",
+                    "languageMap": {
+                        "fr": "Tour Eiffel",
+                        "en": "Eiffel Tower"
+                    }
+                }
+            }
+            """.trimIndent()
+
+        val expandedAttributeInstance = JsonLdUtils.expandAttributes(entityFragment, APIC_COMPOUND_CONTEXTS)
+            .getAttributeFromExpandedAttributes(INCOMING_IRI, null)
+        assertNotNull(expandedAttributeInstance)
+        expandedAttributeInstance?.getAttributeValue()?.let {
+            assertEquals(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP, it.first)
+            assertTrue(it.second is List<*>)
+            assertEquals(2, (it.second as List<*>).size)
+        } ?: fail("it should have found the value of the property")
     }
 }

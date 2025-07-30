@@ -4,13 +4,20 @@ import arrow.core.Either
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AttributeRepresentation
+import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntityRepresentation
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.NGSILD_DATASET_TERM
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation
+import com.egm.stellio.shared.model.getAttributeValue
 import com.egm.stellio.shared.model.toFinalRepresentation
+import com.egm.stellio.shared.model.toPreviousMapping
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.acceptToMediaType
 import com.egm.stellio.shared.util.getTenantFromContext
@@ -44,7 +51,7 @@ class NotificationService(
     suspend fun notifyMatchingSubscribers(
         tenantName: String,
         updatedAttribute: Pair<ExpandedTerm, URI?>?,
-        previousAttributeValue: Pair<String, Any>?,
+        previousPayload: Map<String, Any>?,
         expandedEntity: ExpandedEntity,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> = either {
@@ -53,6 +60,7 @@ class NotificationService(
             updatedAttribute,
             notificationTrigger
         ).bind().map {
+            val contexts = it.jsonldContext?.let { listOf(it.toString()) } ?: it.contexts
             val compactedEntities =
                 if (it.notification.join in listOf(JoinType.FLAT, JoinType.INLINE)) {
                     coreAPIService.retrieveLinkedEntities(
@@ -75,8 +83,6 @@ class NotificationService(
                             AttributeRepresentation.SIMPLIFIED
                         else AttributeRepresentation.NORMALIZED
 
-                    val contexts = it.jsonldContext?.let { listOf(it.toString()) } ?: it.contexts
-
                     compactEntity(
                         filteredEntity,
                         contexts
@@ -96,8 +102,9 @@ class NotificationService(
                         expandedEntity.id,
                         compactedEntities,
                         updatedAttribute,
-                        previousAttributeValue,
-                        notificationTrigger
+                        previousPayload,
+                        notificationTrigger,
+                        contexts
                     )
                 else compactedEntities
 
@@ -105,21 +112,45 @@ class NotificationService(
         }
     }
 
-    // TODO to remove later
-    @Suppress("unused")
     internal fun injectPreviousValues(
         entityId: URI,
         compactedEntities: List<Map<String, Any?>>,
         updatedAttribute: Pair<ExpandedTerm, URI?>?,
-        previousAttributeValue: Pair<String, Any>?,
-        notificationTrigger: NotificationTrigger
+        previousPayload: Map<String, Any>?,
+        notificationTrigger: NotificationTrigger,
+        contexts: List<String>
     ): List<Map<String, Any?>> {
         // since the notification can contain linked entities, extract the "main" entity from the list
-        val notifiedEntity = compactedEntities.first { it[NGSILD_ID_TERM] == entityId.toString() }
+        // TODO when GeoJson is asked, do a special thing
+        val notifiedEntity = compactedEntities.first { it[NGSILD_ID_TERM] == entityId.toString() } as CompactedEntity
 
         val notifiedEntityWithPreviousValue = when (notificationTrigger) {
             NotificationTrigger.ATTRIBUTE_UPDATED, NotificationTrigger.ATTRIBUTE_DELETED -> {
-                notifiedEntity
+                val previousAttributeValue = previousPayload!!.let {
+                    (it as ExpandedAttributeInstance).getAttributeValue()
+                }
+                val expandedPreviousMember = mapOf(
+                    updatedAttribute?.first!! to listOf(
+                        mapOf(
+                            toPreviousMapping[previousAttributeValue.first]!! to previousAttributeValue.second
+                        )
+                    )
+                )
+                val compactedPreviousMember = compactFragment(expandedPreviousMember, contexts)
+                    .minus(JSONLD_CONTEXT_KW)
+                val targetAttributeName = compactedPreviousMember.keys.first()
+                val attrMapValue = compactedPreviousMember[targetAttributeName] as Map<String, Any>
+                // TODO multi-instance attributes
+                notifiedEntity.mapValues { (attrName, attrValue) ->
+                    if (attrName == targetAttributeName) {
+                        attrValue as Map<String, Any>
+                        if (attrValue[NGSILD_DATASET_TERM] == null && updatedAttribute.second == null ||
+                            attrMapValue[NGSILD_DATASET_TERM] == updatedAttribute.second
+                        ) {
+                            attrValue.plus(attrMapValue)
+                        } else attrValue
+                    } else attrValue
+                }
             }
             NotificationTrigger.ENTITY_DELETED -> {
                 notifiedEntity

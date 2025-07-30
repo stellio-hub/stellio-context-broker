@@ -15,6 +15,7 @@ import com.apicatalog.jsonld.loader.HttpLoader
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
@@ -335,15 +336,21 @@ object JsonLdUtils {
      * Compact a term (type, attribute name, ...) using the provided context.
      */
     fun compactTerm(term: String, contexts: List<String>): String =
+        compactFragment(mapOf(term to emptyMap<String, Any>()), contexts)
+            .keys
+            .elementAtOrElse(0) { _ -> term }
+
+    /**
+     * Compact a fragment (previous value of an attribute, ...) using the provided context.
+     */
+    fun compactFragment(fragement: Map<String, Any>, contexts: List<String>): CompactedAttributeInstance =
         JsonLd.compact(
-            JsonDocument.of(serializeObject(mapOf(term to emptyMap<String, Any>())).byteInputStream()),
+            JsonDocument.of(serializeObject(fragement).byteInputStream()),
             JsonDocument.of(buildContextDocument(contexts))
         )
             .options(jsonLdOptions)
             .get()
             .toPrimitiveMap()
-            .keys
-            .elementAtOrElse(0) { _ -> term }
 
     /**
      * Build the expanded payload of a property.

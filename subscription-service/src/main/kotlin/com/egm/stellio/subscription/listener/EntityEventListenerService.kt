@@ -9,11 +9,9 @@ import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.OperationNotSupportedException
-import com.egm.stellio.shared.model.getAttributeValue
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
@@ -105,14 +103,12 @@ class EntityEventListenerService(
     ): Either<APIException, Disposable> = either {
         logger.debug("Attribute considered in the event: {}", updatedAttribute)
         val expandedEntity = ExpandedEntity(updatedEntity.deserializeAsMap())
-        val previousAttributeValue = previousPayload?.deserializeAsMap()?.let {
-            (it as ExpandedAttributeInstance).getAttributeValue()
-        }
+
         mono {
             notificationService.notifyMatchingSubscribers(
                 tenantName,
                 updatedAttribute,
-                previousAttributeValue,
+                previousPayload?.deserializeAsMap(),
                 expandedEntity,
                 notificationTrigger
             )

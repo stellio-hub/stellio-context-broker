@@ -4,6 +4,7 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.LUMINOSITY_IRI
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
@@ -34,7 +35,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should not find an expanded attribute contained in the entity`() {
+    fun `it should not find an expanded attribute not contained in the entity`() {
         val expandedEntity = ExpandedEntity(
             mapOf(INCOMING_IRI to "", OUTGOING_IRI to "", JSONLD_ID_KW to "urn:ngsi-ld:Entity:01".toUri())
         )
@@ -70,6 +71,108 @@ class ExpandedEntityTests {
         assertThat(expandedAttributes)
             .hasSize(1)
             .containsKey(NAME_IRI)
+    }
+
+    @Test
+    fun `it should get an attribute by name without datasetId`() = runTest {
+        val entity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "name": {
+                "type": "Property",
+                "value": "An entity"
+            },
+            "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+        }
+        """.trimIndent()
+
+        val expandedAttributeInstance = expandJsonLdEntity(entity).getAttribute(NAME_IRI, null)
+        assertThat(expandedAttributeInstance)
+            .isNotNull()
+    }
+
+    @Test
+    fun `it should get an attribute by name with datasetId`() = runTest {
+        val entity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "name": {
+                "type": "Property",
+                "value": "An entity",
+                "datasetId": "urn:ngsi-ld:Dataset:01"
+            },
+            "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+        }
+        """.trimIndent()
+
+        val expandedAttributeInstance = expandJsonLdEntity(entity)
+            .getAttribute(NAME_IRI, "urn:ngsi-ld:Dataset:01".toUri())
+        assertThat(expandedAttributeInstance)
+            .isNotNull()
+    }
+
+    @Test
+    fun `it should not get an attribute if name does not match`() = runTest {
+        val entity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "name": {
+                "type": "Property",
+                "value": "An entity",
+                "datasetId": "urn:ngsi-ld:Dataset:01"
+            },
+            "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+        }
+        """.trimIndent()
+
+        val expandedAttributeInstance = expandJsonLdEntity(entity)
+            .getAttribute(LUMINOSITY_IRI, "urn:ngsi-ld:Dataset:01".toUri())
+        assertThat(expandedAttributeInstance)
+            .isNull()
+    }
+
+    @Test
+    fun `it should not get an attribute if datasetId does not match`() = runTest {
+        val entity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "name": {
+                "type": "Property",
+                "value": "An entity",
+                "datasetId": "urn:ngsi-ld:Dataset:01"
+            },
+            "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+        }
+        """.trimIndent()
+
+        val expandedAttributeInstance = expandJsonLdEntity(entity)
+            .getAttribute(NAME_IRI, "urn:ngsi-ld:Dataset:02".toUri())
+        assertThat(expandedAttributeInstance)
+            .isNull()
+    }
+
+    @Test
+    fun `it should not get an attribute without datasetId if datasetId is provided`() = runTest {
+        val entity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "name": {
+                "type": "Property",
+                "value": "An entity"
+            },
+            "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+        }
+        """.trimIndent()
+
+        val expandedAttributeInstance = expandJsonLdEntity(entity)
+            .getAttribute(NAME_IRI, "urn:ngsi-ld:Dataset:01".toUri())
+        assertThat(expandedAttributeInstance)
+            .isNull()
     }
 
     @Test

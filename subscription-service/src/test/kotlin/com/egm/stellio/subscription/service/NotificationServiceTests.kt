@@ -10,10 +10,12 @@ import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.FRIENDLYNAME_IRI
 import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MANAGED_BY_IRI
 import com.egm.stellio.shared.util.MANAGED_BY_TERM
@@ -57,6 +59,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
@@ -125,6 +129,15 @@ class NotificationServiceTests {
         }
         """.trimIndent()
 
+    private suspend fun previousPayload() = expandAttribute(
+        NAME_TERM,
+        mapOf(
+            "type" to "Property",
+            "value" to "Rucher Nantais"
+        ),
+        APIC_COMPOUND_CONTEXTS
+    ).second[0]
+
     @Test
     fun `it should notify the subscriber and update the subscription`() = runTest {
         val subscription = gimmeRawSubscription()
@@ -142,8 +155,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -155,7 +169,7 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
-                setOf(NAME_IRI),
+                Pair(NAME_IRI, null),
                 ATTRIBUTE_UPDATED
             )
         }
@@ -195,8 +209,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceed()
 
@@ -233,8 +248,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -279,8 +295,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
             val notificationResult = notificationResults[0]
@@ -321,8 +338,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_TERM),
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
             val notificationResult = notificationResults[0]
@@ -352,8 +370,9 @@ class NotificationServiceTests {
 
             notificationService.notifyMatchingSubscribers(
                 DEFAULT_TENANT_NAME,
-                Pair(expandedEntity, expandedEntity),
-                setOf(NAME_IRI),
+                Pair(NAME_IRI, null),
+                previousPayload(),
+                expandedEntity,
                 ATTRIBUTE_UPDATED
             ).shouldSucceedWith {
                 assertEquals(1, it.size)
@@ -365,7 +384,7 @@ class NotificationServiceTests {
             coVerify {
                 subscriptionService.getMatchingSubscriptions(
                     expandedEntity,
-                    setOf(NAME_IRI),
+                    Pair(NAME_IRI, null),
                     ATTRIBUTE_UPDATED
                 )
             }
@@ -391,8 +410,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
             ATTRIBUTE_DELETED
         ).shouldSucceedWith {
             assertEquals(2, it.size)
@@ -401,7 +421,7 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
-                setOf(NAME_IRI),
+                Pair(NAME_IRI, null),
                 ATTRIBUTE_DELETED
             )
         }
@@ -438,8 +458,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
             ATTRIBUTE_CREATED
         ).shouldSucceedWith { results ->
             assertEquals(2, results.size)
@@ -454,7 +475,7 @@ class NotificationServiceTests {
         coVerify {
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
-                setOf(NAME_IRI),
+                Pair(NAME_IRI, null),
                 ATTRIBUTE_CREATED
             )
         }
@@ -600,8 +621,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             val entity = it[0].second.data[0]
@@ -643,8 +665,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             val entity = it[0].second.data[0]
@@ -703,8 +726,9 @@ class NotificationServiceTests {
 
         notificationService.notifyMatchingSubscribers(
             DEFAULT_TENANT_NAME,
-            Pair(expandedEntity, expandedEntity),
-            setOf(FRIENDLYNAME_IRI),
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             val entity = it[0].second.data[0]
@@ -717,6 +741,34 @@ class NotificationServiceTests {
                         .containsEntry(NGSILD_LANG_TERM, "fr")
                 }
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource("com.egm.stellio.subscription.service.ChangesInjectionParameterizedSource#showChangesDataProvider")
+    fun `it should inject the previous value of a property`(
+        compactedEntitiesPayload: String,
+        isMultiInstancesAttribute: Boolean,
+        compactedPreviousAttribute: String,
+        expectedOuputAttribute: String
+    ) = runTest {
+        val expandedPreviousAttribute = expandAttribute(
+            compactedPreviousAttribute,
+            APIC_COMPOUND_CONTEXTS
+        ).second[0]
+
+        val compactedEntityWithPreviousValue = notificationService.injectPreviousValues(
+            apiaryId.toUri(),
+            compactedEntitiesPayload.deserializeAsList(),
+            Pair(NAME_IRI, expandedPreviousAttribute.getDatasetId()),
+            expandedPreviousAttribute,
+            ATTRIBUTE_UPDATED,
+            APIC_COMPOUND_CONTEXTS
+        ).find { it["id"] == apiaryId }!!
+
+        if (isMultiInstancesAttribute)
+            assertEquals(expectedOuputAttribute.deserializeAsList(), compactedEntityWithPreviousValue[NAME_TERM])
+        else
+            assertEquals(expectedOuputAttribute.deserializeAsMap(), compactedEntityWithPreviousValue[NAME_TERM])
     }
 
     @Test

@@ -410,6 +410,37 @@ class SubscriptionTests {
     }
 
     @Test
+    fun `it should not validate a subscription with simplified format and showChanges`() = runTest {
+        val rawSubscription =
+            """
+                {
+                    "id": "urn:ngsi-ld:Subscription:1234567890",
+                    "type": "Subscription",
+                    "entities": [
+                      {
+                        "type": "BeeHive"
+                      }
+                    ],
+                    "notification": {
+                       "endpoint": {
+                         "uri": "http://localhost:8084"
+                       },
+                       "format": "simplified",
+                       "showChanges": true
+                    }
+                }
+            """.trimIndent()
+
+        val subscription = deserialize(rawSubscription.deserializeAsMap(), emptyList())
+            .shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "'showChanges' and 'simplified' / 'keyValues' format cannot be used at the same time"
+            }
+    }
+
+    @Test
     fun `it should expand a subscription`() {
         val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 

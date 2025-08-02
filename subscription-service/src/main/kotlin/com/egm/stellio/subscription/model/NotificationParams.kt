@@ -19,7 +19,9 @@ data class NotificationParams(
     @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     val sysAttrs: Boolean = false,
     val join: JoinType? = null,
-    val joinLevel: Int? = null
+    val joinLevel: Int? = null,
+    @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
+    val showChanges: Boolean = false,
 ) {
     enum class FormatType(val format: String) {
         @JsonProperty("keyValues")

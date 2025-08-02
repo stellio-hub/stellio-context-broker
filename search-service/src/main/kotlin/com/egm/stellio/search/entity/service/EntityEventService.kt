@@ -85,6 +85,7 @@ class EntityEventService(
     suspend fun publishAttributeChangeEvents(
         sub: String?,
         entityId: URI,
+        originalEntity: ExpandedEntity,
         attributesOperationsResults: List<SucceededAttributeOperationResult>
     ): Job {
         val tenantName = getTenantFromContext()
@@ -97,6 +98,7 @@ class EntityEventService(
                         tenantName,
                         entityId,
                         it,
+                        originalEntity,
                         attributeOperationResult
                     )
                 }
@@ -109,6 +111,7 @@ class EntityEventService(
         tenantName: String,
         entityId: URI,
         entityTypesAndPayload: Pair<List<ExpandedTerm>, String>,
+        originalEntity: ExpandedEntity,
         attributeOperationResult: SucceededAttributeOperationResult
     ) {
         val attributeName = attributeOperationResult.attributeName
@@ -144,6 +147,7 @@ class EntityEventService(
                         types,
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
+                        getAttributePayload(originalEntity, attributeName, attributeOperationResult.datasetId),
                         serializeObject(attributeOperationResult.newExpandedValue),
                         payload
                     )
@@ -158,6 +162,7 @@ class EntityEventService(
                         types,
                         attributeOperationResult.attributeName,
                         attributeOperationResult.datasetId,
+                        getAttributePayload(originalEntity, attributeName, attributeOperationResult.datasetId),
                         injectDeletedAttribute(payload, attributeName, attributeOperationResult.newExpandedValue)
                     )
                 )
@@ -173,6 +178,7 @@ class EntityEventService(
     suspend fun publishAttributeDeleteEvent(
         sub: String?,
         entityId: URI,
+        originalEntity: ExpandedEntity,
         attributeOperationResult: SucceededAttributeOperationResult
     ): Job {
         val tenantName = getTenantFromContext()
@@ -194,6 +200,7 @@ class EntityEventService(
                         it.first,
                         attributeName,
                         attributeOperationResult.datasetId,
+                        getAttributePayload(originalEntity, attributeName, attributeOperationResult.datasetId),
                         injectDeletedAttribute(it.second, attributeName, attributeOperationResult.newExpandedValue)
                     )
                 )
@@ -204,7 +211,8 @@ class EntityEventService(
     suspend fun publishAttributeDeletesOnEntityDeleteEvent(
         sub: String?,
         entityId: URI,
-        deletedEntityPayload: ExpandedEntity,
+        originalEntity: ExpandedEntity,
+        deletedEntity: ExpandedEntity,
         deleteAttributesOperationsResults: List<SucceededAttributeOperationResult>
     ): Job {
         val tenantName = getTenantFromContext()
@@ -222,11 +230,12 @@ class EntityEventService(
                         sub,
                         tenantName,
                         entityId,
-                        deletedEntityPayload.types,
+                        deletedEntity.types,
                         attributeName,
                         attributeDeleteEvent.datasetId,
+                        getAttributePayload(originalEntity, attributeName, attributeDeleteEvent.datasetId),
                         injectDeletedAttribute(
-                            serializeObject(deletedEntityPayload.members),
+                            serializeObject(deletedEntity.members),
                             attributeName,
                             attributeDeleteEvent.newExpandedValue
                         )
@@ -254,6 +263,13 @@ class EntityEventService(
 
         return serializeObject(entityPayload)
     }
+
+    private fun getAttributePayload(
+        entity: ExpandedEntity,
+        expandedAttributeName: ExpandedTerm,
+        datasetId: URI?
+    ): String =
+        serializeObject(entity.getAttribute(expandedAttributeName, datasetId)!!)
 
     private fun <A, B> Either<A, B>.logEntityEvent(eventsType: EventsType, entityId: URI, tenantName: String) =
         this.fold({

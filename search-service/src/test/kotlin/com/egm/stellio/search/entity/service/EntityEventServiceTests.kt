@@ -18,7 +18,9 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.toUri
@@ -51,6 +53,8 @@ class EntityEventServiceTests {
     @MockkBean(relaxed = true)
     private lateinit var entityQueryService: EntityQueryService
 
+    private val originalEntity =
+        ExpandedEntity(loadSampleData("aquac/breedingService_expanded.jsonld").deserializeAsMap())
     private val breedingServiceUri = "urn:ngsi-ld:BreedingService:0214".toUri()
     private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
     private val fishNameTerm = "fishName"
@@ -66,12 +70,48 @@ class EntityEventServiceTests {
             "value": 120
         }            
         """.trimIndent()
+    private val originalFishName1ExpandedAttributeFragment =
+        """
+        {
+          "https://uri.etsi.org/ngsi-ld/datasetId": [
+            {
+              "@id": "urn:ngsi-ld:Dataset:fishName:1"
+            }
+          ],
+          "@type": [
+            "https://uri.etsi.org/ngsi-ld/Property"
+          ],
+          "https://uri.etsi.org/ngsi-ld/hasValue": [
+            {
+              "@value": "Trout"
+            }
+          ]
+        }
+        """.trimIndent()
+    private val originalFishName2ExpandedAttributeFragment =
+        """
+        {
+          "https://uri.etsi.org/ngsi-ld/datasetId": [
+            {
+              "@id": "urn:ngsi-ld:Dataset:fishName:2"
+            }
+          ],
+          "@type": [
+            "https://uri.etsi.org/ngsi-ld/Property"
+          ],
+          "https://uri.etsi.org/ngsi-ld/hasValue": [
+            {
+              "@value": "Salmon"
+            }
+          ]
+        }
+        """.trimIndent()
     private val fishNameAttributeFragment =
         """
         {
             "type": "Property",
             "datasetId": "$fishName1DatasetUri",
-            "value": 50
+            "value": "Salmon"
         }
         """.trimIndent()
 
@@ -132,6 +172,7 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             "sub",
             breedingServiceUri,
+            ExpandedEntity(emptyMap()),
             listOf(
                 SucceededAttributeOperationResult(
                     attributeName = fishNumberProperty,
@@ -163,13 +204,12 @@ class EntityEventServiceTests {
                 entityEventService.getSerializedEntity(any())
             } returns Pair(listOf(breedingServiceType), EMPTY_PAYLOAD).right()
 
-            val attributesPayload =
-                """
+            val attributesPayload = """
                 {
                     "$fishNameTerm": $fishNameAttributeFragment,
                     "$fishNumberTerm": $fishNumberAttributeFragment
                 }
-                """.trimIndent()
+            """.trimIndent()
             val jsonLdAttributes = expandAttributes(attributesPayload, listOf(AQUAC_COMPOUND_CONTEXT))
             val operationResult = listOf(
                 SucceededAttributeOperationResult(
@@ -185,7 +225,12 @@ class EntityEventServiceTests {
                 )
             )
 
-            entityEventService.publishAttributeChangeEvents(null, breedingServiceUri, operationResult).join()
+            entityEventService.publishAttributeChangeEvents(
+                null,
+                breedingServiceUri,
+                originalEntity,
+                operationResult
+            ).join()
 
             verify {
                 entityEventService["publishEntityEvent"](
@@ -197,9 +242,7 @@ class EntityEventServiceTests {
                                         it.entityTypes == listOf(breedingServiceType) &&
                                         it.attributeName == fishNumberProperty &&
                                         it.datasetId == null &&
-                                        it.operationPayload.matchContent(
-                                            serializedAttributePayload(jsonLdAttributes)
-                                        )
+                                        it.operationPayload.matchContent(serializedAttributePayload(jsonLdAttributes))
                                 }
 
                             is AttributeUpdateEvent ->
@@ -208,6 +251,7 @@ class EntityEventServiceTests {
                                         it.entityTypes == listOf(breedingServiceType) &&
                                         it.attributeName == fishNameProperty &&
                                         it.datasetId == fishName1DatasetUri &&
+                                        it.previousPayload.matchContent(originalFishName1ExpandedAttributeFragment) &&
                                         it.operationPayload.matchContent(
                                             serializedAttributePayload(jsonLdAttributes, fishNameProperty)
                                         )
@@ -251,6 +295,7 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
+            originalEntity,
             operationResult
         ).join()
 
@@ -311,7 +356,12 @@ class EntityEventServiceTests {
             )
         )
 
-        entityEventService.publishAttributeChangeEvents(null, breedingServiceUri, operationResult).join()
+        entityEventService.publishAttributeChangeEvents(
+            null,
+            breedingServiceUri,
+            originalEntity,
+            operationResult
+        ).join()
 
         verify {
             entityEventService["publishEntityEvent"](
@@ -322,6 +372,10 @@ class EntityEventServiceTests {
                             it.entityTypes == listOf(breedingServiceType) &&
                             it.attributeName == fishNameProperty &&
                             (it.datasetId == fishName1DatasetUri || it.datasetId == fishName2DatasetUri) &&
+                            (
+                                it.previousPayload.matchContent(originalFishName1ExpandedAttributeFragment) ||
+                                    it.previousPayload.matchContent(originalFishName2ExpandedAttributeFragment)
+                                ) &&
                             (
                                 it.operationPayload.matchContent(
                                     serializedAttributePayload(jsonLdAttributes, fishNameProperty)
@@ -359,6 +413,7 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
+            originalEntity,
             operationResult
         ).join()
 
@@ -385,6 +440,7 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeChangeEvents(
             null,
             breedingServiceUri,
+            originalEntity,
             listOf(
                 SucceededAttributeOperationResult(
                     fishNameProperty,
@@ -403,7 +459,8 @@ class EntityEventServiceTests {
                             it.entityId == breedingServiceUri &&
                             it.entityTypes == listOf(breedingServiceType) &&
                             it.attributeName == fishNameProperty &&
-                            it.datasetId == fishName1DatasetUri
+                            it.datasetId == fishName1DatasetUri &&
+                            it.previousPayload.matchContent(originalFishName1ExpandedAttributeFragment)
                     }
                 }
             )
@@ -419,6 +476,7 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeDeleteEvent(
             null,
             breedingServiceUri,
+            originalEntity,
             SucceededAttributeOperationResult(
                 fishNameProperty,
                 fishName1DatasetUri,
@@ -435,7 +493,8 @@ class EntityEventServiceTests {
                             it.entityId == breedingServiceUri &&
                             it.entityTypes == listOf(breedingServiceType) &&
                             it.attributeName == fishNameProperty &&
-                            it.datasetId == fishName1DatasetUri
+                            it.datasetId == fishName1DatasetUri &&
+                            it.previousPayload.matchContent(originalFishName1ExpandedAttributeFragment)
                     }
                 }
             )

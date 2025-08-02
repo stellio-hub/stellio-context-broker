@@ -10,10 +10,12 @@ import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MANAGED_BY_IRI
 import com.egm.stellio.shared.util.MANAGED_BY_TERM
@@ -57,6 +59,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
@@ -739,39 +743,32 @@ class NotificationServiceTests {
         }
     }
 
-    @Test
-    fun `it should inject the previous value of a property`() = runTest {
-        val rawEntity =
-            """
-            {
-               "id":"$apiaryId",
-               "type":"Apiary",
-               "name": {
-                  "type":"Property",
-                  "value": "Le rucher de Nantes"
-               },
-               "@context":[ "$APIC_COMPOUND_CONTEXT" ]
-            }
-            """.trimIndent()
+    @ParameterizedTest
+    @MethodSource("com.egm.stellio.subscription.service.ChangesInjectionParameterizedSource#showChangesDataProvider")
+    fun `it should inject the previous value of a property`(
+        compactedEntitiesPayload: String,
+        isMultiInstancesAttribute: Boolean,
+        compactedPreviousAttribute: String,
+        expectedOuputAttribute: String
+    ) = runTest {
+        val expandedPreviousAttribute = expandAttribute(
+            compactedPreviousAttribute,
+            APIC_COMPOUND_CONTEXTS
+        ).second[0]
 
         val compactedEntityWithPreviousValue = notificationService.injectPreviousValues(
             apiaryId.toUri(),
-            listOf(rawEntity.deserializeAsMap()),
-            Pair(NAME_IRI, null),
-            previousPayload(),
+            compactedEntitiesPayload.deserializeAsList(),
+            Pair(NAME_IRI, expandedPreviousAttribute.getDatasetId()),
+            expandedPreviousAttribute,
             ATTRIBUTE_UPDATED,
             APIC_COMPOUND_CONTEXTS
-        )[0]
+        ).find { it["id"] == apiaryId }!!
 
-        val expectedNameProperty =
-            """
-            {
-              "type":"Property",
-              "previousValue": "Rucher Nantais",
-              "value": "Le rucher de Nantes"
-            }
-            """.trimIndent()
-        assertEquals(expectedNameProperty.deserializeAsMap(), compactedEntityWithPreviousValue[NAME_TERM])
+        if (isMultiInstancesAttribute)
+            assertEquals(expectedOuputAttribute.deserializeAsList(), compactedEntityWithPreviousValue[NAME_TERM])
+        else
+            assertEquals(expectedOuputAttribute.deserializeAsMap(), compactedEntityWithPreviousValue[NAME_TERM])
     }
 
     @Test

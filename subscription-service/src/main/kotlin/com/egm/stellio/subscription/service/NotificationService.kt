@@ -10,7 +10,7 @@ import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
-import com.egm.stellio.shared.model.NGSILD_DATASET_TERM
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation
 import com.egm.stellio.shared.model.getAttributeValue
@@ -136,18 +136,25 @@ class NotificationService(
                         )
                     )
                 )
+
                 val compactedPreviousMember = compactFragment(expandedPreviousMember, contexts)
                     .minus(JSONLD_CONTEXT_KW)
-                val targetAttributeName = compactedPreviousMember.keys.first()
-                val attrMapValue = compactedPreviousMember[targetAttributeName] as Map<String, Any>
-                // TODO multi-instance attributes
+                val compactedAttributeName = compactedPreviousMember.keys.first()
+                val compactedPreviousValue = compactedPreviousMember[compactedAttributeName] as Map<String, Any>
+
                 notifiedEntity.mapValues { (attrName, attrValue) ->
-                    if (attrName == targetAttributeName) {
-                        attrValue as Map<String, Any>
-                        if (attrValue[NGSILD_DATASET_TERM] == null && updatedAttribute.second == null ||
-                            attrMapValue[NGSILD_DATASET_TERM] == updatedAttribute.second
-                        ) {
-                            attrValue.plus(attrMapValue)
+                    if (attrName == compactedAttributeName) {
+                        if (attrValue is List<*>) {
+                            attrValue.map { attrInstanceValue ->
+                                attrInstanceValue as Map<String, Any>
+                                if (attrInstanceValue[NGSILD_DATASET_ID_TERM] == updatedAttribute.second?.toString()) {
+                                    attrInstanceValue.plus(compactedPreviousValue)
+                                } else attrInstanceValue
+                            }
+                        } else if (attrValue is Map<*, *>) {
+                            if (attrValue[NGSILD_DATASET_ID_TERM] == updatedAttribute.second?.toString()) {
+                                attrValue.plus(compactedPreviousValue)
+                            } else attrValue
                         } else attrValue
                     } else attrValue
                 }

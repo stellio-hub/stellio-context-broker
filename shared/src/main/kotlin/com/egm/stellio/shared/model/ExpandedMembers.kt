@@ -163,20 +163,6 @@ fun ExpandedAttributeInstance.getMemberValue(memberName: ExpandedTerm): Any? {
     }
 }
 
-fun ExpandedAttributeInstance.getAttributeValue(): Pair<String, Any> =
-    when {
-        this[NGSILD_RELATIONSHIP_OBJECT] != null ->
-            Pair(NGSILD_RELATIONSHIP_OBJECT, this[NGSILD_RELATIONSHIP_OBJECT]!!)
-        this[NGSILD_JSONPROPERTY_JSON] != null ->
-            Pair(NGSILD_JSONPROPERTY_JSON, this[NGSILD_JSONPROPERTY_JSON]!!)
-        this[NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP] != null ->
-            Pair(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP, this[NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP]!!)
-        this[NGSILD_VOCABPROPERTY_VOCAB] != null ->
-            Pair(NGSILD_VOCABPROPERTY_VOCAB, this[NGSILD_VOCABPROPERTY_VOCAB]!!)
-        else ->
-            Pair(NGSILD_PROPERTY_VALUE, this[NGSILD_PROPERTY_VALUE]!!)
-    }
-
 fun ExpandedAttributeInstance.getPropertyValue(): Any? =
     getMemberValue(NGSILD_PROPERTY_VALUE)
 

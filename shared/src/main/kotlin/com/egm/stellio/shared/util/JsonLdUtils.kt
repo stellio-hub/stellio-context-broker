@@ -336,21 +336,29 @@ object JsonLdUtils {
      * Compact a term (type, attribute name, ...) using the provided context.
      */
     fun compactTerm(term: String, contexts: List<String>): String =
-        compactFragment(mapOf(term to emptyMap<String, Any>()), contexts)
+        JsonLd.compact(
+            JsonDocument.of(serializeObject(mapOf(term to emptyMap<String, Any>())).byteInputStream()),
+            JsonDocument.of(buildContextDocument(contexts))
+        )
+            .options(jsonLdOptions)
+            .get()
             .keys
             .elementAtOrElse(0) { _ -> term }
 
-    /**
-     * Compact a fragment (previous value of an attribute, ...) using the provided context.
-     */
-    fun compactFragment(fragement: Map<String, Any>, contexts: List<String>): CompactedAttributeInstance =
+    fun compactAttribute(
+        attribute: ExpandedAttributes,
+        contexts: List<String>
+    ): Map<String, CompactedAttributeInstance> =
         JsonLd.compact(
-            JsonDocument.of(serializeObject(fragement).byteInputStream()),
+            JsonDocument.of(serializeObject(attribute).byteInputStream()),
             JsonDocument.of(buildContextDocument(contexts))
         )
             .options(jsonLdOptions)
             .get()
             .toPrimitiveMap()
+            .mapValues(restoreGeoPropertyFromWKT())
+            .minus(JSONLD_CONTEXT_KW)
+            .mapValues { it.value as CompactedAttributeInstance }
 
     /**
      * Build the expanded payload of a property.

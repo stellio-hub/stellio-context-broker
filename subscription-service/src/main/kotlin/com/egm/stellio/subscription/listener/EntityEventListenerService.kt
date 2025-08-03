@@ -14,6 +14,7 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.service.NotificationService
@@ -108,7 +109,7 @@ class EntityEventListenerService(
             notificationService.notifyMatchingSubscribers(
                 tenantName,
                 updatedAttribute,
-                previousPayload?.deserializeAsMap(),
+                previousPayload?.deserializeExpandedPayload(),
                 expandedEntity,
                 notificationTrigger
             )

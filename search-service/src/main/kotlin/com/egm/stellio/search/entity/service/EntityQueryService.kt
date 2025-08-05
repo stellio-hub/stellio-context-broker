@@ -32,9 +32,10 @@ class EntityQueryService(
     private val authorizationService: AuthorizationService
 ) {
     suspend fun queryEntity(
-        entityId: URI
+        entityId: URI,
+        excludeDeleted: Boolean = true
     ): Either<APIException, ExpandedEntity> = either {
-        val entity = retrieve(entityId).bind()
+        val entity = retrieve(entityId, excludeDeleted).bind()
         authorizationService.userCanReadEntity(entityId).bind()
 
         entity.toExpandedEntity()

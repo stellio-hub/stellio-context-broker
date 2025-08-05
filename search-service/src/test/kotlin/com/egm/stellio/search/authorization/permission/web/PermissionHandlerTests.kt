@@ -226,7 +226,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.isAdminOf(any()) } returns true.right()
         coEvery { permissionService.getPermissions(any(), any(), any()) } returns listOf(permission).right()
-        coEvery { entityQueryService.queryEntity(any()) } returns expandedEntity.right()
+        coEvery { entityQueryService.queryEntity(any(), any()) } returns expandedEntity.right()
         coEvery { subjectReferentialService.retrieve(any()) } returns SubjectReferential(
             userUuid, SubjectType.GROUP,
             Json.of(
@@ -281,7 +281,7 @@ class PermissionHandlerTests {
             .returnResult().responseBody?.toString(Charsets.UTF_8)
 
         coVerify { permissionService.getPermissions(any(), any()) }
-        coVerify { entityQueryService.queryEntity(any()) }
+        coVerify { entityQueryService.queryEntity(any(), any()) }
         coVerify { subjectReferentialService.retrieve(any()) }
     }
 
@@ -292,7 +292,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.isAdminOf(any()) } returns true.right()
         coEvery { permissionService.getPermissions(any(), any(), any()) } returns listOf(permission).right()
-        coEvery { entityQueryService.queryEntity(any()) } returns expandedEntity.right()
+        coEvery { entityQueryService.queryEntity(any(), any()) } returns expandedEntity.right()
         coEvery { subjectReferentialService.retrieve(any()) } returns SubjectReferential(
             userUuid, SubjectType.GROUP,
             Json.of(
@@ -343,7 +343,7 @@ class PermissionHandlerTests {
             .returnResult().responseBody?.toString(Charsets.UTF_8)
 
         coVerify { permissionService.getPermissions(any(), any()) }
-        coVerify { entityQueryService.queryEntity(any()) }
+        coVerify { entityQueryService.queryEntity(any(), any()) }
         coVerify { subjectReferentialService.retrieve(any()) }
     }
 

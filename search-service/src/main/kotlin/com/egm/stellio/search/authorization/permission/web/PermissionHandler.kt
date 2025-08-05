@@ -367,7 +367,7 @@ class PermissionHandler(
             }
             permission.target.id.let { id ->
                 permissionMap[AUTH_TARGET_TERM] = compactEntity(
-                    entityQueryService.queryEntity(id).bind()
+                    entityQueryService.queryEntity(id, excludeDeleted = false).bind()
                         .filterAttributes(pickAttributes, emptySet()),
                     contexts
                 ).minus(JSONLD_CONTEXT_KW)

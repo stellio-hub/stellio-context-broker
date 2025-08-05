@@ -2,6 +2,7 @@ package com.egm.stellio.search.csr.web
 
 import arrow.core.left
 import arrow.core.right
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
@@ -18,6 +19,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -40,6 +42,9 @@ class ContextSourceRegistrationHandlerTests {
     @MockkBean
     private lateinit var contextSourceRegistrationService: ContextSourceRegistrationService
 
+    @MockkBean
+    private lateinit var authorizationService: AuthorizationService
+
     @Autowired
     private lateinit var webClient: WebTestClient
 
@@ -57,6 +62,11 @@ class ContextSourceRegistrationHandlerTests {
                 it.contentType = JSON_LD_MEDIA_TYPE
             }
             .build()
+    }
+
+    @BeforeEach
+    fun setIsAdmin() {
+        coEvery { authorizationService.userIsAdmin() } returns Unit.right()
     }
 
     @Test

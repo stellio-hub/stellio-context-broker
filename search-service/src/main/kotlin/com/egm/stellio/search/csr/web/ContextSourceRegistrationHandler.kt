@@ -1,18 +1,12 @@
 package com.egm.stellio.search.csr.web
 
-import arrow.core.Either
-import arrow.core.flatMap
-import arrow.core.left
 import arrow.core.raise.either
-import arrow.core.right
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.deserialize
-import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.unauthorizedMessage
 import com.egm.stellio.search.csr.model.serialize
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
@@ -20,7 +14,6 @@ import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
@@ -52,7 +45,8 @@ import java.net.URI
 @Validated
 class ContextSourceRegistrationHandler(
     private val applicationProperties: ApplicationProperties,
-    private val contextSourceRegistrationService: ContextSourceRegistrationService
+    private val contextSourceRegistrationService: ContextSourceRegistrationService,
+    private val authorizationService: AuthorizationService
 ) : BaseHandler() {
 
     /**
@@ -63,6 +57,7 @@ class ContextSourceRegistrationHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> = either {
+        authorizationService.userIsAdmin().bind()
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
         val sub = getSubFromSecurityContext()
@@ -99,6 +94,7 @@ class ContextSourceRegistrationHandler(
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        authorizationService.userIsAdmin().bind()
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         val csrFilters = CSRFilters.fromQueryParameters(queryParams, contexts).bind()
@@ -143,13 +139,12 @@ class ContextSourceRegistrationHandler(
         @AllowedParameters(implemented = [QP.OPTIONS])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
+        authorizationService.userIsAdmin().bind()
         val options = queryParams.getFirst(QP.OPTIONS.key)
         val includeSysAttrs = options?.contains(OptionsValue.SYS_ATTRS.value) ?: false
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
-        val sub = getSubFromSecurityContext()
-        checkIsAllowed(contextSourceRegistrationId, sub).bind()
         val contextSourceRegistration = contextSourceRegistrationService.getById(contextSourceRegistrationId).bind()
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
@@ -168,8 +163,7 @@ class ContextSourceRegistrationHandler(
         @AllowedParameters // no query parameter is defined in the specification
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val sub = getSubFromSecurityContext()
-        checkIsAllowed(contextSourceRegistrationId, sub).bind()
+        authorizationService.userIsAdmin().bind()
 
         contextSourceRegistrationService.delete(contextSourceRegistrationId).bind()
 
@@ -178,15 +172,4 @@ class ContextSourceRegistrationHandler(
         { it.toErrorResponse() },
         { it }
     )
-
-    private suspend fun checkIsAllowed(contextSourceRegistrationId: URI, sub: Sub?): Either<APIException, Unit> =
-        contextSourceRegistrationService.isCreatorOf(contextSourceRegistrationId, sub)
-            .flatMap {
-                if (!it)
-                    AccessDeniedException(
-                        unauthorizedMessage(contextSourceRegistrationId)
-                    ).left()
-                else
-                    Unit.right()
-            }
 }

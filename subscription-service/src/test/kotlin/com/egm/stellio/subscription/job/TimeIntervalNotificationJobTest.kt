@@ -11,6 +11,8 @@ import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.subscription.config.WebClientConfig
 import com.egm.stellio.subscription.model.Notification
+import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
+import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_CREATED
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.CoreAPIService
 import com.egm.stellio.subscription.service.NotificationService
@@ -150,16 +152,20 @@ class TimeIntervalNotificationJobTest {
     @Test
     fun `it should call 'notificationService' once`() = runTest {
         val compactedEntity = mapOf("id" to "urn:ngsi-ld:Entity:01")
-        val subscription = mockkClass(Subscription::class)
+        val subscription = mockkClass(Subscription::class) {
+            every { notificationTrigger } returns listOf(ENTITY_CREATED.notificationTrigger)
+        }
 
         coEvery {
-            notificationService.callSubscriber(any(), any())
+            notificationService.callSubscriber(any(), any(), any())
         } returns Triple(subscription, mockkClass(Notification::class), true)
 
         timeIntervalNotificationJob.sendNotification(compactedEntity, subscription)
 
-        coVerify(exactly = 1) { notificationService.callSubscriber(subscription, listOf(compactedEntity)) }
-        confirmVerified()
+        coVerify(exactly = 1) {
+            notificationService.callSubscriber(subscription, ENTITY_CREATED, listOf(compactedEntity))
+        }
+        confirmVerified(notificationService)
     }
 
     @Test
@@ -182,13 +188,13 @@ class TimeIntervalNotificationJobTest {
         coEvery { subscriptionService.getContextsLink(any()) } returns NGSILD_TEST_CORE_CONTEXT
         coEvery { coreAPIService.getEntities(any(), any(), any()) } returns listOf(entity.deserializeAsMap())
         coEvery {
-            notificationService.callSubscriber(any(), any())
+            notificationService.callSubscriber(any(), any(), any())
         } returns Triple(subscription, mockkClass(Notification::class), true)
 
         timeIntervalNotificationJob.sendTimeIntervalNotification()
 
         coVerify(exactly = 1, timeout = 1000L) {
-            notificationService.callSubscriber(subscription, listOf(entity.deserializeAsMap()))
+            notificationService.callSubscriber(subscription, ATTRIBUTE_CREATED, listOf(entity.deserializeAsMap()))
         }
         confirmVerified(notificationService)
     }

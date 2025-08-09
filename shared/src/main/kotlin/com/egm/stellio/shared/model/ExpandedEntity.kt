@@ -37,6 +37,9 @@ data class ExpandedEntity(
     fun getScopes(): List<String>? =
         (members as Map<String, List<Any>>).getScopes()
 
+    fun getAttribute(expandedAttributeName: String, datasetId: URI?): ExpandedAttributeInstance? =
+        getAttributes().getAttributeFromExpandedAttributes(expandedAttributeName, datasetId)
+
     /**
      * Called at entity creation time to populate entity and attributes with createdAt information
      */

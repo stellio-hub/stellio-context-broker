@@ -112,6 +112,18 @@ private fun simplifyAttribute(value: Map<String, Any>): Any {
     }
 }
 
+fun CompactedAttributeInstance.getTypeAndValue(): Pair<String, Any?> {
+    val attributeCompactedType = AttributeCompactedType.forKey(this[NGSILD_TYPE_TERM] as String)!!
+    return when (attributeCompactedType) {
+        PROPERTY -> Pair(NGSILD_PROPERTY_TERM, this[NGSILD_VALUE_TERM])
+        GEOPROPERTY -> Pair(NGSILD_GEOPROPERTY_TERM, this[NGSILD_VALUE_TERM])
+        RELATIONSHIP -> Pair(NGSILD_RELATIONSHIP_TERM, this[NGSILD_OBJECT_TERM])
+        JSONPROPERTY -> Pair(NGSILD_JSONPROPERTY_TERM, this[NGSILD_JSON_TERM])
+        LANGUAGEPROPERTY -> Pair(NGSILD_LANGUAGEPROPERTY_TERM, this[NGSILD_LANGUAGEMAP_TERM])
+        VOCABPROPERTY -> Pair(NGSILD_VOCABPROPERTY_TERM, this[NGSILD_VOCAB_TERM])
+    }
+}
+
 fun CompactedEntity.toFilteredLanguageProperties(languageFilter: String): CompactedEntity {
     val transformationParameters = mapOf(QueryParameter.LANG.key to languageFilter)
     return this.mapValues { entry ->
@@ -279,7 +291,7 @@ enum class AttributeCompactedType(val key: String) {
     }
 }
 
-private fun applyAttributeTransformation(
+fun applyAttributeTransformation(
     entry: Map.Entry<String, Any>,
     onSingleInstance: (Map<String, Any>) -> Any,
     onMultiInstance: (List<Map<String, Any>>) -> Any

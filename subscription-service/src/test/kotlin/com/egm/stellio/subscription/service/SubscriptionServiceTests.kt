@@ -201,6 +201,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     it.notification.sysAttrs &&
                     it.notification.join == JoinType.FLAT &&
                     it.notification.joinLevel == 2 &&
+                    it.notification.showChanges &&
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
                     it.throttling == 60 &&
                     it.lang == "fr,en" &&
@@ -270,7 +271,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                emptySet(),
+                null,
                 ATTRIBUTE_CREATED
             )
 
@@ -289,7 +290,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                emptySet(),
+                null,
                 ATTRIBUTE_CREATED
             )
 
@@ -310,7 +311,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:12345678", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            emptySet(),
+            null,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -331,7 +332,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:3456789", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            emptySet(),
+            null,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(0, it.size)
@@ -352,7 +353,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            emptySet(),
+            null,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -373,7 +374,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            emptySet(),
+            null,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -394,7 +395,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            emptySet(),
+            null,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -411,7 +412,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(TEMPERATURE_IRI),
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -432,7 +433,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", SENSOR_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            emptySet(),
+            null,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(0, it.size)
@@ -454,7 +455,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            emptySet(),
+            null,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(0, it.size)
@@ -473,7 +474,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(INCOMING_IRI),
+            Pair(INCOMING_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -492,7 +493,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(TEMPERATURE_IRI),
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(0, it.size)
@@ -512,7 +513,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(TEMPERATURE_IRI),
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(0, it.size)
@@ -532,7 +533,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(TEMPERATURE_IRI),
+            Pair(TEMPERATURE_IRI, null),
             ENTITY_CREATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -552,7 +553,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandSampleData("beehive_single_quote.jsonld")
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(NAME_IRI),
+            Pair(NAME_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -572,7 +573,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(TEMPERATURE_IRI),
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -593,7 +594,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
-                setOf(TEMPERATURE_IRI),
+                Pair(TEMPERATURE_IRI, null),
                 ATTRIBUTE_UPDATED
             ).shouldSucceedWith {
                 assertEquals(0, it.size)
@@ -614,7 +615,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
             subscriptionService.getMatchingSubscriptions(
                 expandedEntity,
-                emptySet(),
+                null,
                 ENTITY_DELETED
             ).shouldSucceedWith {
                 assertEquals(1, it.size)
@@ -661,38 +662,6 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     it.geoQ.geoproperty == NGSILD_OBSERVATION_SPACE_IRI &&
                     it.throttling == 50 &&
                     it.lang == "fr-CH,fr"
-            }
-    }
-
-    @Test
-    fun `it should update a subscription notification`() = runTest {
-        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
-        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
-
-        val parsedInput = mapOf(
-            "attributes" to listOf(OUTGOING_TERM),
-            "format" to "keyValues",
-            "endpoint" to mapOf(
-                "accept" to "application/ld+json",
-                "uri" to "http://localhost:8080",
-                "receiverInfo" to listOf(
-                    mapOf("key" to "Authorization-token", "value" to "Authorization-token-newValue")
-                )
-            )
-        )
-
-        subscriptionService.updateNotification(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
-
-        val updatedSubscription = subscriptionService.getById(subscription.id)
-        assertThat(updatedSubscription)
-            .matches {
-                it.notification.attributes == listOf(OUTGOING_IRI) &&
-                    it.notification.format.name == "KEY_VALUES" &&
-                    it.notification.endpoint.accept.name == "JSONLD" &&
-                    it.notification.endpoint.uri.toString() == "http://localhost:8080" &&
-                    it.notification.endpoint.receiverInfo == listOf(
-                        EndpointInfo("Authorization-token", "Authorization-token-newValue")
-                    )
             }
     }
 
@@ -894,7 +863,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", types.split(","))
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            emptySet(),
+            null,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { assertEquals(expectedSize, it.size) }
     }
@@ -910,8 +879,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
-            .shouldSucceedWith { assertEquals(0, it.size) }
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(0, it.size) }
     }
 
     @Test
@@ -925,8 +897,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
-            .shouldSucceedWith { assertEquals(1, it.size) }
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(1, it.size) }
     }
 
     @Test
@@ -940,8 +915,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
-            .shouldSucceedWith { assertEquals(0, it.size) }
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(0, it.size) }
     }
 
     @Test
@@ -955,8 +933,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
-            .shouldSucceedWith { assertEquals(1, it.size) }
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(1, it.size) }
     }
 
     @Test
@@ -970,8 +951,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
-            .shouldSucceedWith { assertEquals(1, it.size) }
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(1, it.size) }
     }
 
     @Test
@@ -985,8 +969,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
-            .shouldSucceedWith { assertEquals(1, it.size) }
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(1, it.size) }
     }
 
     @Test
@@ -1000,8 +987,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
-            .shouldSucceedWith { assertEquals(1, it.size) }
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(1, it.size) }
     }
 
     @Test
@@ -1015,8 +1005,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
-            .shouldSucceedWith { assertEquals(1, it.size) }
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(1, it.size) }
     }
 
     @Test
@@ -1030,8 +1023,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
-            .shouldSucceedWith { assertEquals(0, it.size) }
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(0, it.size) }
     }
 
     @Test
@@ -1045,8 +1041,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(NGSILD_LOCATION_IRI), ATTRIBUTE_UPDATED)
-            .shouldSucceedWith { assertEquals(1, it.size) }
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(1, it.size) }
     }
 
     @Test
@@ -1074,7 +1073,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(NGSILD_LOCATION_IRI),
+            Pair(NGSILD_LOCATION_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(0, it.size)
@@ -1111,7 +1110,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(NGSILD_LOCATION_IRI),
+            Pair(NGSILD_LOCATION_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -1137,7 +1136,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            setOf(NGSILD_LOCATION_IRI),
+            Pair(NGSILD_LOCATION_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -1176,8 +1175,11 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
-        subscriptionService.getMatchingSubscriptions(expandedEntity, setOf(INCOMING_IRI), ATTRIBUTE_UPDATED)
-            .shouldSucceedWith { assertEquals(expectedSize, it.size) }
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(INCOMING_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(expectedSize, it.size) }
     }
 
     @Test

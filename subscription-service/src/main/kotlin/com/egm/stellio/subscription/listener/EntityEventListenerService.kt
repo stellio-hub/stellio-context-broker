@@ -6,16 +6,15 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AttributeCreateEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
-import com.egm.stellio.shared.model.EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.NGSILD_SYSATTRS_IRIS
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.service.NotificationService
@@ -27,6 +26,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import reactor.core.Disposable
+import java.net.URI
 
 @Component
 class EntityEventListenerService(
@@ -35,8 +35,6 @@ class EntityEventListenerService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
-
-    private val ignoredExpandedEntityProperties = EXPANDED_ENTITY_CORE_MEMBERS.plus(NGSILD_SYSATTRS_IRIS)
 
     @KafkaListener(topics = ["cim.entity._CatchAll"], groupId = "context_subscription")
     fun processMessage(content: String) {
@@ -58,32 +56,37 @@ class EntityEventListenerService(
             when (entityEvent) {
                 is EntityCreateEvent -> handleEntityEvent(
                     tenantName,
-                    entityEvent.operationPayload.getUpdatedAttributes(),
-                    Pair(entityEvent.getEntity(), entityEvent.getEntity()),
+                    null,
+                    null,
+                    entityEvent.getEntity(),
                     NotificationTrigger.ENTITY_CREATED
                 )
                 is EntityDeleteEvent -> handleEntityEvent(
                     tenantName,
-                    emptySet(),
-                    Pair(entityEvent.getEntity()!!, entityEvent.updatedEntity),
+                    null,
+                    entityEvent.getEntity(),
+                    entityEvent.updatedEntity,
                     NotificationTrigger.ENTITY_DELETED
                 )
                 is AttributeCreateEvent -> handleEntityEvent(
                     tenantName,
-                    setOf(entityEvent.attributeName),
-                    Pair(entityEvent.getEntity(), entityEvent.getEntity()),
+                    Pair(entityEvent.attributeName, entityEvent.datasetId),
+                    null,
+                    entityEvent.getEntity(),
                     NotificationTrigger.ATTRIBUTE_CREATED
                 )
                 is AttributeUpdateEvent -> handleEntityEvent(
                     tenantName,
-                    setOf(entityEvent.attributeName),
-                    Pair(entityEvent.getEntity(), entityEvent.getEntity()),
+                    Pair(entityEvent.attributeName, entityEvent.datasetId),
+                    entityEvent.previousPayload,
+                    entityEvent.getEntity(),
                     NotificationTrigger.ATTRIBUTE_UPDATED
                 )
                 is AttributeDeleteEvent -> handleEntityEvent(
                     tenantName,
-                    setOf(entityEvent.attributeName),
-                    Pair(entityEvent.getEntity(), entityEvent.getEntity()),
+                    Pair(entityEvent.attributeName, entityEvent.datasetId),
+                    entityEvent.previousPayload,
+                    entityEvent.getEntity(),
                     NotificationTrigger.ATTRIBUTE_DELETED
                 )
             }
@@ -94,18 +97,22 @@ class EntityEventListenerService(
 
     private suspend fun handleEntityEvent(
         tenantName: String,
-        updatedAttributes: Set<ExpandedTerm>,
-        previousAndUpdatedPayloads: Pair<String, String>,
+        updatedAttribute: Pair<ExpandedTerm, URI?>?,
+        previousPayload: String? = null,
+        updatedEntity: String,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, Disposable> = either {
-        logger.debug("Attributes considered in the event: {}", updatedAttributes)
-        val expandedEntityForMatching = ExpandedEntity(previousAndUpdatedPayloads.first.deserializeAsMap())
-        val expandedEntityForNotification = ExpandedEntity(previousAndUpdatedPayloads.second.deserializeAsMap())
+        updatedAttribute?.let {
+            logger.debug("Attribute considered in the event: {}", updatedAttribute)
+        }
+        val expandedEntity = ExpandedEntity(updatedEntity.deserializeAsMap())
+
         mono {
             notificationService.notifyMatchingSubscribers(
                 tenantName,
-                Pair(expandedEntityForMatching, expandedEntityForNotification),
-                updatedAttributes,
+                updatedAttribute,
+                previousPayload?.deserializeExpandedPayload(),
+                expandedEntity,
                 notificationTrigger
             )
         }.contextWrite {
@@ -122,10 +129,4 @@ class EntityEventListenerService(
             })
         }
     }
-
-    private fun String.getUpdatedAttributes() =
-        this.deserializeAsMap()
-            .keys
-            .filter { !ignoredExpandedEntityProperties.contains(it) }
-            .toSet()
 }

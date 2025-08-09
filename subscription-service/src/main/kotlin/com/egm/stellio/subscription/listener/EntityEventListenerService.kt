@@ -102,7 +102,9 @@ class EntityEventListenerService(
         updatedEntity: String,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, Disposable> = either {
-        logger.debug("Attribute considered in the event: {}", updatedAttribute)
+        updatedAttribute?.let {
+            logger.debug("Attribute considered in the event: {}", updatedAttribute)
+        }
         val expandedEntity = ExpandedEntity(updatedEntity.deserializeAsMap())
 
         mono {

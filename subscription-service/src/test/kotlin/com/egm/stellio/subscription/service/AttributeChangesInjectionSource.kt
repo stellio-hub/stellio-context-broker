@@ -5,7 +5,7 @@ import org.junit.jupiter.params.provider.Arguments
 import java.util.stream.Stream
 
 @Suppress("unused", "UtilityClassWithPublicConstructor")
-interface ChangesInjectionParameterizedSource {
+interface AttributeChangesInjectionSource {
 
     companion object {
 
@@ -39,6 +39,37 @@ interface ChangesInjectionParameterizedSource {
                   "type":"Property",
                   "previousValue": "Rucher Nantais",
                   "value": "Le rucher de Nantes"
+                }
+                """
+            )
+
+        private val propertyDeletedMonoInstanceSingleEntity =
+            Arguments.arguments(
+                """
+                [{
+                   "id": "$APIARY_ID",
+                   "type": "Apiary",
+                   "name": {
+                      "type":"Property",
+                      "value": "urn:ngsi-ld:null"
+                   },
+                   "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+                }]
+                """,
+                false,
+                """
+                {
+                   "name": {
+                      "type": "Property",
+                      "value": "Rucher Nantais"
+                   }
+                }
+                """,
+                """
+                {
+                  "type":"Property",
+                  "previousValue": "Rucher Nantais",
+                  "value": "urn:ngsi-ld:null"
                 }
                 """
             )
@@ -377,109 +408,11 @@ interface ChangesInjectionParameterizedSource {
                 """
             )
 
-        private val propertyMonoInstanceSingleEntityAsGeoJson =
-            Arguments.arguments(
-                """
-                [{
-                    "id": "$APIARY_ID",
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [-1.5534, 47.2186]
-                    },
-                    "properties": {
-                        "type": "Apiary",
-                        "name": {
-                            "type": "Property",
-                            "value": "Le rucher de Nantes"
-                        },
-                        "location": {
-                            "type": "GeoProperty",
-                            "value": {
-                                "type": "Point",
-                                "coordinates": [-1.5534, 47.2186]
-                            }
-                        },
-                        "@context": ["$APIC_COMPOUND_CONTEXT"]
-                    }
-                }]
-                """,
-                false,
-                """
-                {
-                   "name": {
-                      "type": "Property",
-                      "value": "Rucher Nantais"
-                   }
-                }
-                """,
-                """
-                {
-                  "type":"Property",
-                  "previousValue": "Rucher Nantais",
-                  "value": "Le rucher de Nantes"
-                }
-                """
-            )
-
-        private val propertyMultiInstanceSingleEntityAsGeoJson =
-            Arguments.arguments(
-                """
-                [{
-                    "id": "$APIARY_ID",
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [-1.5534, 47.2186]
-                    },
-                    "properties": {
-                        "type": "Apiary",
-                        "name": [{
-                           "type":"Property",
-                           "value": "Le rucher de Sophia Antipolis"
-                        }, {
-                           "type":"Property",
-                           "value": "Le rucher de Nantes",
-                           "datasetId": "urn:ngsi-ld:Dataset:1"
-                        }],
-                        "location": {
-                            "type": "GeoProperty",
-                            "value": {
-                                "type": "Point",
-                                "coordinates": [-1.5534, 47.2186]
-                            }
-                        },
-                        "@context": ["$APIC_COMPOUND_CONTEXT"]
-                    }
-                }]
-                """,
-                true,
-                """
-                {
-                   "name": {
-                      "type": "Property",
-                      "value": "Rucher Nantais",
-                      "datasetId": "urn:ngsi-ld:Dataset:1"
-                   }
-                }
-                """,
-                """
-                [{
-                   "type":"Property",
-                   "value": "Le rucher de Sophia Antipolis"
-                }, {
-                   "type":"Property",
-                   "previousValue": "Rucher Nantais",
-                   "value": "Le rucher de Nantes",
-                   "datasetId": "urn:ngsi-ld:Dataset:1"
-                }]
-                """
-            )
-
         @JvmStatic
         fun showChangesDataProvider(): Stream<Arguments> {
             return Stream.of(
                 propertyMonoInstanceSingleEntity,
+                propertyDeletedMonoInstanceSingleEntity,
                 propertyMultiInstanceSingleEntity,
                 relationshipMonoInstanceSingleEntity,
                 relationshipMultiInstanceSingleEntity,
@@ -488,9 +421,7 @@ interface ChangesInjectionParameterizedSource {
                 languagePropertyMonoInstanceSingleEntity,
                 vocabPropertyMonoInstanceSingleEntity,
                 propertyMonoInstanceMultiEntities,
-                propertyMultiInstanceMultiEntities,
-//                propertyMonoInstanceSingleEntityAsGeoJson,
-//                propertyMultiInstanceSingleEntityAsGeoJson
+                propertyMultiInstanceMultiEntities
             )
         }
     }

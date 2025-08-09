@@ -3,11 +3,6 @@ package com.egm.stellio.shared.model
 val EXPANDED_ENTITY_SPECIFIC_MEMBERS = setOf(JSONLD_TYPE_KW, NGSILD_SCOPE_IRI)
 
 val NGSILD_SYSATTRS_TERMS = setOf(NGSILD_CREATED_AT_TERM, NGSILD_MODIFIED_AT_TERM, NGSILD_DELETED_AT_TERM)
-val NGSILD_SYSATTRS_IRIS = setOf(
-    NGSILD_CREATED_AT_IRI,
-    NGSILD_MODIFIED_AT_IRI,
-    NGSILD_DELETED_AT_IRI
-)
 
 // List of members that are part of a core entity base definition (i.e., without attributes)
 val EXPANDED_ENTITY_CORE_MEMBERS = setOf(

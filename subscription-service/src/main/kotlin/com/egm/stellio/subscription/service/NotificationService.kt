@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AttributeRepresentation
+import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntityRepresentation
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
@@ -11,6 +12,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
+import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation
 import com.egm.stellio.shared.model.applyAttributeTransformation
 import com.egm.stellio.shared.model.getTypeAndValue
@@ -51,7 +53,7 @@ class NotificationService(
     suspend fun notifyMatchingSubscribers(
         tenantName: String,
         updatedAttribute: Pair<ExpandedTerm, URI?>?,
-        previousPayload: ExpandedAttributeInstance?,
+        previousPayload: Map<String, List<Any>>?,
         expandedEntity: ExpandedEntity,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, List<Triple<Subscription, Notification, Boolean>>> = either {
@@ -116,37 +118,34 @@ class NotificationService(
         entityId: URI,
         compactedEntities: List<Map<String, Any?>>,
         updatedAttribute: Pair<ExpandedTerm, URI?>?,
-        previousPayload: ExpandedAttributeInstance?,
+        previousPayload: Map<String, List<Any>>?,
         notificationTrigger: NotificationTrigger,
         contexts: List<String>
     ): List<Map<String, Any?>> {
         // since the notification can contain linked entities, extract the "main" entity from the list
-        // TODO when GeoJson is asked, do a special thing
         val notifiedEntity = compactedEntities.first { it[NGSILD_ID_TERM] == entityId.toString() } as CompactedEntity
 
         val notifiedEntityWithPreviousValue = when (notificationTrigger) {
             NotificationTrigger.ATTRIBUTE_UPDATED, NotificationTrigger.ATTRIBUTE_DELETED -> {
-                val expandedPreviousMember = mapOf(updatedAttribute?.first!! to listOf(previousPayload!!))
-                val compactedPreviousMember = compactAttribute(expandedPreviousMember, contexts)
-                val compactedAttributeName = compactedPreviousMember.keys.first()
-                val compactedAttributeTypeAndValue = compactedPreviousMember[compactedAttributeName]!!.getTypeAndValue()
-                val compactedPreviousValue = mapOf(
-                    toPreviousMapping[compactedAttributeTypeAndValue.first] to compactedAttributeTypeAndValue.second
+                val computedPreviousAttributeAndFragment = computePreviousAttributeAndFragment(
+                    updatedAttribute,
+                    previousPayload,
+                    contexts
                 )
-
                 notifiedEntity.mapValues { entry ->
-                    if (entry.key == compactedAttributeName) {
+                    if (entry.key == computedPreviousAttributeAndFragment.first) {
+                        val updatedAttributeDatasetId = updatedAttribute!!.second?.toString()
                         applyAttributeTransformation(
                             entry,
                             { value ->
-                                if (value[NGSILD_DATASET_ID_TERM] == updatedAttribute.second?.toString()) {
-                                    value.plus(compactedPreviousValue)
+                                if (value[NGSILD_DATASET_ID_TERM] == updatedAttributeDatasetId) {
+                                    value.plus(computedPreviousAttributeAndFragment.second)
                                 } else value
                             },
                             { values ->
                                 values.map { instanceValue ->
-                                    if (instanceValue[NGSILD_DATASET_ID_TERM] == updatedAttribute.second?.toString()) {
-                                        instanceValue.plus(compactedPreviousValue)
+                                    if (instanceValue[NGSILD_DATASET_ID_TERM] == updatedAttributeDatasetId) {
+                                        instanceValue.plus(computedPreviousAttributeAndFragment.second)
                                     } else instanceValue
                                 }
                             }
@@ -155,7 +154,31 @@ class NotificationService(
                 }
             }
             NotificationTrigger.ENTITY_DELETED -> {
-                notifiedEntity
+                val compactedPreviousEntity = compactEntity(ExpandedEntity(previousPayload!!), contexts)
+                val previousAttributesValues = compactedPreviousEntity.minus(COMPACTED_ENTITY_CORE_MEMBERS)
+                    .mapValues { entry ->
+                        applyAttributeTransformation(
+                            entry,
+                            { value ->
+                                val compactedAttributeTypeAndValue = value.getTypeAndValue()
+                                mapOf(
+                                    NGSILD_TYPE_TERM to compactedAttributeTypeAndValue.first,
+                                    toPreviousMapping[compactedAttributeTypeAndValue.first]!! to
+                                        compactedAttributeTypeAndValue.second
+                                )
+                            },
+                            { values ->
+                                values.map { instanceValue ->
+                                    val compactedAttributeTypeAndValue = instanceValue.getTypeAndValue()
+                                    mapOf(
+                                        toPreviousMapping[compactedAttributeTypeAndValue.first]!! to
+                                            compactedAttributeTypeAndValue.second
+                                    )
+                                }
+                            }
+                        )
+                    }
+                notifiedEntity.plus(previousAttributesValues)
             }
             else -> notifiedEntity
         }
@@ -163,6 +186,21 @@ class NotificationService(
         return compactedEntities
             .filter { it[NGSILD_ID_TERM] != entityId.toString() }
             .plus(notifiedEntityWithPreviousValue)
+    }
+
+    private fun computePreviousAttributeAndFragment(
+        updatedAttribute: Pair<ExpandedTerm, URI?>?,
+        previousPayload: ExpandedAttributeInstance?,
+        contexts: List<String>
+    ): Pair<String, Map<String, Any?>> {
+        val expandedPreviousMember = mapOf(updatedAttribute?.first!! to listOf(previousPayload!!))
+        val compactedPreviousMember = compactAttribute(expandedPreviousMember, contexts)
+        val compactedAttributeName = compactedPreviousMember.keys.first()
+        val compactedAttributeTypeAndValue = compactedPreviousMember[compactedAttributeName]!!.getTypeAndValue()
+
+        return compactedAttributeName to mapOf(
+            toPreviousMapping[compactedAttributeTypeAndValue.first]!! to compactedAttributeTypeAndValue.second
+        )
     }
 
     suspend fun callSubscriber(

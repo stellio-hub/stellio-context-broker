@@ -5,7 +5,7 @@ import org.junit.jupiter.params.provider.Arguments
 import java.util.stream.Stream
 
 @Suppress("unused", "UtilityClassWithPublicConstructor")
-interface ChangesInjectionParameterizedSource {
+interface AttributeChangesInjectionSource {
 
     companion object {
 

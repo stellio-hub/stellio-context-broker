@@ -36,6 +36,7 @@ import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_DELETED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
+import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_DELETED
 import com.egm.stellio.subscription.service.mqtt.MqttNotificationService
 import com.egm.stellio.subscription.support.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
@@ -744,7 +745,7 @@ class NotificationServiceTests {
     }
 
     @ParameterizedTest
-    @MethodSource("com.egm.stellio.subscription.service.ChangesInjectionParameterizedSource#showChangesDataProvider")
+    @MethodSource("com.egm.stellio.subscription.service.AttributeChangesInjectionSource#showChangesDataProvider")
     fun `it should inject the previous value of a property`(
         compactedEntitiesPayload: String,
         isMultiInstancesAttribute: Boolean,
@@ -769,6 +770,30 @@ class NotificationServiceTests {
             assertEquals(expectedOuputAttribute.deserializeAsList(), compactedEntityWithPreviousValue[NAME_TERM])
         else
             assertEquals(expectedOuputAttribute.deserializeAsMap(), compactedEntityWithPreviousValue[NAME_TERM])
+    }
+
+    @ParameterizedTest
+    @MethodSource("com.egm.stellio.subscription.service.EntityChangesInjectionSource#showChangesDataProvider")
+    fun `it should inject the previous values of an entity`(
+        compactedEntitiesPayload: String,
+        compactedPreviousEntity: String,
+        expectedOutputEntity: String
+    ) = runTest {
+        val expandedPreviousEntity = expandJsonLdEntity(compactedPreviousEntity).members
+
+        val compactedEntityWithPreviousValue = notificationService.injectPreviousValues(
+            apiaryId.toUri(),
+            compactedEntitiesPayload.deserializeAsList(),
+            null,
+            expandedPreviousEntity as Map<String, List<Any>>?,
+            ENTITY_DELETED,
+            APIC_COMPOUND_CONTEXTS
+        ).find { it["id"] == apiaryId }!!
+
+        assertEquals(
+            expectedOutputEntity.deserializeAsMap(),
+            compactedEntityWithPreviousValue
+        )
     }
 
     @Test

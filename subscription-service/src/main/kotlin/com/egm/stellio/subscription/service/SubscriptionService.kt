@@ -340,8 +340,9 @@ class SubscriptionService(
                 OR (last_notification + throttling * INTERVAL '1 second') < :date
                 OR last_notification IS NULL)
             ${
-                if (updatedAttribute != null) "AND (string_to_array(watched_attributes, ',') && '{ ${updatedAttribute.first} }'" +
-                    "  OR watched_attributes IS NULL)"
+                if (updatedAttribute != null)
+                    "AND (string_to_array(watched_attributes, ',') && '{ ${updatedAttribute.first} }'" +
+                        "  OR watched_attributes IS NULL)"
                 else ""
             }
             AND CASE

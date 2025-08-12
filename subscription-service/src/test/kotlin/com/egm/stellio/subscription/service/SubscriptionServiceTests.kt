@@ -311,7 +311,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:12345678", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            null,
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -332,7 +332,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:3456789", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            null,
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(0, it.size)
@@ -353,7 +353,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            null,
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -374,7 +374,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            null,
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -395,7 +395,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            null,
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -433,7 +433,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", SENSOR_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            null,
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(0, it.size)
@@ -455,7 +455,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beekeeper:01", BEEKEEPER_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            null,
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(0, it.size)
@@ -533,7 +533,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", BEEHIVE_TERM)
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            Pair(TEMPERATURE_IRI, null),
+            null,
             ENTITY_CREATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
@@ -863,7 +863,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val expandedEntity = loadAndExpandMinimalEntity("urn:ngsi-ld:Beehive:1234567890", types.split(","))
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
-            null,
+            Pair(TEMPERATURE_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { assertEquals(expectedSize, it.size) }
     }

@@ -22,7 +22,9 @@ data class ApplicationProperties(
     data class TenantConfiguration(
         val name: String,
         val issuer: String,
-        val dbSchema: String
+        val dbSchema: String,
+        val clientId: String? = null,
+        val clientSecret: String? = null
     )
 
     data class Contexts(

@@ -20,6 +20,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -38,15 +39,13 @@ import org.springframework.test.context.TestPropertySource
 @ActiveProfiles("test")
 @TestPropertySource(
     properties = [
-        "application.authentication.enabled=true",
-        // point entity service to wiremock
-        "subscription.entity-service-url=http://localhost:8089",
         // declare a tenant with issuer and per-tenant client credentials mapped to wiremock
-        "application.tenants[0].name=urn:ngsi-ld:tenant:01",
-        "application.tenants[0].issuer=http://localhost:8089/realms/tenant-01",
-        "application.tenants[0].dbSchema=tenant01",
-        "application.tenants[0].clientId=test-client-id-01",
-        "application.tenants[0].clientSecret=test-client-secret-01",
+        // need to re-declare all the properties for the tenant (can't override only issuer)
+        "application.tenants[0].name=urn:ngsi-ld:tenant:default",
+        "application.tenants[0].issuer=http://localhost:8089/realms/default",
+        "application.tenants[0].dbSchema=default",
+        "application.tenants[0].clientId=stellio-subscription",
+        "application.tenants[0].clientSecret=changeit",
     ]
 )
 class CoreAPIServiceAuthTests {
@@ -60,10 +59,10 @@ class CoreAPIServiceAuthTests {
     }
 
     @Test
-    fun `it should attach bearer token for tenant 01 when calling entity service`() {
+    fun `it should attach bearer token for tenant when calling entity service`() {
         // stub token endpoint for tenant 01
         stubFor(
-            post(urlEqualTo("/realms/tenant-01/protocol/openid-connect/token"))
+            post(urlEqualTo("/realms/default/protocol/openid-connect/token"))
                 .willReturn(
                     aResponse()
                         .withHeader("Content-Type", "application/json")
@@ -80,7 +79,7 @@ class CoreAPIServiceAuthTests {
 
         runBlocking {
             val result = coreApiService.getEntities(
-                tenantName = "urn:ngsi-ld:tenant:01",
+                tenantName = "urn:ngsi-ld:tenant:default",
                 paramRequest = "?type=BeeHive",
                 contextLink = APIC_HEADER_LINK
             )
@@ -89,15 +88,45 @@ class CoreAPIServiceAuthTests {
 
         // verify both token call and entity call with proper headers
         verify(
-            postRequestedFor(urlEqualTo("/realms/tenant-01/protocol/openid-connect/token"))
+            postRequestedFor(urlEqualTo("/realms/default/protocol/openid-connect/token"))
                 .withRequestBody(containing("grant_type=client_credentials"))
-                .withBasicAuth(BasicCredentials("test-client-id-01", "test-client-secret-01"))
+                .withBasicAuth(BasicCredentials("stellio-subscription", "changeit"))
         )
         verify(
             getRequestedFor(urlEqualTo("/ngsi-ld/v1/entities?type=BeeHive"))
                 .withHeader(LINK, equalTo(APIC_HEADER_LINK))
-                .withHeader(NGSILD_TENANT_HEADER, equalTo("urn:ngsi-ld:tenant:01"))
+                .withHeader(NGSILD_TENANT_HEADER, equalTo("urn:ngsi-ld:tenant:default"))
                 .withHeader(AUTHORIZATION, equalTo("Bearer access-token-01"))
         )
+    }
+
+    @Test
+    fun `it should raise error when tenant is unknown`() {
+        // stub entity service endpoint (but no token endpoint for unknown tenant)
+        stubFor(
+            get(urlEqualTo("/ngsi-ld/v1/entities?type=BeeHive"))
+                .willReturn(
+                    okJson("[]")
+                )
+        )
+
+        runBlocking {
+            try {
+                coreApiService.getEntities(
+                    tenantName = "urn:ngsi-ld:tenant:unknown",
+                    paramRequest = "?type=BeeHive",
+                    contextLink = APIC_HEADER_LINK
+                )
+                // Should not reach here - expect an exception
+                fail("Expected an exception for unknown tenant")
+            } catch (e: Exception) {
+                // Verify that an exception is thrown for unknown tenant
+                // The error should be related to client registration not found
+                assertEquals(
+                    "Could not find ClientRegistration with id 'urn:ngsi-ld:tenant:unknown'",
+                    e.message
+                )
+            }
+        }
     }
 }

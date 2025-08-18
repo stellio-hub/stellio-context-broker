@@ -1,8 +1,7 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.Either
-import arrow.core.Either.Left
-import arrow.core.Either.Right
+import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
@@ -76,15 +75,17 @@ class EntityService(
         expandedEntity: ExpandedEntity
     ): Either<APIException, Unit> = either {
         val sub = getSubFromSecurityContext()
-        entityQueryService.isMarkedAsDeleted(ngsiLdEntity.id).let {
-            when (it) {
-                is Left -> authorizationService.userCanCreateEntities().bind()
-                is Right ->
-                    if (!it.value)
-                        AlreadyExistsException(entityAlreadyExistsMessage(ngsiLdEntity.id.toString())).left().bind()
-                    else
-                        authorizationService.userCanAdminEntity(ngsiLdEntity.id).bind()
-            }
+
+        val (neverExisted, markedDeleted) = entityQueryService.isMarkedAsDeleted(ngsiLdEntity.id).let {
+            it.isLeft() to it.getOrElse { false }
+        }
+
+        when {
+            neverExisted -> authorizationService.userCanCreateEntities().bind()
+            markedDeleted ->
+                authorizationService.userCanAdminEntity(ngsiLdEntity.id).bind()
+            !markedDeleted ->
+                AlreadyExistsException(entityAlreadyExistsMessage(ngsiLdEntity.id.toString())).left().bind()
         }
 
         val createdAt = ngsiLdDateTime()
@@ -105,9 +106,11 @@ class EntityService(
                 authorizationService.createGlobalPermission(
                     ngsiLdEntity.id,
                     action = specificAccessPolicy
-                ).bind()
+                )
             }
-        authorizationService.createOwnerRight(ngsiLdEntity.id).bind()
+
+        if (neverExisted)
+            authorizationService.createOwnerRight(ngsiLdEntity.id).bind()
 
         entityEventService.publishEntityCreateEvent(
             sub,

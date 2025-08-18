@@ -359,11 +359,17 @@ class PermissionHandler(
         if (includeDetails) {
             permission.assignee?.let { assignee ->
                 permissionMap[AUTH_ASSIGNEE_TERM] = subjectReferentialService.retrieve(assignee)
-                    .bind().toSerializableMap()
+                    .fold(
+                        { mapOf("subjectId" to assignee,) },
+                        { it.toSerializableMap() }
+                    )
             }
             permission.assigner?.let { assigner ->
                 permissionMap[AUTH_ASSIGNER_TERM] = subjectReferentialService.retrieve(assigner)
-                    .bind().toSerializableMap()
+                    .fold(
+                        { mapOf("subjectId" to assigner,) },
+                        { it.toSerializableMap() }
+                    )
             }
             permission.target.id.let { id ->
                 permissionMap[AUTH_TARGET_TERM] = compactEntity(

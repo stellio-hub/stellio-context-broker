@@ -33,6 +33,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_ACTION_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNEE_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TARGET_TERM
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUBJECT_ID
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -359,11 +360,17 @@ class PermissionHandler(
         if (includeDetails) {
             permission.assignee?.let { assignee ->
                 permissionMap[AUTH_ASSIGNEE_TERM] = subjectReferentialService.retrieve(assignee)
-                    .bind().toSerializableMap()
+                    .fold(
+                        { mapOf(AUTH_TERM_SUBJECT_ID to assignee,) },
+                        { it.toSerializableMap() }
+                    )
             }
             permission.assigner?.let { assigner ->
                 permissionMap[AUTH_ASSIGNER_TERM] = subjectReferentialService.retrieve(assigner)
-                    .bind().toSerializableMap()
+                    .fold(
+                        { mapOf(AUTH_TERM_SUBJECT_ID to assigner,) },
+                        { it.toSerializableMap() }
+                    )
             }
             permission.target.id.let { id ->
                 permissionMap[AUTH_TARGET_TERM] = compactEntity(

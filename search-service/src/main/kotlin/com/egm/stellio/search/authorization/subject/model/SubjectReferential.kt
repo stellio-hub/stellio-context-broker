@@ -2,6 +2,9 @@ package com.egm.stellio.search.authorization.subject.model
 
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUBJECT_ID
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUBJECT_INFO
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUBJECT_TYPE
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.Sub
@@ -33,9 +36,9 @@ data class SubjectReferential(
 
     fun toSerializableMap(): Map<String, Any> =
         mapOf(
-            "subjectId" to subjectId,
-            "subjectType" to subjectType.name,
-            "subjectInfo" to getSubjectInfoValue()
+            AUTH_TERM_SUBJECT_ID to subjectId,
+            AUTH_TERM_SUBJECT_TYPE to subjectType.name,
+            AUTH_TERM_SUBJECT_INFO to getSubjectInfoValue()
         )
 }
 

@@ -34,21 +34,13 @@ import org.springframework.web.util.DefaultUriBuilderFactory
  *   ServerOAuth2AuthorizedClientExchangeFilterFunction.clientRegistrationId(tenantName). This
  *   instructs Spring Security to pick the matching tenant registration and fetch the correct token.
  *
- * When authentication is disablede:
+ * When authentication is disabled:
  * - A plain WebClient without the OAuth2 filter is exposed.
  *
  */
 @Configuration
 class WebClientConfig {
 
-    /**
-     * Creates one OAuth2 ClientRegistration per tenant.
-     *
-     * - Registration id = tenant name (e.g., urn:ngsi-ld:tenant:default).
-     * - tokenUri is derived from the tenant issuer by appending "/protocol/openid-connect/token".
-     * - Uses client_credentials grant with CLIENT_SECRET_BASIC auth method.
-     * - Client credentials (client-id/secret) are per-tenant and are read from application properties.
-     */
     @Bean
     @Primary
     @ConditionalOnProperty("application.authentication.enabled")

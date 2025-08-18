@@ -44,6 +44,8 @@ object AuthContextModel {
     const val AUTH_TERM_NAME = "name"
     const val AUTH_PROP_NAME = "https://schema.org/$AUTH_TERM_NAME"
     const val AUTH_TERM_SID = "serviceAccountId"
+    const val AUTH_TERM_SUBJECT_ID = "subjectId"
+    const val AUTH_TERM_SUBJECT_TYPE = "subjectType"
     const val AUTH_TERM_SUBJECT_INFO = "subjectInfo"
     const val AUTH_PROP_SUBJECT_INFO = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SUBJECT_INFO
     const val AUTH_TERM_ROLES = "roles"

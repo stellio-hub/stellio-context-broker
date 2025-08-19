@@ -188,7 +188,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))

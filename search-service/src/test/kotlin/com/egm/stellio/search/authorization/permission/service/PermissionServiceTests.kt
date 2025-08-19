@@ -114,11 +114,8 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `create a second Permission with the same target and assignee should return an error`() = runTest {
         permissionService.create(minimalPermission).shouldSucceed()
-        assertTrue(
-            runCatching {
-                permissionService.create(minimalPermission.copy(id = "urn:ngsi-ld:Permission:differentId".toUri()))
-            }.isFailure
-        )
+        permissionService.create(minimalPermission.copy(id = "urn:ngsi-ld:Permission:differentId".toUri()))
+            .shouldFailWith { it is AlreadyExistsException }
     }
 
     @Test

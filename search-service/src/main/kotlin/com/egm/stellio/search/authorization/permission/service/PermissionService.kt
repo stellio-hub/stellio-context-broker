@@ -7,6 +7,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.UNIQUENESS_CONFLICT_MESSAGE
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
@@ -60,6 +61,7 @@ class PermissionService(
     ): Either<APIException, Unit> = either {
         permission.validate().bind()
         checkExistence(permission.id, true).bind()
+        checkDuplicate(permission).bind()
 
         val insertStatement =
             """
@@ -116,6 +118,29 @@ class PermissionService(
                     AlreadyExistsException(Permission.alreadyExistsMessage(id)).left()
                 else
                     ResourceNotFoundException(Permission.notFoundMessage(id)).left()
+            }
+
+    suspend fun checkDuplicate(
+        permission: Permission
+    ): Either<APIException, Unit> =
+        databaseClient.sql(
+            """
+            SELECT exists (
+                SELECT 1
+                FROM permission
+                WHERE target_id = :target_id
+                AND action = :action
+                AND assignee ${if (permission.assignee.isNullOrBlank()) "is null" else "= '${permission.assignee}'"}                   
+            ) as exists
+            """.trimIndent()
+        ).bind("target_id", permission.target.id)
+            .bind("action", permission.action.value)
+            .oneToResult { toBoolean(it["exists"]) }
+            .flatMap {
+                if (it)
+                    AlreadyExistsException(UNIQUENESS_CONFLICT_MESSAGE).left()
+                else
+                    Unit.right()
             }
 
     suspend fun getById(id: URI): Either<APIException, Permission> = either {

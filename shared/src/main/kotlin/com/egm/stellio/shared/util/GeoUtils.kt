@@ -5,6 +5,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
@@ -48,12 +49,16 @@ fun geoJsonToWkt(geoJsonSerializedPayload: String): Either<APIException, String>
 fun throwingGeoJsonToWkt(geoJsonPayload: Map<String, Any>): String =
     geoJsonToWkt(geoJsonPayload).fold({ throw it }, { it })
 
-fun wktToGeoJson(wkt: String): Map<String, Any> {
-    val geometry = WKTReader().read(wkt)
-    val geoJsonWriter = GeoJsonWriter()
-    geoJsonWriter.setEncodeCRS(false)
-    return deserializeObject(geoJsonWriter.write(geometry))
-}
+fun wktToGeoJson(wkt: String): Any =
+    // when rendering null values in notifications, there is the special NGSI-LD Null instead of a WKT
+    if (wkt == NGSILD_NULL)
+        NGSILD_NULL
+    else {
+        val geometry = WKTReader().read(wkt)
+        val geoJsonWriter = GeoJsonWriter()
+        geoJsonWriter.setEncodeCRS(false)
+        deserializeObject(geoJsonWriter.write(geometry))
+    }
 
 fun stringifyCoordinates(coordinates: Any): String =
     when (coordinates) {

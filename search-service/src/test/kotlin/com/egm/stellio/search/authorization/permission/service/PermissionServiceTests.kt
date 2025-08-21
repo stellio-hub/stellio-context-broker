@@ -6,7 +6,13 @@ import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.notFoundMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
+import com.egm.stellio.search.authorization.permission.model.PermissionUtils.gimmeRawPermission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
+import com.egm.stellio.search.authorization.permission.service.PermissionServiceTests.PermissionId.beehiveType
+import com.egm.stellio.search.authorization.permission.service.PermissionServiceTests.PermissionId.beehiveTypeAndScopeA
+import com.egm.stellio.search.authorization.permission.service.PermissionServiceTests.PermissionId.beehiveWithScope
+import com.egm.stellio.search.authorization.permission.service.PermissionServiceTests.PermissionId.beekeeper
+import com.egm.stellio.search.authorization.permission.service.PermissionServiceTests.PermissionId.scopeA
 import com.egm.stellio.search.authorization.subject.USER_UUID
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.entity.model.Entity
@@ -16,6 +22,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEKEEPER_IRI
@@ -23,6 +30,7 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.loadAndPrepareSampleData
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
@@ -40,6 +48,8 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -67,8 +77,9 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     private val userUuid = "55e64faf-4bda-41cc-98b0-195874cefd29"
     private val groupUuid = UUID.randomUUID().toString()
-    private val entityId = "urn:ngsi-ld:Entity:01".toUri()
+    private val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     val minimalPermission = loadAndDeserializePermission("permission/permission_minimal.json")
+    val beehiveScope = "/A"
 
     @BeforeEach
     fun setDefaultBehaviorOnSubjectReferential() {
@@ -118,6 +129,52 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             .shouldFailWith { it is AlreadyExistsException }
     }
 
+    @ParameterizedTest
+    @CsvSource(
+        // scopes  , types                         , new scopes, new types                                ,shouldSucceed
+        "  '/1,/2' , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , '/1,/2,/3', '$BEEHIVE_IRI'                           ,true",
+        "  '/1,/2' , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , '/3'      , '$BEEHIVE_IRI'                           ,true",
+        "  '/1,/2' , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , null      , '$BEEHIVE_IRI'                           ,true",
+        "  '/1,/2' , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , '/1'      , '$BEEHIVE_IRI,$BEEKEEPER_IRI,$APIARY_IRI',true",
+        "  '/1,/2' , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , '/1'      , '$APIARY_IRI'                            ,true",
+        "  '/1,/2' , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , '/2'      , null                                     ,true",
+        "  '/1,/2' , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , '/1,/2'   , '$BEEHIVE_IRI,$BEEKEEPER_IRI'            ,false",
+        "  '/1,/2' , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , '/1'      , '$BEEHIVE_IRI,$BEEKEEPER_IRI'            ,false",
+        "  '/1,/2' , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , '/1,/2'   , '$BEEHIVE_IRI'                           ,false",
+        "  null    , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , null      , '$APIARY_IRI'                            ,true",
+        "  null    , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , '/1'      , '$APIARY_IRI'                            ,true",
+        "  null    , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , '/1'      , '$BEEHIVE_IRI'                           ,false",
+        "  null    , '$BEEHIVE_IRI,$BEEKEEPER_IRI' , null      , '$BEEHIVE_IRI'                           ,false",
+        "  '/1,/2' , null                          , '/3'      , null                                     ,true",
+        "  '/1,/2' , null                          , '/3'      , '$BEEHIVE_IRI'                           ,true",
+        "  '/1,/2' , null                          , '/1'      , '$BEEHIVE_IRI'                           ,false",
+        "  '/1,/2' , null                          , '/1'      ,  null                                    ,false",
+        "  '/1,/2' , null                          , null      ,  null                                    ,true",
+        nullValues = ["null"]
+    )
+    fun `checkDuplicate should fail only if all the scopes and all the types are included in an existing permission`(
+        createdScopes: String?,
+        createdTypes: String?,
+        newScopes: String?,
+        newTypes: String?,
+        shouldSucceed: Boolean
+    ) = runTest {
+        val permission = Permission(
+            assignee = userUuid,
+            target = TargetAsset(scopes = createdScopes?.split(','), types = createdTypes?.split(',')),
+            action = Action.READ,
+            assigner = userUuid
+        )
+        permissionService.create(permission).shouldSucceed()
+
+        permissionService.checkDuplicate(
+            permission.copy(
+                id = "urn:ngsi-ld:Permission:differentId".toUri(),
+                target = TargetAsset(types = newTypes?.split(','), scopes = newScopes?.split(','))
+            )
+        ).let { if (shouldSucceed) it.shouldSucceed() else it.shouldFailWith { it is AlreadyExistsException } }
+    }
+
     @Test
     fun `get a minimal Permission should return the created Permission`() = runTest {
         permissionService.create(minimalPermission).shouldSucceed()
@@ -126,6 +183,23 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             minimalPermission.id
         ).shouldSucceedWith {
             assertEquals(minimalPermission, it)
+        }
+    }
+
+    @Test
+    fun `get a Permission with types and scopes should return the created Permission`() = runTest {
+        val permision = Permission(
+            assignee = userUuid,
+            target = TargetAsset(scopes = listOf("/1"), types = listOf(BEEHIVE_IRI)),
+            action = Action.READ,
+            assigner = userUuid
+        )
+        permissionService.create(permision).shouldSucceed()
+
+        permissionService.getById(
+            permision.id
+        ).shouldSucceedWith {
+            assertEquals(permision, it)
         }
     }
 
@@ -171,6 +245,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val ownPermission = loadAndDeserializePermission("permission/permission_minimal.json")
             .copy(id = "urn:ownPermission".toUri(), action = Action.OWN)
         permissionService.create(ownPermission).shouldSucceed()
+
+        coEvery {
+            subjectReferentialService.hasStellioAdminRole(any())
+        } returns true.right()
 
         val readFilterAnswer = permissionService.getPermissions(
             PermissionFilters(action = Action.READ)
@@ -247,7 +325,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+
         entityService.createEntity(
             ngsiLdEntity,
             expandedEntity
@@ -263,37 +341,153 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         assertThat(matchingPermissions.getOrNull()).isEmpty()
     }
 
-    @Test
-    @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `query Permission on target entities type should return Permissions matching this type`() = runTest {
+    private object PermissionId {
+        const val beekeeper = "urn:ngsi-ld:Permission:1"
+        const val beehiveWithScope = "urn:ngsi-ld:Permission:2"
+        const val beehiveTypeAndScopeA = "urn:ngsi-ld:Permission:3"
+        const val beehiveType = "urn:ngsi-ld:Permission:4"
+        const val scopeA = "urn:ngsi-ld:Permission:5"
+    }
+
+    private suspend fun createRequestedPermissions() {
         coEvery {
             subjectReferentialService.hasOneOfGlobalRoles(any(), any())
-        } returns true.right() // allow entity creation
+        } returns true.right()
 
+        val (beekeeperExpandedEntity, beekeeperNgsiLdEntity) =
+            loadAndPrepareSampleData("beekeeper.jsonld").shouldSucceedAndResult()
+        // avoid creating OWN permission
+        entityService.createEntityPayload(beekeeperNgsiLdEntity, beekeeperExpandedEntity, ngsiLdDateTime())
+            .shouldSucceed()
+
+        val permissionOnMinimalEntity = gimmeRawPermission(
+            id = beekeeper.toUri(),
+            assignee = USER_UUID,
+            target = TargetAsset(id = beekeeperNgsiLdEntity.id)
+        )
+        permissionService.create(permissionOnMinimalEntity).shouldSucceed()
+
+        val (beehiveExpandedEntity, beehiveNgsiLdEntity) =
+            loadAndPrepareSampleData("beehive_with_scope.jsonld").shouldSucceedAndResult()
+        // avoid creating OWN permission
+        entityService.createEntityPayload(beehiveNgsiLdEntity, beehiveExpandedEntity, ngsiLdDateTime()).shouldSucceed()
+
+        val permissionOnEntityWithScope = gimmeRawPermission(
+            id = beehiveWithScope.toUri(),
+            assignee = USER_UUID,
+            target = TargetAsset(id = beehiveNgsiLdEntity.id),
+        )
+        permissionService.create(permissionOnEntityWithScope).shouldSucceed()
+
+        val permissionOnTypeAndScope = gimmeRawPermission(
+            id = beehiveTypeAndScopeA.toUri(),
+            assignee = USER_UUID,
+            target = TargetAsset(types = listOf(BEEHIVE_IRI), scopes = listOf(beehiveScope))
+        )
+        permissionService.create(permissionOnTypeAndScope).shouldSucceed()
+
+        val permissionOnScope = gimmeRawPermission(
+            id = scopeA.toUri(),
+            assignee = USER_UUID,
+            target = TargetAsset(scopes = listOf(beehiveScope))
+        )
+        permissionService.create(permissionOnScope).shouldSucceed()
+
+        val permissionOnType = gimmeRawPermission(
+            id = beehiveType.toUri(),
+            assignee = USER_UUID,
+            target = TargetAsset(types = listOf(BEEHIVE_IRI))
+        )
+        permissionService.create(permissionOnType).shouldSucceed()
+    }
+
+    // with typeQ and scopeQ we return all permissions that can impact something inside the typeQ/scopeQ combination
+    @ParameterizedTest
+    @CsvSource(
+        // typeQ                        ,  scopeQ  , expectedIds , nonExpectedIds
+        "  '$BEEHIVE_IRI,$BEEKEEPER_IRI', '/A,/B'  , '$beehiveWithScope,$scopeA,$beehiveType,$beehiveTypeAndScopeA', '$beekeeper'",
+        "  '$BEEHIVE_IRI,$BEEKEEPER_IRI',  null    , '$beekeeper,$beehiveWithScope,$scopeA,$beehiveType,$beehiveTypeAndScopeA', null",
+        "  '$BEEKEEPER_IRI'             ,  null    , '$beekeeper,$scopeA', '$beehiveWithScope,$beehiveType,$beehiveTypeAndScopeA'",
+        "  null                         , '/A,/B'  , '$beehiveWithScope,$scopeA,$beehiveType,$beehiveTypeAndScopeA', '$beekeeper'",
+        "  null                         , '/B'     , '$beehiveType', '$beekeeper,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'",
+        "  '$BEEKEEPER_IRI'             , '/B'     , null, '$beehiveType,$beekeeper,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'",
+        nullValues = ["null"]
+    )
+    @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
+    fun `query Permissions should return Permissions that affect the filtered typeQ and scopeQ`(
+        typeQ: String?,
+        scopeQ: String?,
+        expectedIds: String?,
+        nonExpectedIds: String?
+    ) = runTest {
         coEvery {
             subjectReferentialService.getSubjectAndGroupsUUID()
         } answers { listOf(USER_UUID).right() }
 
-        val (expandedEntity, ngsiLdEntity) =
-            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        entityService.createEntity(
-            ngsiLdEntity,
-            expandedEntity
-        ).shouldSucceed()
+        createRequestedPermissions()
 
-        coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(USER_UUID)
-        } returns listOf(USER_UUID).right()
-
-        val permission = minimalPermission.copy(assignee = USER_UUID, target = TargetAsset(id = entityId))
-        permissionService.create(permission).shouldSucceed()
-
-        val matchingPermissions = permissionService.getPermissions(
-            PermissionFilters(targetTypeSelection = BEEHIVE_IRI, kind = PermissionKind.ASSIGNED)
+        val permissions = permissionService.getPermissions(
+            PermissionFilters(
+                targetScopeSelection = scopeQ,
+                targetTypeSelection = typeQ,
+                kind = PermissionKind.ASSIGNED
+            )
         )
-        assertTrue(matchingPermissions.isRight())
-        assertThat(matchingPermissions.getOrNull()).hasSize(2) // created permission and owner permission
+        assertTrue(permissions.isRight())
+        expectedIds?.split(',')?.forEach { expectedId ->
+            assertThat(permissions.getOrNull()).anyMatch { it.id == expectedId.toUri() }
+        }
+        nonExpectedIds?.split(',')?.forEach { nonExpectedId ->
+            assertThat(permissions.getOrNull()).allMatch { it.id != nonExpectedId.toUri() }
+        }
+    }
+
+    // for the admin filter we only return permissions that are included in an admin permission target.
+    @ParameterizedTest
+    @CsvSource(
+        // adminTypes                   ,  adminScope   , expectedIds, nonExpectedIds
+        "  '$BEEHIVE_IRI,$BEEKEEPER_IRI', '/A,/B'       , '$beehiveWithScope,$beehiveTypeAndScopeA' , '$beekeeper,$scopeA,$beehiveType'",
+        "  '$BEEHIVE_IRI,$BEEKEEPER_IRI',  null         , '$beekeeper,$beehiveWithScope,$beehiveType,$beehiveTypeAndScopeA', '$scopeA'",
+        "  '$BEEKEEPER_IRI'             ,  null         , '$beekeeper', '$beehiveWithScope,$beehiveType,$beehiveTypeAndScopeA,$scopeA'",
+        "  null                         , '/A,/B'       , '$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA', '$beekeeper,$beehiveType'",
+        "  null                         , '/B'          , null, '$beehiveType,$beekeeper,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'",
+        "  '$BEEKEEPER_IRI'             , '/B'          , null, '$beehiveType,$beekeeper,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'",
+        nullValues = ["null"]
+    )
+    @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
+    fun `query Permission with kind Admin should return Permissions with target included in permission you administer`(
+        adminTypes: String?,
+        adminScopes: String?,
+        expectedIds: String?,
+        nonExpectedIds: String?
+    ) = runTest {
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } answers { listOf(USER_UUID).right() }
+
+        createRequestedPermissions()
+
+        val permissionOnType = gimmeRawPermission(
+            id = "urn:ngsild:GiveAdminRight".toUri(),
+            assignee = USER_UUID,
+            target = TargetAsset(
+                types = adminTypes?.split(','),
+                scopes = adminScopes?.split(',')
+            ),
+            action = Action.ADMIN
+        )
+        permissionService.create(permissionOnType).shouldSucceed()
+
+        val permissions = permissionService.getPermissions(
+            PermissionFilters(kind = PermissionKind.ADMIN)
+        )
+        assertTrue(permissions.isRight())
+        expectedIds?.split(',')?.forEach { expectedId ->
+            assertThat(permissions.getOrNull()).anyMatch { it.id == expectedId.toUri() }
+        }
+        nonExpectedIds?.split(',')?.forEach { nonExpectedId ->
+            assertThat(permissions.getOrNull()).allMatch { it.id != nonExpectedId.toUri() }
+        }
     }
 
     @Test
@@ -364,7 +558,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `hasPermissionOnEntity should not allow a user having no permission`() = runTest {
+    fun `hasPermissionOnEntity should not allow a subject having no permission`() = runTest {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
@@ -380,7 +574,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `hasPermissionOnEntity should allow a user having a direct permission on a entity`() = runTest {
+    fun `hasPermissionOnEntity should allow a subject having a direct permission on a entity`() = runTest {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
@@ -401,7 +595,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `hasPermissionOnEntity should allow a user to read if it has a write permission`() = runTest {
+    fun `hasPermissionOnEntity should allow a subject to read if it has a write permission`() = runTest {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
@@ -422,7 +616,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `hasPermissionOnEntity should allow a user having permission via a group membership`() = runTest {
+    fun `hasPermissionOnEntity should allow a subject having permission via a group membership`() = runTest {
         coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
 
         coEvery {
@@ -436,14 +630,14 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 action = Action.READ,
                 assigner = userUuid
             )
-        )
+        ).shouldSucceed()
 
         permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
             .shouldSucceedWith { assertTrue(it) }
     }
 
     @Test
-    fun `hasPermissionOnEntity should allow a user having the stellio-admin role`() = runTest {
+    fun `hasPermissionOnEntity should allow a subject having the stellio-admin role`() = runTest {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns true.right()
 
         coEvery {
@@ -461,5 +655,142 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coVerify(exactly = 0) {
             subjectReferentialService.retrieve(eq(userUuid))
         }
+    }
+
+    @Test
+    fun `hasPermissionOnEntity should allow a subject having a scope-based permission on an entity`() = runTest {
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
+
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } returns listOf(userUuid).right()
+
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_with_scope.jsonld").shouldSucceedAndResult()
+
+        entityService.createEntityPayload(
+            ngsiLdEntity,
+            expandedEntity,
+            ngsiLdDateTime()
+        ).shouldSucceed()
+
+        permissionService.create(
+            Permission(
+                assignee = userUuid,
+                target = TargetAsset(scopes = listOf(beehiveScope)),
+                action = Action.READ,
+                assigner = userUuid
+            )
+        ).shouldSucceed()
+
+        permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
+            .shouldSucceedWith { assertTrue(it) }
+    }
+
+    @Test
+    fun `hasPermissionOnEntity should allow a subject having a type-based permission on an entity`() = runTest {
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
+
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } returns listOf(userUuid).right()
+
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_with_scope.jsonld").shouldSucceedAndResult()
+
+        entityService.createEntityPayload(
+            ngsiLdEntity,
+            expandedEntity,
+            ngsiLdDateTime()
+        ).shouldSucceed()
+
+        permissionService.create(
+            Permission(
+                assignee = userUuid,
+                target = TargetAsset(types = listOf(BEEHIVE_IRI)),
+                action = Action.READ,
+                assigner = userUuid
+            )
+        ).shouldSucceed()
+
+        permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
+            .shouldSucceedWith { assertTrue(it) }
+    }
+
+    @Test
+    fun `hasPermissionOnEntity should allow a subject having both type and scope-based permission on an entity`() = runTest {
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
+
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } returns listOf(userUuid).right()
+
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_with_scope.jsonld").shouldSucceedAndResult()
+
+        entityService.createEntityPayload(
+            ngsiLdEntity,
+            expandedEntity,
+            ngsiLdDateTime()
+        ).shouldSucceed()
+
+        permissionService.create(
+            Permission(
+                assignee = userUuid,
+                target = TargetAsset(scopes = listOf(beehiveScope), types = listOf(BEEHIVE_IRI)),
+                action = Action.READ,
+                assigner = userUuid
+            )
+        ).shouldSucceed()
+
+        permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
+            .shouldSucceedWith { assertTrue(it) }
+    }
+
+    @Test
+    fun `hasPermissionOnEntity should not allow a subject having both type and scope-based permission on an entity with only type matching`() = runTest {
+        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
+
+        coEvery {
+            subjectReferentialService.getSubjectAndGroupsUUID()
+        } returns listOf(userUuid).right()
+
+        val matchingType = BEEHIVE_IRI
+        val nonMatchingType = BEEKEEPER_IRI
+        val nonMatchingScope = "/non/matching/scope"
+        val matchingScope = beehiveScope
+
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_with_scope.jsonld").shouldSucceedAndResult()
+
+        entityService.createEntityPayload(
+            ngsiLdEntity,
+            expandedEntity,
+            ngsiLdDateTime()
+        ).shouldSucceed()
+
+        permissionService.create(
+            Permission(
+                assignee = userUuid,
+                target = TargetAsset(scopes = listOf(nonMatchingScope), types = listOf(matchingType)),
+                action = Action.READ,
+                assigner = userUuid
+            )
+        ).shouldSucceed()
+
+        permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
+            .shouldSucceedWith { assertFalse(it) }
+
+        permissionService.create(
+            Permission(
+                assignee = userUuid,
+                target = TargetAsset(scopes = listOf(matchingScope), types = listOf(nonMatchingType)),
+                action = Action.READ,
+                assigner = userUuid
+            )
+        ).shouldSucceed()
+
+        permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
+            .shouldSucceedWith { assertFalse(it) }
     }
 }

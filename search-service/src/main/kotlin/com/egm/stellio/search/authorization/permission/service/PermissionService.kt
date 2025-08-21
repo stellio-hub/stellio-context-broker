@@ -8,6 +8,7 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.UNIQUENESS_CONFLICT_MESSAGE
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedTargetMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
@@ -17,10 +18,12 @@ import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toBoolean
 import com.egm.stellio.search.common.util.toInt
+import com.egm.stellio.search.common.util.toOptionalList
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
@@ -34,9 +37,12 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TARGET_TERM
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.toSqlArray
+import com.egm.stellio.shared.util.toSqlList
 import com.egm.stellio.shared.util.toUri
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
@@ -46,6 +52,8 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
+
+typealias ClauseAndFilter = Pair<String, String>
 
 @Component
 class PermissionService(
@@ -68,6 +76,8 @@ class PermissionService(
             INSERT INTO permission(
                 id,
                 target_id,
+                target_scopes,
+                target_types,
                 assignee,
                 action,
                 created_at,
@@ -77,6 +87,8 @@ class PermissionService(
             VALUES(
                 :id,
                 :target_id,
+                :target_scopes,
+                :target_types,
                 :assignee,
                 :action,
                 :created_at,
@@ -87,6 +99,8 @@ class PermissionService(
         databaseClient.sql(insertStatement)
             .bind("id", permission.id)
             .bind("target_id", permission.target.id)
+            .bind("target_scopes", permission.target.scopes?.toTypedArray())
+            .bind("target_types", permission.target.types?.toTypedArray())
             .bind("assignee", permission.assignee)
             .bind("action", permission.action.value)
             .bind("created_at", permission.createdAt)
@@ -122,18 +136,29 @@ class PermissionService(
 
     suspend fun checkDuplicate(
         permission: Permission
-    ): Either<APIException, Unit> =
-        databaseClient.sql(
+    ): Either<APIException, Unit> {
+        val targetIdFilter = permission.target.id?.let { " target_id = '$it'" } ?: "target_id is null"
+        val scopesIsIncludedFilter =
+            permission.target.scopes?.let { "(target_scopes is null OR target_scopes @> ${it.toSqlArray()})" }
+                ?: "target_scopes is null"
+        val typesIsIncludedFilter =
+            permission.target.types?.let { "(target_types is null OR target_types @> ${it.toSqlArray()})" }
+                ?: "target_types is null"
+
+        val targetIsIncludedFilter =
+            listOfNotNull(targetIdFilter, scopesIsIncludedFilter, typesIsIncludedFilter)
+                .joinToString(" AND ")
+        return databaseClient.sql(
             """
             SELECT exists (
                 SELECT 1
                 FROM permission
-                WHERE target_id = :target_id
-                AND action = :action
+                WHERE action = :action
+                AND $targetIsIncludedFilter
                 AND assignee ${if (permission.assignee.isNullOrBlank()) "is null" else "= '${permission.assignee}'"}                   
             ) as exists
             """.trimIndent()
-        ).bind("target_id", permission.target.id)
+        )
             .bind("action", permission.action.value)
             .oneToResult { toBoolean(it["exists"]) }
             .flatMap {
@@ -142,7 +167,7 @@ class PermissionService(
                 else
                     Unit.right()
             }
-
+    }
     suspend fun getById(id: URI): Either<APIException, Permission> = either {
         checkExistence(id).bind()
 
@@ -150,6 +175,8 @@ class PermissionService(
             """
             SELECT id,
                 target_id,
+                target_scopes,
+                target_types,
                 assignee,
                 action,
                 created_at,
@@ -162,20 +189,6 @@ class PermissionService(
         return databaseClient.sql(selectStatement)
             .bind("id", id)
             .oneToResult { rowToPermission(it).bind() }
-    }
-
-    suspend fun isAdminOf(entityId: URI): Either<APIException, Boolean> = either {
-        val selectStatement =
-            """
-            SELECT target_id
-            FROM permission
-            WHERE id = :entity_id
-            """.trimIndent()
-
-        val targetEntityId = databaseClient.sql(selectStatement)
-            .bind("entity_id", entityId)
-            .oneToResult { it["target_id"] as String }.bind()
-        checkHasPermissionOnEntity(targetEntityId.toUri(), Action.ADMIN).bind()
     }
 
     suspend fun delete(id: URI): Either<APIException, Unit> = either {
@@ -202,10 +215,18 @@ class PermissionService(
             .forEach {
                 when {
                     it.key == AUTH_TARGET_TERM -> {
-                        val target = input[AUTH_TARGET_TERM] as Map<String, Any>
-                        target[NGSILD_ID_TERM]?.let { entityId ->
-                            updatePermissionAttribute(permissionId, "target_id", entityId).bind()
-                        }
+                        val target = TargetAsset.deserialize(it.value as Map<String, Any>, contexts).bind()
+                        updatePermissionAttribute(permissionId, "target_id", target.id).bind()
+                        updatePermissionAttribute(
+                            permissionId,
+                            "target_types",
+                            target.types?.toSqlArray()
+                        ).bind()
+                        updatePermissionAttribute(
+                            permissionId,
+                            "target_scopes",
+                            target.scopes?.toSqlArray()
+                        ).bind()
                     }
 
                     it.key == AUTH_ACTION_TERM -> {
@@ -263,17 +284,23 @@ class PermissionService(
         offset: Int = 0,
     ): Either<APIException, List<Permission>> = either {
         val filterQuery = buildWhereStatement(filters).bind()
-        val authorizationFilter = buildAuthorizationFilter(filters.kind).bind()
+        val (withClause, authorizationFilter) = buildAuthorizationFilter(filters.kind).bind()
         val selectStatement =
             """
-            SELECT id,
-                target_id,
-                assignee,
-                action,
-                created_at,
-                modified_at,
-                assigner
+            $withClause
+                
+            SELECT 
+                permission.id,
+                permission.target_id,
+                permission.target_scopes,
+                permission.target_types,
+                permission.assignee,
+                permission.action,
+                permission.created_at,
+                permission.modified_at,
+                permission.assigner
             FROM permission
+            LEFT JOIN entity_payload ON permission.target_id = entity_payload.entity_id
             WHERE $filterQuery 
             AND $authorizationFilter
             ORDER BY permission.created_at
@@ -291,10 +318,12 @@ class PermissionService(
         filters: PermissionFilters = PermissionFilters(),
     ): Either<APIException, Int> = either {
         val filterQuery = buildWhereStatement(filters).bind()
-        val authorizationFilter = buildAuthorizationFilter(filters.kind).bind()
+        val (withClause, authorizationFilter) = buildAuthorizationFilter(filters.kind).bind()
 
         val selectStatement =
             """
+            $withClause
+            
             SELECT count(distinct permission.id)
             FROM permission
             WHERE $filterQuery 
@@ -338,21 +367,90 @@ class PermissionService(
         uuids: List<Sub>,
         entityId: URI,
         actions: Set<Action>
-    ): Either<APIException, Boolean> =
-        databaseClient
+    ): Either<APIException, Boolean> {
+        return databaseClient
+            .sql(
+                """
+                WITH entity AS (
+                    SELECT
+                        entity_id,
+                        types,
+                        COALESCE(scopes, ARRAY['@none']) as scopes
+                    FROM entity_payload
+                    WHERE entity_id = '$entityId'                
+                )
+                
+                SELECT COUNT(id) as count
+                FROM permission
+                LEFT JOIN entity ON TRUE
+                WHERE ${buildIsAssigneeFilter(uuids)}
+                AND (
+                    target_id = '$entityId'
+                    OR (
+                        permission.target_id is null 
+                        AND
+                        (permission.target_scopes is null OR permission.target_scopes && entity.scopes)
+                        AND
+                        (permission.target_types is null OR permission.target_types && entity.types)
+                    )
+                )
+                AND action IN(:actions)
+                """.trimIndent()
+            )
+            .bind("actions", actions.map { it.value })
+            .oneToResult { it["count"] as Long >= 1L }
+    }
+
+    internal suspend fun hasPermissionOnTarget(
+        target: TargetAsset,
+        action: Action,
+    ): Either<APIException, Unit> = either {
+        if (!applicationProperties.authentication.enabled)
+            return@either
+
+        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+
+        subjectReferentialService.hasStellioAdminRole(subjectUuids)
+            .flatMap {
+                if (!it && !hasPermissionOnTarget(subjectUuids, target, action.getIncludedIn()).bind())
+                    AccessDeniedException(unauthorizedTargetMessage(target)).left().bind()
+                else Unit.right()
+            }.bind()
+    }
+
+    private suspend fun hasPermissionOnTarget(
+        uuids: List<Sub>,
+        target: TargetAsset,
+        actions: Set<Action>
+    ): Either<APIException, Boolean> {
+        if (target.isTargetingEntity())
+            return hasPermissionOnEntity(
+                uuids,
+                target.id!!,
+                actions
+            )
+        val typesFilters = target.types?.let {
+            "target_types @> ${target.types.toSqlArray()}"
+        }
+        val scopesFilters = target.scopes?.let {
+            "target_scopes @> ${target.scopes.toSqlArray()}"
+        }
+        val scopesAndTypesFilters = listOfNotNull(typesFilters, scopesFilters).joinToString(" AND ")
+
+        return databaseClient
             .sql(
                 """
                 SELECT COUNT(id) as count
                 FROM permission
-                WHERE (assignee is null OR assignee IN(:uuids))
-                AND target_id = :entity_id
+                LEFT JOIN entity_payload ON permission.target_id = entity_payload.entity_id
+                WHERE ${buildIsAssigneeFilter(uuids)}
+                $scopesAndTypesFilters
                 AND action IN(:actions)
                 """.trimIndent()
             )
-            .bind("uuids", uuids)
-            .bind("entity_id", entityId)
             .bind("actions", actions.map { it.value })
             .oneToResult { it["count"] as Long >= 1L }
+    }
 
     suspend fun getEntitiesIdsOwnedBySubject(
         subjectId: Sub
@@ -372,53 +470,82 @@ class PermissionService(
 
     private suspend fun buildAuthorizationFilter(
         kind: PermissionKind = PermissionKind.ADMIN
-    ): Either<APIException, String> =
+    ): Either<APIException, ClauseAndFilter> =
         either {
             val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
             when (kind) {
-                PermissionKind.ADMIN -> buildIsAdminFilter(uuids).bind()
-                PermissionKind.ASSIGNED -> buildIsAssigneeFilter(uuids)
+                PermissionKind.ADMIN -> buildPermissionAdminFilter(uuids).bind()
+                PermissionKind.ASSIGNED -> "" to buildIsAssigneeFilter(uuids)
             }
         }
 
-    private suspend fun buildIsAssigneeFilter(uuids: List<Sub>): String =
-        """
-        (
-            assignee is null
-            OR assignee IN (${uuids.joinToString(",") { "'$it'" }})
-         )
-        """.trimIndent()
+    private fun buildIsAssigneeFilter(uuids: List<Sub>): String =
+        "(assignee is null OR assignee IN ${uuids.toSqlList()})"
 
-    private suspend fun buildIsAdminFilter(uuids: List<Sub>): Either<APIException, String> = either {
-        if (subjectReferentialService.hasStellioAdminRole(uuids).bind()) "true" else """
+    private suspend fun buildPermissionAdminFilter(uuids: List<Sub>): Either<APIException, ClauseAndFilter> = either {
+        if (subjectReferentialService.hasStellioAdminRole(uuids).bind()) "" to "true" else {
+            val withClause = buildAdminPermissionWithClause(Action.ADMIN, uuids)
+            val filterClause = """
         (
-            target_id in (
-                SELECT target_id
-                FROM permission
-                WHERE assignee IN (${uuids.joinToString(",") { "'$it'" }})
-                AND action IN ('admin', 'own')
+            ${buildAsRightOnEntityFilter(Action.ADMIN, uuids)}   
+            OR 
+            (
+               target_id is null  
+               AND  exists (
+                   SELECT 1
+                   FROM admin_permissions as ap
+                   WHERE (ap.target_types IS NULL OR ap.target_types @> permission.target_types)
+                   AND (ap.target_scopes IS NULL OR ap.target_scopes @> permission.target_scopes)
+               )
             )
-         )
-        """.trimIndent()
+        )
+            """.trimIndent()
+            withClause to filterClause
+        }
     }
+
+    fun buildAsRightOnEntityFilter(
+        action: Action,
+        uuids: List<Sub>
+    ): String = """
+        (
+            entity_id in (
+              SELECT target_id
+              FROM permission
+              WHERE ${buildIsAssigneeFilter(uuids)}
+              AND target_id IS NOT NULL
+              AND action IN ${action.inSqlList()}
+           ) 
+           OR exists (
+               SELECT 1
+               FROM admin_permissions as ap
+               WHERE (ap.target_types is null OR ap.target_types && types)
+               AND (ap.target_scopes is null OR ap.target_scopes && scopes)
+           )
+        )
+    """.trimIndent()
+
+    fun buildAdminPermissionWithClause(
+        action: Action,
+        uuids: List<Sub>
+    ): String = """
+                 WITH admin_permissions AS (
+                    SELECT
+                        target_types,
+                        target_scopes
+                    FROM permission
+                    WHERE ${buildIsAssigneeFilter(uuids)}
+                    AND target_id IS NULL
+                    AND action IN ${action.inSqlList()}
+                )
+    """.trimIndent()
 
     private suspend fun buildWhereStatement(
         permissionFilters: PermissionFilters
     ): Either<APIException, String> = either {
-        val idFilter = if (!permissionFilters.ids.isNullOrEmpty())
-            """
-                (
-                    target_id is null OR
-                    target_id in ('${permissionFilters.ids.joinToString("', '")}')
-                )
-            """.trimIndent()
-        else null
-
         val actionFilter = permissionFilters.action?.let { action ->
             """
-            action in ('${
-                action.getIncludedIn().joinToString("', '") { it.value }
-            }')
+            action in ${action.inSqlList()}
             """.trimIndent()
         }
 
@@ -426,31 +553,53 @@ class PermissionService(
             val assignee = permissionFilters.assignee
 
             val assigneeUuids = subjectReferentialService.getSubjectAndGroupsUUID(assignee).bind()
-            """
-                (
-                    assignee is null OR
-                    assignee in ('${assigneeUuids.joinToString("', '")}')
-                )
-            """
+            buildIsAssigneeFilter(assigneeUuids)
         }
 
         val assignerFilter = permissionFilters.assigner?.let { assigner ->
             "assigner = '$assigner'"
         }
 
+        //  targetTypeFilter also return permission targeting entity with this type
         val targetTypeFilter = if (!permissionFilters.targetTypeSelection.isNullOrEmpty())
-            """
-                (
-                    target_id is null OR
-                    target_id in (
-                      SELECT entity_id
-                      FROM entity_payload
-                      where ${buildTypeQuery(permissionFilters.targetTypeSelection)})
+            """(
+                 (target_id is null AND target_types is null)
+                 OR
+                 ( ${buildTypeQuery(permissionFilters.targetTypeSelection, "target_types")} )
+                 OR 
+                 ( ${buildTypeQuery(permissionFilters.targetTypeSelection)} )
+               ) 
+            """.trimIndent()
+        else null
+
+        // targetScopeFilter also return permission targeting entity with this scope
+        val targetScopeFilter = if (!permissionFilters.targetScopeSelection.isNullOrEmpty())
+            """(
+                  (target_id is null AND target_scopes is null)
+                  OR
+                  ( ${buildScopeQQuery(permissionFilters.targetScopeSelection, columnName = "target_scopes")} )
+                  OR 
+                  ( ${buildScopeQQuery(permissionFilters.targetScopeSelection)} )
                 )
             """.trimIndent()
         else null
 
-        val filters = listOfNotNull(idFilter, actionFilter, assigneeFilter, assignerFilter, targetTypeFilter)
+        // targetIdFilter return permission targeting type or scope who include the entity with targetId
+        val idFilter = if (!permissionFilters.ids.isNullOrEmpty())
+            """
+                (
+                    target_id is not null AND
+                    target_id in ${permissionFilters.ids.toSqlList()}
+                )
+                OR
+                (
+                    entity_id in ${permissionFilters.ids.toSqlList()}
+                )
+            """.trimIndent()
+        else null
+
+        val filters =
+            listOfNotNull(idFilter, actionFilter, assigneeFilter, assignerFilter, targetTypeFilter, targetScopeFilter)
 
         if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
     }
@@ -463,7 +612,9 @@ class PermissionService(
                 createdAt = toZonedDateTime(row["created_at"]),
                 modifiedAt = toZonedDateTime(row["modified_at"]),
                 target = TargetAsset(
-                    id = (row["target_id"] as String).toUri(),
+                    id = (row["target_id"] as? String)?.toUri(),
+                    types = toOptionalList(row["target_types"]),
+                    scopes = toOptionalList(row["target_scopes"])
                 ),
                 action = Action.fromString(row["action"] as String).bind(),
                 assigner = row["assigner"] as? String,

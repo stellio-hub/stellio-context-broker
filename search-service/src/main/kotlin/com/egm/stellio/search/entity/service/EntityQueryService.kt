@@ -44,10 +44,11 @@ class EntityQueryService(
     suspend fun queryEntities(
         entitiesQuery: EntitiesQuery
     ): Either<APIException, Pair<List<ExpandedEntity>, Int>> = either {
-        val accessRightFilter = authorizationService.computeAccessRightFilter()
+        val accessRightFilter = authorizationService.getAccessRightFilter()
+        val adminPermissionWithClause = authorizationService.getAdminPermissionWithClause()
 
-        val entitiesIds = queryEntities(entitiesQuery, accessRightFilter)
-        val count = queryEntitiesCount(entitiesQuery, accessRightFilter).bind()
+        val entitiesIds = queryEntities(entitiesQuery, accessRightFilter, adminPermissionWithClause)
+        val count = queryEntitiesCount(entitiesQuery, accessRightFilter, adminPermissionWithClause).bind()
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
@@ -60,19 +61,23 @@ class EntityQueryService(
 
     suspend fun queryEntities(
         entitiesQuery: EntitiesQuery,
-        accessRightFilter: () -> String?
+        accessRightFilter: String?,
+        adminPermissionWithClause: String? = ""
     ): List<URI> =
-        queryEntities(entitiesQuery, true, accessRightFilter)
+        queryEntities(entitiesQuery, true, accessRightFilter, adminPermissionWithClause)
 
     suspend fun queryEntities(
         entitiesQuery: EntitiesQuery,
         excludeDeleted: Boolean = true,
-        accessRightFilter: () -> String?
+        accessRightFilter: String?,
+        adminPermissionWithClause: String?
     ): List<URI> {
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
 
         val selectQuery =
             """
+            ${adminPermissionWithClause ?: ""}
+            
             SELECT DISTINCT(entity_payload.entity_id)
             FROM entity_payload
             LEFT JOIN temporal_entity_attribute tea
@@ -94,19 +99,23 @@ class EntityQueryService(
 
     suspend fun queryEntitiesCount(
         entitiesQuery: EntitiesQuery,
-        accessRightFilter: () -> String?
+        accessRightFilter: String?,
+        adminPermissionWithClause: String? = ""
     ): Either<APIException, Int> =
-        queryEntitiesCount(entitiesQuery, true, accessRightFilter)
+        queryEntitiesCount(entitiesQuery, true, accessRightFilter, adminPermissionWithClause)
 
     suspend fun queryEntitiesCount(
         entitiesQuery: EntitiesQuery,
         excludeDeleted: Boolean = true,
-        accessRightFilter: () -> String?
+        accessRightFilter: String?,
+        adminPermissionWithClause: String?
     ): Either<APIException, Int> {
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
 
         val countQuery =
             """
+            ${adminPermissionWithClause ?: ""}    
+                
             SELECT count(distinct(entity_payload.entity_id)) as count_entity
             FROM entity_payload
             LEFT JOIN temporal_entity_attribute tea
@@ -122,7 +131,7 @@ class EntityQueryService(
             .map { it.toInt() }
     }
 
-    private fun buildFullEntitiesFilter(entitiesQuery: EntitiesQuery, accessRightFilter: () -> String?): String =
+    private fun buildFullEntitiesFilter(entitiesQuery: EntitiesQuery, accessRightFilter: String?): String =
         buildEntitiesQueryFilter(
             entitiesQuery,
             accessRightFilter
@@ -142,7 +151,7 @@ class EntityQueryService(
 
     fun buildEntitiesQueryFilter(
         entitiesQuery: EntitiesQuery,
-        accessRightFilter: () -> String?
+        accessRightFilter: String?
     ): String =
         when (entitiesQuery) {
             is EntitiesQueryFromGet -> buildEntitiesQueryFilterFromGet(entitiesQuery, accessRightFilter)
@@ -151,7 +160,7 @@ class EntityQueryService(
 
     fun buildEntitiesQueryFilterFromGet(
         entitiesQuery: EntitiesQueryFromGet,
-        accessRightFilter: () -> String?
+        accessRightFilter: String?
     ): String {
         val formattedIds =
             if (entitiesQuery.ids.isNotEmpty())
@@ -181,7 +190,7 @@ class EntityQueryService(
                 formattedIdPattern,
                 formattedType,
                 formattedAttrs,
-                accessRightFilter()
+                accessRightFilter
             )
 
         return queryFilter.joinToString(separator = " AND ")
@@ -189,7 +198,7 @@ class EntityQueryService(
 
     fun buildEntitiesQueryFilterFromPost(
         entitiesQuery: EntitiesQueryFromPost,
-        accessRightFilter: () -> String?
+        accessRightFilter: String?
     ): String {
         val entitySelectorFilter = entitiesQuery.entitySelectors?.map { entitySelector ->
             val formattedId =
@@ -211,7 +220,7 @@ class EntityQueryService(
                 formattedIdPattern,
                 formattedType,
                 formattedAttrs,
-                accessRightFilter()
+                accessRightFilter
             ).joinToString(separator = " AND ", prefix = "(", postfix = ")")
         }
 

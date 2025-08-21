@@ -117,8 +117,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     typeSelection = types,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertEquals(expectedCount, entitiesIds.size)
         if (expectedListOfEntities != null)
@@ -146,8 +147,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     scopeQ = scopeQ,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertEquals(expectedCount, entitiesIds.size)
         if (expectedListOfEntities != null)
@@ -163,8 +165,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertEquals(1, entitiesIds.size)
         assertThat(entitiesIds).contains(entity02Uri)
@@ -179,8 +182,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     typeSelection = "$APIARY_IRI|$BEEHIVE_IRI",
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertEquals(2, entitiesIds.size)
         assertThat(entitiesIds).contains(entity02Uri, entity05Uri)
@@ -195,8 +199,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     attrs = setOf(NAME_IRI),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertEquals(1, entitiesIds.size)
         assertThat(entitiesIds).contains(entity01Uri)
@@ -211,8 +216,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertEquals(1, entitiesIds.size)
         assertThat(entitiesIds).contains(entity02Uri)
@@ -226,8 +232,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertEquals(1, entitiesIds.size)
     }
@@ -241,8 +248,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     idPattern = ".*urn:ngsi-ld:BeeHive:01.*",
                     paginationQuery = PaginationQuery(limit = 1, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertEquals(1, entitiesIds.size)
         assertThat(entitiesIds).contains(entity01Uri)
@@ -308,8 +316,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     q = q,
                     paginationQuery = PaginationQuery(limit = 2, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertEquals(expectedCount, entitiesIds.size)
         if (expectedListOfEntities != null)
@@ -350,8 +359,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                         ).getOrNull()!!
                     ),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertEquals(expectedCount, entitiesIds.size)
     }
@@ -366,8 +376,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     ),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertThat(entitiesIds)
             .hasSize(2)
@@ -382,8 +393,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     scopeQ = "/Madrid/Gardens/ParqueNorte",
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertThat(entitiesIds)
             .hasSize(2)
@@ -405,8 +417,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     ),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertThat(entitiesIds)
             .hasSize(3)
@@ -428,8 +441,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     ),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertThat(entitiesIds)
             .hasSize(3)
@@ -451,8 +465,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     ),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertThat(entitiesIds)
             .hasSize(2)
@@ -467,14 +482,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     typeSelection = BEEHIVE_IRI,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) {
-                """
-                (
-                    entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:02')
-                )
-                """.trimIndent()
-            }
+                ),
+                "(entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:02'))"
+            )
 
         assertEquals(1, entitiesIds.size)
         assertThat(entitiesIds).contains(entity02Uri)
@@ -487,8 +497,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                 typeSelection = BEEHIVE_IRI,
                 paginationQuery = PaginationQuery(limit = 30, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
-            )
-        ) { null }.shouldSucceedWith { assertEquals(2, it) }
+            ),
+            null
+        ).shouldSucceedWith { assertEquals(2, it) }
     }
 
     @Test
@@ -499,8 +510,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                 typeSelection = BEEHIVE_IRI,
                 paginationQuery = PaginationQuery(limit = 30, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
-            )
-        ) { "entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:01')" }
+            ),
+            "entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:01')"
+        )
             .shouldSucceedWith { assertEquals(1, it) }
     }
 
@@ -513,8 +525,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     typeSelection = "https://ontology.eglobalmark.com/apic#UnknownType",
                     paginationQuery = PaginationQuery(limit = 2, offset = 10),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertThat(entitiesIds).isEmpty()
     }
@@ -528,8 +541,9 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 2, offset = 10),
                     attrs = setOf("unknownAttribute"),
                     contexts = APIC_COMPOUND_CONTEXTS
-                )
-            ) { null }
+                ),
+                null
+            )
 
         assertThat(entitiesIds).isEmpty()
     }

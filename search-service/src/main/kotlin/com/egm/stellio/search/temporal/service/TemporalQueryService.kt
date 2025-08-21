@@ -116,13 +116,22 @@ class TemporalQueryService(
     suspend fun queryTemporalEntities(
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
-        val accessRightFilter = authorizationService.computeAccessRightFilter()
+        val accessRightFilter = authorizationService.getAccessRightFilter()
+        val adminPermissionWithClause = authorizationService.getAdminPermissionWithClause()
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
-        val entitiesIds =
-            entityQueryService.queryEntities(temporalEntitiesQuery.entitiesQuery, false, accessRightFilter)
-        val count =
-            entityQueryService.queryEntitiesCount(temporalEntitiesQuery.entitiesQuery, false, accessRightFilter)
-                .getOrElse { 0 }
+        val entitiesIds = entityQueryService.queryEntities(
+            temporalEntitiesQuery.entitiesQuery,
+            false,
+            accessRightFilter,
+            adminPermissionWithClause
+        )
+        val count = entityQueryService.queryEntitiesCount(
+            temporalEntitiesQuery.entitiesQuery,
+            false,
+            accessRightFilter,
+            adminPermissionWithClause
+        )
+            .getOrElse { 0 }
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())

@@ -35,7 +35,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.util.*
+import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EnabledAuthorizationService::class])
 @ActiveProfiles("test")
@@ -212,8 +212,8 @@ class EnabledAuthorizationServiceTests {
         } returns listOf(subjectUuid).right()
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid)) } returns true.right()
 
-        val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter()
-        assertNull(accessRightFilter())
+        val accessRightFilter = enabledAuthorizationService.getAccessRightFilter()
+        assertNull(accessRightFilter)
     }
 
     @Test
@@ -222,18 +222,17 @@ class EnabledAuthorizationServiceTests {
             subjectReferentialService.getSubjectAndGroupsUUID()
         } returns listOf(subjectUuid, groupUuid).right()
         coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
-
-        val accessRightFilter = enabledAuthorizationService.computeAccessRightFilter()
+        coEvery { permissionService.buildAsRightOnEntityFilter(any(), any()) } returns "entity filter"
+        coEvery { permissionService.buildAdminPermissionWithClause(any(), any()) } returns "admin clause"
+        val accessRightFilter = enabledAuthorizationService.getAccessRightFilter()
+        val adminPermissionWithClause = enabledAuthorizationService.getAdminPermissionWithClause()
         assertEquals(
-            """
-                (entity_payload.entity_id IN (
-                    SELECT target_id
-                    FROM permission
-                    WHERE assignee is null
-                    OR assignee IN ('$subjectUuid','$groupUuid')
-                ))
-            """.trimIndent(),
-            accessRightFilter()
+            "entity filter",
+            accessRightFilter
+        )
+        assertEquals(
+            "admin clause",
+            adminPermissionWithClause
         )
 
         coVerify { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid, groupUuid)) }

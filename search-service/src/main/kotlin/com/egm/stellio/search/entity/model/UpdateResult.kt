@@ -1,5 +1,6 @@
 package com.egm.stellio.search.entity.model
 
+import com.egm.stellio.shared.model.EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.fasterxml.jackson.annotation.JsonIgnore
 import java.net.URI
@@ -82,5 +83,6 @@ enum class OperationStatus {
 fun List<AttributeOperationResult>.hasSuccessfulResult(): Boolean =
     this.any { it is SucceededAttributeOperationResult }
 
-fun List<AttributeOperationResult>.getSucceededOperations(): List<SucceededAttributeOperationResult> =
+fun List<AttributeOperationResult>.getSucceededAttributesOperations(): List<SucceededAttributeOperationResult> =
     this.filterIsInstance<SucceededAttributeOperationResult>()
+        .filter { it.attributeName !in EXPANDED_ENTITY_CORE_MEMBERS }

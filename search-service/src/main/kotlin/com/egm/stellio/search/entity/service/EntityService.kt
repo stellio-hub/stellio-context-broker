@@ -24,7 +24,7 @@ import com.egm.stellio.search.entity.model.OperationType.MERGE_ENTITY
 import com.egm.stellio.search.entity.model.OperationType.UPDATE_ATTRIBUTES
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.model.UpdateResult
-import com.egm.stellio.search.entity.model.getSucceededOperations
+import com.egm.stellio.search.entity.model.getSucceededAttributesOperations
 import com.egm.stellio.search.entity.model.hasSuccessfulResult
 import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.entity.util.rowToEntity
@@ -121,7 +121,7 @@ class EntityService(
             sub,
             ngsiLdEntity.id,
             ExpandedEntity(emptyMap()),
-            attrsOperationResult.getSucceededOperations()
+            attrsOperationResult.getSucceededAttributesOperations()
         )
     }
 
@@ -242,7 +242,7 @@ class EntityService(
         scopeService.replace(ngsiLdEntity, replacedAt).bind()
 
         val operationResult = deleteOperationResults.plus(createOrReplaceOperationResult)
-        operationResult.filterIsInstance<SucceededAttributeOperationResult>()
+        operationResult.getSucceededAttributesOperations()
             .forEach {
                 val sub = getSubFromSecurityContext()
                 if (it.operationStatus == OperationStatus.DELETED)
@@ -508,7 +508,7 @@ class EntityService(
                 sub,
                 entityId,
                 originalEntity,
-                operationResult.getSucceededOperations()
+                operationResult.getSucceededAttributesOperations()
             )
         }
     }
@@ -575,7 +575,7 @@ class EntityService(
             entityId,
             currentEntity.toExpandedEntity(),
             deletedEntityPayload,
-            deleteOperationResult.getSucceededOperations()
+            deleteOperationResult.getSucceededAttributesOperations()
         )
         entityEventService.publishEntityDeleteEvent(sub, previousEntity, deletedEntityPayload)
     }
@@ -683,7 +683,7 @@ class EntityService(
             entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
         ).bind()
 
-        deleteAttributeResults.filterIsInstance<SucceededAttributeOperationResult>()
+        deleteAttributeResults.getSucceededAttributesOperations()
             .forEach {
                 entityEventService.publishAttributeDeleteEvent(sub, entityId, originalEntity, it)
             }

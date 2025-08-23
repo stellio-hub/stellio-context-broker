@@ -1,6 +1,7 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.Either
+import arrow.core.flatMap
 import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
@@ -89,10 +90,11 @@ class EntityService(
         }
 
         val createdAt = ngsiLdDateTime()
+        val expandedEntityWithMetadata = expandedEntity.populateCreationTimeDate(createdAt)
         val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
         logger.debug("Creating entity {}", ngsiLdEntity.id)
 
-        createEntityPayload(ngsiLdEntity, expandedEntity, createdAt).bind()
+        createEntityPayload(ngsiLdEntity, expandedEntityWithMetadata, createdAt).bind()
         scopeService.createHistory(ngsiLdEntity, createdAt).bind()
         val attrsOperationResult = entityAttributeService.createAttributes(
             ngsiLdEntity,
@@ -114,13 +116,12 @@ class EntityService(
 
         entityEventService.publishEntityCreateEvent(
             sub,
-            ngsiLdEntity.id,
-            ngsiLdEntity.types
+            expandedEntity
         )
         entityEventService.publishAttributeChangeEvents(
             sub,
-            ngsiLdEntity.id,
             ExpandedEntity(emptyMap()),
+            expandedEntityWithMetadata,
             attrsOperationResult.getSucceededAttributesOperations()
         )
     }
@@ -149,7 +150,7 @@ class EntityService(
             .bind("types", ngsiLdEntity.types.toTypedArray())
             .bind("scopes", ngsiLdEntity.scopes?.toTypedArray())
             .bind("created_at", createdAt)
-            .bind("payload", Json.of(serializeObject(expandedEntity.populateCreationTimeDate(createdAt).members)))
+            .bind("payload", Json.of(serializeObject(expandedEntity.members)))
             .execute()
     }
 
@@ -246,9 +247,14 @@ class EntityService(
             .forEach {
                 val sub = getSubFromSecurityContext()
                 if (it.operationStatus == OperationStatus.DELETED)
-                    entityEventService.publishAttributeDeleteEvent(sub, entityId, originalEntity, it)
+                    entityEventService.publishAttributeDeleteEvent(sub, originalEntity, expandedEntity, it)
                 else
-                    entityEventService.publishAttributeChangeEvents(sub, entityId, originalEntity, listOf(it))
+                    entityEventService.publishAttributeChangeEvents(
+                        sub,
+                        originalEntity,
+                        expandedEntity,
+                        listOf(it)
+                    )
             }
 
         UpdateResult(operationResult)
@@ -502,12 +508,12 @@ class EntityService(
         if (operationResult.hasSuccessfulResult()) {
             val sub = getSubFromSecurityContext()
             val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
-            updateState(entityId, createdAt, attributes).bind()
+            val updatedEntity = updateState(entityId, createdAt, attributes).bind()
 
             entityEventService.publishAttributeChangeEvents(
                 sub,
-                entityId,
                 originalEntity,
+                updatedEntity,
                 operationResult.getSucceededAttributesOperations()
             )
         }
@@ -518,9 +524,9 @@ class EntityService(
         entityUri: URI,
         modifiedAt: ZonedDateTime,
         attributes: List<Attribute>
-    ): Either<APIException, Unit> =
+    ): Either<APIException, ExpandedEntity> =
         entityQueryService.retrieve(entityUri)
-            .map { entityPayload ->
+            .flatMap { entityPayload ->
                 val payload = buildJsonLdEntity(
                     attributes,
                     entityPayload.copy(modifiedAt = modifiedAt)
@@ -537,6 +543,7 @@ class EntityService(
                     .bind("modified_at", modifiedAt)
                     .bind("payload", Json.of(serializeObject(payload)))
                     .execute()
+                    .map { ExpandedEntity(payload) }
             }
 
     private fun buildJsonLdEntity(
@@ -572,7 +579,6 @@ class EntityService(
 
         entityEventService.publishAttributeDeletesOnEntityDeleteEvent(
             sub,
-            entityId,
             currentEntity.toExpandedEntity(),
             deletedEntityPayload,
             deleteOperationResult.getSucceededAttributesOperations()
@@ -677,7 +683,7 @@ class EntityService(
                 ngsiLdDateTime()
             ).bind()
         }
-        updateState(
+        val updatedEntity = updateState(
             entityId,
             ngsiLdDateTime(),
             entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
@@ -685,7 +691,7 @@ class EntityService(
 
         deleteAttributeResults.getSucceededAttributesOperations()
             .forEach {
-                entityEventService.publishAttributeDeleteEvent(sub, entityId, originalEntity, it)
+                entityEventService.publishAttributeDeleteEvent(sub, originalEntity, updatedEntity, it)
             }
     }
 

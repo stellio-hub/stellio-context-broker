@@ -139,9 +139,10 @@ class TemporalEntityHandler(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT,
-                QP.ENDTIMEAT, QP.LASTN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.SCOPEQ, QP.DATASET_ID
+                QP.ENDTIMEAT, QP.LASTN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.SCOPEQ, QP.DATASET_ID,
+                QP.PICK, QP.OMIT
             ],
-            notImplemented = [QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF]
+            notImplemented = [QP.LOCAL, QP.VIA, QP.EXPAND_VALUES, QP.CSF]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -183,9 +184,9 @@ class TemporalEntityHandler(
         @AllowedParameters(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.ATTRS, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT, QP.LASTN,
-                QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.DATASET_ID
+                QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.DATASET_ID, QP.PICK, QP.OMIT
             ],
-            notImplemented = [QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT]
+            notImplemented = [QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {

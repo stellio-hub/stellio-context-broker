@@ -1,11 +1,8 @@
 package com.egm.stellio.subscription.service
 
 import arrow.core.Either
-import arrow.core.left
 import arrow.core.raise.either
-import arrow.core.right
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
@@ -14,7 +11,6 @@ import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.util.DataTypes.serialize
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.buildQQuery
@@ -263,84 +259,6 @@ class SubscriptionService(
             .oneToResult {
                 it["sub"] == sub.orEmpty()
             }
-    }
-
-    suspend fun updateNotification(
-        subscriptionId: URI,
-        notification: Map<String, Any>,
-        contexts: List<String>
-    ): Either<APIException, Unit> {
-        try {
-            val firstValue = notification.entries.iterator().next()
-            val updateParams = extractParamsFromNotificationAttribute(firstValue, contexts)
-            var updateStatement = Update.update(updateParams[0].first, updateParams[0].second)
-            if (updateParams.size > 1) {
-                updateParams.drop(1).forEach {
-                    updateStatement = updateStatement.set(it.first, it.second)
-                }
-            }
-
-            notification.filterKeys { it != firstValue.key }.forEach {
-                extractParamsFromNotificationAttribute(it, contexts).forEach {
-                    updateStatement = updateStatement.set(it.first, it.second)
-                }
-            }
-
-            return r2dbcEntityTemplate.update(
-                query(where("id").`is`(subscriptionId)),
-                updateStatement,
-                Subscription::class.java
-            )
-                .map { Unit.right() }
-                .awaitFirst()
-        } catch (e: Exception) {
-            return BadRequestDataException(e.message ?: "No values provided for the Notification attribute").left()
-        }
-    }
-
-    private fun extractParamsFromNotificationAttribute(
-        attribute: Map.Entry<String, Any>,
-        contexts: List<String>
-    ): List<Pair<String, Any?>> {
-        return when (attribute.key) {
-            "attributes" -> {
-                val attributes = (attribute.value as List<String>).joinToString(separator = ",") {
-                    expandJsonLdTerm(it, contexts)
-                }
-                listOf(Pair("notif_attributes", attributes))
-            }
-
-            "format" -> {
-                val format =
-                    if (attribute.value == "keyValues")
-                        NotificationParams.FormatType.KEY_VALUES.name
-                    else
-                        NotificationParams.FormatType.NORMALIZED.name
-                listOf(Pair("notif_format", format))
-            }
-
-            "endpoint" -> {
-                val endpoint = attribute.value as Map<String, Any>
-                val accept =
-                    if (endpoint["accept"] == "application/json")
-                        Endpoint.AcceptType.JSON.name
-                    else if (endpoint["accept"] == "application/geo+json")
-                        Endpoint.AcceptType.GEOJSON.name
-                    else
-                        Endpoint.AcceptType.JSONLD.name
-                val endpointReceiverInfo = endpoint["receiverInfo"] as? List<Map<String, String>>
-                val endpointNotifierInfo = endpoint["notifierInfo"] as? List<Map<String, String>>
-
-                listOf(
-                    Pair("endpoint_uri", endpoint["uri"]),
-                    Pair("endpoint_accept", accept),
-                    Pair("endpoint_receiver_info", Json.of(serialize(endpointReceiverInfo))),
-                    Pair("endpoint_notifier_info", Json.of(serialize(endpointNotifierInfo)))
-                )
-            }
-
-            else -> throw BadRequestDataException("Could not update attribute ${attribute.key}")
-        }
     }
 
     suspend fun delete(subscriptionId: URI): Either<APIException, Unit> =

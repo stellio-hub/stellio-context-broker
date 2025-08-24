@@ -234,7 +234,7 @@ class EntityHandler(
             }
 
         val (warnings, entities, count) =
-            if (entitiesQuery.local != true) {
+            if (!entitiesQuery.local) {
                 val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
                     distributedEntityConsumptionService.distributeQueryEntitiesOperation(
                         entitiesQuery,

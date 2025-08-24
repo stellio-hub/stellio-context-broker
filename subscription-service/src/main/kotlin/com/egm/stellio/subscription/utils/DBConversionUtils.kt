@@ -22,22 +22,3 @@ inline fun <reified T : Enum<T>> toOptionalEnum(entry: Any?) =
     (entry as? String)?.let { enumValueOf<T>(it) }
 fun toInt(entry: Any?): Int = (entry as Long).toInt()
 fun toNullableInt(entry: Any?): Int? = entry as? Int
-
-fun String.toSqlColumnName(): String =
-    this.map {
-        if (it.isUpperCase()) "_${it.lowercase()}"
-        else it
-    }.joinToString("")
-
-fun Any.toSqlValue(columnName: String): Any? =
-    when (columnName) {
-        "watchedAttributes", "contexts" -> {
-            val valueAsArrayList = this as ArrayList<String>
-            if (valueAsArrayList.isEmpty())
-                null
-            else
-                valueAsArrayList.joinToString(separator = ",")
-        }
-        "notificationTrigger" -> (this as ArrayList<String>).toTypedArray()
-        else -> this
-    }

@@ -48,7 +48,7 @@ fun invalidCharacterInScope(name: Any?) =
 const val NULL_VALUE_IN_CONTENT = "The JSON-LD object contains a member with a null value (5.5.4)"
 
 fun invalidTemporalInstanceMessage() =
-    "One attribute instance is missing the required ${NGSILD_OBSERVED_AT_IRI} temporal property"
+    "One attribute instance is missing the required $NGSILD_OBSERVED_AT_IRI temporal property"
 
 const val INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE =
     "One of the aggregation methods tried to aggregate inconsistent types of values"
@@ -57,7 +57,6 @@ const val ENTITIY_CREATION_FORBIDDEN_MESSAGE = "User forbidden to create entity"
 const val ENTITIY_READ_FORBIDDEN_MESSAGE = "User forbidden to read entity"
 const val ENTITY_UPDATE_FORBIDDEN_MESSAGE = "User forbidden to modify entity"
 const val ENTITY_ADMIN_FORBIDDEN_MESSAGE = "User forbidden to admin entity"
-const val ENTITY_REMOVE_OWNERSHIP_FORBIDDEN_MESSAGE = "User forbidden to remove ownership of entity"
 const val ENTITY_ALREADY_EXISTS_MESSAGE = "Entity already exists"
 const val ENTITY_DOES_NOT_EXIST_MESSAGE = "Entity does not exist"
 

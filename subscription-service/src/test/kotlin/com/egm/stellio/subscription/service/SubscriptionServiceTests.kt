@@ -665,38 +665,6 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should update a subscription notification`() = runTest {
-        val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
-        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
-
-        val parsedInput = mapOf(
-            "attributes" to listOf(OUTGOING_TERM),
-            "format" to "keyValues",
-            "endpoint" to mapOf(
-                "accept" to "application/ld+json",
-                "uri" to "http://localhost:8080",
-                "receiverInfo" to listOf(
-                    mapOf("key" to "Authorization-token", "value" to "Authorization-token-newValue")
-                )
-            )
-        )
-
-        subscriptionService.updateNotification(subscription.id, parsedInput, APIC_COMPOUND_CONTEXTS)
-
-        val updatedSubscription = subscriptionService.getById(subscription.id)
-        assertThat(updatedSubscription)
-            .matches {
-                it.notification.attributes == listOf(OUTGOING_IRI) &&
-                    it.notification.format.name == "KEY_VALUES" &&
-                    it.notification.endpoint.accept.name == "JSONLD" &&
-                    it.notification.endpoint.uri.toString() == "http://localhost:8080" &&
-                    it.notification.endpoint.receiverInfo == listOf(
-                        EndpointInfo("Authorization-token", "Authorization-token-newValue")
-                    )
-            }
-    }
-
-    @Test
     fun `it should update a subscription entities`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()

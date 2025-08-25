@@ -205,14 +205,14 @@ class ExpandedEntityTests {
 
         val attributesToMatch: Set<String> = parseAndExpandQueryParameter("managedBy", listOf(APIC_COMPOUND_CONTEXT))
 
-        val filteredEntity = entity.filterAttributes(attributesToMatch, emptySet())
+        val filteredEntity = entity.filterAttributes(attributesToMatch)
 
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
 
     @Test
-    fun `it should filter the attributes based on the datasetId and attrs`() = runTest {
+    fun `it should filter the attributes based on attrs and apply the datasetId view`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -230,13 +230,14 @@ class ExpandedEntityTests {
 
         val attributesToMatch: Set<String> = parseAndExpandQueryParameter("name", listOf(APIC_COMPOUND_CONTEXT))
         val datasetIdToMatch: Set<String> = setOf("urn:ngsi-ld:Dataset:english-name")
-        val filteredEntity = entity.filterAttributes(attributesToMatch, datasetIdToMatch)
+        val filteredEntity = entity.filterAttributes(attributesToMatch)
+            .applyDatasetView(datasetIdToMatch)
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
 
     @Test
-    fun `it should filter the attributes based on the datasetIds only`() = runTest {
+    fun `it should apply the datasetIds view`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -258,13 +259,13 @@ class ExpandedEntityTests {
         """.trimIndent()
 
         val datasetIdToMatch: Set<String> = setOf("urn:ngsi-ld:Dataset:french-name")
-        val filteredEntity = entity.filterAttributes(emptySet(), datasetIdToMatch)
+        val filteredEntity = entity.applyDatasetView(datasetIdToMatch)
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
 
     @Test
-    fun `it should return the default instance if @none is in the datasetId request parameter`() = runTest {
+    fun `it should apply the datasetId view on the default instance if @none is asked`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -283,13 +284,13 @@ class ExpandedEntityTests {
             }
         """.trimIndent()
 
-        val filteredEntity = entity.filterAttributes(emptySet(), setOf(JSONLD_NONE_KW))
+        val filteredEntity = entity.applyDatasetView(setOf(JSONLD_NONE_KW))
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
 
     @Test
-    fun `it should filter attributes on @none and attrs`() = runTest {
+    fun `it should filter attributes on attrs and apply the datasetId view on @none`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -305,13 +306,14 @@ class ExpandedEntityTests {
         """.trimIndent()
 
         val attributesToMatch: Set<String> = parseAndExpandQueryParameter("name", listOf(APIC_COMPOUND_CONTEXT))
-        val filteredEntity = entity.filterAttributes(attributesToMatch, setOf(JSONLD_NONE_KW))
+        val filteredEntity = entity.filterAttributes(attributesToMatch)
+            .applyDatasetView(setOf(JSONLD_NONE_KW))
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
 
     @Test
-    fun `it should filter the attributes based on multiple datasetIds`() = runTest {
+    fun `it should apply the datasetId view on multiple datasetIds`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -343,7 +345,7 @@ class ExpandedEntityTests {
             "urn:ngsi-ld:Dataset:english-name",
             "urn:ngsi-ld:Dataset:french-name"
         )
-        val filteredEntity = entity.filterAttributes(emptySet(), datasetIdToMatch)
+        val filteredEntity = entity.applyDatasetView(datasetIdToMatch)
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }
@@ -362,7 +364,8 @@ class ExpandedEntityTests {
 
         val attributesToMatch: Set<String> = parseAndExpandQueryParameter("name", listOf(APIC_COMPOUND_CONTEXT))
         val datasetIdToMatch: Set<String> = setOf("urn:ngsi-ld:Dataset:managedBy")
-        val filteredEntity = entity.filterAttributes(attributesToMatch, datasetIdToMatch)
+        val filteredEntity = entity.filterAttributes(attributesToMatch)
+            .applyDatasetView(datasetIdToMatch)
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }

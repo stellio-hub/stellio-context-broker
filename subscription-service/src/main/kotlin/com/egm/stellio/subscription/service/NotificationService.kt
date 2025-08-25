@@ -74,7 +74,11 @@ class NotificationService(
                     )
                 } else {
                     val filteredEntity = expandedEntity.filterAttributes(
-                        it.notification.attributes?.toSet().orEmpty(),
+                        it.notification.attributes?.toSet().orEmpty()
+                    ).filterPickAndOmit(
+                        it.notification.pick.orEmpty(),
+                        it.notification.omit.orEmpty()
+                    ).applyDatasetView(
                         it.datasetId?.toSet().orEmpty()
                     )
                     val entityRepresentation =

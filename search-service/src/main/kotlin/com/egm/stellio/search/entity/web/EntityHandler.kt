@@ -17,7 +17,9 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.applyDatasetView
 import com.egm.stellio.shared.model.filterAttributes
+import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.queryparameter.AllowedParameters
@@ -226,7 +228,9 @@ class EntityHandler(
 
         val (expandedEntities, localCount) = entityQueryService.queryEntities(entitiesQuery).bind()
 
-        val filteredEntities = expandedEntities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
+        val filteredEntities = expandedEntities.filterAttributes(entitiesQuery.attrs)
+            .filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
+            .applyDatasetView(entitiesQuery.datasetId)
 
         val localEntities =
             compactEntities(filteredEntities, contexts).let {
@@ -296,7 +300,9 @@ class EntityHandler(
             val expandedEntity = entityQueryService.queryEntity(entityId).bind()
             expandedEntity.checkContainsAnyOf(entitiesQuery.attrs).bind()
 
-            val filteredExpandedEntity = expandedEntity.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
+            val filteredExpandedEntity = expandedEntity.filterAttributes(entitiesQuery.attrs)
+                .filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
+                .applyDatasetView(entitiesQuery.datasetId)
 
             compactEntity(filteredExpandedEntity, contexts)
         }

@@ -157,7 +157,7 @@ class DistributedEntityProvisionService(
                     else if (csr.isMatchingOperation(operation)) {
                         resultToUpdate.addEither(
                             sendDistributedInformation(
-                                compactEntity(entity.filterAttributes(attrs, emptySet()), contexts),
+                                compactEntity(entity.filterAttributes(attrs), contexts),
                                 csr,
                                 operation.getPath(entity.id),
                                 operation.method!!

@@ -6,7 +6,6 @@ import arrow.core.mapValuesNotNull
 import arrow.core.right
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
-import com.egm.stellio.shared.util.isURI
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
@@ -85,10 +84,8 @@ data class ExpandedEntity(
     }
 
     val types by lazy {
-        (
-            (members[JSONLD_TYPE_KW] ?: throw BadRequestDataException("Could not extract type from JSON-LD entity"))
-                as List<ExpandedTerm>
-            ).onEach { if (!it.isURI()) throw BadRequestDataException("type: $it should be a valid uri") }
+        (members[JSONLD_TYPE_KW] ?: throw BadRequestDataException("Could not extract type from JSON-LD entity"))
+            as List<ExpandedTerm>
     }
 
     private fun Map<String, Any>.addDateTimeProperty(propertyKey: String, dateTime: ZonedDateTime?): Map<String, Any> =

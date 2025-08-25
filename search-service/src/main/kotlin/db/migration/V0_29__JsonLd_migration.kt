@@ -30,6 +30,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandDeserializedPayload
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.extractContexts
+import com.egm.stellio.shared.util.toSqlArray
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.api.migration.BaseJavaMigration
@@ -332,9 +333,6 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
 
     private fun Any?.toSQLValue(): String? =
         this?.let { "$$$this$$" }
-
-    private fun List<String>.toSqlArray(): String =
-        "ARRAY[${this.joinToString(separator = "','", prefix = "'", postfix = "'")}]"
 }
 
 internal fun Map<String, Any>.keepOnlyOneInstanceByDatasetId(): Map<String, Any> =

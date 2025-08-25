@@ -26,6 +26,7 @@ import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.toSqlArray
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -295,11 +296,11 @@ class ContextSourceRegistrationService(
 
             val csfFilter = if (csrFilters.csf != null && validationRegex.matches(csrFilters.csf)) {
                 val operations = operationRegex.toRegex().findAll(csrFilters.csf).map { it.groups[1]?.value }
-                "operations && ARRAY[${operations.joinToString(",") { "'$it'" }}]"
+                "operations && ${operations.toSqlArray()}"
             } else null
 
             val attrsFilter = if (csrFilters.attrs.isNotEmpty()) {
-                val attrsArray = "ARRAY[${csrFilters.attrs.joinToString(",") { "'$it'" }}]"
+                val attrsArray = csrFilters.attrs.toSqlArray()
                 """
                 (
                     (information."relationshipNames" is null AND information."propertyNames" is null) OR 

@@ -94,6 +94,8 @@ fun String.unescapeRegexPattern(): String =
         .replace("§§", ")")
 
 fun Iterable<String>.toTypeSelection() = this.joinToString(",")
+fun Iterable<String?>.toSqlArray(): String = "ARRAY[${this.joinToString(",") { "'$it'"} }]"
+fun Sequence<String?>.toSqlArray(): String = this.toList().toSqlArray()
 
 fun buildTypeQuery(rawQuery: String, columnName: String = "types", target: List<ExpandedTerm>? = null): String =
     rawQuery.replace(typeSelectionRegex) { matchResult ->
@@ -106,7 +108,7 @@ fun buildTypeQuery(rawQuery: String, columnName: String = "types", target: List<
         .replace(",", " OR ")
         .let {
             if (target != null)
-                it.replace("#{TARGET}#", "ARRAY[${target.joinToString(",") { "'$it'"} }]")
+                it.replace("#{TARGET}#", target.toSqlArray())
             else
                 it.replace("#{TARGET}#", columnName)
         }
@@ -262,11 +264,7 @@ fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null): Strin
             if (target == null)
                 it.replace("#{TARGET}#", "scopes")
             else {
-                val scopesArray = target.getScopes()?.let { scopes ->
-                    """
-                    ARRAY[${scopes.joinToString(",") { "'$it'" } }]
-                    """.trimIndent()
-                }
+                val scopesArray = target.getScopes()?.toSqlArray()
                 it.replace("#{TARGET}#", "$scopesArray")
             }
         }

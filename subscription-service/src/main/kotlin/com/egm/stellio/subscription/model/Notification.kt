@@ -12,5 +12,6 @@ data class Notification(
     val type: String = NGSILD_NOTIFICATION_TERM,
     val subscriptionId: URI,
     val notifiedAt: ZonedDateTime = ngsiLdDateTime(),
+    val triggerReason: NotificationTrigger,
     val data: List<Map<String, Any?>>
 )

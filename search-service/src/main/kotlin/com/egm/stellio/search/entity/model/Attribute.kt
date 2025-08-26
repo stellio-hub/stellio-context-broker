@@ -10,6 +10,7 @@ import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_VALUES
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSONS
+import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON_TERM
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_TYPE
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEMAP_TERM
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
@@ -28,6 +29,7 @@ import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_TYPE
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCABS
+import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
@@ -111,10 +113,20 @@ data class Attribute(
 
         fun toNullCompactedRepresentation(datasetId: URI? = null): Map<String, Any> =
             when (this) {
-                Property, GeoProperty, JsonProperty, VocabProperty ->
+                Property, GeoProperty ->
                     mapOf(
                         NGSILD_TYPE_TERM to this.name,
                         NGSILD_VALUE_TERM to NGSILD_NULL
+                    )
+                JsonProperty ->
+                    mapOf(
+                        NGSILD_TYPE_TERM to this.name,
+                        NGSILD_JSONPROPERTY_JSON_TERM to NGSILD_NULL
+                    )
+                VocabProperty ->
+                    mapOf(
+                        NGSILD_TYPE_TERM to this.name,
+                        NGSILD_VOCABPROPERTY_VOCAB_TERM to NGSILD_NULL
                     )
                 Relationship ->
                     mapOf(

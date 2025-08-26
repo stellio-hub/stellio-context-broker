@@ -2,13 +2,19 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.JSONLD_JSON_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.NGSILD_OBSERVATION_SPACE_IRI
+import com.egm.stellio.shared.model.NGSILD_PREFIX
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.model.getMemberValueAsString
+import com.egm.stellio.shared.util.JsonLdUtils.compactAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
@@ -334,6 +340,67 @@ class JsonLdUtilsTests {
         assertEquals(
             INCOMING_IRI,
             compactTerm(INCOMING_IRI, NGSILD_TEST_CORE_CONTEXTS)
+        )
+    }
+
+    @Test
+    fun `it should correctly compact a Property attribute`() = runTest {
+        val expandedProperty = mapOf(
+            INCOMING_IRI to listOf(
+                mapOf(
+                    JSONLD_TYPE_KW to listOf(NGSILD_PREFIX + "Property"),
+                    NGSILD_PROPERTY_VALUE to listOf(
+                        mapOf(JSONLD_VALUE_KW to "propertyValue")
+                    )
+                )
+            )
+        )
+
+        val compactedProperty = compactAttribute(expandedProperty, APIC_COMPOUND_CONTEXTS)
+
+        assertThat(compactedProperty).containsExactlyEntriesOf(
+            mapOf(
+                INCOMING_TERM to mapOf(
+                    "type" to "Property",
+                    "value" to "propertyValue"
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `it should correctly compact a JsonProperty attribute`() = runTest {
+        val expandedAttribute = mapOf(
+            LUMINOSITY_IRI to listOf(
+                mapOf(
+                    JSONLD_TYPE_KW to listOf(NGSILD_PREFIX + "JsonProperty"),
+                    NGSILD_JSONPROPERTY_JSON to listOf(
+                        mapOf(
+                            JSONLD_TYPE_KW to JSONLD_JSON_KW,
+                            JSONLD_VALUE_KW to mapOf(
+                                "nestedKey" to "nestedValue",
+                                "isActive" to true,
+                                "count" to 42
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val compactedAttribute = compactAttribute(expandedAttribute, APIC_COMPOUND_CONTEXTS)
+
+        assertThat(compactedAttribute).containsExactlyEntriesOf(
+            mapOf(
+                LUMINOSITY_TERM to mapOf(
+                    "type" to "JsonProperty",
+                    "json" to mapOf(
+                        "nestedKey" to "nestedValue",
+                        "isActive" to true,
+                        "count" to 42
+                    )
+                )
+            )
         )
     }
 }

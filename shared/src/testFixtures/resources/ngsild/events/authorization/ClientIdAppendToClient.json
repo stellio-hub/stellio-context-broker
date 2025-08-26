@@ -4,6 +4,7 @@
   "entityId": "urn:ngsi-ld:Client:191a6f0d-df07-4697-afde-da9d8a91d954",
   "entityTypes": ["Client"],
   "attributeName": "clientId",
+  "previousPayload": "",
   "operationPayload": "{\"type\":\"Property\",\"value\":\"friendly-client-id\"}",
   "updatedEntity": "",
   "contexts": [

@@ -51,7 +51,7 @@ class EntityQueryService(
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
-            return@either Pair<List<ExpandedEntity>, Int>(emptyList(), count)
+            return@either Pair(emptyList(), count)
 
         val entitiesPayloads = retrieve(entitiesIds).map { it.toExpandedEntity() }
 

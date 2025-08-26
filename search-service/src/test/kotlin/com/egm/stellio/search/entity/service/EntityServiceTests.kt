@@ -126,7 +126,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
     fun `it should only create an entity payload for a minimal entity`() = runTest {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
-        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any()) } returns Job()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
@@ -156,7 +156,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             )
             entityEventService.publishEntityCreateEvent(
                 eq(USER_UUID),
-                eq(beehiveTestCId),
                 any()
             )
             authorizationService.createOwnerRight(beehiveTestCId)

@@ -70,7 +70,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             .map {
                 entityService.createEntityPayload(
                     it.second,
-                    it.first,
+                    it.first.populateCreationTimeDate(now),
                     now,
                 ).shouldSucceed()
             }
@@ -151,11 +151,12 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should retrieve a list of entity payloads`() = runTest {
         val entityPayload = loadSampleData("beehive.jsonld")
+        val createdAt = ZonedDateTime.parse("2023-08-20T15:44:10.381090Z")
         entityPayload.sampleDataToNgsiLdEntity().map {
             entityService.createEntityPayload(
                 it.second,
-                it.first,
-                ZonedDateTime.parse("2023-08-20T15:44:10.381090Z")
+                it.first.populateCreationTimeDate(createdAt),
+                createdAt,
             )
         }
 

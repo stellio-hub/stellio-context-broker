@@ -1,0 +1,50 @@
+{
+  "https://ontology.eglobalmark.com/aquac#fishName": [
+    {
+      "https://uri.etsi.org/ngsi-ld/datasetId": [
+        {
+          "@id": "urn:ngsi-ld:Dataset:fishName:1"
+        }
+      ],
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": "Oyster"
+        }
+      ]
+    },
+    {
+      "https://uri.etsi.org/ngsi-ld/datasetId": [
+        {
+          "@id": "urn:ngsi-ld:Dataset:fishName:2"
+        }
+      ],
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": "Mussel"
+        }
+      ]
+    }
+  ],
+  "https://ontology.eglobalmark.com/aquac#fishNumber": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/Property"
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValue": [
+        {
+          "@value": 120
+        }
+      ]
+    }
+  ],
+  "@id": "urn:ngsi-ld:BreedingService:0214",
+  "@type": [
+    "https://ontology.eglobalmark.com/aquac#BreedingService"
+  ]
+}

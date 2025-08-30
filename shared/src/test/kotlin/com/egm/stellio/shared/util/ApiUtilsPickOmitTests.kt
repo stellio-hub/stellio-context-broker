@@ -17,9 +17,7 @@ class ApiUtilsPickOmitTests {
 
     @Test
     fun `parseAndExpandPickOmitParameters should return empty sets when no pick or omit parameters are provided`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-
-        val (pick, omit) = parseAndExpandPickOmitParameters(queryParams, APIC_COMPOUND_CONTEXTS)
+        val (pick, omit) = parseAndExpandPickOmitParameters(null, null, APIC_COMPOUND_CONTEXTS)
             .shouldSucceedAndResult()
 
         assertThat(pick).isEmpty()
@@ -28,12 +26,11 @@ class ApiUtilsPickOmitTests {
 
     @Test
     fun `parseAndExpandPickOmitParameters should parse pick and omit parameters correctly`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add(QueryParameter.PICK.key, "${TEMPERATURE_TERM},${NGSILD_ID_TERM}")
-        queryParams.add(QueryParameter.OMIT.key, "${INCOMING_TERM},${NGSILD_TYPE_TERM}")
-
-        val (pick, omit) = parseAndExpandPickOmitParameters(queryParams, APIC_COMPOUND_CONTEXTS)
-            .shouldSucceedAndResult()
+        val (pick, omit) = parseAndExpandPickOmitParameters(
+            "${TEMPERATURE_TERM},${NGSILD_ID_TERM}",
+            "${INCOMING_TERM},${NGSILD_TYPE_TERM}",
+            APIC_COMPOUND_CONTEXTS
+        ).shouldSucceedAndResult()
 
         assertEquals(setOf(TEMPERATURE_IRI, JSONLD_ID_KW), pick)
         assertEquals(setOf(INCOMING_IRI, JSONLD_TYPE_KW), omit)
@@ -41,20 +38,18 @@ class ApiUtilsPickOmitTests {
 
     @Test
     fun `parseAndExpandPickOmitParameters should handle reserved names correctly`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add(QueryParameter.PICK.key, "${NGSILD_ID_TERM},${NGSILD_TYPE_TERM},${NGSILD_SCOPE_TERM}")
-
-        val (pick, _) = parseAndExpandPickOmitParameters(queryParams, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+        val (pick, _) = parseAndExpandPickOmitParameters(
+            "${NGSILD_ID_TERM},${NGSILD_TYPE_TERM},${NGSILD_SCOPE_TERM}",
+            null,
+            APIC_COMPOUND_CONTEXTS
+        ).shouldSucceedAndResult()
 
         assertEquals(setOf(JSONLD_ID_KW, JSONLD_TYPE_KW, NGSILD_SCOPE_IRI), pick)
     }
 
     @Test
     fun `parseAndExpandPickOmitParameters should reject empty pick parameter`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add(QueryParameter.PICK.key, "")
-
-        parseAndExpandPickOmitParameters(queryParams, APIC_COMPOUND_CONTEXTS).shouldFailWith {
+        parseAndExpandPickOmitParameters("", null, APIC_COMPOUND_CONTEXTS).shouldFailWith {
             it is BadRequestDataException &&
                 it.message == "The 'pick' parameter cannot be empty"
         }
@@ -65,7 +60,7 @@ class ApiUtilsPickOmitTests {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add(QueryParameter.PICK.key, "invalid%,temperature")
 
-        parseAndExpandPickOmitParameters(queryParams, APIC_COMPOUND_CONTEXTS).shouldFailWith {
+        parseAndExpandPickOmitParameters("invalid%,temperature", null, APIC_COMPOUND_CONTEXTS).shouldFailWith {
             it is BadRequestDataException &&
                 it.message == "The JSON-LD object contains a member with invalid characters (4.6.2): invalid%"
         }

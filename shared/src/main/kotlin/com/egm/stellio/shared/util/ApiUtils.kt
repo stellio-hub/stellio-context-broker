@@ -20,14 +20,12 @@ import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NotAcceptableException
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.queryparameter.OptionsValue
-import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.util.MimeTypeUtils
-import org.springframework.util.MultiValueMap
 import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
@@ -281,12 +279,10 @@ fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
  * as defined in section 4.21 of the NGSI-LD specification.
  */
 fun parseAndExpandPickOmitParameters(
-    queryParams: MultiValueMap<String, String>,
+    pickParam: String?,
+    omitParam: String?,
     contexts: List<String>
 ): Either<APIException, Pair<Set<String>, Set<String>>> = either {
-    val pickParam = queryParams.getFirst(QueryParameter.PICK.key)
-    val omitParam = queryParams.getFirst(QueryParameter.OMIT.key)
-
     val pick = pickParam?.let { pickValue ->
         parseAttributeProjectionList(pickValue, "pick", contexts).bind()
     } ?: emptySet()

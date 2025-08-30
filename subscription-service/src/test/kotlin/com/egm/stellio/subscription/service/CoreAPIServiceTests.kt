@@ -1,5 +1,7 @@
 package com.egm.stellio.subscription.service
 
+import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.INCOMING_TERM
@@ -122,7 +124,8 @@ class CoreAPIServiceTests {
                         accept = AcceptType.JSONLD
                     ),
                     join = JoinType.FLAT,
-                    joinLevel = 1
+                    joinLevel = 1,
+                    pick = setOf(JSONLD_ID_KW, JSONLD_TYPE_KW, INCOMING_TERM)
                 ),
                 APIC_HEADER_LINK
             )
@@ -140,6 +143,7 @@ class CoreAPIServiceTests {
                 .withQueryParam(QueryParameter.JOIN_LEVEL.key, equalTo("1"))
                 .withQueryParam(QueryParameter.OPTIONS.key, equalTo(FormatType.NORMALIZED.format))
                 .withQueryParam(QueryParameter.ATTRS.key, equalTo(INCOMING_TERM))
+                .withQueryParam(QueryParameter.PICK.key, equalTo("$JSONLD_ID_KW,$JSONLD_TYPE_KW,$INCOMING_TERM"))
         )
     }
 }

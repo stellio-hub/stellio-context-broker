@@ -12,7 +12,9 @@ import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.parseAndExpandPickOmitParameters
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -237,6 +239,64 @@ class ExpandedEntityTests {
     }
 
     @Test
+    fun `it should filter the entity members based on pick parameter`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_single_attribute_instances.jsonld")
+
+        val expectedEntity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "name": {
+                "type": "Property",
+                "value": "beehive"
+            },
+            "@context": "$APIC_COMPOUND_CONTEXT"
+        }
+        """.trimIndent()
+
+        val pickAndOmitParams = parseAndExpandPickOmitParameters("id,name", null, listOf(APIC_COMPOUND_CONTEXT))
+            .shouldSucceedAndResult()
+
+        val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
+
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
+    }
+
+    @Test
+    fun `it should filter the entity members based on omit parameter`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_single_attribute_instances.jsonld")
+
+        val expectedEntity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "@context": "$APIC_COMPOUND_CONTEXT"
+        }
+        """.trimIndent()
+
+        val pickAndOmitParams = parseAndExpandPickOmitParameters(null, "name,managedBy", listOf(APIC_COMPOUND_CONTEXT))
+            .shouldSucceedAndResult()
+
+        val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
+
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
+    }
+
+    @Test
+    fun `it should return empty result when no entity member matches the pick parameter`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_single_attribute_instances.jsonld")
+
+        val pickAndOmitParams = parseAndExpandPickOmitParameters("unknown", null, listOf(APIC_COMPOUND_CONTEXT))
+            .shouldSucceedAndResult()
+
+        val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
+
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual("{}", serializeObject(compactedEntity))
+    }
+
+    @Test
     fun `it should apply the datasetIds view`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
@@ -308,6 +368,53 @@ class ExpandedEntityTests {
         val attributesToMatch: Set<String> = parseAndExpandQueryParameter("name", listOf(APIC_COMPOUND_CONTEXT))
         val filteredEntity = entity.filterAttributes(attributesToMatch)
             .applyDatasetView(setOf(JSONLD_NONE_KW))
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
+    }
+
+    @Test
+    fun `it should pick entity members and apply the datasetId view on @none`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
+
+        val expectedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "name": {
+                    "type": "Property",
+                    "value": "default"
+                },
+                "@context" : "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent()
+
+        val pickAndOmitParams = parseAndExpandPickOmitParameters("id,name", null, listOf(APIC_COMPOUND_CONTEXT))
+            .shouldSucceedAndResult()
+        val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
+            .applyDatasetView(setOf(JSONLD_NONE_KW))
+        val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
+    }
+
+    @Test
+    fun `it should omit entity members and apply the datasetId view`() = runTest {
+        val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
+
+        val expectedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "managedBy": {
+                    "type":"Relationship",
+                    "datasetId":"urn:ngsi-ld:Dataset:french-name",
+                    "object":"urn:ngsi-ld:Apiculteur:1230"
+                },
+                "@context" : "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent()
+
+        val pickAndOmitParams = parseAndExpandPickOmitParameters(null, "name,type", listOf(APIC_COMPOUND_CONTEXT))
+            .shouldSucceedAndResult()
+        val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
+            .applyDatasetView(setOf("urn:ngsi-ld:Dataset:french-name"))
         val compactedEntity = compactEntity(filteredEntity, listOf(APIC_COMPOUND_CONTEXT))
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(compactedEntity))
     }

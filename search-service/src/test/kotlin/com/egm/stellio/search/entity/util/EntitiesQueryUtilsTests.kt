@@ -173,6 +173,42 @@ class EntitiesQueryUtilsTests {
         }
     }
 
+    @Test
+    fun `it should return a BadRequest error if an entity member is in pick and omit parameters`() = runTest {
+        composeEntitiesQueryFromGet(
+            buildDefaultPagination(30, 100),
+            LinkedMultiValueMap<String, String>().apply {
+                add("pick", "attr1,attr2")
+                add("omit", "attr2,attr3")
+            },
+            NGSILD_TEST_CORE_CONTEXTS
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "An entity member cannot be present in both 'pick' and 'omit' parameters",
+                it.message
+            )
+        }
+    }
+
+    @Test
+    fun `it should return a BadRequest error if attrs and pick parameters are specified`() = runTest {
+        composeEntitiesQueryFromGet(
+            buildDefaultPagination(30, 100),
+            LinkedMultiValueMap<String, String>().apply {
+                add("pick", "attr1,attr2")
+                add("attrs", "attr1,attr2")
+            },
+            NGSILD_TEST_CORE_CONTEXTS
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "The 'attrs' parameter cannot be used together with 'pick' or 'omit' parameters",
+                it.message
+            )
+        }
+    }
+
     private fun gimmeEntitiesQueryParams(): LinkedMultiValueMap<String, String> {
         val requestParams = LinkedMultiValueMap<String, String>()
         requestParams.add("type", "BeeHive,Apiary")
@@ -473,6 +509,27 @@ class EntitiesQueryUtilsTests {
                 """.trimIndent(),
                 it.message
             )
+        }
+    }
+
+    @Test
+    fun `it should not validate a Query if pick and omit are invalid`() {
+        val query = """
+            {
+                "type": "Query",
+                "pick": ["attr1", "attr2"],
+                "omit": ["attr2", "attr3"]
+            }
+        """.trimIndent()
+
+        composeEntitiesQueryFromPostRequest(
+            buildDefaultPagination(30, 100),
+            query,
+            LinkedMultiValueMap(),
+            APIC_COMPOUND_CONTEXTS
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("An entity member cannot be present in both 'pick' and 'omit' parameters", it.message)
         }
     }
 

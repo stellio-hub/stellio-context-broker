@@ -23,7 +23,6 @@ import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.parseQueryParameter
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.validateIdPattern
-import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
 
 fun composeEntitiesQueryFromGet(
@@ -42,7 +41,11 @@ fun composeEntitiesQueryFromGet(
     val q = queryParams.getFirst(QueryParameter.Q.key)?.decode()
     val scopeQ = queryParams.getFirst(QueryParameter.SCOPEQ.key)
     val attrs = parseAndExpandQueryParameter(queryParams.getFirst(QueryParameter.ATTRS.key), contexts)
-    val (pick, omit) = parseAndExpandPickOmitParameters(queryParams, contexts).bind()
+    val (pick, omit) = parseAndExpandPickOmitParameters(
+        queryParams.getFirst(QueryParameter.PICK.key),
+        queryParams.getFirst(QueryParameter.OMIT.key),
+        contexts
+    ).bind()
     validateMutualAttrsProjectionAttributesExclusion(attrs, pick, omit).bind()
     val datasetId = parseQueryParameter(queryParams.getFirst(QueryParameter.DATASET_ID.key))
     val paginationQuery = parsePaginationParameters(
@@ -108,9 +111,8 @@ fun composeEntitiesQueryFromPost(
     }
     val attrs = query.attrs.orEmpty().map { JsonLdUtils.expandJsonLdTerm(it.trim(), contexts) }.toSet()
     val (pick, omit) = parseAndExpandPickOmitParameters(
-        LinkedMultiValueMap(
-            mapOf(QueryParameter.PICK.key to query.pick.orEmpty(), QueryParameter.OMIT.key to query.omit.orEmpty())
-        ),
+        query.pick?.joinToString(","),
+        query.omit?.joinToString(","),
         contexts
     ).bind()
     validateMutualAttrsProjectionAttributesExclusion(attrs, pick, omit).bind()

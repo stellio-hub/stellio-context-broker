@@ -127,10 +127,6 @@ data class ExpandedEntity(
             }.ifEmpty { null }
         }
     )
-
-    fun omitAttributes(attributes: Set<String>): ExpandedEntity = ExpandedEntity(
-        members.filterKeys { it !in attributes }
-    )
 }
 
 fun List<ExpandedEntity>.filterAttributes(includedAttributes: Set<String>): List<ExpandedEntity> =

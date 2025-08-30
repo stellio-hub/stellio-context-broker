@@ -45,6 +45,7 @@ import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getAuthzContextFromRequestOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
+import com.egm.stellio.shared.util.parseAndExpandPickOmitParameters
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.util.toUri
@@ -165,10 +166,11 @@ class PermissionHandler(
         val includeSysAttrs = queryParams.getOrDefault(QP.OPTIONS.key, emptyList())
             .contains(OptionsValue.SYS_ATTRS.value)
         val includeDetails = queryParams.getFirst(QP.DETAILS.key)?.toBoolean() ?: false
-        val pickDetailsAttributes = parseAndExpandQueryParameter(
+        val pickDetailsAttributes = parseAndExpandPickOmitParameters(
             queryParams.getFirst(QueryParameter.DETAILS_PICK.key),
+            null,
             contexts
-        )
+        ).bind().first
         val paginationQuery = parsePaginationParameters(
             queryParams,
             applicationProperties.pagination.limitDefault,
@@ -375,7 +377,7 @@ class PermissionHandler(
             permission.target.id.let { id ->
                 permissionMap[AUTH_TARGET_TERM] = compactEntity(
                     entityQueryService.queryEntity(id, excludeDeleted = false).bind()
-                        .filterAttributes(pickAttributes),
+                        .filterPickAndOmit(pickAttributes, emptySet()),
                     contexts
                 ).minus(JSONLD_CONTEXT_KW)
             }

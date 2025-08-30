@@ -292,7 +292,7 @@ class PermissionHandlerTests {
         coEvery { permissionService.getPermissionsCount(any()) } returns 1.right()
 
         webClient.get()
-            .uri("$permissionUri?targetId=$id&details=true&detailsPick=attr1")
+            .uri("$permissionUri?targetId=$id&details=true&detailsPick=id,type,attr1")
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isOk

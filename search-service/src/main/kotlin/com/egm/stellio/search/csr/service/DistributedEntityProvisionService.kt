@@ -175,7 +175,7 @@ class DistributedEntityProvisionService(
                 }
         }
         return if (allProcessedAttrs.isNotEmpty()) {
-            val remainingEntity = entity.omitAttributes(allProcessedAttrs)
+            val remainingEntity = entity.filterPickAndOmit(emptySet(), allProcessedAttrs)
             if (remainingEntity.hasNonCoreAttributes()) remainingEntity else null
         } else entity
     }

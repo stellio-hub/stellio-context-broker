@@ -1008,7 +1008,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should filter temporal attributes based on a datasetId`() = runTest {
+    fun `getForEntity should filter temporal attributes based on a datasetId`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -1030,7 +1030,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should filter temporal attributes based on omit parameter`() = runTest {
+    fun `getForEntity should filter temporal attributes based on omit parameter`() = runTest {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -1051,7 +1051,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should filter temporal attributes based on pick parameter`() = runTest {
+    fun `getForEntity should filter temporal attributes based on pick parameter`() = runTest {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -1072,7 +1072,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should filter temporal attributes based on pick and datasetId parameters`() = runTest {
+    fun `getForEntity should filter temporal attributes based on pick and datasetId parameters`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -1094,5 +1094,28 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                     tea.attributeName == INCOMING_IRI || tea.datasetId == "urn:ngsi-ld:Dataset:01234".toUri()
                 }
             }
+    }
+
+    @Test
+    fun `getForEntities should filter temporal attributes based on pick parameter`() = runTest {
+        val beehiveD = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val beehiveC = loadSampleData("beehive_one_temporal_property.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(beehiveC, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+        entityAttributeService.createAttributes(beehiveD, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val attributes =
+            entityAttributeService.getForEntities(
+                listOf(beehiveTestCId, beehiveTestDId),
+                setOf(INCOMING_IRI, NAME_IRI),
+                emptySet(),
+                emptySet()
+            )
+
+        assertThat(attributes)
+            .hasSize(3)
+            .matches { it.all { tea -> tea.attributeName == INCOMING_IRI || tea.attributeName == NAME_IRI } }
     }
 }

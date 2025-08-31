@@ -25,6 +25,7 @@ import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
@@ -41,6 +42,7 @@ import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -125,6 +127,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                     INCOMING_IRI,
                     OUTGOING_IRI
                 ),
+                emptySet(),
                 emptySet()
             )
 
@@ -148,7 +151,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             APIC_COMPOUND_CONTEXTS
         ).shouldSucceed()
 
-        val attributes = entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
+        val attributes = entityAttributeService.getAllForEntity(beehiveTestCId)
         assertEquals(4, attributes.size)
 
         coVerify {
@@ -199,7 +202,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             APIC_COMPOUND_CONTEXTS
         ).shouldSucceed()
 
-        val attributes = entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
+        val attributes = entityAttributeService.getAllForEntity(beehiveTestCId)
         assertEquals(2, attributes.size)
 
         coVerify {
@@ -256,11 +259,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             ).shouldSucceed()
         }
 
-        val attributes = entityAttributeService.getForEntity(
-            "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-            emptySet(),
-            emptySet()
-        )
+        val attributes = entityAttributeService.getAllForEntity("urn:ngsi-ld:BeeHive:TESTC".toUri())
         assertTrue(attributes.isEmpty())
     }
 
@@ -435,11 +434,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             assertTrue(newAttributes.containsAll(listOf(OUTGOING_IRI, TEMPERATURE_IRI)))
         }
 
-        val attributes = entityAttributeService.getForEntity(
-            beehiveTestCId,
-            emptySet(),
-            emptySet()
-        )
+        val attributes = entityAttributeService.getAllForEntity(beehiveTestCId)
         assertEquals(6, attributes.size)
         coVerify {
             attributeInstanceService.create(
@@ -956,7 +951,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             )
         }
 
-        entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet()).also {
+        entityAttributeService.getAllForEntity(beehiveTestCId).also {
             assertTrue(it.isEmpty())
         }
     }
@@ -1013,7 +1008,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should filter temporal attribute instances based on a datasetId`() = runTest {
+    fun `it should filter temporal attributes based on a datasetId`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -1025,11 +1020,79 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             entityAttributeService.getForEntity(
                 beehiveTestCId,
                 emptySet(),
+                emptySet(),
                 setOf("urn:ngsi-ld:Dataset:01234")
             )
 
         assertEquals(1, attributes.size)
         assertEquals(INCOMING_IRI, attributes[0].attributeName)
         assertEquals("urn:ngsi-ld:Dataset:01234", attributes[0].datasetId.toString())
+    }
+
+    @Test
+    fun `it should filter temporal attributes based on omit parameter`() = runTest {
+        val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val attributes =
+            entityAttributeService.getForEntity(
+                beehiveTestDId,
+                emptySet(),
+                setOf(INCOMING_IRI),
+                emptySet()
+            )
+
+        assertThat(attributes)
+            .hasSize(3)
+            .doesNotMatch { it.any { tea -> tea.attributeName == INCOMING_IRI } }
+    }
+
+    @Test
+    fun `it should filter temporal attributes based on pick parameter`() = runTest {
+        val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val attributes =
+            entityAttributeService.getForEntity(
+                beehiveTestDId,
+                setOf(INCOMING_IRI, NAME_IRI),
+                emptySet(),
+                emptySet()
+            )
+
+        assertThat(attributes)
+            .hasSize(2)
+            .matches { it.all { tea -> tea.attributeName == INCOMING_IRI || tea.attributeName == NAME_IRI } }
+    }
+
+    @Test
+    fun `it should filter temporal attributes based on pick and datasetId parameters`() = runTest {
+        val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val attributes =
+            entityAttributeService.getForEntity(
+                beehiveTestCId,
+                setOf(INCOMING_IRI),
+                emptySet(),
+                setOf("urn:ngsi-ld:Dataset:01234")
+            )
+
+        assertThat(attributes)
+            .hasSize(1)
+            .matches {
+                it.all { tea ->
+                    tea.attributeName == INCOMING_IRI || tea.datasetId == "urn:ngsi-ld:Dataset:01234".toUri()
+                }
+            }
     }
 }

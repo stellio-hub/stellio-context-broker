@@ -301,7 +301,7 @@ class EntityAttributeService(
         entityId: URI,
         deletedAt: ZonedDateTime
     ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
-        val attributesToDelete = getForEntity(entityId, emptySet(), emptySet())
+        val attributesToDelete = getAllForEntity(entityId)
         deleteSelectedAttributes(attributesToDelete, deletedAt).bind()
     }
 
@@ -316,7 +316,7 @@ class EntityAttributeService(
         logger.debug("Deleting attribute {} from entity {} (all: {})", attributeName, entityId, deleteAll)
         val attributesToDelete =
             if (deleteAll)
-                getForEntity(entityId, setOf(attributeName), emptySet())
+                getForEntity(entityId, setOf(attributeName), emptySet(), emptySet())
             else
                 listOf(getForEntityAndAttribute(entityId, attributeName, datasetId).bind())
 
@@ -396,7 +396,7 @@ class EntityAttributeService(
         logger.debug("Permanently deleting attribute {} from entity {} (all: {})", attributeName, entityId, deleteAll)
         val attributesToDelete =
             if (deleteAll)
-                getForEntity(entityId, setOf(attributeName), emptySet(), false)
+                getForEntity(entityId, setOf(attributeName), emptySet(), emptySet(), false)
             else
                 listOf(getForEntityAndAttribute(entityId, attributeName, datasetId).bind())
 
@@ -473,17 +473,32 @@ class EntityAttributeService(
             .allToMappedList { rowToAttribute(it) }
     }
 
+    suspend fun getAllForEntity(
+        id: URI,
+        excludeDeleted: Boolean = true
+    ): List<Attribute> =
+        getForEntity(id, emptySet(), emptySet(), emptySet(), excludeDeleted)
+
     suspend fun getForEntity(
         id: URI,
-        attrs: Set<String>,
+        pick: Set<String>,
+        omit: Set<String>,
         datasetIds: Set<String>,
         excludeDeleted: Boolean = true
     ): List<Attribute> {
-        val filterOnAttributes =
-            if (attrs.isNotEmpty())
-                " AND " + attrs.joinToString(
+        val pickAttributes =
+            if (pick.isNotEmpty())
+                " AND " + pick.joinToString(
                     separator = ",",
                     prefix = "attribute_name in (",
+                    postfix = ")"
+                ) { "'$it'" }
+            else ""
+        val omitAttributes =
+            if (omit.isNotEmpty())
+                " AND " + omit.joinToString(
+                    separator = ",",
+                    prefix = "attribute_name not in (",
                     postfix = ")"
                 ) { "'$it'" }
             else ""
@@ -502,7 +517,8 @@ class EntityAttributeService(
             FROM temporal_entity_attribute            
             WHERE entity_id = :entity_id
             ${if (excludeDeleted) " and deleted_at is null " else ""}
-            $filterOnAttributes
+            $pickAttributes
+            $omitAttributes
             $filterOnDatasetId
             """.trimIndent()
 

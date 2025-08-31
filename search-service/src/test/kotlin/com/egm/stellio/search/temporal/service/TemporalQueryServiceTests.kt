@@ -37,6 +37,7 @@ import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -134,7 +135,7 @@ class TemporalQueryServiceTests {
 
         coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
         coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
-        coEvery { entityAttributeService.getForEntity(any(), any(), any(), any()) } returns attributes
+        coEvery { entityAttributeService.getForEntity(any(), any(), any(), any(), any()) } returns attributes
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<Attribute>>())
@@ -163,7 +164,7 @@ class TemporalQueryServiceTests {
         coVerify {
             entityQueryService.retrieve(entityUri, false)
             authorizationService.userCanReadEntity(entityUri)
-            entityAttributeService.getForEntity(entityUri, emptySet(), emptySet(), false)
+            entityAttributeService.getForEntity(entityUri, emptySet(), emptySet(), emptySet(), false)
             attributeInstanceService.search(
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.temporalQuery.timerel == TemporalQuery.Timerel.AFTER &&
@@ -178,7 +179,61 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should not return an oldest timestamp if not in an aggregattion query`() = runTest {
+    fun `it should query a temporal entity as requested by pick and omit params`() = runTest {
+        val attributes =
+            listOf(INCOMING_IRI, OUTGOING_IRI).map {
+                Attribute(
+                    entityId = entityUri,
+                    attributeName = it,
+                    attributeValueType = Attribute.AttributeValueType.NUMBER,
+                    createdAt = now,
+                    payload = EMPTY_JSON_PAYLOAD
+                )
+            }
+
+        coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
+        coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.getForEntity(any(), any(), any(), any(), any())
+        } returns listOf(attributes[0])
+        coEvery {
+            attributeInstanceService.search(any(), any<List<Attribute>>())
+        } returns listOf(
+            FullAttributeInstanceResult(attributes[0].id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null)
+        ).right()
+
+        temporalQueryService.queryTemporalEntity(
+            entityUri,
+            TemporalEntitiesQueryFromGet(
+                temporalQuery = buildDefaultTestTemporalQuery(
+                    timerel = TemporalQuery.Timerel.AFTER,
+                    timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                ),
+                entitiesQuery = EntitiesQueryFromGet(
+                    paginationQuery = PaginationQuery(limit = 0, offset = 50),
+                    pick = setOf(INCOMING_IRI),
+                    omit = setOf(OUTGOING_IRI),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
+            )
+        )
+
+        coVerify {
+            entityQueryService.retrieve(entityUri, false)
+            authorizationService.userCanReadEntity(entityUri)
+            entityAttributeService.getForEntity(entityUri, setOf(INCOMING_IRI), setOf(OUTGOING_IRI), emptySet(), false)
+            attributeInstanceService.search(
+                any(),
+                match<List<Attribute>> { it.size == 1 && it[0].attributeName == INCOMING_IRI }
+            )
+            scopeService wasNot called
+        }
+    }
+
+    @Test
+    fun `it should not return an oldest timestamp if not in an aggregation query`() = runTest {
         val origin = temporalQueryService.calculateOldestTimestamp(
             entityUri,
             TemporalEntitiesQueryFromGet(

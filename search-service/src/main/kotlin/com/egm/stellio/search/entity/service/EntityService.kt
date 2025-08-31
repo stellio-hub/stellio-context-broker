@@ -475,7 +475,7 @@ class EntityService(
         updateState(
             entityId,
             createdAt,
-            entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
+            entityAttributeService.getAllForEntity(entityId)
         ).bind()
     }
 
@@ -513,7 +513,7 @@ class EntityService(
         // update modifiedAt in entity if at least one attribute has been added
         if (operationResult.hasSuccessfulResult()) {
             val sub = getSubFromSecurityContext()
-            val attributes = entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
+            val attributes = entityAttributeService.getAllForEntity(entityId)
             val updatedEntity = updateState(entityId, createdAt, attributes).bind()
 
             entityEventService.publishAttributeChangeEvents(
@@ -698,7 +698,7 @@ class EntityService(
         val updatedEntity = updateState(
             entityId,
             ngsiLdDateTime(),
-            entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
+            entityAttributeService.getAllForEntity(entityId)
         ).bind()
 
         deleteAttributeResults.getSucceededAttributesOperations()
@@ -734,7 +734,7 @@ class EntityService(
         updateState(
             entityId,
             ngsiLdDateTime(),
-            entityAttributeService.getForEntity(entityId, emptySet(), emptySet())
+            entityAttributeService.getAllForEntity(entityId)
         ).bind()
     }
 }

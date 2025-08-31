@@ -23,7 +23,6 @@ import com.egm.stellio.search.common.util.valueToStringOrNull
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.AttributeOperationResult
-import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
@@ -438,32 +437,21 @@ class EntityAttributeService(
 
     suspend fun getForEntities(
         entitiesIds: List<URI>,
-        entitiesQuery: EntitiesQuery
+        pick: Set<String>,
+        omit: Set<String>,
+        datasetIds: Set<String>,
     ): List<Attribute> {
-        val filterOnAttributes =
-            if (entitiesQuery.attrs.isNotEmpty())
-                " AND " + entitiesQuery.attrs.joinToString(
-                    separator = ",",
-                    prefix = "attribute_name in (",
-                    postfix = ")"
-                ) { "'$it'" }
-            else ""
-
-        val filterOnDatasetId =
-            if (entitiesQuery.datasetId.isNotEmpty()) {
-                val datasetIdsList = entitiesQuery.datasetId.joinToString(",") { "'$it'" }
-                " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
-                    "OR (dataset_id IS NULL AND '$JSONLD_NONE_KW' in ($datasetIdsList)))"
-            } else ""
+        val (pickAttributes, omitAttributes, datasetIdFilter) = buildAttributesFilter(pick, omit, datasetIds)
 
         val selectQuery =
             """
             SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
                 deleted_at, dataset_id, payload
             FROM temporal_entity_attribute            
-            WHERE entity_id IN (:entities_ids) 
-            $filterOnAttributes
-            $filterOnDatasetId
+            WHERE entity_id IN (:entities_ids)
+            $pickAttributes
+            $omitAttributes
+            $datasetIdFilter
             ORDER BY entity_id
             """.trimIndent()
 
@@ -486,6 +474,31 @@ class EntityAttributeService(
         datasetIds: Set<String>,
         excludeDeleted: Boolean = true
     ): List<Attribute> {
+        val (pickAttributes, omitAttributes, datasetIdFilter) = buildAttributesFilter(pick, omit, datasetIds)
+
+        val selectQuery =
+            """
+            SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
+                dataset_id, payload
+            FROM temporal_entity_attribute            
+            WHERE entity_id = :entity_id
+            ${if (excludeDeleted) " and deleted_at is null " else ""}
+            $pickAttributes
+            $omitAttributes
+            $datasetIdFilter
+            """.trimIndent()
+
+        return databaseClient
+            .sql(selectQuery)
+            .bind("entity_id", id)
+            .allToMappedList { rowToAttribute(it) }
+    }
+
+    private fun buildAttributesFilter(
+        pick: Set<String>,
+        omit: Set<String>,
+        datasetIds: Set<String>
+    ): Triple<String, String, String> {
         val pickAttributes =
             if (pick.isNotEmpty())
                 " AND " + pick.joinToString(
@@ -503,29 +516,14 @@ class EntityAttributeService(
                 ) { "'$it'" }
             else ""
 
-        val filterOnDatasetId =
+        val datasetIdFilter =
             if (datasetIds.isNotEmpty()) {
                 val datasetIdsList = datasetIds.joinToString(",") { "'$it'" }
                 " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
-                    "OR (dataset_id IS NULL AND '@none' in ($datasetIdsList)))"
+                    "OR (dataset_id IS NULL AND '$JSONLD_NONE_KW' in ($datasetIdsList)))"
             } else ""
 
-        val selectQuery =
-            """
-            SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
-                dataset_id, payload
-            FROM temporal_entity_attribute            
-            WHERE entity_id = :entity_id
-            ${if (excludeDeleted) " and deleted_at is null " else ""}
-            $pickAttributes
-            $omitAttributes
-            $filterOnDatasetId
-            """.trimIndent()
-
-        return databaseClient
-            .sql(selectQuery)
-            .bind("entity_id", id)
-            .allToMappedList { rowToAttribute(it) }
+        return Triple(pickAttributes, omitAttributes, datasetIdFilter)
     }
 
     suspend fun getForEntityAndAttribute(

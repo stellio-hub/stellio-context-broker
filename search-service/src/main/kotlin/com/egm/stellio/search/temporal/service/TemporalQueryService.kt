@@ -119,7 +119,6 @@ class TemporalQueryService(
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
         val accessRightWithAndFilter = authorizationService.getAccessRightWithClauseAndFilter()
-        val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val entitiesIds = entityQueryService.queryEntities(
             temporalEntitiesQuery.entitiesQuery,
             false,
@@ -135,13 +134,17 @@ class TemporalQueryService(
         if (entitiesIds.isEmpty())
             return@either Triple(emptyList(), count, null)
 
+        val pick = temporalEntitiesQuery.entitiesQuery.pick
+        val omit = temporalEntitiesQuery.entitiesQuery.omit
         val attributes = entityAttributeService.getForEntities(
             entitiesIds,
-            temporalEntitiesQuery.entitiesQuery
+            pick.plus(temporalEntitiesQuery.entitiesQuery.attrs),
+            omit,
+            temporalEntitiesQuery.entitiesQuery.datasetId
         )
 
         val scopesHistory =
-            if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_IRI))
+            if ((pick.isEmpty() || pick.contains(NGSILD_SCOPE_IRI)) && !omit.contains(NGSILD_SCOPE_IRI))
                 scopeService.retrieveHistory(entitiesIds, temporalEntitiesQuery).bind().groupBy { it.entityId }
             else emptyMap()
 

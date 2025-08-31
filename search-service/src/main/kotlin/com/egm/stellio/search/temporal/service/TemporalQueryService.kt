@@ -47,9 +47,11 @@ class TemporalQueryService(
         authorizationService.userCanReadEntity(entityId).bind()
 
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
+        val pick = temporalEntitiesQuery.entitiesQuery.pick
+        val omit = temporalEntitiesQuery.entitiesQuery.omit
         val datasetIds = temporalEntitiesQuery.entitiesQuery.datasetId
-        val attributes = entityAttributeService.getForEntity(entityId, attrs, datasetIds, false).let {
-            if (it.isEmpty())
+        val attributes = entityAttributeService.getForEntity(entityId, attrs.plus(pick), omit, datasetIds, false).let {
+            if (it.isEmpty() && attrs.isNotEmpty())
                 ResourceNotFoundException(
                     entityOrAttrsNotFoundMessage(entityId, temporalEntitiesQuery.entitiesQuery.attrs)
                 ).left()
@@ -59,7 +61,7 @@ class TemporalQueryService(
         val origin = calculateOldestTimestamp(entityId, temporalEntitiesQuery, attributes)
 
         val scopeHistory =
-            if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_IRI))
+            if ((pick.isEmpty() || pick.contains(NGSILD_SCOPE_IRI)) && !omit.contains(NGSILD_SCOPE_IRI))
                 scopeService.retrieveHistory(listOf(entityId), temporalEntitiesQuery, origin).bind()
             else emptyList()
 

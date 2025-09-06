@@ -441,7 +441,7 @@ class EntityAttributeService(
         omit: Set<String>,
         datasetIds: Set<String>,
     ): List<Attribute> {
-        val (pickAttributes, omitAttributes, datasetIdFilter) = buildAttributesFilter(pick, omit, datasetIds)
+        val filter = buildAttributesFilter(pick, omit, datasetIds)
 
         val selectQuery =
             """
@@ -449,9 +449,7 @@ class EntityAttributeService(
                 deleted_at, dataset_id, payload
             FROM temporal_entity_attribute            
             WHERE entity_id IN (:entities_ids)
-            $pickAttributes
-            $omitAttributes
-            $datasetIdFilter
+            AND $filter
             ORDER BY entity_id
             """.trimIndent()
 
@@ -474,7 +472,7 @@ class EntityAttributeService(
         datasetIds: Set<String>,
         excludeDeleted: Boolean = true
     ): List<Attribute> {
-        val (pickAttributes, omitAttributes, datasetIdFilter) = buildAttributesFilter(pick, omit, datasetIds)
+        val filter = buildAttributesFilter(pick, omit, datasetIds)
 
         val selectQuery =
             """
@@ -483,9 +481,7 @@ class EntityAttributeService(
             FROM temporal_entity_attribute            
             WHERE entity_id = :entity_id
             ${if (excludeDeleted) " and deleted_at is null " else ""}
-            $pickAttributes
-            $omitAttributes
-            $datasetIdFilter
+            AND $filter
             """.trimIndent()
 
         return databaseClient
@@ -498,32 +494,34 @@ class EntityAttributeService(
         pick: Set<String>,
         omit: Set<String>,
         datasetIds: Set<String>
-    ): Triple<String, String, String> {
+    ): String {
         val pickAttributes =
             if (pick.isNotEmpty())
-                " AND " + pick.joinToString(
+                pick.joinToString(
                     separator = ",",
                     prefix = "attribute_name in (",
                     postfix = ")"
                 ) { "'$it'" }
-            else ""
+            else null
         val omitAttributes =
             if (omit.isNotEmpty())
-                " AND " + omit.joinToString(
+                omit.joinToString(
                     separator = ",",
                     prefix = "attribute_name not in (",
                     postfix = ")"
                 ) { "'$it'" }
-            else ""
+            else null
 
         val datasetIdFilter =
             if (datasetIds.isNotEmpty()) {
                 val datasetIdsList = datasetIds.joinToString(",") { "'$it'" }
-                " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
+                "((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
                     "OR (dataset_id IS NULL AND '$JSONLD_NONE_KW' in ($datasetIdsList)))"
-            } else ""
+            } else null
 
-        return Triple(pickAttributes, omitAttributes, datasetIdFilter)
+        val filters = listOfNotNull(pickAttributes, omitAttributes, datasetIdFilter)
+
+        return if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
     }
 
     suspend fun getForEntityAndAttribute(

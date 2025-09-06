@@ -30,11 +30,14 @@ import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_TERM
+import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_TYPE
+import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
+import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.toAPIException
@@ -105,22 +108,28 @@ object JsonLdUtils {
         expandJsonLdTerm(term, listOf(context))
 
     fun expandJsonLdTerm(term: String, contexts: List<String>): String =
-        try {
-            val preparedTerm = mapOf(
-                term to mapOf<String, Any>(),
-                JSONLD_CONTEXT_KW to contexts
-            )
-            JsonLd.expand(JsonDocument.of(serializeObject(preparedTerm).byteInputStream()))
-                .options(jsonLdOptions)
-                .get()
-                .let {
-                    if (it.isNotEmpty())
-                        (it[0] as JsonObject).keys.first()
-                    else term
-                }
-        } catch (e: JsonLdError) {
-            logger.error("Unable to expand term $term with context $contexts: ${e.message}")
-            throw e.toAPIException()
+        when (term) {
+            // avoid an expensive expansion operation for well-known terms from the Core Context
+            NGSILD_ID_TERM -> JSONLD_ID_KW
+            NGSILD_TYPE_TERM -> JSONLD_TYPE_KW
+            NGSILD_SCOPE_TERM -> NGSILD_SCOPE_IRI
+            else -> try {
+                val preparedTerm = mapOf(
+                    term to mapOf<String, Any>(),
+                    JSONLD_CONTEXT_KW to contexts
+                )
+                JsonLd.expand(JsonDocument.of(serializeObject(preparedTerm).byteInputStream()))
+                    .options(jsonLdOptions)
+                    .get()
+                    .let {
+                        if (it.isNotEmpty())
+                            (it[0] as JsonObject).keys.first()
+                        else term
+                    }
+            } catch (e: JsonLdError) {
+                logger.error("Unable to expand term $term with context $contexts: ${e.message}")
+                throw e.toAPIException()
+            }
         }
 
     suspend fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, List<Any>> =

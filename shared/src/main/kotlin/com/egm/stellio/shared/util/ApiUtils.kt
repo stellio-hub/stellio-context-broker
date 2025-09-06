@@ -10,13 +10,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
-import com.egm.stellio.shared.model.JSONLD_ID_KW
-import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
-import com.egm.stellio.shared.model.NGSILD_ID_TERM
-import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
-import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
-import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NotAcceptableException
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.queryparameter.OptionsValue
@@ -310,11 +304,6 @@ private fun parseAttributeProjectionList(
     }
 
     entityMembers.map { attrName ->
-        when (attrName) {
-            NGSILD_ID_TERM -> JSONLD_ID_KW
-            NGSILD_TYPE_TERM -> JSONLD_TYPE_KW
-            NGSILD_SCOPE_TERM -> NGSILD_SCOPE_IRI
-            else -> expandJsonLdTerm(attrName, contexts)
-        }
+        expandJsonLdTerm(attrName, contexts)
     }.toSet()
 }

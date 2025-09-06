@@ -259,5 +259,10 @@ class EntityEventService(
         expandedAttributeName: ExpandedTerm,
         datasetId: URI?
     ): String =
-        serializeObject(entity.getAttribute(expandedAttributeName, datasetId)!!)
+        entity.getAttribute(expandedAttributeName, datasetId)?.let {
+            serializeObject(it)
+        } ?: run {
+            logger.error("Unable to find attribute $expandedAttributeName ($datasetId) in entity ${entity.id}")
+            ""
+        }
 }

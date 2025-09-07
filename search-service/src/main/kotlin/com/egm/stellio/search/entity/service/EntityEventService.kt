@@ -18,6 +18,7 @@ import com.egm.stellio.shared.util.getTenantFromContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.core.KafkaTemplate
@@ -33,7 +34,7 @@ class EntityEventService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     internal fun publishEntityEvent(event: EntityEvent): Boolean {
         kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))

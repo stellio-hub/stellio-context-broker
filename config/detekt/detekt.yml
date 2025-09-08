@@ -881,7 +881,7 @@ formatting:
     autoCorrect: true
     indentSize: 4
   MaximumLineLength:
-    active: true
+    active: false
     maxLineLength: 120
     ignoreBackTickedIdentifier: false
   ModifierListSpacing:

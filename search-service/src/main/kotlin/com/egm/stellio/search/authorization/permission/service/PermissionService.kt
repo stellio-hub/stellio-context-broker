@@ -444,7 +444,7 @@ class PermissionService(
                 FROM permission
                 LEFT JOIN entity_payload ON permission.target_id = entity_payload.entity_id
                 WHERE ${buildIsAssigneeFilter(uuids)}
-                $scopesAndTypesFilters
+                AND $scopesAndTypesFilters
                 AND action IN(:actions)
                 """.trimIndent()
             )
@@ -509,7 +509,7 @@ class PermissionService(
         uuids: List<Sub>
     ): String = """
         (
-            entity_id in (
+            entity_payload.entity_id in (
               SELECT target_id
               FROM permission
               WHERE ${buildIsAssigneeFilter(uuids)}
@@ -520,7 +520,7 @@ class PermissionService(
                SELECT 1
                FROM admin_permissions as ap
                WHERE (ap.target_types is null OR ap.target_types && types)
-               AND (ap.target_scopes is null OR ap.target_scopes && scopes)
+               AND (ap.target_scopes is null OR ap.target_scopes && COALESCE(scopes, ARRAY['@none']))
            )
         )
     """.trimIndent()

@@ -6,13 +6,13 @@ import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.notFoundMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
-import com.egm.stellio.search.authorization.permission.model.PermissionUtils.gimmeRawPermission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.authorization.permission.service.PermissionServiceTests.PermissionId.beehiveType
 import com.egm.stellio.search.authorization.permission.service.PermissionServiceTests.PermissionId.beehiveTypeAndScopeA
 import com.egm.stellio.search.authorization.permission.service.PermissionServiceTests.PermissionId.beehiveWithScope
 import com.egm.stellio.search.authorization.permission.service.PermissionServiceTests.PermissionId.beekeeper
 import com.egm.stellio.search.authorization.permission.service.PermissionServiceTests.PermissionId.scopeA
+import com.egm.stellio.search.authorization.permission.support.PermissionUtils.gimmeRawPermission
 import com.egm.stellio.search.authorization.subject.USER_UUID
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.entity.model.Entity

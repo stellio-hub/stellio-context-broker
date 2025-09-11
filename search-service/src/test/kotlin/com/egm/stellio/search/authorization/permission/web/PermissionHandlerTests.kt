@@ -4,8 +4,8 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
-import com.egm.stellio.search.authorization.permission.model.PermissionUtils.gimmeRawPermission
 import com.egm.stellio.search.authorization.permission.service.PermissionService
+import com.egm.stellio.search.authorization.permission.support.PermissionUtils.gimmeRawPermission
 import com.egm.stellio.search.authorization.subject.model.SubjectReferential
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.common.config.SearchProperties

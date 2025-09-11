@@ -53,7 +53,7 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
-typealias ClauseAndFilter = Pair<String, String>
+typealias WithAndFilter = Pair<String, String>
 
 @Component
 class PermissionService(
@@ -146,7 +146,7 @@ class PermissionService(
                 ?: "target_types is null"
 
         val targetIsIncludedFilter =
-            listOfNotNull(targetIdFilter, scopesIsIncludedFilter, typesIsIncludedFilter)
+            listOf(targetIdFilter, scopesIsIncludedFilter, typesIsIncludedFilter)
                 .joinToString(" AND ")
         return databaseClient.sql(
             """
@@ -168,6 +168,7 @@ class PermissionService(
                     Unit.right()
             }
     }
+
     suspend fun getById(id: URI): Either<APIException, Permission> = either {
         checkExistence(id).bind()
 
@@ -283,7 +284,7 @@ class PermissionService(
         limit: Int = Int.MAX_VALUE,
         offset: Int = 0,
     ): Either<APIException, List<Permission>> = either {
-        val filterQuery = buildWhereStatement(filters).bind()
+        val filterQuery = buildPermissionFiltersWhereStatement(filters).bind()
         val (withClause, authorizationFilter) = buildAuthorizationFilter(filters.kind).bind()
         val selectStatement =
             """
@@ -317,7 +318,7 @@ class PermissionService(
     suspend fun getPermissionsCount(
         filters: PermissionFilters = PermissionFilters(),
     ): Either<APIException, Int> = either {
-        val filterQuery = buildWhereStatement(filters).bind()
+        val filterQuery = buildPermissionFiltersWhereStatement(filters).bind()
         val (withClause, authorizationFilter) = buildAuthorizationFilter(filters.kind).bind()
 
         val selectStatement =
@@ -326,6 +327,7 @@ class PermissionService(
             
             SELECT count(distinct permission.id)
             FROM permission
+            LEFT JOIN entity_payload ON permission.target_id = entity_payload.entity_id
             WHERE $filterQuery 
             AND $authorizationFilter
             """.trimIndent()
@@ -351,7 +353,7 @@ class PermissionService(
         action: Action
     ): Either<APIException, Boolean> = either {
         if (!applicationProperties.authentication.enabled)
-            return@either true
+            return true.right()
 
         val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
 
@@ -367,10 +369,9 @@ class PermissionService(
         uuids: List<Sub>,
         entityId: URI,
         actions: Set<Action>
-    ): Either<APIException, Boolean> {
-        return databaseClient
-            .sql(
-                """
+    ): Either<APIException, Boolean> = databaseClient
+        .sql(
+            """
                 WITH entity AS (
                     SELECT
                         entity_id,
@@ -395,18 +396,17 @@ class PermissionService(
                     )
                 )
                 AND action IN(:actions)
-                """.trimIndent()
-            )
-            .bind("actions", actions.map { it.value })
-            .oneToResult { it["count"] as Long >= 1L }
-    }
+            """.trimIndent()
+        )
+        .bind("actions", actions.map { it.value })
+        .oneToResult { it["count"] as Long >= 1L }
 
     internal suspend fun hasPermissionOnTarget(
         target: TargetAsset,
         action: Action,
     ): Either<APIException, Unit> = either {
         if (!applicationProperties.authentication.enabled)
-            return@either
+            return Unit.right()
 
         val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
 
@@ -470,7 +470,7 @@ class PermissionService(
 
     private suspend fun buildAuthorizationFilter(
         kind: PermissionKind = PermissionKind.ADMIN
-    ): Either<APIException, ClauseAndFilter> =
+    ): Either<APIException, WithAndFilter> =
         either {
             val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
             when (kind) {
@@ -482,9 +482,11 @@ class PermissionService(
     private fun buildIsAssigneeFilter(uuids: List<Sub>): String =
         "(assignee is null OR assignee IN ${uuids.toSqlList()})"
 
-    private suspend fun buildPermissionAdminFilter(uuids: List<Sub>): Either<APIException, ClauseAndFilter> = either {
-        if (subjectReferentialService.hasStellioAdminRole(uuids).bind()) "" to "true" else {
-            val withClause = buildAdminPermissionWithClause(Action.ADMIN, uuids)
+    private suspend fun buildPermissionAdminFilter(uuids: List<Sub>): Either<APIException, WithAndFilter> = either {
+        if (subjectReferentialService.hasStellioAdminRole(uuids).bind())
+            "" to "true"
+        else {
+            val withClause = buildCandidatePermissionWithStatement(Action.ADMIN, uuids)
             val filterClause = """
         (
             ${buildAsRightOnEntityFilter(Action.ADMIN, uuids)}   
@@ -493,9 +495,9 @@ class PermissionService(
                target_id is null  
                AND  exists (
                    SELECT 1
-                   FROM admin_permissions as ap
-                   WHERE (ap.target_types IS NULL OR ap.target_types @> permission.target_types)
-                   AND (ap.target_scopes IS NULL OR ap.target_scopes @> permission.target_scopes)
+                   FROM candidate_permissions as cp
+                   WHERE (cp.target_types IS NULL OR cp.target_types @> permission.target_types)
+                   AND (cp.target_scopes IS NULL OR cp.target_scopes @> permission.target_scopes)
                )
             )
         )
@@ -514,38 +516,38 @@ class PermissionService(
               FROM permission
               WHERE ${buildIsAssigneeFilter(uuids)}
               AND target_id IS NOT NULL
-              AND action IN ${action.inSqlList()}
+              AND action IN ${action.includedInToSqlList()}
            ) 
            OR exists (
                SELECT 1
-               FROM admin_permissions as ap
-               WHERE (ap.target_types is null OR ap.target_types && types)
-               AND (ap.target_scopes is null OR ap.target_scopes && COALESCE(scopes, ARRAY['@none']))
+               FROM candidate_permissions as cp
+               WHERE (cp.target_types is null OR cp.target_types && types)
+               AND (cp.target_scopes is null OR cp.target_scopes && COALESCE(scopes, ARRAY['@none']))
            )
         )
     """.trimIndent()
 
-    fun buildAdminPermissionWithClause(
+    fun buildCandidatePermissionWithStatement(
         action: Action,
         uuids: List<Sub>
     ): String = """
-                 WITH admin_permissions AS (
+                 WITH candidate_permissions AS (
                     SELECT
                         target_types,
                         target_scopes
                     FROM permission
                     WHERE ${buildIsAssigneeFilter(uuids)}
                     AND target_id IS NULL
-                    AND action IN ${action.inSqlList()}
+                    AND action IN ${action.includedInToSqlList()}
                 )
     """.trimIndent()
 
-    private suspend fun buildWhereStatement(
+    private suspend fun buildPermissionFiltersWhereStatement(
         permissionFilters: PermissionFilters
     ): Either<APIException, String> = either {
         val actionFilter = permissionFilters.action?.let { action ->
             """
-            action in ${action.inSqlList()}
+            action in ${action.includedInToSqlList()}
             """.trimIndent()
         }
 
@@ -562,7 +564,8 @@ class PermissionService(
 
         //  targetTypeFilter also return permission targeting entity with this type
         val targetTypeFilter = if (!permissionFilters.targetTypeSelection.isNullOrEmpty())
-            """(
+            """
+                (
                  (target_id is null AND target_types is null)
                  OR
                  ( ${buildTypeQuery(permissionFilters.targetTypeSelection, "target_types")} )
@@ -574,7 +577,8 @@ class PermissionService(
 
         // targetScopeFilter also return permission targeting entity with this scope
         val targetScopeFilter = if (!permissionFilters.targetScopeSelection.isNullOrEmpty())
-            """(
+            """
+                (
                   (target_id is null AND target_scopes is null)
                   OR
                   ( ${buildScopeQQuery(permissionFilters.targetScopeSelection, columnName = "target_scopes")} )

@@ -213,6 +213,7 @@ class EnabledAuthorizationServiceTests {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid)) } returns true.right()
 
         val accessRightFilter = enabledAuthorizationService.getAccessRightFilter()
+
         assertNull(accessRightFilter)
     }
 
@@ -223,9 +224,11 @@ class EnabledAuthorizationServiceTests {
         } returns listOf(subjectUuid, groupUuid).right()
         coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
         coEvery { permissionService.buildAsRightOnEntityFilter(any(), any()) } returns "entity filter"
-        coEvery { permissionService.buildAdminPermissionWithClause(any(), any()) } returns "admin clause"
+        coEvery { permissionService.buildCandidatePermissionWithStatement(any(), any()) } returns "admin clause"
+
         val accessRightFilter = enabledAuthorizationService.getAccessRightFilter()
         val adminPermissionWithClause = enabledAuthorizationService.getAdminPermissionWithClause()
+
         assertEquals(
             "entity filter",
             accessRightFilter
@@ -234,7 +237,6 @@ class EnabledAuthorizationServiceTests {
             "admin clause",
             adminPermissionWithClause
         )
-
         coVerify { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid, groupUuid)) }
     }
 

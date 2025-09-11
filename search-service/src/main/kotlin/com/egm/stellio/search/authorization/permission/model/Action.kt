@@ -27,7 +27,7 @@ enum class Action(val value: String, private val includedIn: Set<Action> = empty
 
     fun getIncludedIn(): Set<Action> = includedIn + this
 
-    fun inSqlList(): String =
+    fun includedInToSqlList(): String =
         getIncludedIn().map { it.value }.toSqlList()
 
     companion object {

@@ -479,9 +479,6 @@ class PermissionService(
             }
         }
 
-    private fun buildIsAssigneeFilter(uuids: List<Sub>): String =
-        "(assignee is null OR assignee IN ${uuids.toSqlList()})"
-
     private suspend fun buildPermissionAdminFilter(uuids: List<Sub>): Either<APIException, WithAndFilter> = either {
         if (subjectReferentialService.hasStellioAdminRole(uuids).bind())
             "" to "true"
@@ -489,7 +486,10 @@ class PermissionService(
             val withClause = buildCandidatePermissionWithStatement(Action.ADMIN, uuids)
             val filterClause = """
         (
-            ${buildAsRightOnEntityFilter(Action.ADMIN, uuids)}   
+            (
+                target_id is not null 
+                AND ${buildAsRightOnEntityFilter(Action.ADMIN, uuids)}
+            )   
             OR 
             (
                target_id is null  
@@ -566,11 +566,11 @@ class PermissionService(
         val targetTypeFilter = if (!permissionFilters.targetTypeSelection.isNullOrEmpty())
             """
                 (
-                 (target_id is null AND target_types is null)
-                 OR
-                 ( ${buildTypeQuery(permissionFilters.targetTypeSelection, "target_types")} )
-                 OR 
-                 ( ${buildTypeQuery(permissionFilters.targetTypeSelection)} )
+                  (target_id is null AND target_types is null)
+                  OR
+                  ( ${buildTypeQuery(permissionFilters.targetTypeSelection, "target_types")} )
+                  OR 
+                  ( ${buildTypeQuery(permissionFilters.targetTypeSelection)} )
                ) 
             """.trimIndent()
         else null
@@ -592,12 +592,14 @@ class PermissionService(
         val idFilter = if (!permissionFilters.ids.isNullOrEmpty())
             """
                 (
-                    target_id is not null AND
-                    target_id in ${permissionFilters.ids.toSqlList()}
-                )
-                OR
-                (
-                    entity_id in ${permissionFilters.ids.toSqlList()}
+                  (
+                      target_id is not null AND
+                      target_id in ${permissionFilters.ids.toSqlList()}
+                  )
+                  OR
+                  (
+                      entity_id in ${permissionFilters.ids.toSqlList()}
+                  )
                 )
             """.trimIndent()
         else null
@@ -607,6 +609,9 @@ class PermissionService(
 
         if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
     }
+
+    private fun buildIsAssigneeFilter(uuids: List<Sub>): String =
+        "(assignee is null OR assignee IN ${uuids.toSqlList()})"
 
     companion object {
 

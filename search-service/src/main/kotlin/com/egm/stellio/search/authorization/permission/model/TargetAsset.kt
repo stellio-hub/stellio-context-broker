@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonIgnore
 import java.net.URI
 
 data class TargetAsset(
@@ -40,7 +41,8 @@ data class TargetAsset(
             BadRequestDataException("You can't target an id and types or scopes").left()
         } else { Unit.right() }
 
-    inline fun isTargetingEntity() = id != null
+    @JsonIgnore
+    fun isTargetingEntity() = id != null
 
     companion object {
         fun deserialize(

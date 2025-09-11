@@ -11,6 +11,7 @@ import java.net.URI
 import java.time.ZonedDateTime
 
 typealias Scope = String
+
 data class ExpandedEntity(
     val members: Map<String, Any>
 ) {

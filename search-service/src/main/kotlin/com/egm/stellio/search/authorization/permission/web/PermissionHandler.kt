@@ -238,8 +238,8 @@ class PermissionHandler(
         @AllowedParameters // no query parameter is allowed
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        checkIsAdmin(permissionId).bind()
         val currentPermission = permissionService.getById(permissionId).bind()
+        permissionService.hasPermissionOnTarget(currentPermission.target, Action.ADMIN).bind()
 
         if (currentPermission.action == Action.OWN) {
             CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
@@ -279,12 +279,6 @@ class PermissionHandler(
         { it.toErrorResponse() },
         { it }
     )
-
-    private suspend fun checkIsAdmin(permissionId: URI): Either<APIException, Unit> = either {
-        val permission = permissionService.getById(permissionId).bind()
-
-        permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN)
-    }
 
     private suspend fun checkCanCreate(permission: Permission): Either<APIException, Unit> = either {
         permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN).bind()

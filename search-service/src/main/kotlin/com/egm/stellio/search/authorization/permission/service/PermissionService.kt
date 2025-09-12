@@ -271,6 +271,22 @@ class PermissionService(
             .bind("entity_id", entityId)
             .execute()
 
+    suspend fun getEntitiesIdsOwnedBySubject(
+        subjectId: Sub
+    ): Either<APIException, List<URI>> = either {
+        databaseClient
+            .sql(
+                """
+                SELECT target_id 
+                FROM permission
+                WHERE assignee = :sub
+                AND action = 'own'
+                """.trimIndent()
+            )
+            .bind("sub", subjectId)
+            .allToMappedList { toUri(it["target_id"]) }
+    }
+
     internal suspend fun checkHasPermissionOnEntity(
         entityId: URI,
         action: Action
@@ -324,6 +340,27 @@ class PermissionService(
         .bind("actions", actions.map { it.value })
         .oneToResult { it["count"] as Long >= 1L }
 
+    fun buildAsRightOnEntityFilter(
+        action: Action,
+        uuids: List<Sub>
+    ): String = """
+        (
+            entity_payload.entity_id in (
+              SELECT target_id
+              FROM permission
+              WHERE ${buildIsAssigneeFilter(uuids)}
+              AND target_id IS NOT NULL
+              AND action IN ${action.includedInToSqlList()}
+           ) 
+           OR exists (
+               SELECT 1
+               FROM candidate_permissions as cp
+               WHERE (cp.target_types is null OR cp.target_types && types)
+               AND (cp.target_scopes is null OR cp.target_scopes && COALESCE(scopes, ARRAY['@none']))
+           )
+        )
+    """.trimIndent()
+
     internal suspend fun hasPermissionOnTarget(
         target: TargetAsset,
         action: Action,
@@ -375,22 +412,6 @@ class PermissionService(
             .oneToResult { it["count"] as Long >= 1L }
     }
 
-    suspend fun getEntitiesIdsOwnedBySubject(
-        subjectId: Sub
-    ): Either<APIException, List<URI>> = either {
-        databaseClient
-            .sql(
-                """
-                SELECT target_id 
-                FROM permission
-                WHERE assignee = :sub
-                AND action = 'own'
-                """.trimIndent()
-            )
-            .bind("sub", subjectId)
-            .allToMappedList { toUri(it["target_id"]) }
-    }
-
     private suspend fun buildAuthorizationFilter(
         kind: PermissionKind = PermissionKind.ADMIN
     ): Either<APIException, WithAndFilter> =
@@ -401,6 +422,9 @@ class PermissionService(
                 PermissionKind.ASSIGNED -> "" to buildIsAssigneeFilter(uuids)
             }
         }
+
+    private fun buildIsAssigneeFilter(uuids: List<Sub>): String =
+        "(assignee is null OR assignee IN ${uuids.toSqlList()})"
 
     private suspend fun buildPermissionAdminFilter(uuids: List<Sub>): Either<APIException, WithAndFilter> = either {
         if (subjectReferentialService.hasStellioAdminRole(uuids).bind())
@@ -428,27 +452,6 @@ class PermissionService(
             withClause to filterClause
         }
     }
-
-    fun buildAsRightOnEntityFilter(
-        action: Action,
-        uuids: List<Sub>
-    ): String = """
-        (
-            entity_payload.entity_id in (
-              SELECT target_id
-              FROM permission
-              WHERE ${buildIsAssigneeFilter(uuids)}
-              AND target_id IS NOT NULL
-              AND action IN ${action.includedInToSqlList()}
-           ) 
-           OR exists (
-               SELECT 1
-               FROM candidate_permissions as cp
-               WHERE (cp.target_types is null OR cp.target_types && types)
-               AND (cp.target_scopes is null OR cp.target_scopes && COALESCE(scopes, ARRAY['@none']))
-           )
-        )
-    """.trimIndent()
 
     fun buildCandidatePermissionWithStatement(
         action: Action,
@@ -532,9 +535,6 @@ class PermissionService(
 
         if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
     }
-
-    private fun buildIsAssigneeFilter(uuids: List<Sub>): String =
-        "(assignee is null OR assignee IN ${uuids.toSqlList()})"
 
     companion object {
 

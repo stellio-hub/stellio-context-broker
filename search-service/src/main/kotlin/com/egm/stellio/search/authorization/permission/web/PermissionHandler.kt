@@ -11,7 +11,6 @@ import com.egm.stellio.search.authorization.permission.model.Permission.Companio
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedRetrieveMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
-import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.search.authorization.permission.service.PermissionService
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -24,7 +23,6 @@ import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_ACTION_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNEE_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TARGET_TERM
@@ -85,15 +83,6 @@ class PermissionHandler(
 
         val permission = deserialize(body, contexts).bind().copy(assigner = sub.orEmpty())
         checkCanCreate(permission).bind()
-
-        if (permission.action == Action.OWN) {
-            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
-        }
-
-        if (permission.action == Action.ADMIN && permission.assignee == null) {
-            EVERYONE_AS_ADMIN_EXCEPTION.left()
-                .bind<APIException>()
-        }
 
         permissionService.create(permission).bind()
 
@@ -259,23 +248,10 @@ class PermissionHandler(
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = getAuthzContextFromRequestOrDefault(httpHeaders, body, applicationProperties.contexts).bind()
 
-        if (body[AUTH_ACTION_TERM] == Action.OWN.value) {
-            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
-        }
+        val permission = currentPermission.mergeWithFragment(body, contexts).bind()
+        checkCanCreate(permission).bind()
 
-        val newAssigneeIsEveryone =
-            !body.containsKey(AUTH_ASSIGNEE_TERM) && currentPermission.assignee == null ||
-                body.containsKey(AUTH_ASSIGNEE_TERM) && body[AUTH_ASSIGNEE_TERM] == null
-        val newActionIsAdmin = !body.containsKey(AUTH_ACTION_TERM) && currentPermission.action == Action.ADMIN ||
-            body[AUTH_ACTION_TERM] == Action.ADMIN.value
-        if (newActionIsAdmin && newAssigneeIsEveryone) {
-            EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
-        }
-        body[AUTH_TARGET_TERM]
-            ?.let { TargetAsset.deserialize(it as Map<String, Any>, contexts).bind() }
-            ?.also { permissionService.hasPermissionOnTarget(it, Action.ADMIN).bind() }
-
-        permissionService.update(permissionId, body, contexts).bind()
+        permissionService.upsert(permission).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -312,6 +288,15 @@ class PermissionHandler(
 
     private suspend fun checkCanCreate(permission: Permission): Either<APIException, Unit> = either {
         permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN).bind()
+
+        if (permission.action == Action.OWN) {
+            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+        }
+
+        if (permission.action == Action.ADMIN && permission.assignee == null) {
+            EVERYONE_AS_ADMIN_EXCEPTION.left()
+                .bind<APIException>()
+        }
 
         permission.assignee?.let { subjectReferentialService.getSubjectAndGroupsUUID(it).bind() }
         permission.target.id?.let {

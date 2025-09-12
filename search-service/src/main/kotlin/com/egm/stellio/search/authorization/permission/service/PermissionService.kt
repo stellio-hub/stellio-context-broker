@@ -25,22 +25,10 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
-import com.egm.stellio.shared.model.NGSILD_ID_TERM
-import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_TERM
-import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_ACTION_TERM
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNEE_TERM
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TARGET_TERM
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
-import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toSqlArray
 import com.egm.stellio.shared.util.toSqlList
 import com.egm.stellio.shared.util.toUri
@@ -62,14 +50,20 @@ class PermissionService(
     private val applicationProperties: ApplicationProperties,
     private val subjectReferentialService: SubjectReferentialService,
 ) {
-
     @Transactional
     suspend fun create(
         permission: Permission,
     ): Either<APIException, Unit> = either {
-        permission.validate().bind()
         checkExistence(permission.id, true).bind()
         checkDuplicate(permission).bind()
+        upsert(permission).bind()
+    }
+
+    @Transactional
+    suspend fun upsert(
+        permission: Permission,
+    ): Either<APIException, Unit> = either {
+        permission.validate().bind()
 
         val insertStatement =
             """
@@ -94,7 +88,16 @@ class PermissionService(
                 :created_at,
                 :modified_at,
                 :assigner
-            )
+            ) 
+            ON CONFLICT (id) 
+                DO UPDATE SET target_id = :target_id,
+                    target_scopes = :target_scopes,
+                    target_types = :target_types,
+                    assignee = :assignee,
+                    action = :action,
+                    created_at = :created_at,
+                    modified_at = :modified_at,
+                    assigner = :assigner
             """.trimIndent()
         databaseClient.sql(insertStatement)
             .bind("id", permission.id)
@@ -196,86 +199,6 @@ class PermissionService(
         checkExistence(id).bind()
         r2dbcEntityTemplate.delete(Permission::class.java)
             .matching(query(where("id").`is`(id)))
-            .execute()
-    }
-
-    @Transactional
-    suspend fun update(
-        permissionId: URI,
-        input: Map<String, Any>,
-        contexts: List<String>,
-    ): Either<APIException, Unit> = either {
-        checkExistence(permissionId).bind()
-        val sub = getSubFromSecurityContext()
-        if (!input.containsKey(NGSILD_TYPE_TERM) || input[NGSILD_TYPE_TERM]!! != AUTH_PERMISSION_TERM)
-            raise(BadRequestDataException("type attribute must be present and equal to '$AUTH_PERMISSION_TERM'"))
-
-        input.filterKeys {
-            it !in COMPACTED_ENTITY_CORE_MEMBERS + AUTH_ASSIGNER_TERM
-        }.plus(NGSILD_MODIFIED_AT_TERM to ngsiLdDateTime()).plus(AUTH_ASSIGNER_TERM to sub.orEmpty())
-            .forEach {
-                when {
-                    it.key == AUTH_TARGET_TERM -> {
-                        val target = TargetAsset.deserialize(it.value as Map<String, Any>, contexts).bind()
-                        updatePermissionAttribute(permissionId, "target_id", target.id).bind()
-                        updatePermissionAttribute(
-                            permissionId,
-                            "target_types",
-                            target.types?.toSqlArray()
-                        ).bind()
-                        updatePermissionAttribute(
-                            permissionId,
-                            "target_scopes",
-                            target.scopes?.toSqlArray()
-                        ).bind()
-                    }
-
-                    it.key == AUTH_ACTION_TERM -> {
-                        updatePermissionAttribute(
-                            permissionId,
-                            it.key,
-                            it.value as String
-                        ).bind()
-                    }
-
-                    it.key == NGSILD_MODIFIED_AT_TERM -> {
-                        updatePermissionAttribute(
-                            permissionId,
-                            "modified_at",
-                            it.value
-                        ).bind()
-                    }
-                    listOf(
-                        NGSILD_ID_TERM,
-                        AUTH_ASSIGNEE_TERM,
-                        AUTH_ASSIGNER_TERM,
-                    ).contains(it.key) -> {
-                        val columnName = it.key
-                        val value = it.value
-                        updatePermissionAttribute(permissionId, columnName, value).bind()
-                    }
-
-                    else -> {
-                        BadRequestDataException("invalid permission parameter  ${it.key}")
-                            .left().bind()
-                    }
-                }
-            }
-    }
-
-    private suspend fun updatePermissionAttribute(
-        permissionId: URI,
-        columnName: String,
-        value: Any?
-    ): Either<APIException, Unit> {
-        val updateStatement =
-            """
-            UPDATE permission
-            SET $columnName = '$value'
-            WHERE permission.id = '$permissionId'
-            """.trimIndent()
-
-        return databaseClient.sql(updateStatement)
             .execute()
     }
 

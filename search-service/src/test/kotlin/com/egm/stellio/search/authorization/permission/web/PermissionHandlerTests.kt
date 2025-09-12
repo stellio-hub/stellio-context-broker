@@ -14,7 +14,6 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
 import com.egm.stellio.shared.util.BEEHIVE_IRI
@@ -591,9 +590,13 @@ class PermissionHandlerTests {
         val permissionId = id
         val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission(id = permissionId).right()
+
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
-        coEvery { permissionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
+
+        coEvery { permissionService.upsert(any()) } throws RuntimeException("Update failed")
 
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
@@ -610,7 +613,16 @@ class PermissionHandlerTests {
             )
 
         coVerify(exactly = 2) { permissionService.hasPermissionOnTarget(any(), Action.ADMIN) }
-        coVerify { permissionService.update(eq(permissionId), parsedPermission, APIC_COMPOUND_CONTEXTS) }
+        coVerify {
+            permissionService.upsert(
+                match {
+                    it.id == permissionId &&
+                        it.action.value == parsedPermission["action"] &&
+                        it.target.id.toString() == (parsedPermission["target"] as Map<String, Any>)["id"] &&
+                        it.assigner == MOCK_USER_SUB
+                }
+            )
+        }
         coVerify { permissionService.getById(permissionId) }
 
         confirmVerified(permissionService)
@@ -622,9 +634,13 @@ class PermissionHandlerTests {
         val permissionId = id
         val parsedPermission = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission(id = permissionId).right()
+
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
-        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
+
+        coEvery { permissionService.upsert(any()) } returns Unit.right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
@@ -634,13 +650,15 @@ class PermissionHandlerTests {
 
         coVerify(exactly = 2) { permissionService.hasPermissionOnTarget(any(), Action.ADMIN) }
         coVerify {
-            permissionService.update(
-                eq(permissionId),
-                eq(parsedPermission),
-                eq(APIC_COMPOUND_CONTEXTS)
+            permissionService.upsert(
+                match {
+                    it.id == permissionId &&
+                        it.action.value == parsedPermission["action"] &&
+                        it.target.id.toString() == (parsedPermission["target"] as Map<String, Any>)["id"] &&
+                        it.assigner == MOCK_USER_SUB
+                }
             )
         }
-        coVerify { permissionService.update(eq(permissionId), parsedPermission, APIC_COMPOUND_CONTEXTS) }
         coVerify { permissionService.getById(permissionId) }
 
         confirmVerified(permissionService)
@@ -650,8 +668,11 @@ class PermissionHandlerTests {
     fun `update permission should return a 400 if JSON-LD context is not correct`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
 
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission(id = id).right()
+
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$id")
@@ -674,9 +695,13 @@ class PermissionHandlerTests {
     fun `update permission should return a 204 if JSON-LD context is provided in header`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
 
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission(id = id).right()
+
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
-        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
+
+        coEvery { permissionService.upsert(any()) } returns Unit.right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$id")
@@ -695,12 +720,14 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.jsonld")
         val permissionId = id
 
-        coEvery { permissionService.getById(any()) } returns gimmeRawPermission().right()
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission(id = id).right()
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns
             AccessDeniedException("unauthorized message").left()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
-        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
+        coEvery { permissionService.upsert(any()) } returns Unit.right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
@@ -708,7 +735,7 @@ class PermissionHandlerTests {
             .exchange()
             .expectStatus().isForbidden
 
-        coVerify(exactly = 0) { permissionService.update(any(), any(), any()) }
+        coVerify(exactly = 0) { permissionService.upsert(any()) }
     }
 
     @Test
@@ -716,10 +743,14 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
         val permissionId = id
 
+        coEvery { permissionService.getById(any()) } returns gimmeRawPermission(id = id).right()
+
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns
             Unit.right() andThen AccessDeniedException("errorMessage").left()
-        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
-        coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission().right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
+
+        coEvery { permissionService.upsert(any()) } returns Unit.right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
@@ -732,7 +763,7 @@ class PermissionHandlerTests {
             .exchange()
             .expectStatus().isForbidden
 
-        coVerify(exactly = 0) { permissionService.update(any(), any(), any()) }
+        coVerify(exactly = 0) { permissionService.upsert(any()) }
     }
 
     @Test
@@ -740,9 +771,15 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update_action_to_admin.json")
         val permissionId = id
 
+        coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission(
+            id = permissionId,
+            assignee = null
+        ).right()
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
-        coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission(assignee = null).right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
+
+        coEvery { permissionService.upsert(any()) } returns Unit.right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
@@ -755,7 +792,7 @@ class PermissionHandlerTests {
             .exchange()
             .expectStatus().isBadRequest
 
-        coVerify(exactly = 0) { permissionService.update(any(), any(), any()) }
+        coVerify(exactly = 0) { permissionService.upsert(any()) }
     }
 
     @Test
@@ -763,9 +800,9 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.json")
         val permissionId = id
 
-        coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { permissionService.update(any(), any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission(action = Action.OWN).right()
+        coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
+        coEvery { permissionService.upsert(any()) } returns Unit.right()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/auth/permissions/$permissionId")
@@ -778,6 +815,6 @@ class PermissionHandlerTests {
             .exchange()
             .expectStatus().isBadRequest
 
-        coVerify(exactly = 0) { permissionService.update(any(), any(), any()) }
+        coVerify(exactly = 0) { permissionService.upsert(any()) }
     }
 }

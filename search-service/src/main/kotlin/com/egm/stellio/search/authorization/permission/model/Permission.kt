@@ -9,15 +9,14 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
+import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
-import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
-import com.savvasdalkitsis.jsonmerger.JsonMerger
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -65,10 +64,7 @@ data class Permission(
         fragment: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, Permission> = either {
-        val mergedPermission = JsonMerger().merge(
-            serializeObject(this@Permission),
-            serializeObject(fragment)
-        ).deserializeAsMap()
+        val mergedPermission = convertTo<Map<String, Any>>(this@Permission).plus(fragment)
         deserialize(mergedPermission, contexts).bind()
             .copy(modifiedAt = ngsiLdDateTime(), assigner = getSubFromSecurityContext().orEmpty())
     }

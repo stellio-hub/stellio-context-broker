@@ -119,7 +119,6 @@ enum class Operation(
         NGSILDPath.ENTITY
     ),
 
-    // not implemented
     @JsonProperty("replaceEntity")
     REPLACE_ENTITY(
         "replaceEntity",

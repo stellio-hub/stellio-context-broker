@@ -34,12 +34,13 @@ import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException
+import com.savvasdalkitsis.jsonmerger.JsonMerger
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Transient
 import org.springframework.http.MediaType
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 import java.util.regex.Pattern
 
 val defaultNotificationTriggers = listOf(
@@ -261,7 +262,10 @@ data class Subscription(
         fragment: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, Subscription> = either {
-        val mergedSubscription = convertTo<Map<String, Any>>(this@Subscription).plus(fragment)
+        val mergedSubscription = JsonMerger().merge(
+            serializeObject(this@Subscription),
+            serializeObject(fragment)
+        ).deserializeAsMap()
         deserialize(mergedSubscription, contexts).bind()
             .copy(modifiedAt = ngsiLdDateTime())
     }

@@ -7,6 +7,7 @@ import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import arrow.core.right
 import arrow.fx.coroutines.parMap
+import com.egm.stellio.shared.util.isURI
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.Locale
@@ -29,7 +30,9 @@ class NgsiLdEntity private constructor(
             ensure(parsedKeys.containsKey(JSONLD_TYPE_KW)) {
                 BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
             }
-            val types = parsedKeys[JSONLD_TYPE_KW]!! as List<String>
+
+            val types = expandedEntity.types
+                .onEach { ensure(it.isURI()) { BadRequestDataException("type: $it should be a valid uri") } }
 
             val scopes = (parsedKeys as Map<String, List<Any>>).getScopes()
 

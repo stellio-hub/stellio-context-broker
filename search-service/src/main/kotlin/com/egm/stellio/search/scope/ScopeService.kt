@@ -36,11 +36,10 @@ import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.getNullableSubFromSecurityContext
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
-import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
@@ -84,7 +83,7 @@ class ScopeService(
             .bind("value", scopes.toTypedArray())
             .bind("time", createdAt)
             .bind("time_property", temporalProperty.toString())
-            .bind("sub", getNullableSubFromSecurityContext())
+            .bind("sub", getSubFromSecurityContext().orEmpty())
             .execute()
 
     @Transactional

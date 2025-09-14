@@ -25,12 +25,12 @@ import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.getMemberValueAsString
 import com.egm.stellio.shared.model.toNgsiLdEntity
-import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.expandDeserializedPayload
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.extractContexts
+import com.egm.stellio.shared.util.toSqlArray
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.api.migration.BaseJavaMigration
@@ -68,6 +68,11 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
         "$EGM_BASE_CONTEXT_URL/agriMushroom/jsonld-contexts/agri-mushroom-compound.jsonld" to
             "$EGM_BASE_CONTEXT_URL/graced/jsonld-contexts/graced.jsonld"
     )
+
+    enum class OldSpecificAccessPolicy {
+        AUTH_READ,
+        AUTH_WRITE
+    }
 
     private val defaultZonedDateTime = ZonedDateTime.parse("1970-01-01T00:00:00Z")
 
@@ -112,7 +117,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
                 )?.let {
                     it.getMemberValueAsString(NGSILD_PROPERTY_VALUE)
                 }?.let {
-                    AuthContextModel.SpecificAccessPolicy.valueOf(it)
+                    OldSpecificAccessPolicy.valueOf(it)
                 }
             val expandedEntity = originalExpandedEntity
                 .filterKeys { attributeName ->
@@ -328,9 +333,6 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
 
     private fun Any?.toSQLValue(): String? =
         this?.let { "$$$this$$" }
-
-    private fun List<String>.toSqlArray(): String =
-        "ARRAY[${this.joinToString(separator = "','", prefix = "'", postfix = "'")}]"
 }
 
 internal fun Map<String, Any>.keepOnlyOneInstanceByDatasetId(): Map<String, Any> =

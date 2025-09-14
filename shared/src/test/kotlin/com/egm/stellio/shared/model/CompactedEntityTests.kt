@@ -5,6 +5,7 @@ import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedMultiAt
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
@@ -755,5 +756,31 @@ class CompactedEntityTests {
         """.trimIndent()
 
         assertJsonPayloadsAreEqual(expectedSimplifiedRepresentation, serializeObject(simplifiedRepresentation))
+    }
+
+    @Test
+    fun `it should find the value of a property`() = runTest {
+        val compactedAttributeInstance = mapOf(
+            "type" to "Property",
+            "value" to 12
+        )
+
+        compactedAttributeInstance.getTypeAndValue().let {
+            assertEquals(NGSILD_PROPERTY_TERM, it.first)
+            assertEquals(12, it.second)
+        }
+    }
+
+    @Test
+    fun `it should find the value of a language property`() = runTest {
+        val compactedAttributeInstance = mapOf(
+            "type" to "LanguageProperty",
+            "languageMap" to mapOf("fr" to "Tour Eiffel", "en" to "Eiffel Tower")
+        )
+
+        compactedAttributeInstance.getTypeAndValue().let {
+            assertEquals(NGSILD_LANGUAGEPROPERTY_TERM, it.first)
+            assertEquals(2, (it.second as Map<*, *>).size)
+        }
     }
 }

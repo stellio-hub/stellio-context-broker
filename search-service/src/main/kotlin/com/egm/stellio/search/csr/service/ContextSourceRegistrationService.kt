@@ -1,7 +1,6 @@
 package com.egm.stellio.search.csr.service
 
 import arrow.core.Either
-import arrow.core.Option
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
@@ -27,7 +26,7 @@ import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toStringValue
+import com.egm.stellio.shared.util.toSqlArray
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -49,7 +48,7 @@ class ContextSourceRegistrationService(
     @Transactional
     suspend fun create(
         contextSourceRegistration: ContextSourceRegistration,
-        sub: Option<Sub>
+        sub: Sub?
     ): Either<APIException, Unit> = either {
         contextSourceRegistration.validate().bind()
         checkExistence(contextSourceRegistration.id, true).bind()
@@ -101,7 +100,7 @@ class ContextSourceRegistrationService(
             .bind("observation_interval_end", contextSourceRegistration.observationInterval?.end)
             .bind("management_interval_start", contextSourceRegistration.managementInterval?.start)
             .bind("management_interval_end", contextSourceRegistration.managementInterval?.end)
-            .bind("sub", sub.toStringValue())
+            .bind("sub", sub.orEmpty())
             .bind("created_at", contextSourceRegistration.createdAt)
             .bind("modified_at", contextSourceRegistration.modifiedAt)
             .execute().bind()
@@ -158,7 +157,7 @@ class ContextSourceRegistrationService(
             .oneToResult { rowToContextSourceRegistration(it) }
     }
 
-    suspend fun isCreatorOf(id: URI, sub: Option<Sub>): Either<APIException, Boolean> {
+    suspend fun isCreatorOf(id: URI, sub: Sub?): Either<APIException, Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -169,7 +168,7 @@ class ContextSourceRegistrationService(
         return databaseClient.sql(selectStatement)
             .bind("id", id)
             .oneToResult {
-                it["sub"] == sub.toStringValue()
+                it["sub"] == sub.orEmpty()
             }
     }
 
@@ -297,11 +296,11 @@ class ContextSourceRegistrationService(
 
             val csfFilter = if (csrFilters.csf != null && validationRegex.matches(csrFilters.csf)) {
                 val operations = operationRegex.toRegex().findAll(csrFilters.csf).map { it.groups[1]?.value }
-                "operations && ARRAY[${operations.joinToString(",") { "'$it'" }}]"
+                "operations && ${operations.toSqlArray()}"
             } else null
 
             val attrsFilter = if (csrFilters.attrs.isNotEmpty()) {
-                val attrsArray = "ARRAY[${csrFilters.attrs.joinToString(",") { "'$it'" }}]"
+                val attrsArray = csrFilters.attrs.toSqlArray()
                 """
                 (
                     (information."relationshipNames" is null AND information."propertyNames" is null) OR 

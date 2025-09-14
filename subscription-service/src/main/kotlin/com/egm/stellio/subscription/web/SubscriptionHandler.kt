@@ -1,7 +1,6 @@
 package com.egm.stellio.subscription.web
 
 import arrow.core.Either
-import arrow.core.Option
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
@@ -250,7 +249,7 @@ class SubscriptionHandler(
                 else Unit.right()
             }
 
-    private suspend fun checkIsAllowed(subscriptionId: URI, sub: Option<Sub>): Either<APIException, Unit> =
+    private suspend fun checkIsAllowed(subscriptionId: URI, sub: Sub?): Either<APIException, Unit> =
         subscriptionService.isCreatorOf(subscriptionId, sub)
             .flatMap {
                 if (!it)

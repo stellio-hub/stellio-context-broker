@@ -5,7 +5,7 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
-import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toUri
@@ -32,9 +32,10 @@ class EntityQueryService(
     private val authorizationService: AuthorizationService
 ) {
     suspend fun queryEntity(
-        entityId: URI
+        entityId: URI,
+        excludeDeleted: Boolean = true
     ): Either<APIException, ExpandedEntity> = either {
-        val entity = retrieve(entityId).bind()
+        val entity = retrieve(entityId, excludeDeleted).bind()
         authorizationService.userCanReadEntity(entityId).bind()
 
         entity.toExpandedEntity()
@@ -50,7 +51,7 @@ class EntityQueryService(
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
-            return@either Pair<List<ExpandedEntity>, Int>(emptyList(), count)
+            return@either Pair(emptyList(), count)
 
         val entitiesPayloads = retrieve(entitiesIds).map { it.toExpandedEntity() }
 

@@ -37,7 +37,13 @@ enum class QueryParameter(
     TIMEPROPERTY("timeproperty"),
 
     // authz
-    INCLUDE_DELETED("includeDeleted"),
+    ACTION("action"),
+    ASSIGNEE("assignee"),
+    ASSIGNER("assigner"),
+    TARGET_ID("targetId"),
+    TARGET_TYPE("targetType"),
+    TARGET_SCOPEQ("targetScopeQ"),
+    DETAILS_PICK("detailsPick"),
 
     // pagination
     COUNT("count"),

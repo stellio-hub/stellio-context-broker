@@ -7,11 +7,12 @@
     <ID>ComplexCondition:EntitiesQueryUtils.kt$geoQuery == null &amp;&amp; q.isNullOrEmpty() &amp;&amp; typeSelection.isNullOrEmpty() &amp;&amp; attrs.isEmpty() &amp;&amp; !local</ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
-    <ID>LongMethod:EnabledAuthorizationServiceTests.kt$EnabledAuthorizationServiceTests$@Test fun `it should return serialized access control entities with other rigths if user is owner`()</ID>
-    <ID>LongMethod:EntityAccessControlHandler.kt$EntityAccessControlHandler$@PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun addRightsOnEntities( @RequestHeader httpHeaders: HttpHeaders, @PathVariable subjectId: String, @RequestBody requestBody: Mono&lt;String&gt;, @AllowedParameters @RequestParam queryParams: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
+    <ID>LongMethod:EntityEventService.kt$EntityEventService$private fun publishAttributeChangeEvent( sub: String?, tenantName: String, originalEntity: ExpandedEntity, updatedEntity: ExpandedEntity, attributeOperationResult: SucceededAttributeOperationResult )</ID>
+    <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_UPDATE events if a multi-attribute is replaced`()</ID>
     <ID>LongMethod:LinkedEntityServiceTests.kt$LinkedEntityServiceTests$@Test fun `it should inline entities up to the asked 2nd level`()</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun mergePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun partialUpdatePatchProvider(): Stream&lt;Arguments&gt;</ID>
+    <ID>LongMethod:PermissionHandlerTests.kt$PermissionHandlerTests$@Test fun `query Permissions with details=true should return entire entity and subject information`()</ID>
     <ID>LongMethod:TemporalEntityBuilder.kt$TemporalEntityBuilder$private fun buildAttributesSimplifiedRepresentation( attributeAndResultsMap: AttributesWithInstances, coreContext: String ): Map&lt;Attribute, SimplifiedTemporalAttribute&gt;</ID>
     <ID>LongMethod:TemporalQueryServiceTests.kt$TemporalQueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
     <ID>LongMethod:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
@@ -20,9 +21,15 @@
     <ID>LongParameterList:BusinessObjectsFactory.kt$( attributeUuid: UUID, timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT, measuredValue: Double? = Random.nextDouble(), value: String? = null, time: ZonedDateTime = ngsiLdDateTime(), sub: Sub? = null )</ID>
     <ID>LongParameterList:DistributedEntityProvisionService.kt$DistributedEntityProvisionService$( csrs: List&lt;ContextSourceRegistration&gt;?, csrFilters: CSRFilters, entity: ExpandedEntity, contexts: List&lt;String&gt;, resultToUpdate: BatchOperationResult, operation: Operation, )</ID>
     <ID>LongParameterList:EntitiesQuery.kt$EntitiesQuery$( open val q: String?, open val scopeQ: String?, open val paginationQuery: PaginationQuery, open val attrs: Set&lt;ExpandedTerm&gt;, open val datasetId: Set&lt;String&gt;, open val geoQuery: GeoQuery?, open val linkedEntityQuery: LinkedEntityQuery?, open val local: Boolean = false, open val contexts: List&lt;String&gt; )</ID>
+    <ID>LongParameterList:PermissionHandler.kt$PermissionHandler$( permission: Permission, contexts: List&lt;String&gt;, mediaType: MediaType = JSON_LD_MEDIA_TYPE, includeSysAttrs: Boolean = false, includeDetails: Boolean = false, pickAttributes: Set&lt;String&gt; = emptySet() )</ID>
+    <ID>LongParameterList:PermissionHandler.kt$PermissionHandler$( permissions: List&lt;Permission&gt;, contexts: List&lt;String&gt;, mediaType: MediaType = JSON_LD_MEDIA_TYPE, includeSysAttrs: Boolean, includeDetails: Boolean, pickDetailsAttributes: Set&lt;String&gt; = emptySet() )</ID>
     <ID>LongParameterList:TemporalEntityHandler.kt$TemporalEntityHandler$( @RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: URI, @PathVariable attrId: String, @PathVariable instanceId: URI, @RequestBody requestBody: Mono&lt;String&gt;, @AllowedParameters(notImplemented = [QP.LOCAL, QP.VIA]) @RequestParam queryParams: MultiValueMap&lt;String, String&gt; )</ID>
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
+    <ID>MaxLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$"$permissionUri?targetId=$id&amp;action=${Action.OWN.value}&amp;assignee=assigneeId&amp;assigner=assignerId&amp;targetType=${BEEHIVE_TERM}"</ID>
+    <ID>MaxLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$fun</ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>SwallowedException:TemporalQueryUtils.kt$e: IllegalArgumentException</ID>
+    <ID>UnusedParameter:PermissionService.kt$PermissionService$contexts: List&lt;String&gt;</ID>
+    <ID>UnusedParameter:TargetAsset.kt$TargetAsset$contexts: List&lt;String&gt;</ID>
   </CurrentIssues>
 </SmellBaseline>

@@ -15,6 +15,7 @@ import com.apicatalog.jsonld.loader.HttpLoader
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
@@ -341,9 +342,23 @@ object JsonLdUtils {
         )
             .options(jsonLdOptions)
             .get()
-            .toPrimitiveMap()
             .keys
             .elementAtOrElse(0) { _ -> term }
+
+    fun compactAttribute(
+        attribute: ExpandedAttributes,
+        contexts: List<String>
+    ): Map<String, CompactedAttributeInstance> =
+        JsonLd.compact(
+            JsonDocument.of(serializeObject(attribute).byteInputStream()),
+            JsonDocument.of(buildContextDocument(contexts))
+        )
+            .options(jsonLdOptions)
+            .get()
+            .toPrimitiveMap()
+            .mapValues(restoreGeoPropertyFromWKT())
+            .minus(JSONLD_CONTEXT_KW)
+            .mapValues { it.value as CompactedAttributeInstance }
 
     /**
      * Build the expanded payload of a property.

@@ -3,8 +3,8 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>CyclomaticComplexMethod:SubscriptionServiceTests.kt$SubscriptionServiceTests$@Test fun `it should load a subscription with all possible members`()</ID>
-    <ID>LongMethod:SubscriptionService.kt$SubscriptionService$@Transactional suspend fun upsert(subscription: Subscription, sub: Option&lt;Sub&gt;): Either&lt;APIException, Unit&gt;</ID>
+    <ID>LongMethod:SubscriptionService.kt$SubscriptionService$@Transactional suspend fun upsert(subscription: Subscription, sub: Sub?): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongParameterList:FixtureUtils.kt$( withQueryAndGeoQuery: Pair&lt;Boolean, Boolean&gt; = Pair(true, true), withEndpointReceiverInfo: Boolean = true, withNotifParams: Pair&lt;FormatType, List&lt;String&gt;&gt; = Pair(FormatType.NORMALIZED, emptyList()), georel: String = "within", geometry: String = "Polygon", coordinates: String = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]", timeInterval: Int? = null, contexts: List&lt;String&gt; = listOf(NGSILD_TEST_CORE_CONTEXT) )</ID>
-    <ID>TooGenericExceptionCaught:SubscriptionService.kt$SubscriptionService$e: Exception</ID>
+    <ID>LongParameterList:NotificationService.kt$NotificationService$( entityId: URI, compactedEntities: List&lt;Map&lt;String, Any?&gt;&gt;, updatedAttribute: Pair&lt;ExpandedTerm, URI?&gt;?, previousPayload: Map&lt;String, List&lt;Any&gt;&gt;?, notificationTrigger: NotificationTrigger, contexts: List&lt;String&gt; )</ID>
   </CurrentIssues>
 </SmellBaseline>

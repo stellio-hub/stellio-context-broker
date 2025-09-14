@@ -10,6 +10,7 @@ import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.NotificationParams
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
+import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import java.net.URI
@@ -27,6 +28,7 @@ class CoreAPIService(
             .uri("/ngsi-ld/v1/entities$paramRequest")
             .header(HttpHeaders.LINK, contextLink)
             .header(NGSILD_TENANT_HEADER, tenantName)
+            .attributes(ServerOAuth2AuthorizedClientExchangeFilterFunction.clientRegistrationId(tenantName))
             .retrieve()
             .bodyToMono(String::class.java)
             .map { deserializeListOfObjects(it) }
@@ -44,6 +46,7 @@ class CoreAPIService(
             .header(HttpHeaders.LINK, contextLink)
             .header(HttpHeaders.ACCEPT, notificationParams.endpoint.accept.accept)
             .header(NGSILD_TENANT_HEADER, tenantName)
+            .attributes(ServerOAuth2AuthorizedClientExchangeFilterFunction.clientRegistrationId(tenantName))
             .retrieve()
             .bodyToMono(String::class.java)
             .map {

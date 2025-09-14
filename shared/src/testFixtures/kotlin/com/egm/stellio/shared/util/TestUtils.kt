@@ -1,7 +1,6 @@
 package com.egm.stellio.shared.util
 
 import arrow.core.Either
-import arrow.core.Some
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
@@ -40,24 +39,6 @@ fun loadMinimalEntity(
         {
             "id": "$entityId",
             "type": [${entityTypes.joinToString(",") { "\"$it\"" }}],
-            "@context": [${contexts.joinToString(",") { "\"$it\"" }}]
-        }
-    """.trimIndent()
-
-fun loadMinimalEntityWithSap(
-    entityId: URI,
-    entityTypes: Set<String>,
-    specificAccessPolicy: AuthContextModel.SpecificAccessPolicy,
-    contexts: List<String> = NGSILD_TEST_CORE_CONTEXTS
-): String =
-    """
-        {
-            "id": "$entityId",
-            "type": [${entityTypes.joinToString(",") { "\"$it\"" }}],
-            "specificAccessPolicy": {
-                "type": "Property",
-                "value": "${specificAccessPolicy.name}"
-            },
             "@context": [${contexts.joinToString(",") { "\"$it\"" }}]
         }
     """.trimIndent()
@@ -125,4 +106,3 @@ fun List<URI>.toListOfString(): List<String> =
     this.map { it.toString() }
 
 const val MOCK_USER_SUB = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"
-val sub = Some(MOCK_USER_SUB)

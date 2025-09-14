@@ -2,8 +2,8 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.authorization.USER_UUID
-import com.egm.stellio.search.authorization.service.AuthorizationService
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
+import com.egm.stellio.search.authorization.subject.USER_UUID
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationStatus
@@ -68,7 +68,6 @@ import org.springframework.test.context.ActiveProfiles
 @SpringBootTest
 @ActiveProfiles("test")
 class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
-
     @Autowired
     private lateinit var entityService: EntityService
 
@@ -127,7 +126,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
     fun `it should only create an entity payload for a minimal entity`() = runTest {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
-        coEvery { entityEventService.publishEntityCreateEvent(any(), any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any()) } returns Job()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
@@ -157,7 +156,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             )
             entityEventService.publishEntityCreateEvent(
                 eq(USER_UUID),
-                eq(beehiveTestCId),
                 any()
             )
             authorizationService.createOwnerRight(beehiveTestCId)
@@ -189,7 +187,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))

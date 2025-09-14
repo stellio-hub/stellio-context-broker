@@ -22,17 +22,54 @@ const val NGSILD_DEFAULT_VOCAB = "https://uri.etsi.org/ngsi-ld/default-context/"
 // Attributes and expanded terms holding the value
 
 const val NGSILD_PROPERTY_TERM = "Property"
+const val NGSILD_PROPERTY_VALUE_TERM = "value"
 const val NGSILD_PROPERTY_VALUE = "${NGSILD_PREFIX}hasValue"
 const val NGSILD_GEOPROPERTY_TERM = "GeoProperty"
+const val NGSILD_GEOPROPERTY_VALUE_TERM = "value"
 const val NGSILD_GEOPROPERTY_VALUE = "${NGSILD_PREFIX}hasValue"
 const val NGSILD_RELATIONSHIP_TERM = "Relationship"
+const val NGSILD_RELATIONSHIP_OBJECT_TERM = "object"
 const val NGSILD_RELATIONSHIP_OBJECT = "${NGSILD_PREFIX}hasObject"
 const val NGSILD_JSONPROPERTY_TERM = "JsonProperty"
+const val NGSILD_JSONPROPERTY_JSON_TERM = "json"
 const val NGSILD_JSONPROPERTY_JSON = "${NGSILD_PREFIX}hasJSON"
 const val NGSILD_LANGUAGEPROPERTY_TERM = "LanguageProperty"
+const val NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP_TERM = "languageMap"
 const val NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP = "${NGSILD_PREFIX}hasLanguageMap"
 const val NGSILD_VOCABPROPERTY_TERM = "VocabProperty"
+const val NGSILD_VOCABPROPERTY_VOCAB_TERM = "vocab"
 const val NGSILD_VOCABPROPERTY_VOCAB = "${NGSILD_PREFIX}hasVocab"
+
+// Attributes and expanded terms holding the previous value of an attribute
+
+const val NGSILD_PROPERTY_PREVIOUS_VALUE_TERM = "previousValue"
+const val NGSILD_GEOPROPERTY_PREVIOUS_VALUE_TERM = "previousValue"
+const val NGSILD_RELATIONSHIP_PREVIOUS_OBJECT_TERM = "previousObject"
+const val NGSILD_JSONPROPERTY_PREVIOUS_JSON_TERM = "previousJson"
+const val NGSILD_LANGUAGEPROPERTY_PREVIOUS_LANGUAGEMAP_TERM = "previousLanguageMap"
+const val NGSILD_VOCABPROPERTY_PREVIOUS_VOCAB_TERM = "previousVocab"
+
+enum class AttributesValuesMapping(
+    val attributeNameTerm: String,
+    val previousValueTerm: String,
+    val valueTerm: String
+) {
+    PROPERTY(NGSILD_PROPERTY_TERM, NGSILD_PROPERTY_PREVIOUS_VALUE_TERM, NGSILD_PROPERTY_VALUE_TERM),
+    GEOPROPERTY(NGSILD_GEOPROPERTY_TERM, NGSILD_GEOPROPERTY_PREVIOUS_VALUE_TERM, NGSILD_GEOPROPERTY_VALUE_TERM),
+    RELATIONSHIP(NGSILD_RELATIONSHIP_TERM, NGSILD_RELATIONSHIP_PREVIOUS_OBJECT_TERM, NGSILD_RELATIONSHIP_OBJECT_TERM),
+    JSONPROPERTY(NGSILD_JSONPROPERTY_TERM, NGSILD_JSONPROPERTY_PREVIOUS_JSON_TERM, NGSILD_JSONPROPERTY_JSON_TERM),
+    LANGUAGEPROPERTY(
+        NGSILD_LANGUAGEPROPERTY_TERM,
+        NGSILD_LANGUAGEPROPERTY_PREVIOUS_LANGUAGEMAP_TERM,
+        NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP_TERM
+    ),
+    VOCABPROPERTY(NGSILD_VOCABPROPERTY_TERM, NGSILD_VOCABPROPERTY_PREVIOUS_VOCAB_TERM, NGSILD_VOCABPROPERTY_VOCAB_TERM);
+
+    companion object {
+        fun fromAttributeNameTerm(attributeNameTerm: String): AttributesValuesMapping =
+            entries.find { it.attributeNameTerm == attributeNameTerm }!!
+    }
+}
 
 // Expanded terms holding the temporal representations
 

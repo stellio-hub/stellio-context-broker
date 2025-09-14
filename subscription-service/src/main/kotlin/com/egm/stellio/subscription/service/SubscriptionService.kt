@@ -1,12 +1,8 @@
 package com.egm.stellio.subscription.service
 
 import arrow.core.Either
-import arrow.core.Option
-import arrow.core.left
 import arrow.core.raise.either
-import arrow.core.right
 import com.egm.stellio.shared.model.APIException
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
@@ -15,7 +11,6 @@ import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.util.DataTypes.serialize
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.buildQQuery
@@ -23,7 +18,6 @@ import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.Endpoint.Companion.deserialize
@@ -72,7 +66,7 @@ class SubscriptionService(
 ) {
 
     @Transactional
-    suspend fun upsert(subscription: Subscription, sub: Option<Sub>): Either<APIException, Unit> = either {
+    suspend fun upsert(subscription: Subscription, sub: Sub?): Either<APIException, Unit> = either {
         val endpoint = subscription.notification.endpoint
         val insertStatement =
             """
@@ -80,12 +74,12 @@ class SubscriptionService(
                 watched_attributes, notification_trigger, time_interval, q, scope_q, notif_attributes,
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info,
                 times_sent, is_active, expires_at, sub, contexts, throttling, sys_attrs, lang, datasetId,
-                jsonld_context, join_type, join_level)
+                jsonld_context, join_type, join_level, show_changes)
             VALUES(:id, :type, :subscription_name, :created_at, :modified_at, :description,
                 :watched_attributes, :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes,
                 :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info,
                 :times_sent, :is_active, :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId,
-                :jsonld_context, :join_type, :join_level)
+                :jsonld_context, :join_type, :join_level, :show_changes)
             ON CONFLICT (id)
                 DO UPDATE SET subscription_name = :subscription_name, modified_at = :modified_at, 
                     description = :description, watched_attributes = :watched_attributes, 
@@ -95,7 +89,7 @@ class SubscriptionService(
                     endpoint_receiver_info = :endpoint_receiver_info, times_sent = :times_sent, is_active = :is_active,
                     expires_at = :expires_at, sub = :sub, contexts = :contexts, throttling = :throttling,
                     sys_attrs = :sys_attrs, lang = :lang, datasetId = :datasetId, jsonld_context = :jsonld_context,
-                    join_type = :join_type, join_level = :join_level
+                    join_type = :join_type, join_level = :join_level, show_changes = :show_changes
             """.trimIndent()
 
         databaseClient.sql(insertStatement)
@@ -119,7 +113,7 @@ class SubscriptionService(
             .bind("times_sent", subscription.notification.timesSent)
             .bind("is_active", subscription.isActive)
             .bind("expires_at", subscription.expiresAt)
-            .bind("sub", sub.toStringValue())
+            .bind("sub", sub.orEmpty())
             .bind("contexts", subscription.contexts.toTypedArray())
             .bind("throttling", subscription.throttling)
             .bind("sys_attrs", subscription.notification.sysAttrs)
@@ -128,6 +122,7 @@ class SubscriptionService(
             .bind("jsonld_context", subscription.jsonldContext)
             .bind("join_type", subscription.notification.join?.name)
             .bind("join_level", subscription.notification.joinLevel)
+            .bind("show_changes", subscription.notification.showChanges)
             .execute().bind()
 
         subscription.geoQ?.let { geoQ ->
@@ -210,7 +205,7 @@ class SubscriptionService(
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id, 
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
                 pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context, join_type, join_level
+                datasetId, jsonld_context, join_type, join_level, show_changes
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -252,7 +247,7 @@ class SubscriptionService(
         return buildContextLinkHeader(contextLink)
     }
 
-    suspend fun isCreatorOf(subscriptionId: URI, sub: Option<Sub>): Either<APIException, Boolean> {
+    suspend fun isCreatorOf(subscriptionId: URI, sub: Sub?): Either<APIException, Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -263,86 +258,8 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("id", subscriptionId)
             .oneToResult {
-                it["sub"] == sub.toStringValue()
+                it["sub"] == sub.orEmpty()
             }
-    }
-
-    suspend fun updateNotification(
-        subscriptionId: URI,
-        notification: Map<String, Any>,
-        contexts: List<String>
-    ): Either<APIException, Unit> {
-        try {
-            val firstValue = notification.entries.iterator().next()
-            val updateParams = extractParamsFromNotificationAttribute(firstValue, contexts)
-            var updateStatement = Update.update(updateParams[0].first, updateParams[0].second)
-            if (updateParams.size > 1) {
-                updateParams.drop(1).forEach {
-                    updateStatement = updateStatement.set(it.first, it.second)
-                }
-            }
-
-            notification.filterKeys { it != firstValue.key }.forEach {
-                extractParamsFromNotificationAttribute(it, contexts).forEach {
-                    updateStatement = updateStatement.set(it.first, it.second)
-                }
-            }
-
-            return r2dbcEntityTemplate.update(
-                query(where("id").`is`(subscriptionId)),
-                updateStatement,
-                Subscription::class.java
-            )
-                .map { Unit.right() }
-                .awaitFirst()
-        } catch (e: Exception) {
-            return BadRequestDataException(e.message ?: "No values provided for the Notification attribute").left()
-        }
-    }
-
-    private fun extractParamsFromNotificationAttribute(
-        attribute: Map.Entry<String, Any>,
-        contexts: List<String>
-    ): List<Pair<String, Any?>> {
-        return when (attribute.key) {
-            "attributes" -> {
-                val attributes = (attribute.value as List<String>).joinToString(separator = ",") {
-                    expandJsonLdTerm(it, contexts)
-                }
-                listOf(Pair("notif_attributes", attributes))
-            }
-
-            "format" -> {
-                val format =
-                    if (attribute.value == "keyValues")
-                        NotificationParams.FormatType.KEY_VALUES.name
-                    else
-                        NotificationParams.FormatType.NORMALIZED.name
-                listOf(Pair("notif_format", format))
-            }
-
-            "endpoint" -> {
-                val endpoint = attribute.value as Map<String, Any>
-                val accept =
-                    if (endpoint["accept"] == "application/json")
-                        Endpoint.AcceptType.JSON.name
-                    else if (endpoint["accept"] == "application/geo+json")
-                        Endpoint.AcceptType.GEOJSON.name
-                    else
-                        Endpoint.AcceptType.JSONLD.name
-                val endpointReceiverInfo = endpoint["receiverInfo"] as? List<Map<String, String>>
-                val endpointNotifierInfo = endpoint["notifierInfo"] as? List<Map<String, String>>
-
-                listOf(
-                    Pair("endpoint_uri", endpoint["uri"]),
-                    Pair("endpoint_accept", accept),
-                    Pair("endpoint_receiver_info", Json.of(serialize(endpointReceiverInfo))),
-                    Pair("endpoint_notifier_info", Json.of(serialize(endpointNotifierInfo)))
-                )
-            }
-
-            else -> throw BadRequestDataException("Could not update attribute ${attribute.key}")
-        }
     }
 
     suspend fun delete(subscriptionId: URI): Either<APIException, Unit> =
@@ -360,7 +277,7 @@ class SubscriptionService(
             .bind("subscription_id", subscriptionId)
             .execute()
 
-    suspend fun getSubscriptions(limit: Int, offset: Int, sub: Option<Sub>): List<Subscription> {
+    suspend fun getSubscriptions(limit: Int, offset: Int, sub: Sub?): List<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at, 
@@ -369,7 +286,7 @@ class SubscriptionService(
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
                 pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context, join_type, join_level
+                datasetId, jsonld_context, join_type, join_level, show_changes
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -384,12 +301,12 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
-            .bind("sub", sub.toStringValue())
+            .bind("sub", sub.orEmpty())
             .allToMappedList { rowToSubscription(it) }
             .mergeEntitySelectorsOnSubscriptions()
     }
 
-    suspend fun getSubscriptionsCount(sub: Option<Sub>): Either<APIException, Int> {
+    suspend fun getSubscriptionsCount(sub: Sub?): Either<APIException, Int> {
         val selectStatement =
             """
             SELECT count(*)
@@ -397,12 +314,12 @@ class SubscriptionService(
             WHERE subscription.sub = :sub
             """.trimIndent()
         return databaseClient.sql(selectStatement)
-            .bind("sub", sub.toStringValue())
+            .bind("sub", sub.orEmpty())
             .oneToResult { toInt(it["count"]) }
     }
 
     internal suspend fun getMatchingSubscriptions(
-        updatedAttributes: Set<ExpandedTerm>,
+        updatedAttribute: Pair<ExpandedTerm, URI?>?,
         notificationTrigger: NotificationTrigger
     ): List<Subscription> {
         val selectStatement =
@@ -412,7 +329,7 @@ class SubscriptionService(
                    entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
                    geoproperty, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, 
                    endpoint_receiver_info, endpoint_notifier_info, contexts, throttling, sys_attrs, lang, 
-                   datasetId, jsonld_context, join_type, join_level
+                   datasetId, jsonld_context, join_type, join_level, show_changes
             FROM subscription 
             LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
             LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
@@ -422,8 +339,12 @@ class SubscriptionService(
             AND ( throttling IS NULL 
                 OR (last_notification + throttling * INTERVAL '1 second') < :date
                 OR last_notification IS NULL)
-            AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
-                OR watched_attributes IS NULL)
+            ${
+                if (updatedAttribute != null)
+                    "AND (string_to_array(watched_attributes, ',') && '{ ${updatedAttribute.first} }'" +
+                        "  OR watched_attributes IS NULL)"
+                else ""
+            }
             AND CASE
                 WHEN notification_trigger && '{ entityUpdated }'
                     THEN notification_trigger || '{ ${NotificationTrigger.expandEntityUpdated()} }' && '{ ${notificationTrigger.notificationTrigger} }'
@@ -431,7 +352,6 @@ class SubscriptionService(
             END
             """.trimIndent()
         return databaseClient.sql(selectStatement)
-            .bind("updatedAttributes", updatedAttributes.joinToString(separator = ","))
             .bind("date", ngsiLdDateTime())
             .allToMappedList { rowToMinimalMatchSubscription(it) }
             .mergeEntitySelectorsOnSubscriptions()
@@ -439,10 +359,10 @@ class SubscriptionService(
 
     suspend fun getMatchingSubscriptions(
         expandedEntity: ExpandedEntity,
-        updatedAttributes: Set<ExpandedTerm>,
+        updatedAttribute: Pair<ExpandedTerm, URI?>?,
         notificationTrigger: NotificationTrigger
     ): Either<APIException, List<Subscription>> = either {
-        getMatchingSubscriptions(updatedAttributes, notificationTrigger)
+        getMatchingSubscriptions(updatedAttribute, notificationTrigger)
             .filter {
                 val entitiesFilter = prepareEntitiesQuery(it.entities, expandedEntity)
                 val qFilter = prepareQQuery(it.q?.decode(), expandedEntity, it.contexts)
@@ -555,7 +475,8 @@ class SubscriptionService(
                 lastSuccess = toNullableZonedDateTime(row["last_success"]),
                 sysAttrs = row["sys_attrs"] as Boolean,
                 join = toOptionalEnum<JoinType>(row["join_type"]),
-                joinLevel = row["join_level"] as? Int
+                joinLevel = row["join_level"] as? Int,
+                showChanges = row["show_changes"] as Boolean
             ),
             isActive = toBoolean(row["is_active"]),
             contexts = toList(row["contexts"]!!),
@@ -592,7 +513,8 @@ class SubscriptionService(
                 lastSuccess = null,
                 sysAttrs = row["sys_attrs"] as Boolean,
                 join = toOptionalEnum<JoinType>(row["join_type"]),
-                joinLevel = row["join_level"] as? Int
+                joinLevel = row["join_level"] as? Int,
+                showChanges = row["show_changes"] as Boolean
             ),
             contexts = toList(row["contexts"]!!),
             throttling = toNullableInt(row["throttling"]),
@@ -633,7 +555,7 @@ class SubscriptionService(
                 endpoint_notifier_info, status, times_sent, last_notification, last_failure, last_success, is_active, 
                 entity_selector.id as entity_id, id_pattern, entity_selector.type_selection as type_selection, georel,
                 geometry, coordinates, pgis_geometry, geoproperty, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context, join_type, join_level
+                datasetId, jsonld_context, join_type, join_level, show_changes
             FROM subscription
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id

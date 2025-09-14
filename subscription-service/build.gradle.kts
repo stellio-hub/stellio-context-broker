@@ -18,6 +18,8 @@ dependencies {
     implementation("org.springframework:spring-jdbc")
     implementation("org.flywaydb:flyway-core")
     implementation("org.postgresql:r2dbc-postgresql")
+    implementation("com.github.stellio-hub:json-merge:0.1.0")
+    implementation("org.json:json:20250517")
     implementation("com.jayway.jsonpath:json-path:2.9.0")
     implementation(project(":shared"))
     implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")

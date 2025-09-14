@@ -27,18 +27,20 @@ import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toFinalRepresentation
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException
+import com.savvasdalkitsis.jsonmerger.JsonMerger
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Transient
 import org.springframework.http.MediaType
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 import java.util.regex.Pattern
 
 val defaultNotificationTriggers = listOf(
@@ -99,6 +101,7 @@ data class Subscription(
         checkJsonLdContextIsValid().bind()
         checkJoinParametersAreValid().bind()
         checkEndpointUriIsValid().bind()
+        checkShowChangesIsValid().bind()
 
         this@Subscription
     }
@@ -197,6 +200,14 @@ data class Subscription(
         return Unit.right()
     }
 
+    private fun checkShowChangesIsValid(): Either<BadRequestDataException, Unit> =
+        if (notification.showChanges && notification.format in setOf(FormatType.KEY_VALUES, FormatType.SIMPLIFIED))
+            BadRequestDataException(
+                "'showChanges' and 'simplified' / 'keyValues' format cannot be used at the same time"
+            ).left()
+        else
+            Unit.right()
+
     fun expand(contexts: List<String>): Subscription =
         this.copy(
             entities = entities?.map { entitySelector ->
@@ -251,7 +262,10 @@ data class Subscription(
         fragment: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, Subscription> = either {
-        val mergedSubscription = convertTo<Map<String, Any>>(this@Subscription).plus(fragment)
+        val mergedSubscription = JsonMerger().merge(
+            serializeObject(this@Subscription),
+            serializeObject(fragment)
+        ).deserializeAsMap()
         deserialize(mergedSubscription, contexts).bind()
             .copy(modifiedAt = ngsiLdDateTime())
     }
@@ -283,7 +297,7 @@ data class Subscription(
     }
 }
 
-// Default for booleans is false, so add a simple filter to only include "isActive" is it is false
+// Default for booleans is false, so add a simple filter to only include "isActive" if it is false
 // see https://github.com/FasterXML/jackson-databind/issues/1331 for instance
 class JsonBooleanFilter {
 
@@ -292,7 +306,7 @@ class JsonBooleanFilter {
             return false
         }
 
-        return other == true
+        return other
     }
 
     override fun hashCode(): Int = javaClass.hashCode()

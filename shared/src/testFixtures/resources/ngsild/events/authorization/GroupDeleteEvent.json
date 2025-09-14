@@ -3,6 +3,7 @@
   "tenantName": "urn:ngsi-ld:tenant:default",
   "entityId": "urn:ngsi-ld:Group:a11c00f9-43bc-47a8-9d23-13d67696bdb8",
   "entityTypes": ["Group"],
+  "previousEntity": "",
   "contexts": [
     "https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld"
   ]

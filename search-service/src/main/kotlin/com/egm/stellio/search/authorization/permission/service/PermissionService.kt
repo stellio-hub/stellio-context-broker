@@ -151,6 +151,7 @@ class PermissionService(
         val targetIsIncludedFilter =
             listOf(targetIdFilter, scopesIsIncludedFilter, typesIsIncludedFilter)
                 .joinToString(" AND ")
+
         return databaseClient.sql(
             """
             SELECT exists (
@@ -420,16 +421,15 @@ class PermissionService(
 
     private suspend fun buildPermissionQueryAuthorizationFilter(
         kind: PermissionKind = PermissionKind.ADMIN
-    ): Either<APIException, WithAndFilter> =
-        either {
-            val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
-            when (kind) {
-                // you can fetch the permission assigned to you
-                PermissionKind.ASSIGNED -> "" to buildIsAssigneeFilter(uuids)
-                // or you can fetch the permission you administrate
-                PermissionKind.ADMIN -> buildAdministratedPermissionFilter(uuids).bind()
-            }
+    ): Either<APIException, WithAndFilter> = either {
+        val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+        when (kind) {
+            // you can fetch the permission assigned to you
+            PermissionKind.ASSIGNED -> "" to buildIsAssigneeFilter(uuids)
+            // or you can fetch the permission you administrate
+            PermissionKind.ADMIN -> buildAdministratedPermissionFilter(uuids).bind()
         }
+    }
 
     private fun buildIsAssigneeFilter(uuids: List<Sub>): String =
         "(assignee is null OR assignee IN ${uuids.toSqlList()})"
@@ -441,24 +441,24 @@ class PermissionService(
             else {
                 val withClause = buildCandidatePermissionWithStatement(Action.ADMIN, uuids)
                 val filterClause = """
-        (
-            -- if the permission target an entity, you need to admin this entity
-            (
-                target_id is not null 
-                AND ${buildAsRightOnEntityFilter(Action.ADMIN, uuids)}
-            )   
-            OR
-            -- if the permission target types and scopes, you need to administrate this types and scopes
-            (
-               target_id is null  
-               AND  exists (
-                   SELECT 1
-                   FROM candidate_permissions as cp
-                   WHERE (cp.target_types IS NULL OR cp.target_types @> permission.target_types)
-                   AND (cp.target_scopes IS NULL OR cp.target_scopes @> permission.target_scopes)
-               )
-            )
-        )
+                (
+                    -- if the permission target an entity, you need to admin this entity
+                    (
+                        target_id is not null 
+                        AND ${buildAsRightOnEntityFilter(Action.ADMIN, uuids)}
+                    )   
+                    OR
+                    -- if the permission target types and scopes, you need to administrate this types and scopes
+                    (
+                       target_id is null  
+                       AND  exists (
+                           SELECT 1
+                           FROM candidate_permissions as cp
+                           WHERE (cp.target_types IS NULL OR cp.target_types @> permission.target_types)
+                           AND (cp.target_scopes IS NULL OR cp.target_scopes @> permission.target_scopes)
+                       )
+                    )
+                )
                 """.trimIndent()
                 withClause to filterClause
             }
@@ -468,15 +468,15 @@ class PermissionService(
         action: Action,
         uuids: List<Sub>
     ): String = """
-                 WITH candidate_permissions AS (
-                    SELECT
-                        target_types,
-                        target_scopes
-                    FROM permission
-                    WHERE ${buildIsAssigneeFilter(uuids)}
-                    AND target_id IS NULL
-                    AND action IN ${action.includedInToSqlList()}
-                )
+        WITH candidate_permissions AS (
+            SELECT
+                target_types,
+                target_scopes
+            FROM permission
+            WHERE ${buildIsAssigneeFilter(uuids)}
+            AND target_id IS NULL
+            AND action IN ${action.includedInToSqlList()}
+        )
     """.trimIndent()
 
     private suspend fun buildPermissionFiltersWhereStatement(

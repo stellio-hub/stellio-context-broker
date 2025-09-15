@@ -69,7 +69,7 @@ class PermissionHandler(
     private val applicationProperties: ApplicationProperties,
     private val permissionService: PermissionService,
     private val subjectReferentialService: SubjectReferentialService,
-    private val entityQueryService: EntityQueryService,
+    private val entityQueryService: EntityQueryService
 ) : BaseHandler() {
 
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
@@ -109,11 +109,7 @@ class PermissionHandler(
             ]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
-    ): ResponseEntity<*> = query(
-        httpHeaders,
-        queryParams,
-        kind = PermissionFilters.Companion.PermissionKind.ADMIN
-    )
+    ): ResponseEntity<*> = query(httpHeaders, queryParams, PermissionKind.ADMIN)
 
     @GetMapping(path = [ "/assigned"], produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun queryOnlyAssigned(
@@ -128,7 +124,7 @@ class PermissionHandler(
             notImplemented = []
         )
         @RequestParam queryParams: MultiValueMap<String, String>
-    ): ResponseEntity<*> = query(httpHeaders, queryParams, kind = PermissionKind.ASSIGNED)
+    ): ResponseEntity<*> = query(httpHeaders, queryParams, PermissionKind.ASSIGNED)
 
     suspend fun query(
         httpHeaders: HttpHeaders,
@@ -288,8 +284,7 @@ class PermissionHandler(
         }
 
         if (permission.action == Action.ADMIN && permission.assignee == null) {
-            EVERYONE_AS_ADMIN_EXCEPTION.left()
-                .bind<APIException>()
+            EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
         }
 
         permission.assignee?.let { subjectReferentialService.getSubjectAndGroupsUUID(it).bind() }
@@ -321,14 +316,14 @@ class PermissionHandler(
             permission.assignee?.let { assignee ->
                 permissionMap[AUTH_ASSIGNEE_TERM] = subjectReferentialService.retrieve(assignee)
                     .fold(
-                        { mapOf(AUTH_TERM_SUBJECT_ID to assignee,) },
+                        { mapOf(AUTH_TERM_SUBJECT_ID to assignee) },
                         { it.toSerializableMap() }
                     )
             }
             permission.assigner?.let { assigner ->
                 permissionMap[AUTH_ASSIGNER_TERM] = subjectReferentialService.retrieve(assigner)
                     .fold(
-                        { mapOf(AUTH_TERM_SUBJECT_ID to assigner,) },
+                        { mapOf(AUTH_TERM_SUBJECT_ID to assigner) },
                         { it.toSerializableMap() }
                     )
             }

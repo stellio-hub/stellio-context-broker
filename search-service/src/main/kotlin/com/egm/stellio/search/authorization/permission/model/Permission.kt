@@ -85,8 +85,7 @@ data class Permission(
         fun notFoundMessage(id: URI) = "Could not find a Permission with id $id"
         fun alreadyExistsMessage(id: URI) = "A Permission with id $id already exists"
         const val UNIQUENESS_CONFLICT_MESSAGE = "A Permission with the same assignee, target and action already exists"
-        fun unauthorizedTargetMessage(target: TargetAsset) =
-            "User is not authorized to admin the target : $target "
+        fun unauthorizedTargetMessage(target: TargetAsset) = "User is not authorized to admin the target: $target"
         fun unauthorizedRetrieveMessage(permissionId: URI) = "User is not authorized to read Permission $permissionId"
         val CHANGE_OWNER_EXCEPTION = BadRequestDataException("Changing owner of an entity is prohibited")
         val EVERYONE_AS_ADMIN_EXCEPTION =

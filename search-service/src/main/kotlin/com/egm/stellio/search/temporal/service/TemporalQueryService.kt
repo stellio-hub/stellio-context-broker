@@ -130,8 +130,7 @@ class TemporalQueryService(
             false,
             accessRightFilter,
             adminPermissionWithClause
-        )
-            .getOrElse { 0 }
+        ).getOrElse { 0 }
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())

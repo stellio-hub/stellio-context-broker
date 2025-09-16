@@ -15,9 +15,11 @@ import com.egm.stellio.search.authorization.permission.model.PermissionFilters.C
 import com.egm.stellio.search.authorization.permission.service.PermissionService
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.entity.service.EntityQueryService
+import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
@@ -33,14 +35,18 @@ import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.buildQueryResponse
+import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getAuthzContextFromRequestOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
+import com.egm.stellio.shared.util.isURI
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -71,6 +77,38 @@ class PermissionHandler(
     private val subjectReferentialService: SubjectReferentialService,
     private val entityQueryService: EntityQueryService
 ) : BaseHandler() {
+
+    @PostMapping(
+        path = ["permissionOperations/create"],
+        consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]
+    )
+    suspend fun batchCreate(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
+        val body = requestBody.awaitFirst().deserializeAsList()
+        val operationResult = BatchOperationResult()
+
+        body.map { permissionBody -> // can't do proper error handling if it is missing some id.
+            val id = permissionBody["id"] as? String
+            val asValidId = id?.isURI() ?: false
+            if (asValidId)
+                return BadRequestDataException("batch creation does not support null id").toErrorResponse()
+
+            id!!.toUri() to permissionBody
+        }.forEach { (id, permissionBody) ->
+            val creationResponse = either {
+                val contexts = checkAndGetContext(httpHeaders, permissionBody, applicationProperties.contexts.core)
+                    .bind()
+                val permission = deserialize(permissionBody, contexts).bind()
+                permissionService.create(permission).bind()
+            }
+
+            operationResult.addEither(creationResponse, id)
+        }
+
+        return operationResult.toEndpointResponse()
+    }
 
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(

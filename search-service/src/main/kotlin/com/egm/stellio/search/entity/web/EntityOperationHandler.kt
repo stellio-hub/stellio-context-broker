@@ -170,10 +170,7 @@ class EntityOperationHandler(
             batchOperationResult.success.addAll(updateOperationResult.success)
         }
 
-        if (batchOperationResult.errors.isEmpty())
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        else
-            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
+        batchOperationResult.toEndpointResponse()
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -201,10 +198,7 @@ class EntityOperationHandler(
             batchOperationResult.success.addAll(mergeOperationResult.success)
         }
 
-        if (batchOperationResult.errors.isEmpty())
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        else
-            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
+        batchOperationResult.toEndpointResponse()
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -231,10 +225,7 @@ class EntityOperationHandler(
             )
         } else { BatchOperationResult() }
 
-        if (batchOperationResult.errors.isEmpty())
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        else
-            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
+        batchOperationResult.toEndpointResponse()
     }.fold(
         { it.toErrorResponse() },
         { it }

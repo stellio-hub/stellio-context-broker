@@ -44,6 +44,12 @@ data class BatchOperationResult(
         )
     }
 
+    fun toEndpointResponse(): ResponseEntity<*> =
+        if (errors.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(this)
+
     // the BatchOperationResult is also used for distributed provision operations
     // for those endpoints, a single error is returned if the all operation failed at once
     fun toNonBatchEndpointResponse(

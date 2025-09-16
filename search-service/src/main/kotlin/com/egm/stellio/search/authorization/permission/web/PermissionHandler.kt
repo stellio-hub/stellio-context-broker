@@ -276,7 +276,7 @@ class PermissionHandler(
         { it }
     )
 
-    private suspend fun checkCanCreate(permission: Permission): Either<APIException, Unit> = either {
+    private suspend fun checkCanCreateOrUpdate(permission: Permission): Either<APIException, Unit> = either {
         permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN).bind()
 
         if (permission.action == Action.OWN) {

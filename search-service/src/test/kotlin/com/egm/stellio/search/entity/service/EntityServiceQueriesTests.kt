@@ -483,7 +483,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                "(entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:02'))"
+                "" to "(entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:02'))"
             )
 
         assertEquals(1, entitiesIds.size)
@@ -511,7 +511,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                 paginationQuery = PaginationQuery(limit = 30, offset = 0),
                 contexts = APIC_COMPOUND_CONTEXTS
             ),
-            "entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:01')"
+            "" to "entity_payload.entity_id IN ('urn:ngsi-ld:BeeHive:01')"
         )
             .shouldSucceedWith { assertEquals(1, it) }
     }

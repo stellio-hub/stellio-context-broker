@@ -16,8 +16,7 @@ class DisabledAuthorizationService : AuthorizationService {
 
     override suspend fun userCanCreateEntities(): Either<APIException, Unit> = Unit.right()
 
-    override suspend fun getAccessRightFilter(): String? = null
-    override suspend fun getAdminPermissionWithClause(): String? = null
+    override suspend fun getAccessRightWithClauseAndFilter(): WithAndFilter? = null
 
     override suspend fun userCanReadEntity(entityId: URI): Either<APIException, Unit> =
         Unit.right()

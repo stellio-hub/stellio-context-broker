@@ -95,8 +95,10 @@ fun String.unescapeRegexPattern(): String =
 
 fun Iterable<String>.toTypeSelection() = this.joinToString(",")
 
-// at least for String and URI
+// Work for String and URI
+// can't do two functions with the same name since Uri are String in the jvm
 fun Iterable<Any>.toSqlList(): String = "(${this.joinToString(",") { "'$it'"} })"
+
 fun Iterable<String?>.toSqlArray(): String = "ARRAY[${this.joinToString(",") { "'$it'"} }]"
 fun Sequence<String?>.toSqlArray(): String = this.toList().toSqlArray()
 

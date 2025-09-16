@@ -64,7 +64,7 @@ class PermissionHandlerTests {
     @MockkBean
     private lateinit var entityQueryService: EntityQueryService
 
-    private val batchCreatePermissionUri = "/ngsi-ld/v1/auth/permissionOperations/create"
+    private val batchCreatePermissionUri = "/ngsi-ld/v1/auth/permissions/operations/create"
     private val permissionUri = "/ngsi-ld/v1/auth/permissions"
     private val id = "urn:ngsi-ld:Permission:1".toUri()
     private val jwt = mockJwt().jwt { it.subject(MOCK_USER_SUB) }
@@ -843,14 +843,13 @@ class PermissionHandlerTests {
             .uri(batchCreatePermissionUri)
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isCreated
-            .expectHeader().exists("Location")
+            .expectStatus().isBadRequest
 
         coVerify(exactly = 0) { permissionService.create(any()) }
     }
 
     @Test
-    fun `create batch Permission should accept permission without id`() = runTest {
+    fun `create batch Permission should accept permission with id`() = runTest {
         val jsonLdFile = """
          [ {
             "id": "urn:ngsi-ld:Permission:1",
@@ -869,14 +868,18 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.create(any()) } returns Unit.right()
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
+        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         webClient.post()
             .uri(batchCreatePermissionUri)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isCreated
-            .expectHeader().exists("Location")
+            .expectBody()
+            .jsonPath("$").isArray
+            .jsonPath("$[*]").isEqualTo(listOf("urn:ngsi-ld:Permission:1"))
 
-        coVerify(exactly = 0) { permissionService.create(any()) }
+        coVerify(exactly = 1) { permissionService.create(any()) }
     }
 }

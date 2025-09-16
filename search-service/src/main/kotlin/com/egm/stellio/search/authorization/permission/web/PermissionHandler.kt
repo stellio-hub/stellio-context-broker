@@ -38,7 +38,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.buildQueryResponse
-import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getAuthzContextFromRequestOrDefault
@@ -79,7 +78,7 @@ class PermissionHandler(
 ) : BaseHandler() {
 
     @PostMapping(
-        path = ["permissionOperations/create"],
+        path = ["operations/create"],
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]
     )
     suspend fun batchCreate(
@@ -91,23 +90,26 @@ class PermissionHandler(
 
         body.map { permissionBody -> // can't do proper error handling if it is missing some id.
             val id = permissionBody["id"] as? String
-            val asValidId = id?.isURI() ?: false
-            if (asValidId)
+            if (id?.isURI() != true)
                 return BadRequestDataException("batch creation does not support null id").toErrorResponse()
 
-            id!!.toUri() to permissionBody
+            id.toUri() to permissionBody
         }.forEach { (id, permissionBody) ->
             val creationResponse = either {
-                val contexts = checkAndGetContext(httpHeaders, permissionBody, applicationProperties.contexts.core)
-                    .bind()
+                val contexts = getAuthzContextFromRequestOrDefault(
+                    httpHeaders,
+                    permissionBody,
+                    applicationProperties.contexts
+                ).bind()
                 val permission = deserialize(permissionBody, contexts).bind()
+                checkCanCreateOrUpdate(permission).bind()
                 permissionService.create(permission).bind()
             }
 
             operationResult.addEither(creationResponse, id)
         }
 
-        return operationResult.toEndpointResponse()
+        return operationResult.toCreateEndpointResponse()
     }
 
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])

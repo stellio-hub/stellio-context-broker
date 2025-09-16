@@ -15,6 +15,7 @@ import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.NGSILD_LOCAL
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.filterAttributes
@@ -105,7 +106,7 @@ class EntityHandler(
                     entityService.createEntity(ngsiLdEntity, remainingEntity).bind()
                 },
                 entityId,
-                null
+                NGSILD_LOCAL
             )
         }
 
@@ -186,7 +187,8 @@ class EntityHandler(
                         expandedEntity
                     ).bind()
                 },
-                entityId
+                entityId,
+                NGSILD_LOCAL
             )
         }
 
@@ -353,7 +355,7 @@ class EntityHandler(
             distributedEntityProvisionService.distributeDeleteEntity(entityId, queryParams)
         } else BatchOperationResult()
 
-        result.addEither(entityService.deleteEntity(entityId), entityId, null)
+        result.addEither(entityService.deleteEntity(entityId), entityId, NGSILD_LOCAL)
 
         return result.toNonBatchEndpointResponse(entityId, HttpStatus.NO_CONTENT)
     }

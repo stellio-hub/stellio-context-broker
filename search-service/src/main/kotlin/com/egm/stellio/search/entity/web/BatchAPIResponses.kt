@@ -4,7 +4,6 @@ import arrow.core.Either
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.NGSILD_LOCAL
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toErrorResponse
 import com.egm.stellio.shared.util.toUri
@@ -40,13 +39,19 @@ data class BatchOperationResult(
     fun addEither(either: Either<APIException, *>, entityId: URI, csrId: URI? = null) {
         either.fold(
             { this.errors.add(BatchEntityError(entityId, it.toProblemDetail(), csrId)) },
-            { this.success.add(BatchEntitySuccess(csrId ?: NGSILD_LOCAL)) }
+            { this.success.add(BatchEntitySuccess(csrId ?: entityId)) }
         )
     }
 
-    fun toEndpointResponse(): ResponseEntity<*> =
+    fun toUpdateEndpointResponse(): ResponseEntity<*> =
         if (errors.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(this)
+
+    fun toCreateEndpointResponse(): ResponseEntity<*> =
+        if (this.errors.isEmpty())
+            ResponseEntity.status(HttpStatus.CREATED).body(this.getSuccessfulEntitiesIds())
         else
             ResponseEntity.status(HttpStatus.MULTI_STATUS).body(this)
 

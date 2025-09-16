@@ -170,7 +170,7 @@ class EntityOperationHandler(
             batchOperationResult.success.addAll(updateOperationResult.success)
         }
 
-        batchOperationResult.toEndpointResponse()
+        batchOperationResult.toUpdateEndpointResponse()
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -198,7 +198,7 @@ class EntityOperationHandler(
             batchOperationResult.success.addAll(mergeOperationResult.success)
         }
 
-        batchOperationResult.toEndpointResponse()
+        batchOperationResult.toUpdateEndpointResponse()
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -225,7 +225,7 @@ class EntityOperationHandler(
             )
         } else { BatchOperationResult() }
 
-        batchOperationResult.toEndpointResponse()
+        batchOperationResult.toUpdateEndpointResponse()
     }.fold(
         { it.toErrorResponse() },
         { it }

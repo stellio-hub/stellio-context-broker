@@ -5,8 +5,8 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.CREATE_OR_UPDATE_OWNER_EXCEPTION
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.DELETE_OWNER_EXCEPTION
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.CREATE_OR_UPDATE_OWN_EXCEPTION
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.DELETE_OWN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.EVERYONE_AS_ADMIN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedRetrieveMessage
@@ -238,7 +238,7 @@ class PermissionHandler(
         permissionService.hasPermissionOnTarget(currentPermission.target, Action.ADMIN).bind()
 
         if (currentPermission.action == Action.OWN) {
-            CREATE_OR_UPDATE_OWNER_EXCEPTION.left().bind<APIException>()
+            CREATE_OR_UPDATE_OWN_EXCEPTION.left().bind<APIException>()
         }
 
         val body = requestBody.awaitFirst().deserializeAsMap()
@@ -265,7 +265,7 @@ class PermissionHandler(
         checkCanDelete(currentPermission).bind()
 
         if (currentPermission.action == Action.OWN) {
-            DELETE_OWNER_EXCEPTION.left().bind<APIException>()
+            DELETE_OWN_EXCEPTION.left().bind<APIException>()
         }
 
         permissionService.delete(permissionId).bind()
@@ -280,7 +280,7 @@ class PermissionHandler(
         permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN).bind()
 
         if (permission.action == Action.OWN) {
-            CREATE_OR_UPDATE_OWNER_EXCEPTION.left().bind<APIException>()
+            CREATE_OR_UPDATE_OWN_EXCEPTION.left().bind<APIException>()
         }
 
         if (permission.action == Action.ADMIN && permission.assignee == null) {

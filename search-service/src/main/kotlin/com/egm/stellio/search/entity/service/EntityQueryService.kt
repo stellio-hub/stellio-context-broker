@@ -79,7 +79,7 @@ class EntityQueryService(
 
         val selectQuery =
             """
-            ${adminPermissionWithClause ?: ""}
+            $adminPermissionWithClause
             
             SELECT DISTINCT(entity_payload.entity_id)
             FROM entity_payload
@@ -120,7 +120,7 @@ class EntityQueryService(
 
         val countQuery =
             """
-            ${adminPermissionWithClause ?: ""}    
+            $adminPermissionWithClause    
                 
             SELECT count(distinct(entity_payload.entity_id)) as count_entity
             FROM entity_payload

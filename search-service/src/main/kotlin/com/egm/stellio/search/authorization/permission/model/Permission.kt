@@ -87,10 +87,10 @@ data class Permission(
         const val UNIQUENESS_CONFLICT_MESSAGE = "A Permission with the same assignee, target and action already exists"
         fun unauthorizedTargetMessage(target: TargetAsset) = "User is not authorized to admin the target: $target"
         fun unauthorizedRetrieveMessage(permissionId: URI) = "User is not authorized to read Permission $permissionId"
-        val CREATE_OR_UPDATE_OWNER_EXCEPTION = BadRequestDataException(
-            "Creating or updating an owner permission is prohibited"
+        val CREATE_OR_UPDATE_OWN_EXCEPTION = BadRequestDataException(
+            "Creating or updating an \"own\" permission is prohibited"
         )
-        val DELETE_OWNER_EXCEPTION = BadRequestDataException("Deleting an owner permission is prohibited")
+        val DELETE_OWN_EXCEPTION = BadRequestDataException("Deleting an \"own\" permission is prohibited")
         val EVERYONE_AS_ADMIN_EXCEPTION =
             BadRequestDataException("Adding administration right for everyone is prohibited")
     }

@@ -159,7 +159,7 @@ class EnabledAuthorizationService(
         val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
         if (subjectReferentialService.hasStellioAdminRole(uuids).bind())
             null
-        else permissionService.buildCandidatePermissionWithStatement(Action.READ, uuids) to
+        else permissionService.buildCandidatePermissionsWithStatement(Action.READ, uuids) to
             permissionService.buildAsRightOnEntityFilter(Action.READ, uuids)
     }.fold({ "" to "false" }, { it })
 }

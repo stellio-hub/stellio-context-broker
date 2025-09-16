@@ -211,7 +211,7 @@ class PermissionService(
         // add a filter that only return permission matching the received PermissionFilter
         val filterQuery = buildPermissionFiltersWhereStatement(filters).bind()
         // add a filter that only return permission the current subject administrate
-        val (withClause, authorizationFilter) = buildPermissionQueryAuthorizationFilter(filters.kind).bind()
+        val (withClause, authorizationFilter) = buildPermissionAuthorizationFilter(filters.kind).bind()
         val selectStatement =
             """
             $withClause
@@ -245,7 +245,7 @@ class PermissionService(
         filters: PermissionFilters = PermissionFilters(),
     ): Either<APIException, Int> = either {
         val filterQuery = buildPermissionFiltersWhereStatement(filters).bind()
-        val (withClause, authorizationFilter) = buildPermissionQueryAuthorizationFilter(filters.kind).bind()
+        val (withClause, authorizationFilter) = buildPermissionAuthorizationFilter(filters.kind).bind()
 
         val selectStatement =
             """
@@ -416,7 +416,7 @@ class PermissionService(
             .oneToResult { it["count"] as Long >= 1L }
     }
 
-    private suspend fun buildPermissionQueryAuthorizationFilter(
+    private suspend fun buildPermissionAuthorizationFilter(
         kind: PermissionKind = PermissionKind.ADMIN
     ): Either<APIException, WithAndFilter> = either {
         val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
@@ -436,7 +436,7 @@ class PermissionService(
             if (subjectReferentialService.hasStellioAdminRole(uuids).bind())
                 "" to "true"
             else {
-                val withClause = buildCandidatePermissionWithStatement(Action.ADMIN, uuids)
+                val withClause = buildCandidatePermissionsWithStatement(Action.ADMIN, uuids)
                 val filterClause = """
                 (
                     -- if the permission target an entity, you need to admin this entity
@@ -461,7 +461,7 @@ class PermissionService(
             }
         }
 
-    fun buildCandidatePermissionWithStatement(
+    fun buildCandidatePermissionsWithStatement(
         action: Action,
         uuids: List<Sub>
     ): String = """

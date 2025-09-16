@@ -140,16 +140,16 @@ class PermissionService(
     suspend fun checkDuplicate(
         permission: Permission
     ): Either<APIException, Unit> {
-        val targetIdFilter = permission.target.id?.let { " target_id = '$it'" } ?: "target_id is null"
-        val scopesIsIncludedFilter =
-            permission.target.scopes?.let { "(target_scopes is null OR target_scopes @> ${it.toSqlArray()})" }
-                ?: "target_scopes is null"
-        val typesIsIncludedFilter =
+        val targetIdIsIncludedFilter = permission.target.id?.let { " target_id = '$it'" } ?: "target_id is null"
+        val targetTypesAreIncludedFilter =
             permission.target.types?.let { "(target_types is null OR target_types @> ${it.toSqlArray()})" }
                 ?: "target_types is null"
+        val targetScopesAreIncludedFilter =
+            permission.target.scopes?.let { "(target_scopes is null OR target_scopes @> ${it.toSqlArray()})" }
+                ?: "target_scopes is null"
 
         val targetIsIncludedFilter =
-            listOf(targetIdFilter, scopesIsIncludedFilter, typesIsIncludedFilter)
+            listOf(targetIdIsIncludedFilter, targetTypesAreIncludedFilter, targetScopesAreIncludedFilter)
                 .joinToString(" AND ")
 
         return databaseClient.sql(
@@ -294,9 +294,6 @@ class PermissionService(
         entityId: URI,
         action: Action
     ): Either<APIException, Boolean> = either {
-        if (!applicationProperties.authentication.enabled)
-            return true.right()
-
         val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
 
         subjectReferentialService.hasStellioAdminRole(subjectUuids)
@@ -379,13 +376,13 @@ class PermissionService(
 
         subjectReferentialService.hasStellioAdminRole(subjectUuids)
             .flatMap {
-                if (!it && !hasPermissionOnTarget(subjectUuids, target, action.getIncludedIn()).bind())
+                if (!it && !subjectsHavePermissionsOnTarget(subjectUuids, target, action.getIncludedIn()).bind())
                     AccessDeniedException(unauthorizedTargetMessage(target)).left().bind()
                 else Unit.right()
             }.bind()
     }
 
-    private suspend fun hasPermissionOnTarget(
+    private suspend fun subjectsHavePermissionsOnTarget(
         uuids: List<Sub>,
         target: TargetAsset,
         actions: Set<Action>

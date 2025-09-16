@@ -155,17 +155,11 @@ class EnabledAuthorizationService(
         Pair(usersCount, jsonLdEntities)
     }
 
-    override suspend fun getAccessRightFilter(): String? = either {
+    override suspend fun getAccessRightWithClauseAndFilter(): WithAndFilter? = either {
         val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
         if (subjectReferentialService.hasStellioAdminRole(uuids).bind())
             null
-        else permissionService.buildAsRightOnEntityFilter(Action.READ, uuids)
-    }.fold({ "false" }, { it })
-
-    override suspend fun getAdminPermissionWithClause(): String? = either {
-        val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
-        if (subjectReferentialService.hasStellioAdminRole(uuids).bind())
-            null
-        else permissionService.buildCandidatePermissionWithStatement(Action.READ, uuids)
-    }.fold({ "" }, { it })
+        else permissionService.buildCandidatePermissionWithStatement(Action.READ, uuids) to
+            permissionService.buildAsRightOnEntityFilter(Action.READ, uuids)
+    }.fold({ "" to "false" }, { it })
 }

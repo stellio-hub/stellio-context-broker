@@ -5,7 +5,8 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.CHANGE_OWNER_EXCEPTION
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.CREATE_OR_UPDATE_OWNER_EXCEPTION
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.DELETE_OWNER_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.EVERYONE_AS_ADMIN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedRetrieveMessage
@@ -41,7 +42,6 @@ import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.web.BaseHandler
-import com.fasterxml.jackson.module.kotlin.convertValue
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -82,7 +82,7 @@ class PermissionHandler(
         val sub = getSubFromSecurityContext()
 
         val permission = deserialize(body, contexts).bind().copy(assigner = sub.orEmpty())
-        checkCanCreate(permission).bind()
+        checkCanCreateOrUpdate(permission).bind()
 
         permissionService.create(permission).bind()
 
@@ -238,14 +238,14 @@ class PermissionHandler(
         permissionService.hasPermissionOnTarget(currentPermission.target, Action.ADMIN).bind()
 
         if (currentPermission.action == Action.OWN) {
-            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+            CREATE_OR_UPDATE_OWNER_EXCEPTION.left().bind<APIException>()
         }
 
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = getAuthzContextFromRequestOrDefault(httpHeaders, body, applicationProperties.contexts).bind()
 
         val permission = currentPermission.mergeWithFragment(body, contexts).bind()
-        checkCanCreate(permission).bind()
+        checkCanCreateOrUpdate(permission).bind()
 
         permissionService.upsert(permission).bind()
 
@@ -265,7 +265,7 @@ class PermissionHandler(
         checkCanDelete(currentPermission).bind()
 
         if (currentPermission.action == Action.OWN) {
-            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+            DELETE_OWNER_EXCEPTION.left().bind<APIException>()
         }
 
         permissionService.delete(permissionId).bind()
@@ -280,7 +280,7 @@ class PermissionHandler(
         permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN).bind()
 
         if (permission.action == Action.OWN) {
-            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+            CREATE_OR_UPDATE_OWNER_EXCEPTION.left().bind<APIException>()
         }
 
         if (permission.action == Action.ADMIN && permission.assignee == null) {
@@ -308,7 +308,7 @@ class PermissionHandler(
         pickAttributes: Set<String> = emptySet()
     ): Either<APIException, String> = either {
         val permission = expandedPermission.compact(contexts)
-        val permissionMap = DataTypes.mapper.convertValue<Map<String, Any>>(permission.compact(contexts)).plus(
+        val permissionMap = DataTypes.convertTo<Map<String, Any>>(permission.compact(contexts)).plus(
             JSONLD_CONTEXT_KW to contexts
         ).let { DataTypes.toFinalRepresentation(it, mediaType, includeSysAttrs) }.toMutableMap()
 
@@ -336,7 +336,7 @@ class PermissionHandler(
             }
         }
 
-        DataTypes.mapper.writeValueAsString(permissionMap)
+        DataTypes.serialize(permissionMap)
     }
 
     private suspend fun serializePermissions(

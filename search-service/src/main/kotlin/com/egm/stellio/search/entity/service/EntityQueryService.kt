@@ -6,6 +6,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
+import com.egm.stellio.search.authorization.permission.service.WithAndFilter
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toUri
@@ -44,11 +45,10 @@ class EntityQueryService(
     suspend fun queryEntities(
         entitiesQuery: EntitiesQuery
     ): Either<APIException, Pair<List<ExpandedEntity>, Int>> = either {
-        val accessRightFilter = authorizationService.getAccessRightFilter()
-        val adminPermissionWithClause = authorizationService.getAdminPermissionWithClause()
+        val accessRightWithAndFilter = authorizationService.getAccessRightWithClauseAndFilter()
 
-        val entitiesIds = queryEntities(entitiesQuery, accessRightFilter, adminPermissionWithClause)
-        val count = queryEntitiesCount(entitiesQuery, accessRightFilter, adminPermissionWithClause).bind()
+        val entitiesIds = queryEntities(entitiesQuery, accessRightWithAndFilter)
+        val count = queryEntitiesCount(entitiesQuery, accessRightWithAndFilter).bind()
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
@@ -61,17 +61,20 @@ class EntityQueryService(
 
     suspend fun queryEntities(
         entitiesQuery: EntitiesQuery,
-        accessRightFilter: String?,
-        adminPermissionWithClause: String? = ""
+        accessRightWithAndFilter: WithAndFilter?,
     ): List<URI> =
-        queryEntities(entitiesQuery, true, accessRightFilter, adminPermissionWithClause)
+        queryEntities(
+            entitiesQuery,
+            true,
+            accessRightWithAndFilter
+        )
 
     suspend fun queryEntities(
         entitiesQuery: EntitiesQuery,
         excludeDeleted: Boolean = true,
-        accessRightFilter: String?,
-        adminPermissionWithClause: String?
+        accessRightWithAndFilter: WithAndFilter?,
     ): List<URI> {
+        val (adminPermissionWithClause, accessRightFilter) = accessRightWithAndFilter ?: "" to null
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
 
         val selectQuery =
@@ -99,17 +102,20 @@ class EntityQueryService(
 
     suspend fun queryEntitiesCount(
         entitiesQuery: EntitiesQuery,
-        accessRightFilter: String?,
-        adminPermissionWithClause: String? = ""
+        accessRightWithAndFilter: WithAndFilter?,
     ): Either<APIException, Int> =
-        queryEntitiesCount(entitiesQuery, true, accessRightFilter, adminPermissionWithClause)
+        queryEntitiesCount(
+            entitiesQuery,
+            true,
+            accessRightWithAndFilter
+        )
 
     suspend fun queryEntitiesCount(
         entitiesQuery: EntitiesQuery,
         excludeDeleted: Boolean = true,
-        accessRightFilter: String?,
-        adminPermissionWithClause: String?
+        accessRightWithAndFilter: WithAndFilter?
     ): Either<APIException, Int> {
+        val (adminPermissionWithClause, accessRightFilter) = accessRightWithAndFilter ?: "" to null
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
 
         val countQuery =

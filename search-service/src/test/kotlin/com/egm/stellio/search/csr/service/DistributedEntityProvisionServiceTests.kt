@@ -188,7 +188,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeEntityProvisionForContextSources should return the remainingEntity`() = runTest {
+    fun `distributeEntityProvisionForContextSources  should return the remainingEntity`() = runTest {
         val firstExclusiveCsr = gimmeRawCSR(id = "id:exclusive:1".toUri(), mode = Mode.EXCLUSIVE)
         val firstRedirectCsr = gimmeRawCSR(id = "id:redirect:1".toUri(), mode = Mode.REDIRECT)
         val firstInclusiveCsr = gimmeRawCSR(id = "id:inclusive:1".toUri(), mode = Mode.INCLUSIVE)

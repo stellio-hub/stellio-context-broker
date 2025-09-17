@@ -270,10 +270,10 @@ class EntityOperationHandler(
         val (entities, count) = entityQueryService.queryEntities(entitiesQuery).bind()
 
         val filteredEntities = entities.filterAttributes(entitiesQuery.attrs)
-            .filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
             .applyDatasetView(entitiesQuery.datasetId)
 
         val compactedEntities = compactEntities(filteredEntities, contexts)
+            .filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,

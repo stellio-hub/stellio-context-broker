@@ -229,7 +229,6 @@ class EntityHandler(
         val (expandedEntities, localCount) = entityQueryService.queryEntities(entitiesQuery).bind()
 
         val filteredEntities = expandedEntities.filterAttributes(entitiesQuery.attrs)
-            .filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
             .applyDatasetView(entitiesQuery.datasetId)
 
         val localEntities =
@@ -256,8 +255,10 @@ class EntityHandler(
                 Triple(warnings, mergedEntities, maxCount)
             } else Triple(emptyList(), localEntities, localCount)
 
+        val finalEntities = entities.filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
+
         buildQueryResponse(
-            entities.toFinalRepresentation(ngsiLdDataRepresentation),
+            finalEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
             "/ngsi-ld/v1/entities",
             entitiesQuery.paginationQuery,
@@ -301,7 +302,6 @@ class EntityHandler(
             expandedEntity.checkContainsAnyOf(entitiesQuery.attrs).bind()
 
             val filteredExpandedEntity = expandedEntity.filterAttributes(entitiesQuery.attrs)
-                .filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
                 .applyDatasetView(entitiesQuery.datasetId)
 
             compactEntity(filteredExpandedEntity, contexts)
@@ -330,8 +330,10 @@ class EntityHandler(
             return localError!!.toErrorResponse().addWarnings(warnings)
         }
 
+        val finalEntity = entity.filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
         val mergedEntityWithLinkedEntities =
-            linkedEntityService.processLinkedEntities(entity, entitiesQuery).bind()
+            linkedEntityService.processLinkedEntities(finalEntity, entitiesQuery).bind()
+
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .let {
                 val body = if (mergedEntityWithLinkedEntities.size == 1)

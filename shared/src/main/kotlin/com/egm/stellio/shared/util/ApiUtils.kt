@@ -272,17 +272,16 @@ fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
  * Parse and expand pick/omit parameters according to NGSI-LD Attribute Projection Language ABNF grammar
  * as defined in section 4.21 of the NGSI-LD specification.
  */
-fun parseAndExpandPickOmitParameters(
+fun parsePickOmitParameters(
     pickParam: String?,
-    omitParam: String?,
-    contexts: List<String>
+    omitParam: String?
 ): Either<APIException, Pair<Set<String>, Set<String>>> = either {
     val pick = pickParam?.let { pickValue ->
-        parseAttributeProjectionList(pickValue, "pick", contexts).bind()
+        parseAttributeProjectionList(pickValue, "pick").bind()
     } ?: emptySet()
 
     val omit = omitParam?.let { omitValue ->
-        parseAttributeProjectionList(omitValue, "omit", contexts).bind()
+        parseAttributeProjectionList(omitValue, "omit").bind()
     } ?: emptySet()
 
     Pair(pick, omit)
@@ -290,8 +289,7 @@ fun parseAndExpandPickOmitParameters(
 
 private fun parseAttributeProjectionList(
     paramValue: String,
-    paramName: String,
-    contexts: List<String>
+    paramName: String
 ): Either<APIException, Set<String>> = either {
     if (paramValue.isBlank()) {
         BadRequestDataException("The '$paramName' parameter cannot be empty").left().bind<Set<String>>()
@@ -303,7 +301,5 @@ private fun parseAttributeProjectionList(
         attrName.checkNameIsNgsiLdSupported().bind()
     }
 
-    entityMembers.map { attrName ->
-        expandJsonLdTerm(attrName, contexts)
-    }.toSet()
+    entityMembers.toSet()
 }

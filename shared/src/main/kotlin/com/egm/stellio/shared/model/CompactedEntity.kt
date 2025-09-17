@@ -81,6 +81,16 @@ fun CompactedEntity.inlineLinkedEntities(linkedEntities: Map<String, CompactedEn
 fun List<CompactedEntity>.inlineLinkedEntities(linkedEntities: Map<String, CompactedEntity>): List<CompactedEntity> =
     this.map { it.inlineLinkedEntities(linkedEntities) }
 
+fun CompactedEntity.filterPickAndOmit(pick: Set<String>, omit: Set<String>): CompactedEntity =
+    this.filterKeys {
+        pick.isEmpty() || pick.plus(JSONLD_CONTEXT_KW).contains(it)
+    }.filterKeys {
+        !omit.contains(it)
+    }
+
+fun List<CompactedEntity>.filterPickAndOmit(pick: Set<String>, omit: Set<String>): List<CompactedEntity> =
+    this.map { it.filterPickAndOmit(pick, omit) }
+
 fun CompactedEntity.toSimplifiedAttributes(): Map<String, Any> =
     this.mapValues { entry ->
         applyAttributeTransformation(entry, ::simplifyAttribute, ::simplifyMultiInstanceAttribute)

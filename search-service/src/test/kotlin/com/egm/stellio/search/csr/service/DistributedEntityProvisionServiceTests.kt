@@ -188,7 +188,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributeEntityProvisionForContextSources  should return the remainingEntity`() = runTest {
+    fun `distributeEntityProvisionForContextSources should return the remainingEntity`() = runTest {
         val firstExclusiveCsr = gimmeRawCSR(id = "id:exclusive:1".toUri(), mode = Mode.EXCLUSIVE)
         val firstRedirectCsr = gimmeRawCSR(id = "id:redirect:1".toUri(), mode = Mode.REDIRECT)
         val firstInclusiveCsr = gimmeRawCSR(id = "id:inclusive:1".toUri(), mode = Mode.INCLUSIVE)
@@ -196,9 +196,9 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         val secondInclusiveCsr = gimmeRawCSR(id = "id:inclusive:2".toUri(), mode = Mode.INCLUSIVE)
 
         val entryEntity = expandJsonLdEntity(entity)
-        val entityWithIgnoredTemperature = entryEntity.filterPickAndOmit(emptySet(), setOf(TEMPERATURE_IRI))
+        val entityWithIgnoredTemperature = entryEntity.omitAttributes(setOf(TEMPERATURE_IRI))
         val entityWithIgnoredTemperatureAndName = entityWithIgnoredTemperature
-            .filterPickAndOmit(emptySet(), setOf(NAME_IRI))
+            .omitAttributes(setOf(NAME_IRI))
 
         coEvery {
             distributedEntityProvisionService.distributeEntityProvisionForContextSources(

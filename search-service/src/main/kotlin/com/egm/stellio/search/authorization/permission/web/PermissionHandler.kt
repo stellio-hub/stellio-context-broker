@@ -39,7 +39,7 @@ import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getAuthzContextFromRequestOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.parseAndExpandPickOmitParameters
+import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
@@ -141,11 +141,10 @@ class PermissionHandler(
         val includeSysAttrs = queryParams.getOrDefault(QP.OPTIONS.key, emptyList())
             .contains(OptionsValue.SYS_ATTRS.value)
         val includeDetails = queryParams.getFirst(QP.DETAILS.key)?.toBoolean() ?: false
-        val pickDetailsAttributes = parseAndExpandPickOmitParameters(
+        val pickDetailsAttributes = parseAndExpandQueryParameter(
             queryParams.getFirst(QueryParameter.DETAILS_PICK.key),
-            null,
             contexts
-        ).bind().first
+        )
         val paginationQuery = parsePaginationParameters(
             queryParams,
             applicationProperties.pagination.limitDefault,
@@ -192,11 +191,10 @@ class PermissionHandler(
         val includeSysAttrs = options?.contains(OptionsValue.SYS_ATTRS.value) ?: false
         val includeDetails = queryParams.getFirst(QP.DETAILS.key)?.toBoolean() ?: false
         val contexts = getAuthzContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts).bind()
-        val pickDetailsAttributes = parseAndExpandPickOmitParameters(
+        val pickDetailsAttributes = parseAndExpandQueryParameter(
             queryParams.getFirst(QueryParameter.DETAILS_PICK.key),
-            null,
             contexts
-        ).bind().first
+        )
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
         val subjects = subjectReferentialService.getSubjectAndGroupsUUID().bind()
@@ -332,7 +330,7 @@ class PermissionHandler(
             permission.target.id?.let { id ->
                 permissionMap[AUTH_TARGET_TERM] = compactEntity(
                     entityQueryService.queryEntity(id, excludeDeleted = false).bind()
-                        .filterPickAndOmit(pickAttributes, emptySet()),
+                        .filterAttributes(pickAttributes),
                     contexts
                 ).minus(JSONLD_CONTEXT_KW)
             }

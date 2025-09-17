@@ -107,14 +107,9 @@ data class ExpandedEntity(
         }
     )
 
-    fun filterPickAndOmit(pick: Set<String>, omit: Set<String>): ExpandedEntity =
-        ExpandedEntity(
-            members.filterKeys {
-                pick.isEmpty() || pick.contains(it)
-            }.filterKeys {
-                !omit.contains(it)
-            }
-        )
+    fun omitAttributes(attributes: Set<String>): ExpandedEntity = ExpandedEntity(
+        members.filterKeys { it !in attributes }
+    )
 
     fun applyDatasetView(includedDatasetIds: Set<String>): ExpandedEntity = ExpandedEntity(
         members.mapValuesNotNull { entry ->
@@ -134,11 +129,6 @@ data class ExpandedEntity(
 fun List<ExpandedEntity>.filterAttributes(includedAttributes: Set<String>): List<ExpandedEntity> =
     this.map {
         it.filterAttributes(includedAttributes)
-    }
-
-fun List<ExpandedEntity>.filterPickAndOmit(pick: Set<String>, omit: Set<String>): List<ExpandedEntity> =
-    this.map {
-        it.filterPickAndOmit(pick, omit)
     }
 
 fun List<ExpandedEntity>.applyDatasetView(includedDatasetIds: Set<String>): List<ExpandedEntity> =

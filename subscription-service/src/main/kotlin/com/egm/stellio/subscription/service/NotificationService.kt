@@ -17,6 +17,7 @@ import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation
 import com.egm.stellio.shared.model.applyAttributeTransformation
+import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.getTypeAndValue
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.util.JsonLdUtils.compactAttribute
@@ -75,9 +76,6 @@ class NotificationService(
                 } else {
                     val filteredEntity = expandedEntity.filterAttributes(
                         it.notification.attributes?.toSet().orEmpty()
-                    ).filterPickAndOmit(
-                        it.notification.pick.orEmpty(),
-                        it.notification.omit.orEmpty()
                     ).applyDatasetView(
                         it.datasetId?.toSet().orEmpty()
                     )
@@ -91,6 +89,9 @@ class NotificationService(
                     compactEntity(
                         filteredEntity,
                         contexts
+                    ).filterPickAndOmit(
+                        it.notification.pick.orEmpty(),
+                        it.notification.omit.orEmpty()
                     ).toFinalRepresentation(
                         NgsiLdDataRepresentation(
                             entityRepresentation,

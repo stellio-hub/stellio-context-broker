@@ -66,7 +66,6 @@ object TemporalEntityBuilder {
             .plus(temporalAttributes)
             .plus(scopeAttributeInstances)
         return ExpandedEntity(expandedTemporalEntity)
-            .filterPickAndOmit(temporalEntitiesQuery.entitiesQuery.pick, temporalEntitiesQuery.entitiesQuery.omit)
     }
 
     private fun buildTemporalAttributes(

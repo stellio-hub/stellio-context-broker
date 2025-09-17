@@ -18,8 +18,8 @@ import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
-import com.egm.stellio.shared.util.parseAndExpandPickOmitParameters
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
+import com.egm.stellio.shared.util.parsePickOmitParameters
 import com.egm.stellio.shared.util.parseQueryParameter
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.validateIdPattern
@@ -41,10 +41,9 @@ fun composeEntitiesQueryFromGet(
     val q = queryParams.getFirst(QueryParameter.Q.key)?.decode()
     val scopeQ = queryParams.getFirst(QueryParameter.SCOPEQ.key)
     val attrs = parseAndExpandQueryParameter(queryParams.getFirst(QueryParameter.ATTRS.key), contexts)
-    val (pick, omit) = parseAndExpandPickOmitParameters(
+    val (pick, omit) = parsePickOmitParameters(
         queryParams.getFirst(QueryParameter.PICK.key),
-        queryParams.getFirst(QueryParameter.OMIT.key),
-        contexts
+        queryParams.getFirst(QueryParameter.OMIT.key)
     ).bind()
     validateMutualAttrsProjectionAttributesExclusion(attrs, pick, omit).bind()
     val datasetId = parseQueryParameter(queryParams.getFirst(QueryParameter.DATASET_ID.key))
@@ -110,10 +109,9 @@ fun composeEntitiesQueryFromPost(
         )
     }
     val attrs = query.attrs.orEmpty().map { JsonLdUtils.expandJsonLdTerm(it.trim(), contexts) }.toSet()
-    val (pick, omit) = parseAndExpandPickOmitParameters(
+    val (pick, omit) = parsePickOmitParameters(
         query.pick?.joinToString(","),
-        query.omit?.joinToString(","),
-        contexts
+        query.omit?.joinToString(",")
     ).bind()
     validateMutualAttrsProjectionAttributesExclusion(attrs, pick, omit).bind()
     val datasetId = query.datasetId.orEmpty().toSet()

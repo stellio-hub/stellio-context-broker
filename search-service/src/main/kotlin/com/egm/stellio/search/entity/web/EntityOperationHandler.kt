@@ -17,7 +17,9 @@ import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
+import com.egm.stellio.shared.model.applyDatasetView
 import com.egm.stellio.shared.model.filterAttributes
+import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.queryparameter.AllowedParameters
@@ -267,9 +269,11 @@ class EntityOperationHandler(
 
         val (entities, count) = entityQueryService.queryEntities(entitiesQuery).bind()
 
-        val filteredEntities = entities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
+        val filteredEntities = entities.filterAttributes(entitiesQuery.attrs)
+            .applyDatasetView(entitiesQuery.datasetId)
 
         val compactedEntities = compactEntities(filteredEntities, contexts)
+            .filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,

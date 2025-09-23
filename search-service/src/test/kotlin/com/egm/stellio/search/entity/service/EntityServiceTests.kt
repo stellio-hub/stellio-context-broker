@@ -276,7 +276,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns listOf(
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap()),
         ).right()
-        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
+        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
         coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -316,10 +316,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 any(),
                 any()
             )
-            entityAttributeService.getForEntity(
-                eq(beehiveTestCId),
-                emptySet(),
-                emptySet()
+            entityAttributeService.getAllForEntity(
+                eq(beehiveTestCId)
             )
             authorizationService.createOwnerRight(beehiveTestCId)
         }
@@ -337,7 +335,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns listOf(
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap())
         ).right()
-        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
+        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
         coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -377,7 +375,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns listOf(
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap())
         ).right()
-        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
+        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
         coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -480,7 +478,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should replace an attribute`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
-        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
+        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
         coEvery {
             entityAttributeService.replaceAttribute(any(), any(), any(), any())
         } returns SucceededAttributeOperationResult(
@@ -564,7 +562,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             entityAttributeService.addOrReplaceAttribute(any(), any(), any(), any(), any())
         } returns gimmeSucceededAttributeOperationResult().right()
         coEvery {
-            entityAttributeService.getForEntity(any(), any(), any())
+            entityAttributeService.getAllForEntity(any())
         } returns emptyList()
 
         loadSampleData("beehive_with_scope.jsonld")
@@ -615,7 +613,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery { entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any()) } returns Unit.right()
         coEvery { entityAttributeService.permanentlyDeleteAttribute(any(), any(), any(), any()) } returns Unit.right()
-        coEvery { entityAttributeService.getForEntity(any(), any(), any()) } returns emptyList()
+        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
 
         loadAndPrepareSampleData("beehive.jsonld")
             .map {
@@ -631,7 +629,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coVerify {
             entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_IRI, null)
             entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_IRI, null, false)
-            entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
+            entityAttributeService.getAllForEntity(beehiveTestCId)
         }
     }
 
@@ -660,7 +658,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
         coVerify(exactly = 0) {
             entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_IRI, null, false)
-            entityAttributeService.getForEntity(beehiveTestCId, emptySet(), emptySet())
+            entityAttributeService.getAllForEntity(beehiveTestCId)
         }
     }
 }

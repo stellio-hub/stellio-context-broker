@@ -9,6 +9,8 @@ enum class QueryParameter(
     TYPE("type"),
     ID_PATTERN("idPattern"),
     ATTRS("attrs"),
+    PICK("pick"),
+    OMIT("omit"),
     Q("q"),
     SCOPEQ("scopeQ"),
     GEOMETRY_PROPERTY("geometryProperty"),
@@ -53,8 +55,6 @@ enum class QueryParameter(
     DELETE_ALL("deleteAll"),
 
     // not implemented yet
-    PICK("pick"),
-    OMIT("omit"),
     EXPAND_VALUES("expandValues"),
     CSF("csf"),
     ENTITY_MAP("entityMap"),

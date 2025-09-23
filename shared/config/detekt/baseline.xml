@@ -8,6 +8,7 @@
     <ID>LongMethod:QueryUtils.kt$private fun transformQQueryToSqlJsonPath( mainAttributePath: List&lt;ExpandedTerm&gt;, trailingAttributePath: List&lt;ExpandedTerm&gt;, operator: String, value: String )</ID>
     <ID>LongParameterList:ApiResponses.kt$( body: String, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:ApiResponses.kt$( entities: Any, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
+    <ID>NestedBlockDepth:JsonLdUtils.kt$JsonLdUtils$fun expandJsonLdTerm(term: String, contexts: List&lt;String&gt;): String</ID>
     <ID>TooManyFunctions:JsonLdUtils.kt$JsonLdUtils</ID>
   </CurrentIssues>
 </SmellBaseline>

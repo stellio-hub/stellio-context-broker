@@ -47,9 +47,11 @@ class TemporalQueryService(
         authorizationService.userCanReadEntity(entityId).bind()
 
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
+        val pick = temporalEntitiesQuery.entitiesQuery.pick
+        val omit = temporalEntitiesQuery.entitiesQuery.omit
         val datasetIds = temporalEntitiesQuery.entitiesQuery.datasetId
-        val attributes = entityAttributeService.getForEntity(entityId, attrs, datasetIds, false).let {
-            if (it.isEmpty())
+        val attributes = entityAttributeService.getForEntity(entityId, attrs.plus(pick), omit, datasetIds, false).let {
+            if (it.isEmpty() && attrs.isNotEmpty())
                 ResourceNotFoundException(
                     entityOrAttrsNotFoundMessage(entityId, temporalEntitiesQuery.entitiesQuery.attrs)
                 ).left()
@@ -59,7 +61,7 @@ class TemporalQueryService(
         val origin = calculateOldestTimestamp(entityId, temporalEntitiesQuery, attributes)
 
         val scopeHistory =
-            if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_IRI))
+            if ((pick.isEmpty() || pick.contains(NGSILD_SCOPE_IRI)) && !omit.contains(NGSILD_SCOPE_IRI))
                 scopeService.retrieveHistory(listOf(entityId), temporalEntitiesQuery, origin).bind()
             else emptyList()
 
@@ -117,7 +119,6 @@ class TemporalQueryService(
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
         val accessRightFilter = authorizationService.computeAccessRightFilter()
-        val attrs = temporalEntitiesQuery.entitiesQuery.attrs
         val entitiesIds =
             entityQueryService.queryEntities(temporalEntitiesQuery.entitiesQuery, false, accessRightFilter)
         val count =
@@ -128,13 +129,17 @@ class TemporalQueryService(
         if (entitiesIds.isEmpty())
             return@either Triple(emptyList(), count, null)
 
+        val pick = temporalEntitiesQuery.entitiesQuery.pick
+        val omit = temporalEntitiesQuery.entitiesQuery.omit
         val attributes = entityAttributeService.getForEntities(
             entitiesIds,
-            temporalEntitiesQuery.entitiesQuery
+            pick.plus(temporalEntitiesQuery.entitiesQuery.attrs),
+            omit,
+            temporalEntitiesQuery.entitiesQuery.datasetId
         )
 
         val scopesHistory =
-            if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_IRI))
+            if ((pick.isEmpty() || pick.contains(NGSILD_SCOPE_IRI)) && !omit.contains(NGSILD_SCOPE_IRI))
                 scopeService.retrieveHistory(entitiesIds, temporalEntitiesQuery).bind().groupBy { it.entityId }
             else emptyMap()
 

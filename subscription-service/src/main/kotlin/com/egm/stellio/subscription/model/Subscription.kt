@@ -101,6 +101,7 @@ data class Subscription(
         checkJoinParametersAreValid().bind()
         checkEndpointUriIsValid().bind()
         checkShowChangesIsValid().bind()
+        checkPickAndOmit().bind()
 
         this@Subscription
     }
@@ -203,6 +204,22 @@ data class Subscription(
         if (notification.showChanges && notification.format in setOf(FormatType.KEY_VALUES, FormatType.SIMPLIFIED))
             BadRequestDataException(
                 "'showChanges' and 'simplified' / 'keyValues' format cannot be used at the same time"
+            ).left()
+        else
+            Unit.right()
+
+    private fun checkPickAndOmit(): Either<BadRequestDataException, Unit> =
+        if (notification.attributes != null && (notification.pick != null || notification.omit != null))
+            BadRequestDataException(
+                "'attributes' and 'pick' or 'omit' cannot be used at the same time"
+            ).left()
+        else if (
+            notification.pick != null &&
+            notification.omit != null &&
+            notification.pick.intersect(notification.omit).isNotEmpty()
+        )
+            BadRequestDataException(
+                "An entity member cannot be present in both 'pick' and 'omit'"
             ).left()
         else
             Unit.right()

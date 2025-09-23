@@ -28,6 +28,7 @@ object AuthContextModel {
     const val GROUP_COMPACT_TYPE = "Group"
     const val GROUP_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + GROUP_COMPACT_TYPE
 
+    const val PUBLIC_SUBJECT = "urn:ngsi-ld:public"
     const val USER_ENTITY_PREFIX = "urn:ngsi-ld:User:"
     const val GROUP_ENTITY_PREFIX = "urn:ngsi-ld:Group:"
 

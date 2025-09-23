@@ -4,6 +4,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
+import org.springframework.http.HttpMethod
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.web.server.SecurityWebFilterChain
 
@@ -23,6 +24,10 @@ class WebSecurityConfig(
             // by default, only health endpoint is activated, be careful when activating other ones
             .authorizeExchange { exchanges ->
                 exchanges.pathMatchers("/actuator/**").permitAll()
+                exchanges.pathMatchers(HttpMethod.GET, "/entities/**").permitAll()
+                exchanges.pathMatchers(HttpMethod.POST, "/entities/entityOperations/query").permitAll()
+                exchanges.pathMatchers(HttpMethod.GET, "/temporal/entities/**").permitAll()
+                exchanges.pathMatchers(HttpMethod.POST, "/temporal/entities/entityOperations/query").permitAll()
                 exchanges.pathMatchers("/**").authenticated()
             }
             .oauth2ResourceServer { oauth2ResourceServer ->

@@ -15,7 +15,7 @@ import java.util.Locale
 class NgsiLdEntity private constructor(
     val id: URI,
     val types: List<ExpandedTerm>,
-    val scopes: List<String>?,
+    val scopes: List<Scope>?,
     val attributes: List<NgsiLdAttribute>
 ) {
     companion object {

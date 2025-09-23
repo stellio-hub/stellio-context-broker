@@ -10,12 +10,13 @@ import com.egm.stellio.shared.util.toListOfUri
 import org.springframework.util.MultiValueMap
 import java.net.URI
 
-open class PermissionFilters(
+data class PermissionFilters(
     val ids: Set<URI>? = null,
     val action: Action? = null,
     val assignee: Sub? = null,
     val assigner: Sub? = null,
     val targetTypeSelection: String? = null,
+    val targetScopeSelection: String? = null,
     val kind: PermissionKind = PermissionKind.ADMIN,
 ) {
 
@@ -36,8 +37,9 @@ open class PermissionFilters(
             val assignee = queryParams.getFirst(QueryParameter.ASSIGNEE.key)
             val assigner = queryParams.getFirst(QueryParameter.ASSIGNER.key)
             val targetType = expandTypeSelection(queryParams.getFirst(QueryParameter.TARGET_TYPE.key), contexts)
+            val targetScope = queryParams.getFirst(QueryParameter.TARGET_SCOPEQ.key)
 
-            PermissionFilters(ids, action, assignee, assigner, targetType, kind)
+            PermissionFilters(ids, action, assignee, assigner, targetType, targetScope, kind)
         }
     }
 }

@@ -94,6 +94,11 @@ fun String.unescapeRegexPattern(): String =
         .replace("§§", ")")
 
 fun Iterable<String>.toTypeSelection() = this.joinToString(",")
+
+// Work for String and URI
+// can't do two functions with the same name since Uri are String in the jvm
+fun Iterable<Any>.toSqlList(): String = "(${this.joinToString(",") { "'$it'"} })"
+
 fun Iterable<String?>.toSqlArray(): String = "ARRAY[${this.joinToString(",") { "'$it'"} }]"
 fun Sequence<String?>.toSqlArray(): String = this.toList().toSqlArray()
 
@@ -238,7 +243,7 @@ private fun transformQQueryToSqlJsonPath(
         """.trimIndent()
 }
 
-fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null): String =
+fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null, columnName: String = "scopes"): String =
     scopeQQuery.replace(scopeSelectionRegex) { matchResult ->
         when {
             matchResult.value.endsWith('#') ->
@@ -262,7 +267,7 @@ fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null): Strin
         .replace(",", " OR ")
         .let {
             if (target == null)
-                it.replace("#{TARGET}#", "scopes")
+                it.replace("#{TARGET}#", columnName)
             else {
                 val scopesArray = target.getScopes()?.toSqlArray()
                 it.replace("#{TARGET}#", "$scopesArray")

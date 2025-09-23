@@ -10,6 +10,8 @@ import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
 
+typealias Scope = String
+
 data class ExpandedEntity(
     val members: Map<String, Any>
 ) {
@@ -34,7 +36,7 @@ data class ExpandedEntity(
         members.filter { !listOf(JSONLD_ID_KW, JSONLD_CONTEXT_KW).contains(it.key) }
             .mapValues { castAttributeValue(it.value) }
 
-    fun getScopes(): List<String>? =
+    fun getScopes(): List<Scope>? =
         (members as Map<String, List<Any>>).getScopes()
 
     fun getAttribute(expandedAttributeName: String, datasetId: URI?): ExpandedAttributeInstance? =

@@ -6,6 +6,13 @@ plugins {
 }
 
 dependencies {
+    // Temporary until a new Spring Cloud release is published
+    // with a fixed version for https://github.com/advisories/GHSA-q2cj-h8fw-q4cc
+    implementation("org.springframework.cloud:spring-cloud-gateway-server-webflux") {
+        version {
+            strictly("4.3.1")
+        }
+    }
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux")
     implementation("org.zalando:logbook-spring-boot-webflux-autoconfigure:3.12.3")
 

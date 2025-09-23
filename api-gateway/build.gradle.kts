@@ -6,11 +6,12 @@ plugins {
 }
 
 dependencies {
-    implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux") {
+    implementation("org.springframework.cloud:spring-cloud-gateway-server-webflux") {
         version {
             strictly("4.3.1")
         }
     }
+    implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux")
     implementation("org.zalando:logbook-spring-boot-webflux-autoconfigure:3.12.3")
 
     // https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#test_framework_implementation_dependencies

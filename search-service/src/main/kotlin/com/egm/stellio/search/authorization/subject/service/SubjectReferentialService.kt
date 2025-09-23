@@ -2,6 +2,7 @@ package com.egm.stellio.search.authorization.subject.service
 
 import arrow.core.Either
 import arrow.core.getOrElse
+import arrow.core.right
 import com.egm.stellio.search.authorization.subject.model.Group
 import com.egm.stellio.search.authorization.subject.model.SubjectReferential
 import com.egm.stellio.search.authorization.subject.model.User
@@ -17,6 +18,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.ADMIN_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
@@ -83,9 +85,8 @@ class SubjectReferentialService(
                 rowToSubjectReferential(it)
             }
 
-    suspend fun getSubjectAndGroupsUUID(): Either<APIException, List<Sub>> = getSubjectAndGroupsUUID(
-        getSubFromSecurityContext()!!
-    )
+    suspend fun getSubjectAndGroupsUUID(): Either<APIException, List<Sub>> =
+        getSubFromSecurityContext()?.let { getSubjectAndGroupsUUID(it) } ?: listOf(PUBLIC_SUBJECT).right()
 
     suspend fun getSubjectAndGroupsUUID(sub: Sub): Either<APIException, List<Sub>> =
         databaseClient

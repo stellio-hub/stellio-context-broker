@@ -90,6 +90,8 @@ fun CompactedEntity.filterPickAndOmit(pick: Set<String>, omit: Set<String>): Com
 
 fun List<CompactedEntity>.filterPickAndOmit(pick: Set<String>, omit: Set<String>): List<CompactedEntity> =
     this.map { it.filterPickAndOmit(pick, omit) }
+        // filter entities containing only @context (all attributes have been filtered out)
+        .filter { it.size > 1 }
 
 fun CompactedEntity.toSimplifiedAttributes(): Map<String, Any> =
     this.mapValues { entry ->

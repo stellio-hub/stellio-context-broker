@@ -304,7 +304,7 @@ class ScopeService(
     @Transactional
     internal suspend fun performUpdate(
         entityId: URI,
-        scopes: List<String>,
+        scopes: List<Scope>,
         modifiedAt: ZonedDateTime,
         payload: String
     ): Either<APIException, SucceededAttributeOperationResult> = either {

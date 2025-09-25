@@ -201,10 +201,10 @@ fun ExpandedAttributeInstance.getDatasetId(): URI? =
 fun ExpandedAttributeInstance.getRelationshipId(): URI? =
     (this[NGSILD_RELATIONSHIP_OBJECT]?.get(0) as? Map<String, String>)?.get(JSONLD_ID_KW)?.toUri()
 
-fun ExpandedAttributeInstance.getScopes(): List<String>? =
+fun ExpandedAttributeInstance.getScopes(): List<Scope>? =
     when (val rawScopes = this.getMemberValue(NGSILD_SCOPE_IRI)) {
         is String -> listOf(rawScopes)
-        is List<*> -> rawScopes as List<String>
+        is List<*> -> rawScopes as List<Scope>
         else -> null
     }
 

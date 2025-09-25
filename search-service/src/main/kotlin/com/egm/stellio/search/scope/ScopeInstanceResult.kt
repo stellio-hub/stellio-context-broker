@@ -1,6 +1,7 @@
 package com.egm.stellio.search.scope
 
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.shared.model.Scope
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -13,7 +14,7 @@ sealed class ScopeInstanceResult(open val entityId: URI) : Comparable<ScopeInsta
 
 data class FullScopeInstanceResult(
     override val entityId: URI,
-    val scopes: List<String>,
+    val scopes: List<Scope>,
     val time: ZonedDateTime,
     val timeproperty: String,
     val sub: String? = null
@@ -23,7 +24,7 @@ data class FullScopeInstanceResult(
 
 data class SimplifiedScopeInstanceResult(
     override val entityId: URI,
-    val scopes: List<String>,
+    val scopes: List<Scope>,
     val time: ZonedDateTime
 ) : ScopeInstanceResult(entityId) {
     override fun getComparableTime(): ZonedDateTime = time

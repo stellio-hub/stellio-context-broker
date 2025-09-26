@@ -29,6 +29,7 @@ import com.egm.stellio.search.entity.model.getSucceededAttributesOperations
 import com.egm.stellio.search.entity.model.hasSuccessfulResult
 import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.entity.util.rowToEntity
+import com.egm.stellio.search.entity.web.BatchEntityError
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.shared.model.APIException
@@ -45,6 +46,7 @@ import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.addSysAttrs
 import com.egm.stellio.shared.model.flattenOnAttributeAndDatasetId
+import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.entityAlreadyExistsMessage
@@ -75,54 +77,63 @@ class EntityService(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity
     ): Either<APIException, Unit> = either {
-        val sub = getSubFromSecurityContext()
+        runCatching {
+            val sub = getSubFromSecurityContext()
 
-        val (neverExisted, markedDeleted) = entityQueryService.isMarkedAsDeleted(ngsiLdEntity.id).let {
-            it.isLeft() to it.getOrElse { false }
-        }
-
-        when {
-            neverExisted -> authorizationService.userCanCreateEntities().bind()
-            markedDeleted ->
-                authorizationService.userCanAdminEntity(ngsiLdEntity.id).bind()
-            !markedDeleted ->
-                AlreadyExistsException(entityAlreadyExistsMessage(ngsiLdEntity.id.toString())).left().bind()
-        }
-
-        val createdAt = ngsiLdDateTime()
-        val expandedEntityWithMetadata = expandedEntity.populateCreationTimeDate(createdAt)
-        val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
-        logger.debug("Creating entity {}", ngsiLdEntity.id)
-
-        createEntityPayload(ngsiLdEntity, expandedEntityWithMetadata, createdAt).bind()
-        scopeService.createHistory(ngsiLdEntity, createdAt).bind()
-        val attrsOperationResult = entityAttributeService.createAttributes(
-            ngsiLdEntity,
-            expandedEntity,
-            attributesMetadata,
-            createdAt
-        ).bind()
-
-        ngsiLdEntity.getSpecificAccessPolicy()?.bind()
-            ?.let { specificAccessPolicy ->
-                authorizationService.createGlobalPermission(
-                    ngsiLdEntity.id,
-                    action = specificAccessPolicy
-                )
+            val (neverExisted, markedDeleted) = entityQueryService.isMarkedAsDeleted(ngsiLdEntity.id).let {
+                it.isLeft() to it.getOrElse { false }
             }
 
-        if (neverExisted)
-            authorizationService.createOwnerRight(ngsiLdEntity.id).bind()
+            when {
+                neverExisted -> authorizationService.userCanCreateEntities().bind()
+                markedDeleted ->
+                    authorizationService.userCanAdminEntity(ngsiLdEntity.id).bind()
 
-        entityEventService.publishEntityCreateEvent(
-            sub,
-            expandedEntity
-        )
-        entityEventService.publishAttributeChangeEvents(
-            sub,
-            ExpandedEntity(emptyMap()),
-            expandedEntityWithMetadata,
-            attrsOperationResult.getSucceededAttributesOperations()
+                !markedDeleted ->
+                    AlreadyExistsException(entityAlreadyExistsMessage(ngsiLdEntity.id.toString())).left().bind()
+            }
+
+            val createdAt = ngsiLdDateTime()
+            val expandedEntityWithMetadata = expandedEntity.populateCreationTimeDate(createdAt)
+            val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
+            logger.debug("Creating entity {}", ngsiLdEntity.id)
+
+            createEntityPayload(ngsiLdEntity, expandedEntityWithMetadata, createdAt).bind()
+            scopeService.createHistory(ngsiLdEntity, createdAt).bind()
+            val attrsOperationResult = entityAttributeService.createAttributes(
+                ngsiLdEntity,
+                expandedEntity,
+                attributesMetadata,
+                createdAt
+            ).bind()
+
+            ngsiLdEntity.getSpecificAccessPolicy()?.bind()
+                ?.let { specificAccessPolicy ->
+                    authorizationService.createGlobalPermission(
+                        ngsiLdEntity.id,
+                        action = specificAccessPolicy
+                    )
+                }
+
+            if (neverExisted)
+                authorizationService.createOwnerRight(ngsiLdEntity.id).bind()
+
+            entityEventService.publishEntityCreateEvent(
+                sub,
+                expandedEntity
+            )
+            entityEventService.publishAttributeChangeEvents(
+                sub,
+                ExpandedEntity(emptyMap()),
+                expandedEntityWithMetadata,
+                attrsOperationResult.getSucceededAttributesOperations()
+            )
+        }.fold(
+            onFailure = {
+                BatchEntityError(ngsiLdEntity.id, it.toAPIException().toProblemDetail())
+                    .left()
+            },
+            onSuccess = { }
         )
     }
 
@@ -567,23 +578,31 @@ class EntityService(
 
     @Transactional
     suspend fun deleteEntity(entityId: URI): Either<APIException, Unit> = either {
-        val sub = getSubFromSecurityContext()
-        val currentEntity = entityQueryService.retrieve(entityId).bind()
-        authorizationService.userCanAdminEntity(entityId).bind()
+        runCatching {
+            val sub = getSubFromSecurityContext()
+            val currentEntity = entityQueryService.retrieve(entityId).bind()
+            authorizationService.userCanAdminEntity(entityId).bind()
 
-        val deletedAt = ngsiLdDateTime()
-        val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(deletedAt)
-        val previousEntity = deleteEntityPayload(entityId, deletedAt, deletedEntityPayload).bind()
-        val deleteOperationResult = entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
-        scopeService.addHistoryEntry(entityId, emptyList(), TemporalProperty.DELETED_AT, deletedAt).bind()
+            val deletedAt = ngsiLdDateTime()
+            val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(deletedAt)
+            val previousEntity = deleteEntityPayload(entityId, deletedAt, deletedEntityPayload).bind()
+            val deleteOperationResult = entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
+            scopeService.addHistoryEntry(entityId, emptyList(), TemporalProperty.DELETED_AT, deletedAt).bind()
 
-        entityEventService.publishAttributeDeletesOnEntityDeleteEvent(
-            sub,
-            currentEntity.toExpandedEntity(),
-            deletedEntityPayload,
-            deleteOperationResult.getSucceededAttributesOperations()
+            entityEventService.publishAttributeDeletesOnEntityDeleteEvent(
+                sub,
+                currentEntity.toExpandedEntity(),
+                deletedEntityPayload,
+                deleteOperationResult.getSucceededAttributesOperations()
+            )
+            entityEventService.publishEntityDeleteEvent(sub, previousEntity, deletedEntityPayload)
+        }.fold(
+            onFailure = {
+                BatchEntityError(entityId, it.toAPIException().toProblemDetail())
+                    .left()
+            },
+            onSuccess = { }
         )
-        entityEventService.publishEntityDeleteEvent(sub, previousEntity, deletedEntityPayload)
     }
 
     @Transactional

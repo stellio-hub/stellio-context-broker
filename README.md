@@ -127,7 +127,10 @@ If you want to build only one of the services, you can launch:
 
 ### Committing
 
-Commits follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/).
+* Commits follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/)
+* Branches follow the [Conventional Branch specification](https://conventional-branch.github.io/)
+  * In the context of the project, the following prefixes are authorized when naming branches: `feature/`, `refactor/`,
+    `fix/`, `hotfix/` and `chore/`.
 
 
 ### Code quality

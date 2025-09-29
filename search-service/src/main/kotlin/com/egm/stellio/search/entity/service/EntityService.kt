@@ -75,64 +75,62 @@ class EntityService(
     suspend fun createEntity(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity
-    ): Either<APIException, Unit> =
-        kotlin.runCatching {
-            either<APIException, Unit> {
-                val sub = getSubFromSecurityContext()
+    ): Either<APIException, Unit> = kotlin.runCatching {
+        either<APIException, Unit> {
+            val sub = getSubFromSecurityContext()
 
-                val (neverExisted, markedDeleted) = entityQueryService.isMarkedAsDeleted(ngsiLdEntity.id).let {
-                    it.isLeft() to it.getOrElse { false }
-                }
-
-                when {
-                    neverExisted -> authorizationService.userCanCreateEntities().bind()
-                    markedDeleted ->
-                        authorizationService.userCanAdminEntity(ngsiLdEntity.id).bind()
-
-                    !markedDeleted ->
-                        AlreadyExistsException(entityAlreadyExistsMessage(ngsiLdEntity.id.toString())).left().bind()
-                }
-
-                val createdAt = ngsiLdDateTime()
-                val expandedEntityWithMetadata = expandedEntity.populateCreationTimeDate(createdAt)
-                val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
-                logger.debug("Creating entity {}", ngsiLdEntity.id)
-
-                createEntityPayload(ngsiLdEntity, expandedEntityWithMetadata, createdAt).bind()
-                scopeService.createHistory(ngsiLdEntity, createdAt).bind()
-                val attrsOperationResult = entityAttributeService.createAttributes(
-                    ngsiLdEntity,
-                    expandedEntity,
-                    attributesMetadata,
-                    createdAt
-                ).bind()
-
-                ngsiLdEntity.getSpecificAccessPolicy()?.bind()
-                    ?.let { specificAccessPolicy ->
-                        authorizationService.createGlobalPermission(
-                            ngsiLdEntity.id,
-                            action = specificAccessPolicy
-                        )
-                    }
-
-                if (neverExisted)
-                    authorizationService.createOwnerRight(ngsiLdEntity.id).bind()
-
-                entityEventService.publishEntityCreateEvent(
-                    sub,
-                    expandedEntity
-                )
-                entityEventService.publishAttributeChangeEvents(
-                    sub,
-                    ExpandedEntity(emptyMap()),
-                    expandedEntityWithMetadata,
-                    attrsOperationResult.getSucceededAttributesOperations()
-                )
+            val (neverExisted, markedDeleted) = entityQueryService.isMarkedAsDeleted(ngsiLdEntity.id).let {
+                it.isLeft() to it.getOrElse { false }
             }
-        }.fold(
-            onFailure = { it.toAPIException().left() },
-            onSuccess = { it }
-        )
+
+            when {
+                neverExisted -> authorizationService.userCanCreateEntities().bind()
+                markedDeleted ->
+                    authorizationService.userCanAdminEntity(ngsiLdEntity.id).bind()
+                !markedDeleted ->
+                    AlreadyExistsException(entityAlreadyExistsMessage(ngsiLdEntity.id.toString())).left().bind()
+            }
+
+            val createdAt = ngsiLdDateTime()
+            val expandedEntityWithMetadata = expandedEntity.populateCreationTimeDate(createdAt)
+            val attributesMetadata = ngsiLdEntity.prepareAttributes().bind()
+            logger.debug("Creating entity {}", ngsiLdEntity.id)
+
+            createEntityPayload(ngsiLdEntity, expandedEntityWithMetadata, createdAt).bind()
+            scopeService.createHistory(ngsiLdEntity, createdAt).bind()
+            val attrsOperationResult = entityAttributeService.createAttributes(
+                ngsiLdEntity,
+                expandedEntity,
+                attributesMetadata,
+                createdAt
+            ).bind()
+
+            ngsiLdEntity.getSpecificAccessPolicy()?.bind()
+                ?.let { specificAccessPolicy ->
+                    authorizationService.createGlobalPermission(
+                        ngsiLdEntity.id,
+                        action = specificAccessPolicy
+                    )
+                }
+
+            if (neverExisted)
+                authorizationService.createOwnerRight(ngsiLdEntity.id).bind()
+
+            entityEventService.publishEntityCreateEvent(
+                sub,
+                expandedEntity
+            )
+            entityEventService.publishAttributeChangeEvents(
+                sub,
+                ExpandedEntity(emptyMap()),
+                expandedEntityWithMetadata,
+                attrsOperationResult.getSucceededAttributesOperations()
+            )
+        }
+    }.fold(
+        onFailure = { it.toAPIException().left() },
+        onSuccess = { it }
+    )
 
     @Transactional
     suspend fun createEntityPayload(
@@ -317,10 +315,8 @@ class EntityService(
             when (expandedTerm) {
                 JSONLD_TYPE_KW ->
                     updateTypes(entityId, expandedAttributeInstances as List<ExpandedTerm>, modifiedAt).bind()
-
                 NGSILD_SCOPE_IRI ->
                     scopeService.update(entityId, expandedAttributeInstances, modifiedAt, operationType).bind()
-
                 else -> {
                     logger.warn("Ignoring unhandled core property: {}", expandedTerm)
                     FailedAttributeOperationResult(

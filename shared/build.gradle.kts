@@ -20,6 +20,9 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
+    implementation("org.aspectj:aspectjrt:1.9.22")
+    implementation("org.aspectj:aspectjweaver:1.9.22")
+    implementation("org.springframework.boot:spring-boot-starter-aop")
     testFixturesImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testFixturesImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     testFixturesImplementation("org.springframework:spring-core")

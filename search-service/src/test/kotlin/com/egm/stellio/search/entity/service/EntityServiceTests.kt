@@ -14,6 +14,7 @@ import com.egm.stellio.search.support.gimmeSucceededAttributeOperationResult
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedAttributeInstances
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
@@ -42,6 +43,7 @@ import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.sampleDataToNgsiLdEntity
 import com.egm.stellio.shared.util.shouldFail
+import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
@@ -120,6 +122,43 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 assertNotNull(it.modifiedAt)
                 assertEquals(it.createdAt, it.modifiedAt)
             }
+    }
+
+    @Test
+    @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
+    fun `TransactionalEither should rollback the transaction if received an Either left`() = runTest {
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any()) } returns Job()
+        coEvery {
+            entityAttributeService.createAttributes(any(), any(), any(), any())
+        } returns BadRequestDataException("").left()
+        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+
+        val (expandedEntity, ngsiLdEntity) =
+            loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
+
+        entityService.createEntity(
+            ngsiLdEntity,
+            expandedEntity
+        ).shouldFailWith { it is BadRequestDataException }
+
+        entityQueryService.retrieve(beehiveTestCId)
+            .shouldFailWith { it is ResourceNotFoundException }
+
+        coVerify {
+            authorizationService.userCanCreateEntities()
+            entityAttributeService.createAttributes(
+                any(),
+                any(),
+                emptyList(),
+                any()
+            )
+            entityEventService.publishEntityCreateEvent(
+                eq(USER_UUID),
+                any()
+            )
+            authorizationService.createOwnerRight(beehiveTestCId)
+        }
     }
 
     @Test

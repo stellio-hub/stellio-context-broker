@@ -23,6 +23,11 @@ dependencies {
     implementation("org.json:json:20250517")
     implementation(project(":shared"))
 
+
+    implementation("org.aspectj:aspectjrt:1.9.22")
+    implementation("org.aspectj:aspectjweaver:1.9.22")
+    implementation("org.springframework.boot:spring-boot-starter-aop")
+
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")

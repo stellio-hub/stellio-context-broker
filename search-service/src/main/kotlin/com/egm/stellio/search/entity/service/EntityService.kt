@@ -1,5 +1,6 @@
 package com.egm.stellio.search.entity.service
 
+import TransactionalEither
 import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.getOrElse
@@ -71,7 +72,7 @@ class EntityService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @Transactional
+    @TransactionalEither
     suspend fun createEntity(
         ngsiLdEntity: NgsiLdEntity,
         expandedEntity: ExpandedEntity

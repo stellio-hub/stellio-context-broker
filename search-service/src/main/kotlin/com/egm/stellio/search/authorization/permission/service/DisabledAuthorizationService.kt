@@ -27,13 +27,13 @@ class DisabledAuthorizationService : AuthorizationService {
     override suspend fun userCanAdminEntity(entityId: URI): Either<APIException, Unit> =
         Unit.right()
 
-    override suspend fun createOwnerRight(entityId: URI): Either<APIException, Unit> =
+    override suspend fun createEntityOwnerRight(entityId: URI): Either<APIException, Unit> =
         Unit.right()
 
     override suspend fun createGlobalPermission(entityId: URI, action: Action): Either<APIException, Unit> =
         Unit.right()
 
-    override suspend fun createOwnerRights(
+    override suspend fun createEntitiesOwnerRights(
         entitiesId: List<URI>
     ): Either<APIException, Unit> = Unit.right()
 

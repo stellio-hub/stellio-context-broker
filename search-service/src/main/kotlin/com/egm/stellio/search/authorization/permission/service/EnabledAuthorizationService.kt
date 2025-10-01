@@ -81,10 +81,10 @@ class EnabledAuthorizationService(
             action
         )
 
-    override suspend fun createOwnerRight(entityId: URI): Either<APIException, Unit> =
-        createOwnerRights(listOf(entityId))
+    override suspend fun createEntityOwnerRight(entityId: URI): Either<APIException, Unit> =
+        createEntitiesOwnerRights(listOf(entityId))
 
-    override suspend fun createOwnerRights(entitiesId: List<URI>): Either<APIException, Unit> =
+    override suspend fun createEntitiesOwnerRights(entitiesId: List<URI>): Either<APIException, Unit> =
         either {
             val subValue = getSubFromSecurityContext()
             entitiesId.parMap {

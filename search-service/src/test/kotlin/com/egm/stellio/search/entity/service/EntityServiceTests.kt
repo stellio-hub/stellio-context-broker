@@ -130,7 +130,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -158,7 +158,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 eq(USER_UUID),
                 any()
             )
-            authorizationService.createOwnerRight(beehiveTestCId)
+            authorizationService.createEntityOwnerRight(beehiveTestCId)
         }
     }
 
@@ -277,7 +277,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap()),
         ).right()
         coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -319,7 +319,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             entityAttributeService.getAllForEntity(
                 eq(beehiveTestCId)
             )
-            authorizationService.createOwnerRight(beehiveTestCId)
+            authorizationService.createEntityOwnerRight(beehiveTestCId)
         }
     }
 
@@ -336,7 +336,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap())
         ).right()
         coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -376,7 +376,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap())
         ).right()
         coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -419,7 +419,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
         // called when replacing the initial entity
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {

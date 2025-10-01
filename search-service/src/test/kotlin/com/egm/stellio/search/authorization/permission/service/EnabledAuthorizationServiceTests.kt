@@ -206,6 +206,52 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
+    @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
+    fun `it should only create owner of non existing scope`() = runTest {
+        val scopeA = "/A"
+        val scopeB = "/B"
+
+        coEvery { permissionService.create(any()) } returns Unit.right()
+        coEvery { permissionService.removeExistingScopes(any()) } returns
+            listOf(scopeA, scopeB).right() andThen listOf(scopeB).right()
+
+        enabledAuthorizationService.createScopesOwnerRights(listOf(scopeA, scopeB))
+            .shouldSucceed()
+
+        coVerify(exactly = 1) {
+            permissionService.create(
+                match {
+                    it.target == TargetAsset(scopes = listOf(scopeA)) &&
+                        it.assignee == subjectUuid &&
+                        it.action == Action.OWN
+                }
+            )
+        }
+        coVerify(exactly = 1) {
+            permissionService.create(
+                match {
+                    it.target == TargetAsset(scopes = listOf(scopeB)) &&
+                        it.assignee == subjectUuid &&
+                        it.action == Action.OWN
+                }
+            )
+        }
+
+        enabledAuthorizationService.createScopesOwnerRights(listOf(scopeA, scopeB))
+            .shouldSucceed()
+
+        coVerify(exactly = 1) {
+            permissionService.create(
+                match {
+                    it.target == TargetAsset(scopes = listOf(scopeA)) &&
+                        it.assignee == subjectUuid &&
+                        it.action == Action.OWN
+                }
+            )
+        }
+    }
+
+    @Test
     fun `it should return a null filter is user has the stellio-admin role`() = runTest {
         coEvery {
             subjectReferentialService.getSubjectAndGroupsUUID()

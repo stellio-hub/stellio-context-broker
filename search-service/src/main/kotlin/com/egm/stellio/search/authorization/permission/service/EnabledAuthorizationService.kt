@@ -13,6 +13,7 @@ import com.egm.stellio.search.authorization.subject.service.SubjectReferentialSe
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.CREATION_ROLES
@@ -97,6 +98,22 @@ class EnabledAuthorizationService(
                     )
                 ).bind()
             }
+        }.map { it.first() }
+
+    override suspend fun createScopesOwnerRights(scopes: List<Scope>): Either<APIException, Unit> =
+        either {
+            val subValue = getSubFromSecurityContext()
+            permissionService.removeExistingScopes(scopes).bind()
+                .parMap {
+                    permissionService.create(
+                        Permission(
+                            assignee = subValue,
+                            assigner = subValue,
+                            target = TargetAsset(scopes = listOf(it)),
+                            action = Action.OWN
+                        )
+                    ).bind()
+                }
         }.map { it.first() }
 
     override suspend fun createGlobalPermission(

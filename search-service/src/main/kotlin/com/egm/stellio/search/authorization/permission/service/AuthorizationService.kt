@@ -4,6 +4,7 @@ import arrow.core.Either
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.Scope
 import java.net.URI
 
 interface AuthorizationService {
@@ -17,6 +18,7 @@ interface AuthorizationService {
 
     suspend fun createEntityOwnerRight(entityId: URI): Either<APIException, Unit>
     suspend fun createEntitiesOwnerRights(entitiesId: List<URI>): Either<APIException, Unit>
+    suspend fun createScopesOwnerRights(scopes: List<Scope>): Either<APIException, Unit>
     suspend fun createGlobalPermission(entityId: URI, action: Action): Either<APIException, Unit>
     suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit>
 

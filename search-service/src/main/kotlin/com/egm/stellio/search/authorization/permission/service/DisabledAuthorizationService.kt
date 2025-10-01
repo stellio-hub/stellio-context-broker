@@ -5,6 +5,7 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.Scope
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -36,6 +37,9 @@ class DisabledAuthorizationService : AuthorizationService {
     override suspend fun createEntitiesOwnerRights(
         entitiesId: List<URI>
     ): Either<APIException, Unit> = Unit.right()
+
+    override suspend fun createScopesOwnerRights(scopes: List<Scope>): Either<APIException, Unit> =
+        Unit.right()
 
     override suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit> = Unit.right()
 

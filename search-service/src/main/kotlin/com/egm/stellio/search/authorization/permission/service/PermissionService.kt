@@ -18,6 +18,7 @@ import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toBoolean
 import com.egm.stellio.search.common.util.toInt
+import com.egm.stellio.search.common.util.toList
 import com.egm.stellio.search.common.util.toOptionalList
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
@@ -26,6 +27,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.model.SeeOtherException
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildScopeQQuery
@@ -112,6 +114,27 @@ class PermissionService(
             .bind("assigner", permission.assigner)
             .execute().bind()
     }
+
+    suspend fun removeExistingScopes(
+        scopes: List<Scope>,
+    ): Either<APIException, List<Scope>> =
+        databaseClient.sql(
+            """
+                WITH base AS (
+                  SELECT ${scopes.toSqlArray()} AS arr
+                ),
+                existing_scopes AS (
+                  SELECT DISTINCT unnest(target_scopes) AS scopes
+                  FROM permission
+                )
+                SELECT ARRAY(
+                  SELECT unnest(arr)
+                  EXCEPT
+                  SELECT scopes FROM existing_scopes
+                ) AS result
+                FROM base;
+            """.trimIndent()
+        ).oneToResult { toList(it["result"]) }
 
     suspend fun checkExistence(
         id: URI,

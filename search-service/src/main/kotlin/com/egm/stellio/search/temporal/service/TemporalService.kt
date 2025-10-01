@@ -72,7 +72,7 @@ class TemporalService(
             entityId,
             sortedJsonLdInstances.removeFirstInstances()
         ).bind()
-        authorizationService.createOwnerRight(entityId).bind()
+        authorizationService.createEntityOwnerRight(entityId).bind()
     }
 
     internal suspend fun upsertTemporalEntity(

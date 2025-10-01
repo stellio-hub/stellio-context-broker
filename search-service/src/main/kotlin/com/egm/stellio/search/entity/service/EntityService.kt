@@ -114,7 +114,7 @@ class EntityService(
                 }
 
             if (neverExisted)
-                authorizationService.createOwnerRight(ngsiLdEntity.id).bind()
+                authorizationService.createEntityOwnerRight(ngsiLdEntity.id).bind()
 
             entityEventService.publishEntityCreateEvent(
                 sub,

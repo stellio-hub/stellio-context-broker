@@ -79,6 +79,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
         coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createScopesOwnerRights(any()) } returns Unit.right()
 
         runBlocking {
             listOf(firstRawEntity, secondRawEntity, thirdRawEntity, fourthRawEntity, fifthRawEntity).forEach {

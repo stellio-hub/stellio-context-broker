@@ -15,7 +15,6 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.toAPIException
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
 /**
@@ -135,7 +134,6 @@ class EntityOperationService(
      *
      * @return a [BatchOperationResult] with list of replaced ids and list of errors.
      */
-    @Transactional
     suspend fun replace(entities: List<JsonLdNgsiLdEntity>): BatchOperationResult =
         processEntities(entities, processor = ::replaceEntity)
 
@@ -144,7 +142,6 @@ class EntityOperationService(
      *
      * @return a [BatchOperationResult] with list of replaced ids and list of errors.
      */
-    @Transactional
     suspend fun upsert(
         entities: List<JsonLdNgsiLdEntity>,
         disallowOverwrite: Boolean,
@@ -181,7 +178,6 @@ class EntityOperationService(
      *
      * @return a [BatchOperationResult] with list of updated ids and list of errors.
      */
-    @Transactional
     suspend fun update(
         entities: List<JsonLdNgsiLdEntity>,
         disallowOverwrite: Boolean = false
@@ -193,7 +189,6 @@ class EntityOperationService(
      *
      * @return a [BatchOperationResult] with list of updated ids and list of errors.
      */
-    @Transactional
     suspend fun merge(
         entities: List<JsonLdNgsiLdEntity>
     ): BatchOperationResult =

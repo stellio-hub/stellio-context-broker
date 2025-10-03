@@ -33,6 +33,7 @@ import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.OperationNotSupportedException
+import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -69,7 +70,7 @@ class ScopeService(
     @Transactional
     suspend fun addHistoryEntry(
         entityId: URI,
-        scopes: List<String>,
+        scopes: List<Scope>,
         temporalProperty: TemporalProperty,
         createdAt: ZonedDateTime
     ): Either<APIException, Unit> =
@@ -303,7 +304,7 @@ class ScopeService(
     @Transactional
     internal suspend fun performUpdate(
         entityId: URI,
-        scopes: List<String>,
+        scopes: List<Scope>,
         modifiedAt: ZonedDateTime,
         payload: String
     ): Either<APIException, SucceededAttributeOperationResult> = either {

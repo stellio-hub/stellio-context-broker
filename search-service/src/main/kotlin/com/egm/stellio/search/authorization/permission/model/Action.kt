@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.toSqlList
 import com.fasterxml.jackson.annotation.JsonProperty
 
 enum class Action(val value: String, private val includedIn: Set<Action> = emptySet()) {
@@ -25,6 +26,9 @@ enum class Action(val value: String, private val includedIn: Set<Action> = empty
     READ("read", includedIn = setOf(OWN, ADMIN, WRITE));
 
     fun getIncludedIn(): Set<Action> = includedIn + this
+
+    fun includedInToSqlList(): String =
+        getIncludedIn().map { it.value }.toSqlList()
 
     companion object {
         fun fromString(action: String): Either<APIException, Action> =

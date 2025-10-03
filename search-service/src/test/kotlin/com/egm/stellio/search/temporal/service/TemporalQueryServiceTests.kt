@@ -256,8 +256,8 @@ class TemporalQueryServiceTests {
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        coEvery { authorizationService.computeAccessRightFilter() } returns { null }
-        coEvery { entityQueryService.queryEntities(any(), any(), any<() -> String?>()) } returns listOf(entityUri)
+        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
+        coEvery { entityQueryService.queryEntities(any(), any(), any()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForEntities(any(), any())
         } returns listOf(attribute)
@@ -332,8 +332,8 @@ class TemporalQueryServiceTests {
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        coEvery { authorizationService.computeAccessRightFilter() } returns { null }
-        coEvery { entityQueryService.queryEntities(any(), any(), any<() -> String?>()) } returns listOf(entityUri)
+        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
+        coEvery { entityQueryService.queryEntities(any(), any(), any()) } returns listOf(entityUri)
         coEvery {
             entityAttributeService.getForEntities(any(), any())
         } returns listOf(attribute)

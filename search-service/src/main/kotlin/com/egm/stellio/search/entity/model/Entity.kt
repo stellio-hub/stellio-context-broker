@@ -11,6 +11,7 @@ import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
+import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
@@ -21,7 +22,7 @@ import java.time.ZonedDateTime
 data class Entity(
     val entityId: URI,
     val types: List<ExpandedTerm>,
-    val scopes: List<String>? = null,
+    val scopes: List<Scope>? = null,
     val createdAt: ZonedDateTime,
     val modifiedAt: ZonedDateTime = createdAt,
     val deletedAt: ZonedDateTime? = null,

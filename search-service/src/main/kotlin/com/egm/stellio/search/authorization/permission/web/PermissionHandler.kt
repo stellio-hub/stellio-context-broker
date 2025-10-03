@@ -1,21 +1,17 @@
 package com.egm.stellio.search.authorization.permission.web
 
 import arrow.core.Either
-import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
-import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.CHANGE_OWNER_EXCEPTION
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.CREATE_OR_UPDATE_OWN_EXCEPTION
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.DELETE_OWN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.EVERYONE_AS_ADMIN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedCreateMessage
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedEditMessage
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedRetrieveMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
-import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.permission.service.PermissionService
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -23,13 +19,11 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
-import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_ACTION_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNEE_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TARGET_TERM
@@ -47,9 +41,7 @@ import com.egm.stellio.shared.util.getAuthzContextFromRequestOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
-import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
-import com.fasterxml.jackson.module.kotlin.convertValue
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -77,8 +69,7 @@ class PermissionHandler(
     private val applicationProperties: ApplicationProperties,
     private val permissionService: PermissionService,
     private val subjectReferentialService: SubjectReferentialService,
-    private val entityQueryService: EntityQueryService,
-    private val authorizationService: AuthorizationService
+    private val entityQueryService: EntityQueryService
 ) : BaseHandler() {
 
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
@@ -91,16 +82,7 @@ class PermissionHandler(
         val sub = getSubFromSecurityContext()
 
         val permission = deserialize(body, contexts).bind().copy(assigner = sub.orEmpty())
-        checkCanCreate(permission).bind()
-
-        if (permission.action == Action.OWN) {
-            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
-        }
-
-        if (permission.action == Action.ADMIN && permission.assignee == null) {
-            EVERYONE_AS_ADMIN_EXCEPTION.left()
-                .bind<APIException>()
-        }
+        checkCanCreateOrUpdate(permission).bind()
 
         permissionService.create(permission).bind()
 
@@ -127,11 +109,7 @@ class PermissionHandler(
             ]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
-    ): ResponseEntity<*> = query(
-        httpHeaders,
-        queryParams,
-        kind = PermissionFilters.Companion.PermissionKind.ADMIN
-    )
+    ): ResponseEntity<*> = query(httpHeaders, queryParams, PermissionKind.ADMIN)
 
     @GetMapping(path = [ "/assigned"], produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun queryOnlyAssigned(
@@ -141,14 +119,12 @@ class PermissionHandler(
                 QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
                 QP.ACTION, QP.ASSIGNEE, QP.ASSIGNER,
                 QP.TARGET_ID, QP.DETAILS, QP.DETAILS_PICK,
-                QP.TARGET_TYPE,
+                QP.TARGET_TYPE, QP.TARGET_SCOPEQ
             ],
-            notImplemented = [
-                QP.TARGET_SCOPEQ
-            ]
+            notImplemented = []
         )
         @RequestParam queryParams: MultiValueMap<String, String>
-    ): ResponseEntity<*> = query(httpHeaders, queryParams, kind = PermissionKind.ASSIGNED)
+    ): ResponseEntity<*> = query(httpHeaders, queryParams, PermissionKind.ASSIGNED)
 
     suspend fun query(
         httpHeaders: HttpHeaders,
@@ -225,7 +201,9 @@ class PermissionHandler(
 
         val permission = permissionService.getById(permissionId).bind()
 
-        if (permission.assignee !in subjects && checkIsAdmin(permissionId).isLeft()) {
+        if (permission.assignee !in subjects &&
+            permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN).isLeft()
+        ) {
             AccessDeniedException(unauthorizedRetrieveMessage(permissionId)).left().bind<String>()
         }
 
@@ -256,38 +234,20 @@ class PermissionHandler(
         @AllowedParameters // no query parameter is allowed
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        checkIsAdmin(permissionId).bind()
         val currentPermission = permissionService.getById(permissionId).bind()
+        permissionService.hasPermissionOnTarget(currentPermission.target, Action.ADMIN).bind()
 
         if (currentPermission.action == Action.OWN) {
-            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+            CREATE_OR_UPDATE_OWN_EXCEPTION.left().bind<APIException>()
         }
 
         val body = requestBody.awaitFirst().deserializeAsMap()
-
-        if (body[AUTH_ACTION_TERM] == Action.OWN.value) {
-            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
-        }
-
-        val newAssigneeIsEveryone =
-            !body.containsKey(AUTH_ASSIGNEE_TERM) && currentPermission.assignee == null ||
-                body.containsKey(AUTH_ASSIGNEE_TERM) && body[AUTH_ASSIGNEE_TERM] == null
-        val newActionIsAdmin = !body.containsKey(AUTH_ACTION_TERM) && currentPermission.action == Action.ADMIN ||
-            body[AUTH_ACTION_TERM] == Action.ADMIN.value
-        if (newActionIsAdmin && newAssigneeIsEveryone) {
-            EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
-        }
-
-        body[AUTH_TARGET_TERM]?.let {
-            val target = it as Map<String, Any>
-            target[NGSILD_ID_TERM]?.let { entityId ->
-                val entityUri = (entityId as String).toUri()
-                authorizationService.userCanAdminEntity(entityUri).bind()
-            }
-        }
-
         val contexts = getAuthzContextFromRequestOrDefault(httpHeaders, body, applicationProperties.contexts).bind()
-        permissionService.update(permissionId, body, contexts).bind()
+
+        val permission = currentPermission.mergeWithFragment(body, contexts).bind()
+        checkCanCreateOrUpdate(permission).bind()
+
+        permissionService.upsert(permission).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -305,7 +265,7 @@ class PermissionHandler(
         checkCanDelete(currentPermission).bind()
 
         if (currentPermission.action == Action.OWN) {
-            CHANGE_OWNER_EXCEPTION.left().bind<APIException>()
+            DELETE_OWN_EXCEPTION.left().bind<APIException>()
         }
 
         permissionService.delete(permissionId).bind()
@@ -316,44 +276,39 @@ class PermissionHandler(
         { it }
     )
 
-    private suspend fun checkIsAdmin(permissionId: URI): Either<APIException, Unit> =
-        permissionService.isAdminOf(permissionId)
-            .flatMap {
-                if (!it)
-                    AccessDeniedException(
-                        unauthorizedEditMessage(permissionId)
-                    ).left()
-                else
-                    Unit.right()
-            }
+    private suspend fun checkCanCreateOrUpdate(permission: Permission): Either<APIException, Unit> = either {
+        permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN).bind()
 
-    private suspend fun checkCanCreate(permission: Permission): Either<APIException, Unit> = either {
-        val hasPermission = permissionService.checkHasPermissionOnEntity(permission.target.id, Action.ADMIN).bind()
+        if (permission.action == Action.OWN) {
+            CREATE_OR_UPDATE_OWN_EXCEPTION.left().bind<APIException>()
+        }
 
-        if (!hasPermission)
-            AccessDeniedException(unauthorizedCreateMessage(permission.target.id)).left().bind()
+        if (permission.action == Action.ADMIN && permission.assignee == null) {
+            EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
+        }
 
         permission.assignee?.let { subjectReferentialService.getSubjectAndGroupsUUID(it).bind() }
-        permission.target.id.let {
+        permission.target.id?.let {
             entityQueryService.checkEntityExistence(it, excludeDeleted = false).bind()
         }
     }
 
-    private suspend fun checkCanDelete(permission: Permission): Either<APIException, Unit> = either {
-        val hasPermission = permissionService.checkHasPermissionOnEntity(permission.target.id, Action.ADMIN).bind()
-        if (!hasPermission)
-            AccessDeniedException(unauthorizedEditMessage(permission.target.id)).left().bind()
-    }
+    private suspend fun checkCanDelete(permission: Permission): Either<APIException, Unit> =
+        permissionService.hasPermissionOnTarget(
+            permission.target,
+            Action.ADMIN
+        )
 
     private suspend fun serializePermission(
-        permission: Permission,
+        expandedPermission: Permission,
         contexts: List<String>,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE,
         includeSysAttrs: Boolean = false,
         includeDetails: Boolean = false,
         pickAttributes: Set<String> = emptySet()
     ): Either<APIException, String> = either {
-        val permissionMap = DataTypes.mapper.convertValue<Map<String, Any>>(permission.compact(contexts)).plus(
+        val permission = expandedPermission.compact(contexts)
+        val permissionMap = DataTypes.convertTo<Map<String, Any>>(permission.compact(contexts)).plus(
             JSONLD_CONTEXT_KW to contexts
         ).let { DataTypes.toFinalRepresentation(it, mediaType, includeSysAttrs) }.toMutableMap()
 
@@ -361,18 +316,18 @@ class PermissionHandler(
             permission.assignee?.let { assignee ->
                 permissionMap[AUTH_ASSIGNEE_TERM] = subjectReferentialService.retrieve(assignee)
                     .fold(
-                        { mapOf(AUTH_TERM_SUBJECT_ID to assignee,) },
+                        { mapOf(AUTH_TERM_SUBJECT_ID to assignee) },
                         { it.toSerializableMap() }
                     )
             }
             permission.assigner?.let { assigner ->
                 permissionMap[AUTH_ASSIGNER_TERM] = subjectReferentialService.retrieve(assigner)
                     .fold(
-                        { mapOf(AUTH_TERM_SUBJECT_ID to assigner,) },
+                        { mapOf(AUTH_TERM_SUBJECT_ID to assigner) },
                         { it.toSerializableMap() }
                     )
             }
-            permission.target.id.let { id ->
+            permission.target.id?.let { id ->
                 permissionMap[AUTH_TARGET_TERM] = compactEntity(
                     entityQueryService.queryEntity(id, excludeDeleted = false).bind()
                         .filterAttributes(pickAttributes, emptySet()),
@@ -381,7 +336,7 @@ class PermissionHandler(
             }
         }
 
-        DataTypes.mapper.writeValueAsString(permissionMap)
+        DataTypes.serialize(permissionMap)
     }
 
     private suspend fun serializePermissions(

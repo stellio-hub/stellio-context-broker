@@ -16,7 +16,7 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4527/badge)](https://bestpractices.coreinfrastructure.org/projects/4527)
 
 Stellio is an NGSI-LD compliant context broker developed by EGM. NGSI-LD is an Open API and Datamodel specification for 
-context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.08.01_60/gs_CIM009v010801p.pdf)).
+context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.08.01_60/gs_CIM009v010801p.pdf).
 
 Stellio is a [FIWARE](https://www.fiware.org/) Generic Enabler. Therefore, it can be integrated as part of any platform “Powered by FIWARE”. 
 FIWARE is a curated framework of open source platform components which can be assembled together with other third-party 
@@ -28,12 +28,12 @@ The complete list of FIWARE GEs and Incubated FIWARE GEs can be found in the [FI
 
 **NGSI-LD Context Broker Feature Comparison**
 
-The NGSI-LD Specification is regularly updated and published by ETSI. The latest specification is [version 1.8.1](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.08.01_60/gs_CIM009v010801p.pdf) which was  published in April 2024.
+The NGSI-LD Specification is regularly updated and published by ETSI. The latest specification is [version 1.9.1](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf) which was published in July 2025.
 
--  An Excel file detailing the current compatibility of the  development version of the Stellio Context Broker against the features of the 1.8.1 specification can be downloaded [here](https://docs.google.com/spreadsheets/d/e/2PACX-1vRxOjsDf3lqhwuypJ---pZN2OlqFRl0jyoTV0ewQ1WFnpe7xQary3uxRjunbgJkwQ/pub?output=xlsx)
+-  An Excel file detailing the current compatibility of the development version of the Stellio Context Broker against the features of the 1.8.1 specification can be downloaded [here](https://docs.google.com/spreadsheets/d/e/2PACX-1vRxOjsDf3lqhwuypJ---pZN2OlqFRl0jyoTV0ewQ1WFnpe7xQary3uxRjunbgJkwQ/pub?output=xlsx)
 
 | :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/u/stellio) | :dart: [Roadmap](./docs/roadmap.md) |
-|---------------------------------------------------|------------------------------------------------------------------------|-------------------------------------|
+|---------------------------------------------------|--------------------------------------------------------|-------------------------------------|
 
 ## Overview
 
@@ -64,15 +64,11 @@ It will start all the services composing the Stellio context broker platform and
 
 Please note that the environment and scripts are validated on Ubuntu and macOS. Some errors may occur on other platforms.
 
-We also provide a configuration to deploy Stellio in a k8s cluster. For more information, please look in the [stellio-k8s project](https://github.com/stellio-hub/stellio-k8s)
+We also provide a configuration to deploy Stellio in a k8s cluster. For more information, please look at the [stellio-k8s project](https://github.com/stellio-hub/stellio-k8s)
 
-#### TROUBLESHOOTING
-
-If Kafka container crash when starting, you may need to change "config/kafka/update_run.sh" line separator from CRLF to
-LF
 ## Docker images tagging
 
-Starting from version 2.0.0, a new scheme is used for tagging of Docker images:
+Starting from version 2.0.0, the following scheme is used for tagging of Docker images:
 * Releases are tagged with the version number, e.g., `stellio/stellio-search-service:2.0.0`
 * `latest` tag is no longer used for releases as it can be dangerous (for instance, triggering an unwanted major upgrade)
 * On each commit on the `develop` branch, an image with the `latest-dev` tag is produced, e.g., `stellio/stellio-search-service:latest-dev`
@@ -112,7 +108,7 @@ For instance, you can launch the test suite for entity service with the followin
 
 ### Building the project
 
-To build all the services, you can just launch:
+To build all the services, you can launch:
 
 ```shell script
 ./gradlew build
@@ -121,7 +117,7 @@ To build all the services, you can just launch:
 It will compile the source code, check the code quality (thanks to [detekt](https://detekt.dev/)) and run the test
 suite for all the services.
 
-For each service, a self executable jar is produced in the `build/libs` directory of the service.
+For each service, a self-executable jar is produced in the `build/libs` directory of the service.
 
 If you want to build only one of the services, you can launch:
 
@@ -131,7 +127,10 @@ If you want to build only one of the services, you can launch:
 
 ### Committing
 
-Commits follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/).
+* Commits follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/)
+* Branches follow the [Conventional Branch specification](https://conventional-branch.github.io/)
+  * In the context of the project, the following prefixes are authorized when naming branches: `feature/`, `refactor/`,
+    `fix/`, `hotfix/` and `chore/`.
 
 
 ### Code quality
@@ -141,20 +140,23 @@ Code formatting and standard code quality checks are performed by [Detekt](https
 Detekt checks are automatically performed as part of the build and fail the build if any error is encountered.
 
 * You may consider using a plugin like [Save Actions](https://plugins.jetbrains.com/plugin/7642-save-actions) 
-that applies changed code refactoring and optimized imports on a save.
+that applies changed code refactoring and optimized imports on save.
 
 * You can enable Detekt support with the [Detekt plugin](https://github.com/detekt/detekt-intellij-plugin).
 
-* You can also setup a precommit hook to run detekt autocorrect automatically 
+* You can also set up a precommit hook to run detekt autocorrect automatically 
 
 ### Pre-commit
+
 #### Automatic setup with [pre-commit](https://pre-commit.com/) tool 
+
 (if you don't have Python installed, use the manual setup below)
 * install ```pip install pre-commit```
 * then run ```pre-commit install```
-#### Manual setup
-* copy the script in ```config/detekt/detekt_auto_correct.sh``` in your ```.git/pre-commit``` file
 
+#### Manual setup
+
+* copy the script in ```config/detekt/detekt_auto_correct.sh``` in your ```.git/pre-commit``` file
 
 ### Working locally with Docker images
 
@@ -180,7 +182,7 @@ docker run stellio/stellio-search-service:latest
 
 ## Releasing a new version
 
-* Merge develop into master 
+* Merge `develop` into `master` 
 
 ```
 git checkout master
@@ -206,9 +208,9 @@ The CI will then create and publish Docker images tagged with the published vers
 
 ## Usage
 
-To start using Stellio, you can follow the [API quick start](https://github.com/stellio-hub/stellio-docs/blob/master/docs/quick_start_guide.md).
+To start using Stellio, you can follow the [API walkthrough](https://github.com/stellio-hub/stellio-docs/blob/master/docs/API_walkthrough.md).
 
-## Minimal hardware requirements needed to run Stellio
+## Minimal hardware requirements
 
 The recommended system requirements may vary depending on factors such as the scale of deployment, usage patterns, and specific use cases. That said, here are the general guidelines for the minimum computer requirements:
 
@@ -223,10 +225,10 @@ Please note that these requirements may vary based on factors such as the size o
 
 For more detailed explanations on NGSI-LD or FIWARE:
 
--  [NGSI-LD v1.8.1 Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.08.01_60/gs_CIM009v010801p.pdf)
--  [NGSI-LD Primer](https://www.etsi.org/deliver/etsi_gr/CIM/001_099/008/01.01.01_60/gr_CIM008v010101p.pdf)
+-  [NGSI-LD v1.9.1 Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf)
+-  [NGSI-LD Primer](https://www.etsi.org/deliver/etsi_gr/CIM/001_099/008/01.03.01_60/gr_CIM008v010301p.pdf)
 -  [NGSI-LD Tutorials](https://ngsi-ld-tutorials.readthedocs.io/en/latest/)
--  [FIWARE Training](https://fiware-academy.readthedocs.io/en/latest/integrated-courses/fiware-training/index.html)
+-  [FIWARE Webinars](https://www.fiware.org/community/webinars/)
 
 ## License
 
@@ -234,16 +236,16 @@ Stellio is licensed under [APL-2.0](https://spdx.org/licenses/Apache-2.0.html).
 
 It mainly makes use of the following libraries and frameworks (dependencies of dependencies have been omitted):
 
-| Library / Framework | 	Licence    |
-|---------------------|--------------|
-| Spring              | APL v2       |
-| Titanium JSON-LD    | APL v2       |
-| Reactor             | APL v2       |
-| Jackson             | APL v2       |
-| JUnit               | EPL v2       |
-| Mockk               | APL v2       |
-| JsonPath            | APL v2       |
-| WireMock            | APL v2       |
-| Testcontainers      | MIT          |
+| Library / Framework | Licence |
+|---------------------|---------|
+| Spring              | APL v2  |
+| Titanium JSON-LD    | APL v2  |
+| Reactor             | APL v2  |
+| Jackson             | APL v2  |
+| JUnit               | EPL v2  |
+| Mockk               | APL v2  |
+| JsonPath            | APL v2  |
+| WireMock            | APL v2  |
+| Testcontainers      | MIT     |
 
-© 2020 - 2024 EGM
+© 2020 - 2025 EGM

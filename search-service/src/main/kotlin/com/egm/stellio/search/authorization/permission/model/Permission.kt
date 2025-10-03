@@ -9,9 +9,11 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
+import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
@@ -45,6 +47,7 @@ data class Permission(
     fun validate(): Either<APIException, Unit> = either {
         checkTypeIsPermission().bind()
         checkIdIsValid().bind()
+        target.validate().bind()
     }
 
     private fun checkTypeIsPermission(): Either<APIException, Unit> =
@@ -56,6 +59,15 @@ data class Permission(
         if (!id.isAbsolute)
             BadRequestDataException(invalidUriMessage("$id")).left()
         else Unit.right()
+
+    suspend fun mergeWithFragment(
+        fragment: Map<String, Any>,
+        contexts: List<String>
+    ): Either<APIException, Permission> = either {
+        val mergedPermission = convertTo<Map<String, Any>>(this@Permission).plus(fragment)
+        deserialize(mergedPermission, contexts).bind()
+            .copy(modifiedAt = ngsiLdDateTime(), assigner = getSubFromSecurityContext().orEmpty())
+    }
 
     companion object {
         fun deserialize(
@@ -73,10 +85,12 @@ data class Permission(
         fun notFoundMessage(id: URI) = "Could not find a Permission with id $id"
         fun alreadyExistsMessage(id: URI) = "A Permission with id $id already exists"
         const val UNIQUENESS_CONFLICT_MESSAGE = "A Permission with the same assignee, target and action already exists"
-        fun unauthorizedEditMessage(permissionId: URI) = "User is not authorized to edit Permission $permissionId"
-        fun unauthorizedCreateMessage(entityId: URI) = "User is not authorized to add Permission targeting $entityId"
+        fun unauthorizedTargetMessage(target: TargetAsset) = "User is not authorized to admin the target: $target"
         fun unauthorizedRetrieveMessage(permissionId: URI) = "User is not authorized to read Permission $permissionId"
-        val CHANGE_OWNER_EXCEPTION = BadRequestDataException("Changing owner of an entity is prohibited")
+        val CREATE_OR_UPDATE_OWN_EXCEPTION = BadRequestDataException(
+            "Creating or updating an \"own\" permission is prohibited"
+        )
+        val DELETE_OWN_EXCEPTION = BadRequestDataException("Deleting an \"own\" permission is prohibited")
         val EVERYONE_AS_ADMIN_EXCEPTION =
             BadRequestDataException("Adding administration right for everyone is prohibited")
     }

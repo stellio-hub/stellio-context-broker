@@ -2,7 +2,6 @@ package com.egm.stellio.search.authorization.permission.service
 
 import arrow.core.Either
 import arrow.core.flatMap
-import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
@@ -156,23 +155,11 @@ class EnabledAuthorizationService(
         Pair(usersCount, jsonLdEntities)
     }
 
-    override suspend fun computeAccessRightFilter(): () -> String? =
-        subjectReferentialService.getSubjectAndGroupsUUID().map { uuids ->
-            if (subjectReferentialService.hasStellioAdminRole(uuids).getOrElse { false }) {
-                { null }
-            } else {
-                {
-                    """
-                        (entity_payload.entity_id IN (
-                            SELECT target_id
-                            FROM permission
-                            WHERE assignee is null
-                            OR assignee IN (${uuids.toListOfString()})
-                        ))
-                    """.trimIndent()
-                }
-            }
-        }.getOrElse { { "1 = 0" } }
-
-    private fun <T> List<T>.toListOfString() = this.joinToString(",") { "'$it'" }
+    override suspend fun getAccessRightWithClauseAndFilter(): WithAndFilter? = either {
+        val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+        if (subjectReferentialService.hasStellioAdminRole(uuids).bind())
+            null
+        else permissionService.buildCandidatePermissionsWithStatement(Action.READ, uuids) to
+            permissionService.buildAsRightOnEntityFilter(Action.READ, uuids)
+    }.fold({ "" to "false" }, { it })
 }

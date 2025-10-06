@@ -66,7 +66,7 @@ subprojects {
 
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
-        implementation("com.apicatalog:titanium-json-ld:1.6.0")
+        implementation("com.apicatalog:titanium-json-ld:1.7.0")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
         implementation("io.arrow-kt:arrow-fx-coroutines:2.1.2")

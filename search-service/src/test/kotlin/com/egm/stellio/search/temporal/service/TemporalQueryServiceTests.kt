@@ -179,7 +179,7 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should query a temporal entity as requested by pick and omit params`() = runTest {
+    fun `it should retrieve a temporal entity as requested by pick and omit params`() = runTest {
         val attributes =
             listOf(INCOMING_IRI, OUTGOING_IRI).map {
                 Attribute(
@@ -209,6 +209,7 @@ class TemporalQueryServiceTests {
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
+                expandedPickOmitAttributes = Pair(setOf(INCOMING_IRI), setOf(OUTGOING_IRI)),
                 entitiesQuery = EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
                     pick = setOf(INCOMING_IRI),
@@ -341,7 +342,7 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
@@ -405,7 +406,8 @@ class TemporalQueryServiceTests {
                     omit = setOf(OUTGOING_IRI),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(
+                Pair(setOf(INCOMING_IRI), setOf(OUTGOING_IRI)),
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
@@ -447,7 +449,7 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
                     aggrMethods = listOf(TemporalQuery.Aggregate.AVG)

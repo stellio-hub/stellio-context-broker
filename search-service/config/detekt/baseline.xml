@@ -39,6 +39,5 @@
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" null , '/B' , null, '$beehiveType,$beekeeper,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'"</ID>
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$fun</ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
-    <ID>SwallowedException:TemporalQueryUtils.kt$e: IllegalArgumentException</ID>
   </CurrentIssues>
 </SmellBaseline>

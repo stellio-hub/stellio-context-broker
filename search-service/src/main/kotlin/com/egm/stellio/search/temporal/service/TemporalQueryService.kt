@@ -47,8 +47,8 @@ class TemporalQueryService(
         authorizationService.userCanReadEntity(entityId).bind()
 
         val attrs = temporalEntitiesQuery.entitiesQuery.attrs
-        val pick = temporalEntitiesQuery.entitiesQuery.pick
-        val omit = temporalEntitiesQuery.entitiesQuery.omit
+        val pick = temporalEntitiesQuery.expandedPickOmitAttributes.first
+        val omit = temporalEntitiesQuery.expandedPickOmitAttributes.second
         val datasetIds = temporalEntitiesQuery.entitiesQuery.datasetId
         val attributes = entityAttributeService.getForEntity(entityId, attrs.plus(pick), omit, datasetIds, false).let {
             if (it.isEmpty() && attrs.isNotEmpty())
@@ -134,11 +134,11 @@ class TemporalQueryService(
         if (entitiesIds.isEmpty())
             return@either Triple(emptyList(), count, null)
 
-        val pick = temporalEntitiesQuery.entitiesQuery.pick
-        val omit = temporalEntitiesQuery.entitiesQuery.omit
+        val pick = temporalEntitiesQuery.expandedPickOmitAttributes.first
+        val omit = temporalEntitiesQuery.expandedPickOmitAttributes.second
         val attributes = entityAttributeService.getForEntities(
             entitiesIds,
-            pick.plus(temporalEntitiesQuery.entitiesQuery.attrs),
+            temporalEntitiesQuery.entitiesQuery.attrs.plus(pick),
             omit,
             temporalEntitiesQuery.entitiesQuery.datasetId
         )

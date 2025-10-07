@@ -586,7 +586,7 @@ class PermissionHandlerTests {
 
     @Test
     fun `create Permission should refuse to create public permission if the action is not read`() = runTest {
-        val jsonLdFile = ClassPathResource("/ngsild/permission/permission.jsonld")
+        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_public_write.jsonld")
 
         coEvery { permissionService.create(any()) } returns Unit.right()
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
@@ -595,7 +595,7 @@ class PermissionHandlerTests {
             .uri(permissionUri)
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isForbidden
+            .expectStatus().isBadRequest
 
         coVerify(exactly = 0) { permissionService.create(any()) }
     }

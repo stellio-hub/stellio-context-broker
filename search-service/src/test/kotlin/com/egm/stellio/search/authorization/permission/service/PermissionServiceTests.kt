@@ -177,11 +177,11 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `removeExistingScopes should remove scopes existing in database permissions`() = runTest {
+    fun `getnewScopesFromList should only keep scopes not existing in permissions table`() = runTest {
         val scopeA = "/A"
         val scopeB = "/B"
 
-        permissionService.removeExistingScopes(
+        permissionService.getnewScopesFromList(
             listOf(scopeA, scopeB)
         ).shouldSucceedWith {
             assertThat(it).hasSize(2).contains(scopeA, scopeB)
@@ -190,7 +190,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val permission = gimmeRawPermission(target = TargetAsset(scopes = listOf(scopeA)))
         permissionService.create(permission).shouldSucceed()
 
-        permissionService.removeExistingScopes(
+        permissionService.getnewScopesFromList(
             listOf(scopeA, scopeB)
         ).shouldSucceedWith {
             assertThat(it).hasSize(1).contains(scopeB)

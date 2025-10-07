@@ -66,7 +66,7 @@ data class Permission(
     ): Either<APIException, Permission> = either {
         val mergedPermission = convertTo<Map<String, Any>>(this@Permission).plus(fragment)
         deserialize(mergedPermission, contexts).bind()
-            .copy(modifiedAt = ngsiLdDateTime(), assigner = getSubFromSecurityContext().orEmpty())
+            .copy(modifiedAt = ngsiLdDateTime(), assigner = getSubFromSecurityContext())
     }
 
     companion object {
@@ -93,5 +93,7 @@ data class Permission(
         val DELETE_OWN_EXCEPTION = BadRequestDataException("Deleting an \"own\" permission is prohibited")
         val EVERYONE_AS_ADMIN_EXCEPTION =
             BadRequestDataException("Adding administration right for everyone is prohibited")
+        val PUBLIC_WITH_NON_READ_EXCEPTION =
+            BadRequestDataException("Public permission are only allowed with read action")
     }
 }

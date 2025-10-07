@@ -67,7 +67,7 @@ class SubscriptionService(
 ) {
 
     @Transactional
-    suspend fun upsert(subscription: Subscription, sub: Sub?): Either<APIException, Unit> = either {
+    suspend fun upsert(subscription: Subscription, sub: Sub): Either<APIException, Unit> = either {
         val endpoint = subscription.notification.endpoint
         val insertStatement =
             """
@@ -251,7 +251,7 @@ class SubscriptionService(
         return buildContextLinkHeader(contextLink)
     }
 
-    suspend fun isCreatorOf(subscriptionId: URI, sub: Sub?): Either<APIException, Boolean> {
+    suspend fun isCreatorOf(subscriptionId: URI, sub: Sub): Either<APIException, Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -281,7 +281,7 @@ class SubscriptionService(
             .bind("subscription_id", subscriptionId)
             .execute()
 
-    suspend fun getSubscriptions(limit: Int, offset: Int, sub: Sub?): List<Subscription> {
+    suspend fun getSubscriptions(limit: Int, offset: Int, sub: Sub): List<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at, 

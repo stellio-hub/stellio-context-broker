@@ -24,10 +24,11 @@ class WebSecurityConfig(
             // by default, only health endpoint is activated, be careful when activating other ones
             .authorizeExchange { exchanges ->
                 exchanges.pathMatchers("/actuator/**").permitAll()
-                exchanges.pathMatchers(HttpMethod.GET, "/entities/**").permitAll()
-                exchanges.pathMatchers(HttpMethod.POST, "/entities/entityOperations/query").permitAll()
-                exchanges.pathMatchers(HttpMethod.GET, "/temporal/entities/**").permitAll()
-                exchanges.pathMatchers(HttpMethod.POST, "/temporal/entities/entityOperations/query").permitAll()
+                exchanges.pathMatchers(HttpMethod.GET, "/ngsi-ld/v1/entities/**").permitAll()
+                exchanges.pathMatchers(HttpMethod.POST, "/ngsi-ld/v1/entities/entityOperations/query").permitAll()
+                exchanges.pathMatchers(HttpMethod.GET, "/ngsi-ld/v1/temporal/entities/**").permitAll()
+                exchanges.pathMatchers(HttpMethod.POST, "/ngsi-ld/v1/temporal/entities/entityOperations/query")
+                    .permitAll()
                 exchanges.pathMatchers("/**").authenticated()
             }
             .oauth2ResourceServer { oauth2ResourceServer ->

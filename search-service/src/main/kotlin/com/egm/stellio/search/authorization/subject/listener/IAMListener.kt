@@ -34,6 +34,7 @@ import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
@@ -51,7 +52,7 @@ class IAMListener(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     @KafkaListener(topics = ["cim.iam"], groupId = "search-iam")
     fun processIam(content: String) {

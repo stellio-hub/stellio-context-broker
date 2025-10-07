@@ -207,7 +207,7 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `it should only create owner of non existing scope`() = runTest {
+    fun `it should only create ownership on non existing scopes`() = runTest {
         val scopeA = "/A"
         val scopeB = "/B"
 

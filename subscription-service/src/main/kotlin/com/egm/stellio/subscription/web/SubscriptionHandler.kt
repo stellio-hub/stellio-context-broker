@@ -249,7 +249,7 @@ class SubscriptionHandler(
                 else Unit.right()
             }
 
-    private suspend fun checkIsAllowed(subscriptionId: URI, sub: Sub?): Either<APIException, Unit> =
+    private suspend fun checkIsAllowed(subscriptionId: URI, sub: Sub): Either<APIException, Unit> =
         subscriptionService.isCreatorOf(subscriptionId, sub)
             .flatMap {
                 if (!it)

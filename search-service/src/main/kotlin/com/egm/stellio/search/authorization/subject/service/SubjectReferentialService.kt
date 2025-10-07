@@ -86,26 +86,29 @@ class SubjectReferentialService(
             }
 
     suspend fun getSubjectAndGroupsUUID(): Either<APIException, List<Sub>> =
-        getSubFromSecurityContext()?.let { getSubjectAndGroupsUUID(it) } ?: listOf(PUBLIC_SUBJECT).right()
+        getSubjectAndGroupsUUID(getSubFromSecurityContext())
 
     suspend fun getSubjectAndGroupsUUID(sub: Sub): Either<APIException, List<Sub>> =
-        databaseClient
-            .sql(
-                """
+        if (sub == PUBLIC_SUBJECT) listOf(PUBLIC_SUBJECT).right()
+        else
+            databaseClient
+                .sql(
+                    """
                 SELECT subject_id, groups_memberships
                 FROM subject_referential
                 WHERE subject_id = :subject_id
-                """.trimIndent()
-            )
-            .bind("subject_id", sub)
-            .oneToResult(
-                AccessDeniedException(
-                    "No subject information found for $sub"
+                    """.trimIndent()
                 )
-            ) {
-                toOptionalList<Sub>(it["groups_memberships"]).orEmpty()
-                    .plus(it["subject_id"] as Sub)
-            }
+                .bind("subject_id", sub)
+                .oneToResult(
+                    AccessDeniedException(
+                        "No subject information found for $sub"
+                    )
+                ) {
+                    toOptionalList<Sub>(it["groups_memberships"]).orEmpty()
+                        .plus(it["subject_id"] as Sub)
+                        .plus(PUBLIC_SUBJECT)
+                }
 
     suspend fun getGroups(offset: Int, limit: Int): List<Group> =
         databaseClient

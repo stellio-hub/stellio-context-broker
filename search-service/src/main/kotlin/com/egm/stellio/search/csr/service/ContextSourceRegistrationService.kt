@@ -48,7 +48,7 @@ class ContextSourceRegistrationService(
     @Transactional
     suspend fun create(
         contextSourceRegistration: ContextSourceRegistration,
-        sub: Sub?
+        sub: Sub
     ): Either<APIException, Unit> = either {
         contextSourceRegistration.validate().bind()
         checkExistence(contextSourceRegistration.id, true).bind()
@@ -100,7 +100,7 @@ class ContextSourceRegistrationService(
             .bind("observation_interval_end", contextSourceRegistration.observationInterval?.end)
             .bind("management_interval_start", contextSourceRegistration.managementInterval?.start)
             .bind("management_interval_end", contextSourceRegistration.managementInterval?.end)
-            .bind("sub", sub.orEmpty())
+            .bind("sub", sub)
             .bind("created_at", contextSourceRegistration.createdAt)
             .bind("modified_at", contextSourceRegistration.modifiedAt)
             .execute().bind()
@@ -157,7 +157,7 @@ class ContextSourceRegistrationService(
             .oneToResult { rowToContextSourceRegistration(it) }
     }
 
-    suspend fun isCreatorOf(id: URI, sub: Sub?): Either<APIException, Boolean> {
+    suspend fun isCreatorOf(id: URI, sub: Sub): Either<APIException, Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -168,7 +168,7 @@ class ContextSourceRegistrationService(
         return databaseClient.sql(selectStatement)
             .bind("id", id)
             .oneToResult {
-                it["sub"] == sub.orEmpty()
+                it["sub"] == sub
             }
     }
 

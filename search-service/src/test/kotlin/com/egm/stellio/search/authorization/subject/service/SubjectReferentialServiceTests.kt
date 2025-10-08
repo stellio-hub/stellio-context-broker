@@ -13,6 +13,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.ADMIN_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
 import com.egm.stellio.shared.util.CREATION_ROLES
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
@@ -36,7 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
-import java.util.*
+import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -160,8 +161,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.getSubjectAndGroupsUUID()
             .shouldSucceedWith {
-                assertEquals(4, it.size)
-                assertTrue(it.containsAll(groupsUuids.plus(USER_UUID)))
+                assertEquals(5, it.size)
+                assertTrue(it.containsAll(groupsUuids.plus(USER_UUID).plus(PUBLIC_SUBJECT)))
             }
     }
 
@@ -178,8 +179,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.getSubjectAndGroupsUUID()
             .shouldSucceedWith {
-                assertEquals(1, it.size)
-                assertTrue(it.contains(USER_UUID))
+                assertEquals(2, it.size)
+                assertTrue(it.containsAll(listOf(USER_UUID, PUBLIC_SUBJECT)))
             }
     }
 
@@ -196,8 +197,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.getSubjectAndGroupsUUID()
             .shouldSucceedWith {
-                assertEquals(1, it.size)
-                assertThat(it).containsAll(listOf(SERVICE_ACCOUNT_UUID))
+                assertEquals(2, it.size)
+                assertThat(it).containsAll(listOf(SERVICE_ACCOUNT_UUID, PUBLIC_SUBJECT))
             }
     }
 
@@ -216,8 +217,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.getSubjectAndGroupsUUID()
             .shouldSucceedWith {
-                assertEquals(3, it.size)
-                assertThat(it).containsAll(groupsUuids.plus(SERVICE_ACCOUNT_UUID))
+                assertEquals(4, it.size)
+                assertThat(it).containsAll(groupsUuids.plus(SERVICE_ACCOUNT_UUID).plus(PUBLIC_SUBJECT))
             }
     }
 

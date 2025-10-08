@@ -8,6 +8,7 @@ import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.CREATE_OR_UPDATE_OWN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.DELETE_OWN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.EVERYONE_AS_ADMIN_EXCEPTION
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.PUBLIC_WITH_NON_READ_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedRetrieveMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
@@ -28,6 +29,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNEE_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TARGET_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUBJECT_ID
+import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -81,7 +83,7 @@ class PermissionHandler(
         val contexts = getAuthzContextFromRequestOrDefault(httpHeaders, body, applicationProperties.contexts).bind()
         val sub = getSubFromSecurityContext()
 
-        val permission = deserialize(body, contexts).bind().copy(assigner = sub.orEmpty())
+        val permission = deserialize(body, contexts).bind().copy(assigner = sub)
         checkCanCreateOrUpdate(permission).bind()
 
         permissionService.create(permission).bind()
@@ -285,6 +287,10 @@ class PermissionHandler(
 
         if (permission.action == Action.ADMIN && permission.assignee == null) {
             EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
+        }
+
+        if (permission.assignee == PUBLIC_SUBJECT && permission.action != Action.READ) {
+            PUBLIC_WITH_NON_READ_EXCEPTION.left().bind<APIException>()
         }
 
         permission.assignee?.let { subjectReferentialService.getSubjectAndGroupsUUID(it).bind() }

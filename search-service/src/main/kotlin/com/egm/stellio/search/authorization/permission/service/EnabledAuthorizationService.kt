@@ -104,7 +104,7 @@ class EnabledAuthorizationService(
     ): Either<APIException, Unit> = permissionService.create(
         Permission(
             assignee = null,
-            assigner = getSubFromSecurityContext().orEmpty(),
+            assigner = getSubFromSecurityContext(),
             target = TargetAsset(id = entityId),
             action = action
         )

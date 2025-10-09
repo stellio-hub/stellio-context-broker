@@ -115,7 +115,7 @@ class PermissionService(
             .execute().bind()
     }
 
-    suspend fun getnewScopesFromList(
+    suspend fun getNewScopesFromList(
         scopes: List<Scope>,
     ): Either<APIException, List<Scope>> =
         databaseClient.sql(
@@ -125,13 +125,10 @@ class PermissionService(
                   FROM permission
                 )
                 SELECT ARRAY(
-                  SELECT unnest(arr)
+                  SELECT unnest(${scopes.toSqlArray()})
                   EXCEPT
                   SELECT scopes FROM existing_scopes
                 ) AS result
-                FROM 
-                  (SELECT ${scopes.toSqlArray()} AS arr)
-                as base;
             """.trimIndent()
         ).oneToResult { toList(it["result"]) }
 

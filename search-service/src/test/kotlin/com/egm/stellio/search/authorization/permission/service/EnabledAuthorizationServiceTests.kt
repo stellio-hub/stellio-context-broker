@@ -212,7 +212,7 @@ class EnabledAuthorizationServiceTests {
         val scopeB = "/B"
 
         coEvery { permissionService.create(any()) } returns Unit.right()
-        coEvery { permissionService.getnewScopesFromList(any()) } returns
+        coEvery { permissionService.getNewScopesFromList(any()) } returns
             listOf(scopeA, scopeB).right() andThen listOf(scopeB).right()
 
         enabledAuthorizationService.createScopesOwnerRights(listOf(scopeA, scopeB))

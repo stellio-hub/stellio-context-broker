@@ -121,7 +121,9 @@ fun buildTemporalQuery(
     val aggrMethodsParam = params.getFirst(QueryParameter.AGGRMETHODS.key)
     val lastNParam = params.getFirst(QueryParameter.LASTN.key)
     val timeproperty = params.getFirst(QueryParameter.TIMEPROPERTY.key)?.let {
-        AttributeInstance.TemporalProperty.forPropertyName(it)
+        AttributeInstance.TemporalProperty.forPropertyName(it).getOrElse { apiException ->
+            return apiException.left()
+        }
     } ?: AttributeInstance.TemporalProperty.OBSERVED_AT
 
     val endTimeAt = endTimeAtParam?.parseTimeParameter("'endTimeAt' parameter is not a valid date")

@@ -1,7 +1,12 @@
 package com.egm.stellio.search.temporal.model
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.entity.model.AttributeMetadata
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.NGSILD_INSTANCE_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
@@ -86,8 +91,10 @@ data class AttributeInstance private constructor(
         DELETED_AT("deletedAt");
 
         companion object {
-            fun forPropertyName(propertyName: String): TemporalProperty? =
-                entries.find { it.propertyName == propertyName }
+            fun forPropertyName(propertyName: String): Either<APIException, TemporalProperty> =
+                entries.find { it.propertyName == propertyName }.let {
+                    it?.right() ?: BadRequestDataException("Unknown temporal property: $propertyName").left()
+                }
         }
     }
 }

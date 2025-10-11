@@ -582,7 +582,8 @@ class EntityService(
             val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(deletedAt)
             val previousEntity = deleteEntityPayload(entityId, deletedAt, deletedEntityPayload).bind()
             val deleteOperationResult = entityAttributeService.deleteAttributes(entityId, deletedAt).bind()
-            scopeService.addHistoryEntry(entityId, emptyList(), TemporalProperty.DELETED_AT, deletedAt).bind()
+            if (!previousEntity.scopes.isNullOrEmpty())
+                scopeService.addHistoryEntry(entityId, emptyList(), TemporalProperty.DELETED_AT, deletedAt).bind()
 
             entityEventService.publishAttributeDeletesOnEntityDeleteEvent(
                 sub,

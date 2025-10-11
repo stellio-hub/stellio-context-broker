@@ -10,6 +10,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.NGSILD_OBSERVATION_SPACE_IRI
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.Georel
@@ -274,6 +275,29 @@ class EntitiesQueryUtilsTests {
             assertEquals(BEEHIVE_IRI, it.entitySelectors!![0].typeSelection)
             assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1"), it.attrs)
             assertEquals("temperature>32", it.q)
+        }
+    }
+
+    @Test
+    fun `it should default to location geoproperty if not provided in the GeoQuery`() = runTest {
+        val query = """
+            {
+                "type": "Query",
+                "geoQ": {
+                    "geometry": "Point",
+                    "coordinates": [1.0, 1.0],
+                    "georel": "equals"
+                }
+            }
+        """.trimIndent()
+
+        composeEntitiesQueryFromPostRequest(
+            buildDefaultPagination(),
+            query,
+            LinkedMultiValueMap(),
+            APIC_COMPOUND_CONTEXTS
+        ).shouldSucceedWith {
+            assertEquals(NGSILD_LOCATION_IRI, it.geoQuery?.geoproperty)
         }
     }
 

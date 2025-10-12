@@ -397,7 +397,7 @@ class TemporalQueryUtilsTests {
             TemporalRepresentation.NORMALIZED
         ).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == "Unknown temporal property: unknown"
+                it.message == "Unknown value for 'timeproperty': unknown"
         }
     }
 

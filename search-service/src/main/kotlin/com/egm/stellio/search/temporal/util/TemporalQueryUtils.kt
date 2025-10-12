@@ -121,7 +121,7 @@ fun buildTemporalQuery(
     val aggrMethodsParam = params.getFirst(QueryParameter.AGGRMETHODS.key)
     val lastNParam = params.getFirst(QueryParameter.LASTN.key)
     val timeproperty = params.getFirst(QueryParameter.TIMEPROPERTY.key)?.let {
-        AttributeInstance.TemporalProperty.forPropertyName(it).getOrElse { apiException ->
+        AttributeInstance.TemporalProperty.fromTimeProperty(it).getOrElse { apiException ->
             return apiException.left()
         }
     } ?: AttributeInstance.TemporalProperty.OBSERVED_AT

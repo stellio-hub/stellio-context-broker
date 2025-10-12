@@ -91,9 +91,9 @@ data class AttributeInstance private constructor(
         DELETED_AT("deletedAt");
 
         companion object {
-            fun forPropertyName(propertyName: String): Either<APIException, TemporalProperty> =
-                entries.find { it.propertyName == propertyName }.let {
-                    it?.right() ?: BadRequestDataException("Unknown temporal property: $propertyName").left()
+            fun fromTimeProperty(timeProperty: String): Either<APIException, TemporalProperty> =
+                entries.find { it.propertyName == timeProperty }.let {
+                    it?.right() ?: BadRequestDataException("Unknown value for 'timeproperty': $timeProperty").left()
                 }
         }
     }

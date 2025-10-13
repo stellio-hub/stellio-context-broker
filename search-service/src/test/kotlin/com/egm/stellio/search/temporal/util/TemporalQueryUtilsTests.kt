@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.shouldFail
+import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
@@ -382,6 +383,22 @@ class TemporalQueryUtilsTests {
         ).shouldSucceedAndResult()
 
         assertEquals(AttributeInstance.TemporalProperty.OBSERVED_AT, temporalQuery.timeproperty)
+    }
+
+    @Test
+    fun `it should raise an error if timeproperty provided in query parameters is unknown`() = runTest {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timeproperty", "unknown")
+
+        buildTemporalQuery(
+            queryParams,
+            buildDefaultPagination(),
+            false,
+            TemporalRepresentation.NORMALIZED
+        ).shouldFailWith {
+            it is BadRequestDataException &&
+                it.message == "Unknown value for 'timeproperty': unknown"
+        }
     }
 
     @Test

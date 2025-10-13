@@ -90,19 +90,19 @@ jobs:
           image: "localbuild/subscription-service:latest-scan"
           severity-cutoff: critical
       - name: Upload Anchore scan SARIF report for API Gateway
-        uses: github/codeql-action/upload-sarif@e296a935590eb16afc0c0108289f68c87e2a89a5
+        uses: github/codeql-action/upload-sarif@f443b600d91635bebf5b0d9ebc620189c0d6fba5
         if: always()
         with:
           sarif_file: ${{ steps.scan-api-gateway.outputs.sarif }}
           category: anchore-api-gateway
       - name: Upload Anchore scan SARIF report for Search Service
-        uses: github/codeql-action/upload-sarif@e296a935590eb16afc0c0108289f68c87e2a89a5
+        uses: github/codeql-action/upload-sarif@f443b600d91635bebf5b0d9ebc620189c0d6fba5
         if: always()
         with:
           sarif_file: ${{ steps.scan-search-service.outputs.sarif }}
           category: anchore-search-service
       - name: Upload Anchore scan SARIF report for Subscription Service
-        uses: github/codeql-action/upload-sarif@e296a935590eb16afc0c0108289f68c87e2a89a5
+        uses: github/codeql-action/upload-sarif@f443b600d91635bebf5b0d9ebc620189c0d6fba5
         if: always()
         with:
           sarif_file: ${{ steps.scan-subscription-service.outputs.sarif }}

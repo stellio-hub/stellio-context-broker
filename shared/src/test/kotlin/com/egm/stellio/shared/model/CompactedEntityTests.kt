@@ -8,6 +8,7 @@ import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.parsePickOmitParameters
+import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -78,6 +79,7 @@ class CompactedEntityTests {
             .shouldSucceedAndResult()
 
         val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
+            .shouldSucceedAndResult()
 
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(filteredEntity))
     }
@@ -98,12 +100,13 @@ class CompactedEntityTests {
             .shouldSucceedAndResult()
 
         val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
+            .shouldSucceedAndResult()
 
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(filteredEntity))
     }
 
     @Test
-    fun `it should return empty result when no entity member matches the pick parameter`() = runTest {
+    fun `it should return an UnprocessableEntity error when no entity member matches the pick parameter`() = runTest {
         val entity = loadSampleData("beehive_with_single_attribute_instances.jsonld").deserializeAsMap()
 
         val expectedEntity = """
@@ -116,8 +119,10 @@ class CompactedEntityTests {
             .shouldSucceedAndResult()
 
         val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
-
-        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(filteredEntity))
+            .shouldFailWith {
+                it is UnprocessableEntityException &&
+                    it.message == "No entity member left after applying pick and omit"
+            }
     }
 
     @Test

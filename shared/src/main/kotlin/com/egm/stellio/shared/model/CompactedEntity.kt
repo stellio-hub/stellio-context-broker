@@ -1,5 +1,8 @@
 package com.egm.stellio.shared.model
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.shared.model.AttributeCompactedType.GEOPROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.JSONPROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.LANGUAGEPROPERTY
@@ -81,17 +84,24 @@ fun CompactedEntity.inlineLinkedEntities(linkedEntities: Map<String, CompactedEn
 fun List<CompactedEntity>.inlineLinkedEntities(linkedEntities: Map<String, CompactedEntity>): List<CompactedEntity> =
     this.map { it.inlineLinkedEntities(linkedEntities) }
 
-fun CompactedEntity.filterPickAndOmit(pick: Set<String>, omit: Set<String>): CompactedEntity =
+fun CompactedEntity.filterPickAndOmit(pick: Set<String>, omit: Set<String>): Either<APIException, CompactedEntity> =
     this.filterKeys {
         pick.isEmpty() || pick.plus(JSONLD_CONTEXT_KW).contains(it)
     }.filterKeys {
         !omit.contains(it)
+    }.let {
+        // there is at least the @context after compacting the entity
+        if (it.size == 1)
+            UnprocessableEntityException("No entity member left after applying pick and omit").left()
+        else it.right()
     }
 
 fun List<CompactedEntity>.filterPickAndOmit(pick: Set<String>, omit: Set<String>): List<CompactedEntity> =
-    this.map { it.filterPickAndOmit(pick, omit) }
-        // filter entities containing only @context (all attributes have been filtered out)
-        .filter { it.size > 1 }
+    this.map {
+        it.filterPickAndOmit(pick, omit).fold({ emptyMap() }, { it })
+    }.filter {
+        it.isNotEmpty()
+    }
 
 fun CompactedEntity.toSimplifiedAttributes(): Map<String, Any> =
     this.mapValues { entry ->

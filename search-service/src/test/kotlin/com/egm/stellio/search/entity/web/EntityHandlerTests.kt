@@ -49,6 +49,7 @@ import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
@@ -464,11 +465,11 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entity by id should return 200 when entity exists`() {
+    fun `get entity by id should return 200 when entity exists`() = runTest {
         initializeRetrieveEntityMocks()
-        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
-        coEvery { entityQueryService.queryEntity(any()) } returns returnedExpandedEntity.right()
-        every { returnedExpandedEntity.checkContainsAnyOf(any()) } returns Unit.right()
+        coEvery {
+            entityQueryService.queryEntity(any())
+        } returns ExpandedEntity(loadSampleData("beehive_expanded.jsonld").deserializeAsMap()).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/$beehiveId")
@@ -1113,6 +1114,30 @@ class EntityHandlerTests {
                 NGSILDWarning.HEADER_NAME,
                 "199 urn:ngsi-ld:ContextSourceRegistration:test \"message with line breaks\"",
                 "199 urn:ngsi-ld:ContextSourceRegistration:test \"message\""
+            )
+    }
+
+    @Test
+    fun `get entity by id should return 422 if no entity member left after applying pick and omit`() {
+        initializeRetrieveEntityMocks()
+        coEvery { entityQueryService.queryEntity(any()) } returns ExpandedEntity(
+            mapOf(
+                "@id" to beehiveId.toString(),
+                "@type" to listOf("Beehive")
+            )
+        ).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$beehiveId?pick=name")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/UnprocessableEntity",
+                    "title": "No entity member left after applying pick and omit"
+                }
+                """.trimIndent()
             )
     }
 

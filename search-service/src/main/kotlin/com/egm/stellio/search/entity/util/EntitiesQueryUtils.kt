@@ -18,7 +18,7 @@ import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
-import com.egm.stellio.shared.util.parseAndExpandQueryParameter
+import com.egm.stellio.shared.util.parseAttrsParameter
 import com.egm.stellio.shared.util.parsePickOmitParameters
 import com.egm.stellio.shared.util.parseQueryParameter
 import com.egm.stellio.shared.util.toListOfUri
@@ -40,7 +40,7 @@ fun composeEntitiesQueryFromGet(
      */
     val q = queryParams.getFirst(QueryParameter.Q.key)?.decode()
     val scopeQ = queryParams.getFirst(QueryParameter.SCOPEQ.key)
-    val attrs = parseAndExpandQueryParameter(queryParams.getFirst(QueryParameter.ATTRS.key), contexts)
+    val attrs = parseAttrsParameter(queryParams.getFirst(QueryParameter.ATTRS.key), contexts).bind()
     val (pick, omit) = parsePickOmitParameters(
         queryParams.getFirst(QueryParameter.PICK.key),
         queryParams.getFirst(QueryParameter.OMIT.key)

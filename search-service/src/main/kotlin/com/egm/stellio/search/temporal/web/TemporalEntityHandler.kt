@@ -204,7 +204,10 @@ class TemporalEntityHandler(
         ).bind()
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
-            .filterPickAndOmit(temporalEntitiesQuery.entitiesQuery.pick, temporalEntitiesQuery.entitiesQuery.omit)
+            .filterPickAndOmit(
+                temporalEntitiesQuery.entitiesQuery.pick,
+                temporalEntitiesQuery.entitiesQuery.omit
+            ).bind()
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()

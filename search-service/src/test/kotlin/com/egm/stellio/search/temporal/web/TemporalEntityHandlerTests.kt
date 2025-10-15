@@ -492,6 +492,27 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
+    fun `it should return a 422 if no temporal entity member matches pick and omit parameters`() = runTest {
+        val expandedTemporalEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
+        coEvery {
+            temporalQueryService.queryTemporalEntity(any(), any())
+        } returns Pair(expandedTemporalEntity, null).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri?pick=name")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/UnprocessableEntity",
+                    "title": "No entity member left after applying pick and omit"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `it should return a 200 if minimal required parameters are valid`() {
         val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         coEvery {

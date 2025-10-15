@@ -89,17 +89,15 @@ class NotificationService(
                     compactEntity(
                         filteredEntity,
                         contexts
-                    ).filterPickAndOmit(
-                        it.notification.pick.orEmpty(),
-                        it.notification.omit.orEmpty()
-                    ).toFinalRepresentation(
-                        NgsiLdDataRepresentation(
-                            entityRepresentation,
-                            attributeRepresentation,
-                            it.notification.sysAttrs,
-                            it.lang
-                        )
-                    ).let { listOf(it) }
+                    ).filterPickAndOmit(it.notification.pick.orEmpty(), it.notification.omit.orEmpty()).bind()
+                        .toFinalRepresentation(
+                            NgsiLdDataRepresentation(
+                                entityRepresentation,
+                                attributeRepresentation,
+                                it.notification.sysAttrs,
+                                it.lang
+                            )
+                        ).let { listOf(it) }
                 }
 
             val compactedEntitiesWithPreviousValues =

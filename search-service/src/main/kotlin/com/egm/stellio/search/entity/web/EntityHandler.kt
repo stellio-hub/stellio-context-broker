@@ -330,7 +330,7 @@ class EntityHandler(
             return localError!!.toErrorResponse().addWarnings(warnings)
         }
 
-        val finalEntity = entity.filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
+        val finalEntity = entity.filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit).bind()
         val mergedEntityWithLinkedEntities =
             linkedEntityService.processLinkedEntities(finalEntity, entitiesQuery).bind()
 

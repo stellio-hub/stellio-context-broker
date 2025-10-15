@@ -7,6 +7,7 @@ import arrow.core.raise.ensure
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
@@ -267,6 +268,15 @@ fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
     } catch (e: DateTimeParseException) {
         errorMsg.left()
     }
+
+fun parseAttrsParameter(attrsParam: String?, contexts: List<String>): Either<APIException, Set<String>> =
+    parseQueryParameter(attrsParam).let {
+        if (it.intersect(COMPACTED_ENTITY_CORE_MEMBERS).isNotEmpty())
+            return BadRequestDataException("Entity core members cannot be present in 'attrs' parameter").left()
+        else it
+    }.map {
+        expandJsonLdTerm(it.trim(), contexts)
+    }.toSet().right()
 
 /**
  * Parse and expand pick/omit parameters according to NGSI-LD Attribute Projection Language ABNF grammar

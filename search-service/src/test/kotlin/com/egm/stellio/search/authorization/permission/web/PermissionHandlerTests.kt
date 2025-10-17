@@ -16,6 +16,7 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
+import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -789,7 +790,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission(
             id = permissionId,
-            assignee = null
+            assignee = AUTHENTICATED_SUBJECT
         ).right()
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()

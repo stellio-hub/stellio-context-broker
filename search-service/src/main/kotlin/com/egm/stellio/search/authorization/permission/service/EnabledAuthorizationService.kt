@@ -14,6 +14,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.ADMIN_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.CREATION_ROLES
 import com.egm.stellio.shared.util.ENTITIY_READ_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
@@ -103,7 +104,7 @@ class EnabledAuthorizationService(
         action: Action,
     ): Either<APIException, Unit> = permissionService.create(
         Permission(
-            assignee = null,
+            assignee = AUTHENTICATED_SUBJECT,
             assigner = getSubFromSecurityContext(),
             target = TargetAsset(id = entityId),
             action = action

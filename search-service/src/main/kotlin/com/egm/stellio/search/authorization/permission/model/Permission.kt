@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
@@ -28,7 +29,7 @@ data class Permission(
     val id: URI = "urn:ngsi-ld:Permission:${UUID.randomUUID()}".toUri(),
     val type: String = AUTH_PERMISSION_TERM,
     val target: TargetAsset, // odrl:target
-    val assignee: Sub? = null, // odrl:assignee
+    val assignee: Sub = AUTHENTICATED_SUBJECT, // odrl:assignee
     val action: Action, // odrl:action
     val createdAt: ZonedDateTime = ngsiLdDateTime(),
     val modifiedAt: ZonedDateTime = createdAt,
@@ -91,8 +92,8 @@ data class Permission(
             "Creating or updating an \"own\" permission is prohibited"
         )
         val DELETE_OWN_EXCEPTION = BadRequestDataException("Deleting an \"own\" permission is prohibited")
-        val EVERYONE_AS_ADMIN_EXCEPTION =
-            BadRequestDataException("Adding administration right for everyone is prohibited")
+        val AUTHENTICATED_ADMIN_EXCEPTION =
+            BadRequestDataException("Adding administration right for every authenticated user is prohibited")
         val PUBLIC_WITH_NON_READ_EXCEPTION =
             BadRequestDataException("Public permission are only allowed with read action")
     }

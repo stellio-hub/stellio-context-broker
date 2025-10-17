@@ -13,7 +13,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.ADMIN_ROLES
-import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
+import com.egm.stellio.shared.util.AuthContextModel.GENERIC_SUBJECTS
 import com.egm.stellio.shared.util.CREATION_ROLES
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
@@ -161,8 +161,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.getSubjectAndGroupsUUID()
             .shouldSucceedWith {
-                assertEquals(5, it.size)
-                assertTrue(it.containsAll(groupsUuids.plus(USER_UUID).plus(PUBLIC_SUBJECT)))
+                assertEquals(6, it.size)
+                assertTrue(it.containsAll(groupsUuids.plus(USER_UUID).plus(GENERIC_SUBJECTS)))
             }
     }
 
@@ -179,8 +179,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.getSubjectAndGroupsUUID()
             .shouldSucceedWith {
-                assertEquals(2, it.size)
-                assertTrue(it.containsAll(listOf(USER_UUID, PUBLIC_SUBJECT)))
+                assertEquals(3, it.size)
+                assertTrue(it.containsAll(listOf(USER_UUID).plus(GENERIC_SUBJECTS)))
             }
     }
 
@@ -197,8 +197,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.getSubjectAndGroupsUUID()
             .shouldSucceedWith {
-                assertEquals(2, it.size)
-                assertThat(it).containsAll(listOf(SERVICE_ACCOUNT_UUID, PUBLIC_SUBJECT))
+                assertEquals(3, it.size)
+                assertThat(it).containsAll(listOf(SERVICE_ACCOUNT_UUID).plus(GENERIC_SUBJECTS))
             }
     }
 
@@ -217,8 +217,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.getSubjectAndGroupsUUID()
             .shouldSucceedWith {
-                assertEquals(4, it.size)
-                assertThat(it).containsAll(groupsUuids.plus(SERVICE_ACCOUNT_UUID).plus(PUBLIC_SUBJECT))
+                assertEquals(5, it.size)
+                assertThat(it).containsAll(groupsUuids.plus(SERVICE_ACCOUNT_UUID).plus(GENERIC_SUBJECTS))
             }
     }
 

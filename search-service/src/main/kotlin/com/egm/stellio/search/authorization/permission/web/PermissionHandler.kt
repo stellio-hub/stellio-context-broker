@@ -5,9 +5,9 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.AUTHENTICATED_ADMIN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.CREATE_OR_UPDATE_OWN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.DELETE_OWN_EXCEPTION
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.EVERYONE_AS_ADMIN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.PUBLIC_WITH_NON_READ_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedRetrieveMessage
@@ -25,10 +25,12 @@ import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNEE_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_ASSIGNER_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TARGET_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUBJECT_ID
+import com.egm.stellio.shared.util.AuthContextModel.GENERIC_SUBJECTS
 import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
@@ -285,15 +287,18 @@ class PermissionHandler(
             CREATE_OR_UPDATE_OWN_EXCEPTION.left().bind<APIException>()
         }
 
-        if (permission.action == Action.ADMIN && permission.assignee == null) {
-            EVERYONE_AS_ADMIN_EXCEPTION.left().bind<APIException>()
+        if (permission.action == Action.ADMIN && permission.assignee == AUTHENTICATED_SUBJECT) {
+            AUTHENTICATED_ADMIN_EXCEPTION.left().bind<APIException>()
         }
 
         if (permission.assignee == PUBLIC_SUBJECT && permission.action != Action.READ) {
             PUBLIC_WITH_NON_READ_EXCEPTION.left().bind<APIException>()
         }
 
-        permission.assignee?.let { subjectReferentialService.getSubjectAndGroupsUUID(it).bind() }
+        if (permission.assignee !in GENERIC_SUBJECTS) {
+            subjectReferentialService.getSubjectAndGroupsUUID(permission.assignee).bind()
+        }
+
         permission.target.id?.let {
             entityQueryService.checkEntityExistence(it, excludeDeleted = false).bind()
         }
@@ -319,10 +324,10 @@ class PermissionHandler(
         ).let { DataTypes.toFinalRepresentation(it, mediaType, includeSysAttrs) }.toMutableMap()
 
         if (includeDetails) {
-            permission.assignee?.let { assignee ->
-                permissionMap[AUTH_ASSIGNEE_TERM] = subjectReferentialService.retrieve(assignee)
+            if (permission.assignee !in GENERIC_SUBJECTS) {
+                permissionMap[AUTH_ASSIGNEE_TERM] = subjectReferentialService.retrieve(permission.assignee)
                     .fold(
-                        { mapOf(AUTH_TERM_SUBJECT_ID to assignee) },
+                        { mapOf(AUTH_TERM_SUBJECT_ID to permission.assignee) },
                         { it.toSerializableMap() }
                     )
             }

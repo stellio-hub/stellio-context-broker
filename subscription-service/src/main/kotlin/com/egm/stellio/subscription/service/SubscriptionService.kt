@@ -115,7 +115,7 @@ class SubscriptionService(
             .bind("times_sent", subscription.notification.timesSent)
             .bind("is_active", subscription.isActive)
             .bind("expires_at", subscription.expiresAt)
-            .bind("sub", sub.orEmpty())
+            .bind("sub", sub)
             .bind("contexts", subscription.contexts.toTypedArray())
             .bind("throttling", subscription.throttling)
             .bind("sys_attrs", subscription.notification.sysAttrs)
@@ -262,7 +262,7 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("id", subscriptionId)
             .oneToResult {
-                it["sub"] == sub.orEmpty()
+                it["sub"] == sub
             }
     }
 
@@ -305,12 +305,12 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
-            .bind("sub", sub.orEmpty())
+            .bind("sub", sub)
             .allToMappedList { rowToSubscription(it) }
             .mergeEntitySelectorsOnSubscriptions()
     }
 
-    suspend fun getSubscriptionsCount(sub: Sub?): Either<APIException, Int> {
+    suspend fun getSubscriptionsCount(sub: Sub): Either<APIException, Int> {
         val selectStatement =
             """
             SELECT count(*)
@@ -318,7 +318,7 @@ class SubscriptionService(
             WHERE subscription.sub = :sub
             """.trimIndent()
         return databaseClient.sql(selectStatement)
-            .bind("sub", sub.orEmpty())
+            .bind("sub", sub)
             .oneToResult { toInt(it["count"]) }
     }
 

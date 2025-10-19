@@ -98,9 +98,9 @@ class SubjectReferentialService(
                 databaseClient
                     .sql(
                         """
-                    SELECT subject_id, groups_memberships
-                    FROM subject_referential
-                    WHERE subject_id = :subject_id
+                        SELECT subject_id, groups_memberships
+                        FROM subject_referential
+                        WHERE subject_id = :subject_id
                         """.trimIndent()
                     )
                     .bind("subject_id", sub)

@@ -8,6 +8,10 @@ import java.time.ZonedDateTime
 data class NotificationParams(
     @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
     var attributes: List<ExpandedTerm>?,
+    @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
+    val pick: Set<String>? = null,
+    @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
+    val omit: Set<String>? = null,
     val format: FormatType = FormatType.NORMALIZED,
     val endpoint: Endpoint,
     var status: StatusType? = null,

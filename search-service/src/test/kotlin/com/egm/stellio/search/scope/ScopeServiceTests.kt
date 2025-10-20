@@ -155,7 +155,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(timeproperty = TemporalProperty.MODIFIED_AT),
+                temporalQuery = buildDefaultTestTemporalQuery(timeproperty = TemporalProperty.MODIFIED_AT),
                 temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             )
@@ -180,7 +180,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ngsiLdDateTime()
@@ -209,7 +209,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ngsiLdDateTime(),
@@ -242,7 +242,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ngsiLdDateTime(),
@@ -276,7 +276,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                         paginationQuery = PaginationQuery(limit = 100, offset = 0),
                         contexts = APIC_COMPOUND_CONTEXTS
                     ),
-                    buildDefaultTestTemporalQuery(
+                    temporalQuery = buildDefaultTestTemporalQuery(
                         timeproperty = TemporalProperty.MODIFIED_AT,
                         aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
                         aggrPeriodDuration = "PT0S"
@@ -307,7 +307,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ngsiLdDateTime(),
@@ -355,7 +355,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
                     timerel = TemporalQuery.Timerel.AFTER,
                     timeAt = ZonedDateTime.parse("2024-08-13T00:00:00Z"),
@@ -401,7 +401,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timeproperty = TemporalProperty.MODIFIED_AT,
                     timerel = TemporalQuery.Timerel.BETWEEN,
                     timeAt = ZonedDateTime.parse("2024-08-13T00:00:00Z"),
@@ -440,7 +440,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(),
+                temporalQuery = buildDefaultTestTemporalQuery(),
                 temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             )

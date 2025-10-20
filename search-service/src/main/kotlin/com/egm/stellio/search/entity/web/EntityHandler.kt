@@ -17,7 +17,9 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.applyDatasetView
 import com.egm.stellio.shared.model.filterAttributes
+import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.queryparameter.AllowedParameters
@@ -211,9 +213,9 @@ class EntityHandler(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY,
-                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID, QP.LOCAL
+                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID, QP.LOCAL, QP.PICK, QP.OMIT
             ],
-            notImplemented = [QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.VIA]
+            notImplemented = [QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -226,7 +228,8 @@ class EntityHandler(
 
         val (expandedEntities, localCount) = entityQueryService.queryEntities(entitiesQuery).bind()
 
-        val filteredEntities = expandedEntities.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
+        val filteredEntities = expandedEntities.filterAttributes(entitiesQuery.attrs)
+            .applyDatasetView(entitiesQuery.datasetId)
 
         val localEntities =
             compactEntities(filteredEntities, contexts).let {
@@ -252,8 +255,10 @@ class EntityHandler(
                 Triple(warnings, mergedEntities, maxCount)
             } else Triple(emptyList(), localEntities, localCount)
 
+        val finalEntities = entities.filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
+
         buildQueryResponse(
-            entities.toFinalRepresentation(ngsiLdDataRepresentation),
+            finalEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,
             "/ngsi-ld/v1/entities",
             entitiesQuery.paginationQuery,
@@ -276,9 +281,9 @@ class EntityHandler(
         @AllowedParameters(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.TYPE, QP.ATTRS, QP.GEOMETRY_PROPERTY,
-                QP.LANG, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID,
+                QP.LANG, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID, QP.PICK, QP.OMIT
             ],
-            notImplemented = [QP.PICK, QP.OMIT, QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
+            notImplemented = [QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -296,7 +301,8 @@ class EntityHandler(
             val expandedEntity = entityQueryService.queryEntity(entityId).bind()
             expandedEntity.checkContainsAnyOf(entitiesQuery.attrs).bind()
 
-            val filteredExpandedEntity = expandedEntity.filterAttributes(entitiesQuery.attrs, entitiesQuery.datasetId)
+            val filteredExpandedEntity = expandedEntity.filterAttributes(entitiesQuery.attrs)
+                .applyDatasetView(entitiesQuery.datasetId)
 
             compactEntity(filteredExpandedEntity, contexts)
         }
@@ -324,8 +330,10 @@ class EntityHandler(
             return localError!!.toErrorResponse().addWarnings(warnings)
         }
 
+        val finalEntity = entity.filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit).bind()
         val mergedEntityWithLinkedEntities =
-            linkedEntityService.processLinkedEntities(entity, entitiesQuery).bind()
+            linkedEntityService.processLinkedEntities(finalEntity, entitiesQuery).bind()
+
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .let {
                 val body = if (mergedEntityWithLinkedEntities.size == 1)

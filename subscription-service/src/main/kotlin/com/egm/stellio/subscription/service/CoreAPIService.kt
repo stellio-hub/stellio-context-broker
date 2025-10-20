@@ -67,7 +67,14 @@ class CoreAPIService(
             val attrsParam = notificationParams.attributes!!.joinToString(",") { it.encode() }
             params.append("&${QueryParameter.ATTRS.key}=$attrsParam")
         }
-
+        if (!notificationParams.pick.isNullOrEmpty()) {
+            val pickParam = notificationParams.pick.joinToString(",") { it.encode() }
+            params.append("&${QueryParameter.PICK.key}=$pickParam")
+        }
+        if (!notificationParams.omit.isNullOrEmpty()) {
+            val omitParam = notificationParams.omit.joinToString(",") { it.encode() }
+            params.append("&${QueryParameter.OMIT.key}=$omitParam")
+        }
         val optionsParam =
             if (notificationParams.sysAttrs)
                 "${OptionsValue.SYS_ATTRS.value},${notificationParams.format.format}"

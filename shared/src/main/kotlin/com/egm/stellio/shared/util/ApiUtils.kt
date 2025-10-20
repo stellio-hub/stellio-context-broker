@@ -7,6 +7,7 @@ import arrow.core.raise.ensure
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
@@ -14,6 +15,7 @@ import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NotAcceptableException
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.queryparameter.OptionsValue
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -186,7 +188,7 @@ fun addCoreContextIfMissing(contexts: List<String>, coreContext: String): List<S
  * Utility but basic method to find if given contexts can resolve a known term from the core context.
  */
 internal fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
-    val expandedType = JsonLdUtils.expandJsonLdTerm("datasetId", contexts)
+    val expandedType = expandJsonLdTerm("datasetId", contexts)
     return expandedType == NGSILD_DATASET_ID_IRI
 }
 
@@ -209,7 +211,7 @@ fun parseQueryParameter(queryParam: String?): Set<String> =
 
 fun expandTypeSelection(entityTypeSelection: EntityTypeSelection?, contexts: List<String>): EntityTypeSelection? =
     entityTypeSelection?.replace(typeSelectionRegex) {
-        JsonLdUtils.expandJsonLdTerm(it.value.trim(), contexts)
+        expandJsonLdTerm(it.value.trim(), contexts)
     }
 
 fun compactTypeSelection(entityTypeSelection: EntityTypeSelection, contexts: List<String>): EntityTypeSelection =
@@ -220,7 +222,7 @@ fun compactTypeSelection(entityTypeSelection: EntityTypeSelection, contexts: Lis
 fun parseAndExpandQueryParameter(queryParam: String?, contexts: List<String>): Set<String> =
     parseQueryParameter(queryParam)
         .map {
-            JsonLdUtils.expandJsonLdTerm(it.trim(), contexts)
+            expandJsonLdTerm(it.trim(), contexts)
         }.toSet()
 
 fun validateIdPattern(idPattern: String?): Either<APIException, String?> =
@@ -237,7 +239,7 @@ fun getApplicableMediaType(httpHeaders: HttpHeaders): Either<APIException, Media
     httpHeaders.accept.getApplicable()
 
 /**
- * Return the applicable media type among JSON_LD_MEDIA_TYPE, GEO_JSON_MEDIA_TYPE and MediaType.APPLICATION_JSON.
+ * Return the applicable media type among JSON_LD_MEDIA_TYPE, GEO_JSON_MEDIA_TYPE, and MediaType.APPLICATION_JSON.
  */
 fun List<MediaType>.getApplicable(): Either<APIException, MediaType> {
     if (this.isEmpty())
@@ -266,3 +268,48 @@ fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
     } catch (e: DateTimeParseException) {
         errorMsg.left()
     }
+
+fun parseAttrsParameter(attrsParam: String?, contexts: List<String>): Either<APIException, Set<String>> =
+    parseQueryParameter(attrsParam).let {
+        if (it.intersect(COMPACTED_ENTITY_CORE_MEMBERS).isNotEmpty())
+            return BadRequestDataException("Entity core members cannot be present in 'attrs' parameter").left()
+        else it
+    }.map {
+        expandJsonLdTerm(it.trim(), contexts)
+    }.toSet().right()
+
+/**
+ * Parse and expand pick/omit parameters according to NGSI-LD Attribute Projection Language ABNF grammar
+ * as defined in section 4.21 of the NGSI-LD specification.
+ */
+fun parsePickOmitParameters(
+    pickParam: String?,
+    omitParam: String?
+): Either<APIException, Pair<Set<String>, Set<String>>> = either {
+    val pick = pickParam?.let { pickValue ->
+        parseAttributeProjectionList(pickValue, "pick").bind()
+    } ?: emptySet()
+
+    val omit = omitParam?.let { omitValue ->
+        parseAttributeProjectionList(omitValue, "omit").bind()
+    } ?: emptySet()
+
+    Pair(pick, omit)
+}
+
+private fun parseAttributeProjectionList(
+    paramValue: String,
+    paramName: String
+): Either<APIException, Set<String>> = either {
+    if (paramValue.isBlank()) {
+        BadRequestDataException("The '$paramName' parameter cannot be empty").left().bind<Set<String>>()
+    }
+
+    val entityMembers = paramValue.split(",", "|").map { it.trim() }
+
+    entityMembers.forEach { attrName ->
+        attrName.checkNameIsNgsiLdSupported().bind()
+    }
+
+    entityMembers.toSet()
+}

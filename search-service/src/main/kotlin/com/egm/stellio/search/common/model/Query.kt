@@ -20,6 +20,8 @@ data class Query private constructor(
     val type: String,
     val entities: List<EntitySelector>? = null,
     val attrs: List<String>? = null,
+    val pick: List<String>? = null,
+    val omit: List<String>? = null,
     val q: String? = null,
     val geoQ: UnparsedGeoQuery? = null,
     val temporalQ: UnparsedTemporalQuery? = null,

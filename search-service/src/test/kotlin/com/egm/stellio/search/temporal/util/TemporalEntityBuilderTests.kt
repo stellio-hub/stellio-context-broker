@@ -55,8 +55,8 @@ class TemporalEntityBuilderTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                temporalRepresentation,
-                withAudit
+                temporalRepresentation = temporalRepresentation,
+                withAudit = withAudit
             ),
             NGSILD_TEST_CORE_CONTEXT
         )
@@ -80,8 +80,8 @@ class TemporalEntityBuilderTests {
             TemporalEntitiesQueryFromGet(
                 entitiesQuery = buildDefaultQueryParams(),
                 temporalQuery = buildDefaultTestTemporalQuery(),
-                temporalRepresentation,
-                withAudit
+                temporalRepresentation = temporalRepresentation,
+                withAudit = withAudit
             ),
             NGSILD_TEST_CORE_CONTEXT
         )

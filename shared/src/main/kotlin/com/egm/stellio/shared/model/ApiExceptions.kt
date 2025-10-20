@@ -208,6 +208,16 @@ data class JsonLdErrorApiResponse(override val message: String, override val det
     detail
 )
 
+data class UnprocessableEntityException(
+    override val message: String,
+    override val detail: String? = null
+) : APIException(
+    ErrorType.UNPROCESSABLE_ENTITY.type,
+    HttpStatus.UNPROCESSABLE_ENTITY,
+    message,
+    detail
+)
+
 fun Throwable.toAPIException(specificMessage: String? = null): APIException =
     when (this) {
         is APIException -> this
@@ -238,5 +248,6 @@ enum class ErrorType(val type: URI) {
     NOT_IMPLEMENTED(URI("https://uri.etsi.org/ngsi-ld/errors/NotImplemented")),
     UNSUPPORTED_MEDIA_TYPE(URI("https://uri.etsi.org/ngsi-ld/errors/UnsupportedMediaType")),
     NOT_ACCEPTABLE(URI("https://uri.etsi.org/ngsi-ld/errors/NotAcceptable")),
-    NONEXISTENT_TENANT(URI("https://uri.etsi.org/ngsi-ld/errors/NonexistentTenant"))
+    NONEXISTENT_TENANT(URI("https://uri.etsi.org/ngsi-ld/errors/NonexistentTenant")),
+    UNPROCESSABLE_ENTITY(URI("https://uri.etsi.org/ngsi-ld/errors/UnprocessableEntity"))
 }

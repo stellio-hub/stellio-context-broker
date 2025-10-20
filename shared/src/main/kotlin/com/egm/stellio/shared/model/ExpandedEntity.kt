@@ -98,38 +98,40 @@ data class ExpandedEntity(
             this.plus(propertyKey to JsonLdUtils.buildNonReifiedTemporalValue(dateTime))
         else this
 
-    fun filterAttributes(
-        includedAttributes: Set<String>,
-        includedDatasetIds: Set<String>,
-    ): ExpandedEntity = ExpandedEntity(
-        if (includedAttributes.isEmpty() && includedDatasetIds.isEmpty()) {
+    fun filterAttributes(includedAttributes: Set<String>): ExpandedEntity = ExpandedEntity(
+        if (includedAttributes.isEmpty()) {
             members
-        } else
-            members.filterKeys {
-                includedAttributes.isEmpty() ||
-                    EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes).contains(it)
-            }.mapValuesNotNull { entry ->
-                if (entry.key in EXPANDED_ENTITY_CORE_MEMBERS)
-                    entry.value
-                else (entry.value as ExpandedAttributeInstances).filter { expandedAttributeInstance ->
-                    includedDatasetIds.isEmpty() ||
-                        includedDatasetIds.contains(JSONLD_NONE_KW) &&
-                        expandedAttributeInstance.getDatasetId() == null ||
-                        expandedAttributeInstance.getDatasetId() != null &&
-                        includedDatasetIds.contains(expandedAttributeInstance.getDatasetId().toString())
-                }.ifEmpty { null }
-            }
+        } else members.filterKeys {
+            includedAttributes.isEmpty() ||
+                EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes).contains(it)
+        }
     )
 
     fun omitAttributes(attributes: Set<String>): ExpandedEntity = ExpandedEntity(
         members.filterKeys { it !in attributes }
     )
+
+    fun applyDatasetView(includedDatasetIds: Set<String>): ExpandedEntity = ExpandedEntity(
+        members.mapValuesNotNull { entry ->
+            if (entry.key in EXPANDED_ENTITY_CORE_MEMBERS)
+                entry.value
+            else (entry.value as ExpandedAttributeInstances).filter { expandedAttributeInstance ->
+                includedDatasetIds.isEmpty() ||
+                    includedDatasetIds.contains(JSONLD_NONE_KW) &&
+                    expandedAttributeInstance.getDatasetId() == null ||
+                    expandedAttributeInstance.getDatasetId() != null &&
+                    includedDatasetIds.contains(expandedAttributeInstance.getDatasetId().toString())
+            }.ifEmpty { null }
+        }
+    )
 }
 
-fun List<ExpandedEntity>.filterAttributes(
-    includedAttributes: Set<String>,
-    includedDatasetIds: Set<String>
-): List<ExpandedEntity> =
+fun List<ExpandedEntity>.filterAttributes(includedAttributes: Set<String>): List<ExpandedEntity> =
     this.map {
-        it.filterAttributes(includedAttributes, includedDatasetIds)
+        it.filterAttributes(includedAttributes)
+    }
+
+fun List<ExpandedEntity>.applyDatasetView(includedDatasetIds: Set<String>): List<ExpandedEntity> =
+    this.map {
+        it.applyDatasetView(includedDatasetIds)
     }

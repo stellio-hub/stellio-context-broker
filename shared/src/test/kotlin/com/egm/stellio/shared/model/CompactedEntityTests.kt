@@ -2,9 +2,14 @@ package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedEntity
 import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedMultiAttributeEntity
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.parsePickOmitParameters
+import com.egm.stellio.shared.util.shouldFailWith
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -54,6 +59,71 @@ class CompactedEntityTests {
             }
         }
         """.trimIndent()
+
+    @Test
+    fun `it should filter the entity members based on pick parameter`() = runTest {
+        val entity = loadSampleData("beehive_with_single_attribute_instances.jsonld").deserializeAsMap()
+
+        val expectedEntity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "name": {
+                "type": "Property",
+                "value": "beehive"
+            },
+            "@context": ["$APIC_COMPOUND_CONTEXT"]
+        }
+        """.trimIndent()
+
+        val pickAndOmitParams = parsePickOmitParameters("id,name", null)
+            .shouldSucceedAndResult()
+
+        val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
+            .shouldSucceedAndResult()
+
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(filteredEntity))
+    }
+
+    @Test
+    fun `it should filter the entity members based on omit parameter`() = runTest {
+        val entity = loadSampleData("beehive_with_single_attribute_instances.jsonld").deserializeAsMap()
+
+        val expectedEntity = """
+        {
+            "id": "urn:ngsi-ld:Entity:01",
+            "type": "Entity",
+            "@context": ["$APIC_COMPOUND_CONTEXT"]
+        }
+        """.trimIndent()
+
+        val pickAndOmitParams = parsePickOmitParameters(null, "name,managedBy")
+            .shouldSucceedAndResult()
+
+        val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
+            .shouldSucceedAndResult()
+
+        assertJsonPayloadsAreEqual(expectedEntity, serializeObject(filteredEntity))
+    }
+
+    @Test
+    fun `it should return an UnprocessableEntity error when no entity member matches the pick parameter`() = runTest {
+        val entity = loadSampleData("beehive_with_single_attribute_instances.jsonld").deserializeAsMap()
+
+        val expectedEntity = """
+        {
+            "@context": ["$APIC_COMPOUND_CONTEXT"]
+        }
+        """.trimIndent()
+
+        val pickAndOmitParams = parsePickOmitParameters("unknown", null)
+            .shouldSucceedAndResult()
+
+        val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
+            .shouldFailWith {
+                it is UnprocessableEntityException &&
+                    it.message == "No entity member left after applying pick and omit"
+            }
+    }
 
     @Test
     fun `it should simplify a compacted entity`() {

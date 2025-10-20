@@ -23,7 +23,6 @@ import com.egm.stellio.search.common.util.valueToStringOrNull
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.AttributeOperationResult
-import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
@@ -301,7 +300,7 @@ class EntityAttributeService(
         entityId: URI,
         deletedAt: ZonedDateTime
     ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
-        val attributesToDelete = getForEntity(entityId, emptySet(), emptySet())
+        val attributesToDelete = getAllForEntity(entityId)
         deleteSelectedAttributes(attributesToDelete, deletedAt).bind()
     }
 
@@ -316,7 +315,7 @@ class EntityAttributeService(
         logger.debug("Deleting attribute {} from entity {} (all: {})", attributeName, entityId, deleteAll)
         val attributesToDelete =
             if (deleteAll)
-                getForEntity(entityId, setOf(attributeName), emptySet())
+                getForEntity(entityId, setOf(attributeName), emptySet(), emptySet())
             else
                 listOf(getForEntityAndAttribute(entityId, attributeName, datasetId).bind())
 
@@ -396,7 +395,7 @@ class EntityAttributeService(
         logger.debug("Permanently deleting attribute {} from entity {} (all: {})", attributeName, entityId, deleteAll)
         val attributesToDelete =
             if (deleteAll)
-                getForEntity(entityId, setOf(attributeName), emptySet(), false)
+                getForEntity(entityId, setOf(attributeName), emptySet(), emptySet(), false)
             else
                 listOf(getForEntityAndAttribute(entityId, attributeName, datasetId).bind())
 
@@ -438,32 +437,19 @@ class EntityAttributeService(
 
     suspend fun getForEntities(
         entitiesIds: List<URI>,
-        entitiesQuery: EntitiesQuery
+        pick: Set<String>,
+        omit: Set<String>,
+        datasetIds: Set<String>,
     ): List<Attribute> {
-        val filterOnAttributes =
-            if (entitiesQuery.attrs.isNotEmpty())
-                " AND " + entitiesQuery.attrs.joinToString(
-                    separator = ",",
-                    prefix = "attribute_name in (",
-                    postfix = ")"
-                ) { "'$it'" }
-            else ""
-
-        val filterOnDatasetId =
-            if (entitiesQuery.datasetId.isNotEmpty()) {
-                val datasetIdsList = entitiesQuery.datasetId.joinToString(",") { "'$it'" }
-                " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
-                    "OR (dataset_id IS NULL AND '$JSONLD_NONE_KW' in ($datasetIdsList)))"
-            } else ""
+        val filter = buildAttributesFilter(pick, omit, datasetIds)
 
         val selectQuery =
             """
             SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
                 deleted_at, dataset_id, payload
             FROM temporal_entity_attribute            
-            WHERE entity_id IN (:entities_ids) 
-            $filterOnAttributes
-            $filterOnDatasetId
+            WHERE entity_id IN (:entities_ids)
+            AND $filter
             ORDER BY entity_id
             """.trimIndent()
 
@@ -473,27 +459,20 @@ class EntityAttributeService(
             .allToMappedList { rowToAttribute(it) }
     }
 
+    suspend fun getAllForEntity(
+        id: URI,
+        excludeDeleted: Boolean = true
+    ): List<Attribute> =
+        getForEntity(id, emptySet(), emptySet(), emptySet(), excludeDeleted)
+
     suspend fun getForEntity(
         id: URI,
-        attrs: Set<String>,
+        pick: Set<String>,
+        omit: Set<String>,
         datasetIds: Set<String>,
         excludeDeleted: Boolean = true
     ): List<Attribute> {
-        val filterOnAttributes =
-            if (attrs.isNotEmpty())
-                " AND " + attrs.joinToString(
-                    separator = ",",
-                    prefix = "attribute_name in (",
-                    postfix = ")"
-                ) { "'$it'" }
-            else ""
-
-        val filterOnDatasetId =
-            if (datasetIds.isNotEmpty()) {
-                val datasetIdsList = datasetIds.joinToString(",") { "'$it'" }
-                " AND ((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
-                    "OR (dataset_id IS NULL AND '@none' in ($datasetIdsList)))"
-            } else ""
+        val filter = buildAttributesFilter(pick, omit, datasetIds)
 
         val selectQuery =
             """
@@ -502,14 +481,47 @@ class EntityAttributeService(
             FROM temporal_entity_attribute            
             WHERE entity_id = :entity_id
             ${if (excludeDeleted) " and deleted_at is null " else ""}
-            $filterOnAttributes
-            $filterOnDatasetId
+            AND $filter
             """.trimIndent()
 
         return databaseClient
             .sql(selectQuery)
             .bind("entity_id", id)
             .allToMappedList { rowToAttribute(it) }
+    }
+
+    private fun buildAttributesFilter(
+        pick: Set<String>,
+        omit: Set<String>,
+        datasetIds: Set<String>
+    ): String {
+        val pickAttributes =
+            if (pick.isNotEmpty())
+                pick.joinToString(
+                    separator = ",",
+                    prefix = "attribute_name in (",
+                    postfix = ")"
+                ) { "'$it'" }
+            else null
+        val omitAttributes =
+            if (omit.isNotEmpty())
+                omit.joinToString(
+                    separator = ",",
+                    prefix = "attribute_name not in (",
+                    postfix = ")"
+                ) { "'$it'" }
+            else null
+
+        val datasetIdFilter =
+            if (datasetIds.isNotEmpty()) {
+                val datasetIdsList = datasetIds.joinToString(",") { "'$it'" }
+                "((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
+                    "OR (dataset_id IS NULL AND '$JSONLD_NONE_KW' in ($datasetIdsList)))"
+            } else null
+
+        val filters = listOfNotNull(pickAttributes, omitAttributes, datasetIdFilter)
+
+        return if (filters.isEmpty()) "true" else filters.joinToString(" AND ")
     }
 
     suspend fun getForEntityAndAttribute(

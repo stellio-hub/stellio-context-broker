@@ -22,6 +22,7 @@ import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.INVALID_TEMPORAL_INSTANCE_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
@@ -35,7 +36,6 @@ import com.egm.stellio.shared.util.checkNameIsNgsiLdSupported
 import com.egm.stellio.shared.util.extractPayloadAndContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.invalidTemporalInstanceMessage
 import com.egm.stellio.shared.util.missingPathErrorResponse
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
@@ -355,6 +355,6 @@ class TemporalEntityHandler(
             }
         }.let {
             if (it) Unit.right()
-            else BadRequestDataException(invalidTemporalInstanceMessage()).left()
+            else BadRequestDataException(INVALID_TEMPORAL_INSTANCE_MESSAGE).left()
         }
 }

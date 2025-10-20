@@ -109,16 +109,10 @@ class CompactedEntityTests {
     fun `it should return an UnprocessableEntity error when no entity member matches the pick parameter`() = runTest {
         val entity = loadSampleData("beehive_with_single_attribute_instances.jsonld").deserializeAsMap()
 
-        val expectedEntity = """
-        {
-            "@context": ["$APIC_COMPOUND_CONTEXT"]
-        }
-        """.trimIndent()
-
         val pickAndOmitParams = parsePickOmitParameters("unknown", null)
             .shouldSucceedAndResult()
 
-        val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
+        entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
             .shouldFailWith {
                 it is UnprocessableEntityException &&
                     it.message == "No entity member left after applying pick and omit"

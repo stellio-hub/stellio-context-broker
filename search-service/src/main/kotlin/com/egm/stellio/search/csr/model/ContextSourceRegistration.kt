@@ -145,7 +145,6 @@ data class ContextSourceRegistration(
 
         fun notFoundMessage(id: URI) = "Could not find a CSourceRegistration with id $id"
         fun alreadyExistsMessage(id: URI) = "A CSourceRegistration with id $id already exists"
-        fun unauthorizedMessage(id: URI) = "User is not authorized to access CSourceRegistration $id"
     }
 
     enum class StatusType(val status: String) {

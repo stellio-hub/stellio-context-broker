@@ -24,9 +24,6 @@ fun <T> toList(entry: Any?): List<T> = (entry as Array<T>).toList()
 fun <T> toOptionalList(entry: Any?): List<T>? = (entry as? Array<T>)?.toList()
 fun toJson(entry: Any?): Json = entry as Json
 fun toJsonString(entry: Any?): String = (entry as Json).asString()
-inline fun <reified T : Enum<T>> toEnum(entry: Any) = enumValueOf<T>(entry as String)
-inline fun <reified T : Enum<T>> toOptionalEnum(entry: Any?) =
-    (entry as? String)?.let { enumValueOf<T>(it) }
 fun toInt(entry: Any?): Int = (entry as Long).toInt()
 
 fun Json.deserializeExpandedPayload(): Map<String, List<Any>> = this.asString().deserializeExpandedPayload()

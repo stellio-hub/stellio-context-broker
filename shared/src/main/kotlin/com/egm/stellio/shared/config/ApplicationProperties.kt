@@ -31,7 +31,5 @@ data class ApplicationProperties(
         val core: String,
         val authz: String,
         val authzCompound: String
-    ) {
-        fun defaultAuthzContexts(): List<String> = listOf(authz, core)
-    }
+    )
 }

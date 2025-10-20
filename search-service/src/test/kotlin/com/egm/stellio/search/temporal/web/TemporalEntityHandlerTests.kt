@@ -12,7 +12,6 @@ import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.TooManyResultsException
@@ -32,7 +31,6 @@ import com.egm.stellio.shared.util.toUri
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.confirmVerified
-import io.mockk.mockkClass
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.Test
@@ -272,11 +270,11 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should give a 200 if no timerel and no time query params are in the request`() {
-        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+    fun `it should give a 200 if no timerel and no time query params are in the request`() = runTest {
+        val expandedTemporalEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
-        } returns (returnedExpandedEntity to null).right()
+        } returns Pair(expandedTemporalEntity, null).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
@@ -513,11 +511,11 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return a 200 if minimal required parameters are valid`() {
-        val returnedExpandedEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+    fun `it should return a 200 if minimal required parameters are valid`() = runTest {
+        val expandedTemporalEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
-        } returns (returnedExpandedEntity to null).right()
+        } returns Pair(expandedTemporalEntity, null).right()
 
         webClient.get()
             .uri(

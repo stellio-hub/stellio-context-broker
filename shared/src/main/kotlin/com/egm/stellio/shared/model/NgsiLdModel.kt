@@ -23,6 +23,14 @@ val COMPACTED_ENTITY_CORE_MEMBERS = setOf(
     NGSILD_MODIFIED_AT_TERM
 )
 
+// Minimal terms that can be left in an entity after applying attributes projection
+// In this case, the entity is considered to be empty and an error is returned
+val COMPACTED_ENTITY_MINIMAL_MEMBERS = setOf(
+    JSONLD_CONTEXT_KW,
+    NGSILD_CREATED_AT_TERM,
+    NGSILD_MODIFIED_AT_TERM
+)
+
 val COMPACTED_ATTRIBUTES_TERMS = setOf(
     NGSILD_VALUE_TERM,
     NGSILD_OBJECT_TERM,

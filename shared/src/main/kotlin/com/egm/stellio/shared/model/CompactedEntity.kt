@@ -17,7 +17,7 @@ import com.egm.stellio.shared.util.GEOMETRY_PROPERTY_TERM
 import com.egm.stellio.shared.util.PROPERTIES_PROPERTY_TERM
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
-import java.util.*
+import java.util.Locale
 
 typealias CompactedEntity = Map<String, Any>
 typealias CompactedAttributeInstance = Map<String, Any>
@@ -86,12 +86,11 @@ fun List<CompactedEntity>.inlineLinkedEntities(linkedEntities: Map<String, Compa
 
 fun CompactedEntity.filterPickAndOmit(pick: Set<String>, omit: Set<String>): Either<APIException, CompactedEntity> =
     this.filterKeys {
-        pick.isEmpty() || pick.plus(JSONLD_CONTEXT_KW).contains(it)
+        pick.isEmpty() || pick.plus(COMPACTED_ENTITY_MINIMAL_MEMBERS).contains(it)
     }.filterKeys {
         !omit.contains(it)
     }.let {
-        // there is at least the @context after compacting the entity
-        if (it.size == 1)
+        if (it.all { entry -> COMPACTED_ENTITY_MINIMAL_MEMBERS.contains(entry.key) })
             UnprocessableEntityException("No entity member left after applying pick and omit").left()
         else it.right()
     }

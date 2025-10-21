@@ -115,7 +115,6 @@ class EntityService(
 
             if (neverExisted)
                 authorizationService.createEntityOwnerRight(ngsiLdEntity.id).bind()
-            ngsiLdEntity.scopes?.let { authorizationService.createScopesOwnerRights(it).bind() }
 
             entityEventService.publishEntityCreateEvent(
                 sub,

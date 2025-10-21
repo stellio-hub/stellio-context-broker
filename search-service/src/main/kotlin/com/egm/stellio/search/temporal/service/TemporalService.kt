@@ -73,7 +73,6 @@ class TemporalService(
             sortedJsonLdInstances.removeFirstInstances()
         ).bind()
         authorizationService.createEntityOwnerRight(entityId).bind()
-        ngsiLdEntity.scopes?.let { authorizationService.createScopesOwnerRights(it).bind() }
     }
 
     internal suspend fun upsertTemporalEntity(

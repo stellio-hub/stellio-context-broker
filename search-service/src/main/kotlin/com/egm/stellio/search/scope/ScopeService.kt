@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.deserializeExpandedPayload
@@ -50,22 +51,24 @@ import java.time.ZonedDateTime
 @Service
 class ScopeService(
     private val databaseClient: DatabaseClient,
-    private val searchProperties: SearchProperties
+    private val searchProperties: SearchProperties,
+    private val authorizationService: AuthorizationService
 ) {
 
     @Transactional
     suspend fun createHistory(
         ngsiLdEntity: NgsiLdEntity,
         createdAt: ZonedDateTime
-    ): Either<APIException, Unit> =
+    ): Either<APIException, Unit> = either {
         if (!ngsiLdEntity.scopes.isNullOrEmpty())
             addHistoryEntry(
                 ngsiLdEntity.id,
                 ngsiLdEntity.scopes!!,
                 TemporalProperty.CREATED_AT,
                 createdAt
-            )
-        else Unit.right()
+            ).bind()
+        authorizationService.createScopesOwnerRights(ngsiLdEntity.scopes!!)
+    }
 
     @Transactional
     suspend fun addHistoryEntry(
@@ -297,6 +300,7 @@ class ScopeService(
                 // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
                 // sub-Property
                 addHistoryEntry(entityId, it, TemporalProperty.OBSERVED_AT, modifiedAt).bind()
+            authorizationService.createScopesOwnerRights(it)
             operationResult
         } ?: FailedAttributeOperationResult(
             attributeName = NGSILD_SCOPE_IRI,

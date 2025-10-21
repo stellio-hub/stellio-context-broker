@@ -296,7 +296,7 @@ class PermissionHandler(
         }
 
         if (permission.assignee !in GENERIC_SUBJECTS) {
-            subjectReferentialService.getSubjectAndGroupsUUID(permission.assignee).bind()
+            subjectReferentialService.retrieve(permission.assignee).bind()
         }
 
         permission.target.id?.let {

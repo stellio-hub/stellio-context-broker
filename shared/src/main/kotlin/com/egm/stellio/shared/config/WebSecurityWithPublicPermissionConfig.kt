@@ -12,7 +12,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain
 @Profile("!test")
 @ConditionalOnProperty("application.authentication.enabled")
 @ConditionalOnProperty(
-    "application.authentication.accept.public.permission",
+    "application.authentication.allow-public-permission",
     havingValue = "true",
     matchIfMissing = false
 )

@@ -102,6 +102,8 @@ class EnabledAuthorizationService(
 
     override suspend fun createScopesOwnerRights(scopes: List<Scope>): Either<APIException, Unit> =
         either {
+            if (scopes.isEmpty())
+                return Unit.right()
             val subValue = getSubFromSecurityContext()
             permissionService.getNewScopesFromList(scopes).bind()
                 .parMap {

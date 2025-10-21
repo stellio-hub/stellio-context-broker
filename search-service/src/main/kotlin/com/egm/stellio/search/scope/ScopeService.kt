@@ -60,14 +60,15 @@ class ScopeService(
         ngsiLdEntity: NgsiLdEntity,
         createdAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
-        if (!ngsiLdEntity.scopes.isNullOrEmpty())
+        if (!ngsiLdEntity.scopes.isNullOrEmpty()) {
             addHistoryEntry(
                 ngsiLdEntity.id,
                 ngsiLdEntity.scopes!!,
                 TemporalProperty.CREATED_AT,
                 createdAt
             ).bind()
-        authorizationService.createScopesOwnerRights(ngsiLdEntity.scopes!!)
+            authorizationService.createScopesOwnerRights(ngsiLdEntity.scopes!!)
+        }
     }
 
     @Transactional

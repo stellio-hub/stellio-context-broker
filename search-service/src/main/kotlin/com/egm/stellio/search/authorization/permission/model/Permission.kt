@@ -95,6 +95,6 @@ data class Permission(
         val AUTHENTICATED_ADMIN_EXCEPTION =
             BadRequestDataException("Adding administration right for every authenticated user is prohibited")
         val PUBLIC_WITH_NON_READ_EXCEPTION =
-            BadRequestDataException("Public permission are only allowed with read action")
+            BadRequestDataException("Adding non read right for public access is prohibited")
     }
 }

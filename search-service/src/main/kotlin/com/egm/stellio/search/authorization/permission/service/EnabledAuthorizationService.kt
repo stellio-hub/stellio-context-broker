@@ -116,7 +116,7 @@ class EnabledAuthorizationService(
                         )
                     ).bind()
                 }
-        }.map { it.first() }
+        }
 
     override suspend fun createGlobalPermission(
         entityId: URI,

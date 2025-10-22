@@ -377,6 +377,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         ).right()
         coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
         coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createScopesOwnerRights(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()

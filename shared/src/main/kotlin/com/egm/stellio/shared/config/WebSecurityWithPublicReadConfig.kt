@@ -16,7 +16,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain
     havingValue = "true",
     matchIfMissing = false
 )
-class WebSecurityWithPublicPermissionConfig(
+class WebSecurityWithPublicReadConfig(
     private val tenantAuthenticationManagerResolver: TenantAuthenticationManagerResolver
 ) {
 

@@ -106,11 +106,9 @@ class PermissionHandler(
                 QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT,
                 QP.ACTION, QP.ASSIGNEE, QP.ASSIGNER,
                 QP.TARGET_ID, QP.DETAILS, QP.DETAILS_PICK,
-                QP.TARGET_TYPE,
+                QP.TARGET_TYPE, QP.TARGET_SCOPEQ
             ],
-            notImplemented = [
-                QP.TARGET_SCOPEQ
-            ]
+            notImplemented = []
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = query(httpHeaders, queryParams, PermissionKind.ADMIN)

@@ -10,7 +10,8 @@ data class ApplicationProperties(
     val contexts: Contexts
 ) {
     data class Authentication(
-        val enabled: Boolean
+        val enabled: Boolean,
+        val allowPublicPermission: Boolean
     )
 
     data class Pagination(

@@ -159,7 +159,7 @@ class PermissionService(
                 FROM permission
                 WHERE action = :action
                 AND $targetIsIncludedFilter
-                AND assignee ${if (permission.assignee.isNullOrBlank()) "is null" else "= '${permission.assignee}'"}                   
+                AND assignee = '${permission.assignee}'                  
             ) as exists
             """.trimIndent()
         )
@@ -429,7 +429,7 @@ class PermissionService(
     }
 
     private fun buildIsAssigneeFilter(uuids: List<Sub>): String =
-        "(assignee is null OR assignee IN ${uuids.toSqlList()})"
+        "(assignee IN ${uuids.toSqlList()})"
 
     private suspend fun buildAdministratedPermissionFilter(uuids: List<Sub>): Either<APIException, WithAndFilter> =
         either {
@@ -560,8 +560,8 @@ class PermissionService(
                     scopes = toOptionalList(row["target_scopes"])
                 ),
                 action = Action.fromString(row["action"] as String).bind(),
-                assigner = row["assigner"] as? String,
-                assignee = row["assignee"] as? String
+                assigner = row["assigner"] as String,
+                assignee = row["assignee"] as String
             )
         }
     }

@@ -67,7 +67,7 @@ class SubscriptionService(
 ) {
 
     @Transactional
-    suspend fun upsert(subscription: Subscription, sub: Sub?): Either<APIException, Unit> = either {
+    suspend fun upsert(subscription: Subscription, sub: Sub): Either<APIException, Unit> = either {
         val endpoint = subscription.notification.endpoint
         val insertStatement =
             """
@@ -115,7 +115,7 @@ class SubscriptionService(
             .bind("times_sent", subscription.notification.timesSent)
             .bind("is_active", subscription.isActive)
             .bind("expires_at", subscription.expiresAt)
-            .bind("sub", sub.orEmpty())
+            .bind("sub", sub)
             .bind("contexts", subscription.contexts.toTypedArray())
             .bind("throttling", subscription.throttling)
             .bind("sys_attrs", subscription.notification.sysAttrs)
@@ -251,7 +251,7 @@ class SubscriptionService(
         return buildContextLinkHeader(contextLink)
     }
 
-    suspend fun isCreatorOf(subscriptionId: URI, sub: Sub?): Either<APIException, Boolean> {
+    suspend fun isCreatorOf(subscriptionId: URI, sub: Sub): Either<APIException, Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -262,7 +262,7 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("id", subscriptionId)
             .oneToResult {
-                it["sub"] == sub.orEmpty()
+                it["sub"] == sub
             }
     }
 
@@ -281,7 +281,7 @@ class SubscriptionService(
             .bind("subscription_id", subscriptionId)
             .execute()
 
-    suspend fun getSubscriptions(limit: Int, offset: Int, sub: Sub?): List<Subscription> {
+    suspend fun getSubscriptions(limit: Int, offset: Int, sub: Sub): List<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at, 
@@ -305,12 +305,12 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
-            .bind("sub", sub.orEmpty())
+            .bind("sub", sub)
             .allToMappedList { rowToSubscription(it) }
             .mergeEntitySelectorsOnSubscriptions()
     }
 
-    suspend fun getSubscriptionsCount(sub: Sub?): Either<APIException, Int> {
+    suspend fun getSubscriptionsCount(sub: Sub): Either<APIException, Int> {
         val selectStatement =
             """
             SELECT count(*)
@@ -318,7 +318,7 @@ class SubscriptionService(
             WHERE subscription.sub = :sub
             """.trimIndent()
         return databaseClient.sql(selectStatement)
-            .bind("sub", sub.orEmpty())
+            .bind("sub", sub)
             .oneToResult { toInt(it["count"]) }
     }
 

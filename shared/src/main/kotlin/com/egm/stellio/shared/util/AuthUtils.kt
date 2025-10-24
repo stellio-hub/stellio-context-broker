@@ -8,6 +8,7 @@ import arrow.core.toOption
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import kotlinx.coroutines.reactive.awaitFirst
@@ -28,6 +29,9 @@ object AuthContextModel {
     const val GROUP_COMPACT_TYPE = "Group"
     const val GROUP_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + GROUP_COMPACT_TYPE
 
+    const val PUBLIC_SUBJECT: Sub = "urn:ngsi-ld:Subject:public"
+    const val AUTHENTICATED_SUBJECT: Sub = "urn:ngsi-ld:Subject:authenticated"
+    val GENERIC_SUBJECTS = listOf(PUBLIC_SUBJECT, AUTHENTICATED_SUBJECT)
     const val USER_ENTITY_PREFIX = "urn:ngsi-ld:User:"
     const val GROUP_ENTITY_PREFIX = "urn:ngsi-ld:Group:"
 
@@ -63,14 +67,14 @@ object AuthContextModel {
 // sub as per https://openid.net/specs/openid-connect-core-1_0.html#IDToken
 typealias Sub = String
 
-suspend fun getSubFromSecurityContext(): Sub? {
+suspend fun getSubFromSecurityContext(): Sub {
     return ReactiveSecurityContextHolder.getContext()
         .switchIfEmpty(Mono.just(SecurityContextImpl()))
         .map { context ->
             // Authentication#getName maps to the JWT’s sub property if one is present.
             context.authentication?.name.toOption()
         }
-        .awaitFirst().getOrElse { null }
+        .awaitFirst().getOrElse { PUBLIC_SUBJECT }
 }
 
 fun URI.extractSub(): Sub =

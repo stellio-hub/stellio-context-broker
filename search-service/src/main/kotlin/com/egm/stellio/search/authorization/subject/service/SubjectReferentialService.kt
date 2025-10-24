@@ -2,6 +2,7 @@ package com.egm.stellio.search.authorization.subject.service
 
 import arrow.core.Either
 import arrow.core.getOrElse
+import arrow.core.right
 import com.egm.stellio.search.authorization.subject.model.Group
 import com.egm.stellio.search.authorization.subject.model.SubjectReferential
 import com.egm.stellio.search.authorization.subject.model.User
@@ -17,6 +18,9 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.ADMIN_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
+import com.egm.stellio.shared.util.AuthContextModel.GENERIC_SUBJECTS
+import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
@@ -83,28 +87,33 @@ class SubjectReferentialService(
                 rowToSubjectReferential(it)
             }
 
-    suspend fun getSubjectAndGroupsUUID(): Either<APIException, List<Sub>> = getSubjectAndGroupsUUID(
-        getSubFromSecurityContext()!!
-    )
+    suspend fun getSubjectAndGroupsUUID(): Either<APIException, List<Sub>> =
+        getSubjectAndGroupsUUID(getSubFromSecurityContext())
 
     suspend fun getSubjectAndGroupsUUID(sub: Sub): Either<APIException, List<Sub>> =
-        databaseClient
-            .sql(
-                """
-                SELECT subject_id, groups_memberships
-                FROM subject_referential
-                WHERE subject_id = :subject_id
-                """.trimIndent()
-            )
-            .bind("subject_id", sub)
-            .oneToResult(
-                AccessDeniedException(
-                    "No subject information found for $sub"
-                )
-            ) {
-                toOptionalList<Sub>(it["groups_memberships"]).orEmpty()
-                    .plus(it["subject_id"] as Sub)
-            }
+        when (sub) {
+            PUBLIC_SUBJECT -> listOf(PUBLIC_SUBJECT).right()
+            AUTHENTICATED_SUBJECT -> GENERIC_SUBJECTS.right()
+            else ->
+                databaseClient
+                    .sql(
+                        """
+                        SELECT subject_id, groups_memberships
+                        FROM subject_referential
+                        WHERE subject_id = :subject_id
+                        """.trimIndent()
+                    )
+                    .bind("subject_id", sub)
+                    .oneToResult(
+                        AccessDeniedException(
+                            "No subject information found for $sub"
+                        )
+                    ) {
+                        toOptionalList<Sub>(it["groups_memberships"]).orEmpty()
+                            .plus(it["subject_id"] as Sub)
+                            .plus(GENERIC_SUBJECTS)
+                    }
+        }
 
     suspend fun getGroups(offset: Int, limit: Int): List<Group> =
         databaseClient

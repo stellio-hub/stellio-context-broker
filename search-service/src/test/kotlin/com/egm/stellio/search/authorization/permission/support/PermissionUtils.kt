@@ -13,7 +13,7 @@ object PermissionUtils {
     fun gimmeRawPermission(
         id: URI = "urn:ngsi-ld:Permission:${UUID.randomUUID()}".toUri(),
         target: TargetAsset = TargetAsset(id = "my:id".toUri()),
-        assignee: Sub? = MOCK_USER_SUB,
+        assignee: Sub = MOCK_USER_SUB,
         action: Action = Action.READ,
         assigner: Sub = MOCK_USER_SUB,
     ) = Permission(id, target = target, assignee = assignee, action = action, assigner = assigner)

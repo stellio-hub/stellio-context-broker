@@ -16,6 +16,7 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
+import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -85,6 +86,15 @@ class PermissionHandlerTests {
                 ]
             }
     """.trimIndent()
+    private val baseSubject = SubjectReferential(
+        userUuid,
+        SubjectType.GROUP,
+        Json.of(
+            """
+                    {"type": "Property", "value": {"kind": "Group", "name": "Stellio Team"}}
+            """.trimIndent()
+        )
+    )
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -503,7 +513,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal.json")
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.retrieve(any()) } returns baseSubject.right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         coEvery { permissionService.create(any()) } returns AlreadyExistsException("").left()
@@ -527,7 +537,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal.json")
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.retrieve(any()) } returns baseSubject.right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         coEvery { permissionService.create(any()) } returns Unit.right()
@@ -552,7 +562,7 @@ class PermissionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission.jsonld")
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.retrieve(any()) } returns baseSubject.right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         coEvery { permissionService.create(any()) } returns Unit.right()
@@ -585,6 +595,22 @@ class PermissionHandlerTests {
     }
 
     @Test
+    fun `create Permission should refuse to create public permission if the action is not read`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/permission/permission_public_write.jsonld")
+
+        coEvery { permissionService.create(any()) } returns Unit.right()
+        coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
+
+        webClient.post()
+            .uri(permissionUri)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+
+        coVerify(exactly = 0) { permissionService.create(any()) }
+    }
+
+    @Test
     fun `update permission should return a 500 if update in DB failed`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_update.jsonld")
         val permissionId = id
@@ -593,7 +619,7 @@ class PermissionHandlerTests {
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission(id = permissionId).right()
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.retrieve(any()) } returns baseSubject.right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         coEvery { permissionService.upsert(any()) } throws RuntimeException("Update failed")
@@ -637,7 +663,7 @@ class PermissionHandlerTests {
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission(id = permissionId).right()
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.retrieve(any()) } returns baseSubject.right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         coEvery { permissionService.upsert(any()) } returns Unit.right()
@@ -698,7 +724,7 @@ class PermissionHandlerTests {
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission(id = id).right()
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.retrieve(any()) } returns baseSubject.right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         coEvery { permissionService.upsert(any()) } returns Unit.right()
@@ -773,7 +799,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.getById(permissionId) } returns gimmeRawPermission(
             id = permissionId,
-            assignee = null
+            assignee = AUTHENTICATED_SUBJECT
         ).right()
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
         coEvery { subjectReferentialService.getSubjectAndGroupsUUID(any()) } returns listOf(userUuid).right()

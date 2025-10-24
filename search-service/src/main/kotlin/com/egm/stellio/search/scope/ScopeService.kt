@@ -84,7 +84,7 @@ class ScopeService(
             .bind("value", scopes.toTypedArray())
             .bind("time", createdAt)
             .bind("time_property", temporalProperty.toString())
-            .bind("sub", getSubFromSecurityContext().orEmpty())
+            .bind("sub", getSubFromSecurityContext())
             .execute()
 
     @Transactional

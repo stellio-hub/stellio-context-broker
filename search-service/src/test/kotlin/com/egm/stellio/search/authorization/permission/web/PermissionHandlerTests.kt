@@ -12,8 +12,8 @@ import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.SeeOtherException
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
@@ -511,12 +511,12 @@ class PermissionHandlerTests {
     @Test
     fun `create Permission should return the errors from the service`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/permission/permission_minimal.json")
-
+        val location = "my:id"
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
         coEvery { subjectReferentialService.retrieve(any()) } returns baseSubject.right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
-        coEvery { permissionService.create(any()) } returns AlreadyExistsException("").left()
+        coEvery { permissionService.create(any()) } returns SeeOtherException("", location.toUri()).left()
 
         webClient.post()
             .uri(permissionUri)
@@ -527,7 +527,8 @@ class PermissionHandlerTests {
             }
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isEqualTo(409)
+            .expectStatus().isEqualTo(303)
+            .expectHeader().location(location)
 
         coVerify(exactly = 1) { permissionService.create(any()) }
     }

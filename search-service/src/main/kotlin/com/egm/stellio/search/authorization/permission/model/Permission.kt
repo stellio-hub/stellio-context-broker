@@ -85,7 +85,7 @@ data class Permission(
 
         fun notFoundMessage(id: URI) = "Could not find a Permission with id $id"
         fun alreadyExistsMessage(id: URI) = "A Permission with id $id already exists"
-        const val UNIQUENESS_CONFLICT_MESSAGE = "A Permission with the same assignee, target and action already exists"
+        fun alreadyCoveredMessage(id: URI) = "The Permission '$id' already cover the created permission"
         fun unauthorizedTargetMessage(target: TargetAsset) = "User is not authorized to admin the target: $target"
         fun unauthorizedRetrieveMessage(permissionId: URI) = "User is not authorized to read Permission $permissionId"
         val CREATE_OR_UPDATE_OWN_EXCEPTION = BadRequestDataException(

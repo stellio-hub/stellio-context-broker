@@ -167,7 +167,10 @@ class PermissionService(
             .let {
                 if (it.isNotEmpty()) {
                     val duplicateId = it.first()
-                    SeeOtherException(alreadyCoveredMessage(duplicateId), duplicateId).left()
+                    SeeOtherException(
+                        alreadyCoveredMessage(duplicateId),
+                        location = URI("/ngsi-ld/v1/auth/permissions/$duplicateId")
+                    ).left()
                 } else
                     Unit.right()
             }

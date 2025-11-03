@@ -516,7 +516,7 @@ class PermissionHandlerTests {
         coEvery { subjectReferentialService.retrieve(any()) } returns baseSubject.right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
-        coEvery { permissionService.create(any()) } returns SeeOtherException("", location.toUri()).left()
+        coEvery { permissionService.create(any()) } returns SeeOtherException("", location = location.toUri()).left()
 
         webClient.post()
             .uri(permissionUri)

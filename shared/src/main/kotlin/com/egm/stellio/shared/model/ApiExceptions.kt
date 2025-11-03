@@ -29,10 +29,7 @@ sealed class APIException(
         it.title = this.message
         it.type = this.type
     }
-    fun toErrorResponse(): ResponseEntity<ProblemDetail> {
-        val response = toProblemDetail().toErrorResponse(location)
-        return response
-    }
+    fun toErrorResponse(): ResponseEntity<ProblemDetail> = toProblemDetail().toErrorResponse(location)
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(APIException::class.java)
@@ -117,8 +114,8 @@ data class AlreadyExistsException(override val message: String, override val det
 
 data class SeeOtherException(
     override val message: String,
-    override val location: URI,
     override val detail: String? = null,
+    override val location: URI,
 ) : APIException(
     ErrorType.CONFLICT.type,
     HttpStatus.SEE_OTHER,

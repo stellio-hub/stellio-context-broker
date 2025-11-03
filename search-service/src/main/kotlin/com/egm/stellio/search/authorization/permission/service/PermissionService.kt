@@ -7,7 +7,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.UNIQUENESS_CONFLICT_MESSAGE
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.alreadyCoveredMessage
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedTargetMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
@@ -26,6 +26,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.SeeOtherException
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
@@ -154,21 +155,23 @@ class PermissionService(
 
         return databaseClient.sql(
             """
-            SELECT exists (
-                SELECT 1
+                SELECT id
                 FROM permission
                 WHERE action = :action
                 AND $targetIsIncludedFilter
                 AND assignee = '${permission.assignee}'                  
-            ) as exists
             """.trimIndent()
         )
             .bind("action", permission.action.value)
-            .oneToResult { toBoolean(it["exists"]) }
-            .flatMap {
-                if (it)
-                    AlreadyExistsException(UNIQUENESS_CONFLICT_MESSAGE).left()
-                else
+            .allToMappedList { toUri(it["id"]) }
+            .let {
+                if (it.isNotEmpty()) {
+                    val duplicateId = it.first()
+                    SeeOtherException(
+                        alreadyCoveredMessage(duplicateId),
+                        location = URI("/ngsi-ld/v1/auth/permissions/$duplicateId")
+                    ).left()
+                } else
                     Unit.right()
             }
     }

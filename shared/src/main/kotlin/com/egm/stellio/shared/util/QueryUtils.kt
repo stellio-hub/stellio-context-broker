@@ -167,7 +167,7 @@ private fun transformQQueryToSqlJsonPath(
         val jsonAttributePath = mainAttributePath.joinToString(".") { "\"$it\"" }
         """
         jsonb_path_exists(#{TARGET}#,
-            '$.$jsonAttributePath.**{0 to 2}."${JSONLD_VALUE_KW}" ? (@ $operator ${'$'}value)',
+            '$.$jsonAttributePath.**{0 to 2}."$JSONLD_VALUE_KW" ? (@ $operator ${'$'}value)',
             '{ "value": ${value.escapeSingleQuotes()}}')
         """.trimIndent()
     }
@@ -175,7 +175,7 @@ private fun transformQQueryToSqlJsonPath(
         val jsonAttributePath = mainAttributePath.joinToString(".") { "\"$it\"" }
         """
         jsonb_path_exists(#{TARGET}#,
-            '$.$jsonAttributePath.**{0 to 2}."${JSONLD_ID_KW}" ? (@ $operator ${'$'}value)',
+            '$.$jsonAttributePath.**{0 to 2}."$JSONLD_ID_KW" ? (@ $operator ${'$'}value)',
             '{ "value": ${value.quote()} }')
         """.trimIndent()
     }
@@ -187,7 +187,7 @@ private fun transformQQueryToSqlJsonPath(
         val jsonTrailingPath = trailingAttributePath.joinToString(".") { "\"$it\"" }
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."${NGSILD_PROPERTY_VALUE}".$jsonTrailingPath.**{0 to 1}."${JSONLD_VALUE_KW}" ? 
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE".$jsonTrailingPath.**{0 to 1}."$JSONLD_VALUE_KW" ? 
                 (@ $operator ${'$'}value)',
             '{ "value": ${value.escapeSingleQuotes()} }')
         """.trimIndent()
@@ -195,12 +195,12 @@ private fun transformQQueryToSqlJsonPath(
     operator == "like_regex" ->
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."${NGSILD_PROPERTY_VALUE}"."${JSONLD_VALUE_KW}" ? (@ like_regex ${value.escapeSingleQuotes()})')
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ like_regex ${value.escapeSingleQuotes()})')
         """.trimIndent()
     operator == "not_like_regex" ->
         """
         NOT (jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."${NGSILD_PROPERTY_VALUE}"."${JSONLD_VALUE_KW}" ? (@ like_regex ${value.escapeSingleQuotes()})'))
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ like_regex ${value.escapeSingleQuotes()})'))
         """.trimIndent()
     value.isURI() || value.replace("\"", "").isURI() -> {
         // for queries on relationships, values can be quoted or not, handle both cases
@@ -220,7 +220,7 @@ private fun transformQQueryToSqlJsonPath(
         val (min, max) = value.rangeInterval()
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."${NGSILD_PROPERTY_VALUE}"."${JSONLD_VALUE_KW}" ? 
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? 
                 (@ >= ${'$'}min && @ <= ${'$'}max)',
             '{ "min": $min, "max": $max }')
         """.trimIndent()
@@ -232,13 +232,13 @@ private fun transformQQueryToSqlJsonPath(
             .joinToString(separator = " JSONPATH_OR_FILTER ") { "@ == $it" }
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."${NGSILD_PROPERTY_VALUE}"."${JSONLD_VALUE_KW}" ? (${valuesFilter.escapeSingleQuotes()})')
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (${valuesFilter.escapeSingleQuotes()})')
         """.trimIndent()
     }
     else ->
         """
         jsonb_path_exists(#{TARGET}#,
-            '$."${mainAttributePath[0]}"."${NGSILD_PROPERTY_VALUE}"."${JSONLD_VALUE_KW}" ? (@ $operator ${'$'}value)',
+            '$."${mainAttributePath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW" ? (@ $operator ${'$'}value)',
             '{ "value": ${value.escapeSingleQuotes()} }')
         """.trimIndent()
 }

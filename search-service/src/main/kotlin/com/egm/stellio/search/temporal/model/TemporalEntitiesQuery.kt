@@ -4,12 +4,16 @@ import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
+import com.egm.stellio.shared.model.ExpandedTerm
 import java.time.Duration
 import java.time.Period
 import java.time.temporal.TemporalAmount
 
 sealed class TemporalEntitiesQuery(
     open val entitiesQuery: EntitiesQuery,
+    // keep an expanded version of pick and omit (only attributes, not the core members)
+    // it allows to do the pick / omit filtering in the DB and avoid expensive temporal queries for non-returned attrs
+    open val expandedPickOmitAttributes: Pair<Set<ExpandedTerm>, Set<ExpandedTerm>> = Pair(emptySet(), emptySet()),
     open val temporalQuery: TemporalQuery,
     open val temporalRepresentation: TemporalRepresentation,
     open val withAudit: Boolean
@@ -35,14 +39,16 @@ sealed class TemporalEntitiesQuery(
 
 data class TemporalEntitiesQueryFromGet(
     override val entitiesQuery: EntitiesQueryFromGet,
+    override val expandedPickOmitAttributes: Pair<Set<ExpandedTerm>, Set<ExpandedTerm>> = Pair(emptySet(), emptySet()),
     override val temporalQuery: TemporalQuery,
     override val temporalRepresentation: TemporalRepresentation,
     override val withAudit: Boolean
-) : TemporalEntitiesQuery(entitiesQuery, temporalQuery, temporalRepresentation, withAudit)
+) : TemporalEntitiesQuery(entitiesQuery, expandedPickOmitAttributes, temporalQuery, temporalRepresentation, withAudit)
 
 data class TemporalEntitiesQueryFromPost(
     override val entitiesQuery: EntitiesQueryFromPost,
+    override val expandedPickOmitAttributes: Pair<Set<ExpandedTerm>, Set<ExpandedTerm>> = Pair(emptySet(), emptySet()),
     override val temporalQuery: TemporalQuery,
     override val temporalRepresentation: TemporalRepresentation,
     override val withAudit: Boolean
-) : TemporalEntitiesQuery(entitiesQuery, temporalQuery, temporalRepresentation, withAudit)
+) : TemporalEntitiesQuery(entitiesQuery, expandedPickOmitAttributes, temporalQuery, temporalRepresentation, withAudit)

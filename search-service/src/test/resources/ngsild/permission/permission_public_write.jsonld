@@ -1,0 +1,12 @@
+{
+  "id": "urn:ngsi-ld:Permission:1",
+  "type": "Permission",
+  "target": {
+    "id": "urn:ngsi-ld:Vehicle:A456"
+  },
+  "assignee": "urn:ngsi-ld:Subject:public",
+  "action": "write",
+  "@context": [
+    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+  ]
+}

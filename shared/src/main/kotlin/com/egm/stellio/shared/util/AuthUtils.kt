@@ -8,6 +8,7 @@ import arrow.core.toOption
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import kotlinx.coroutines.reactive.awaitFirst
@@ -27,10 +28,11 @@ object AuthContextModel {
     const val USER_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + USER_COMPACT_TYPE
     const val GROUP_COMPACT_TYPE = "Group"
     const val GROUP_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + GROUP_COMPACT_TYPE
-    const val CLIENT_COMPACT_TYPE = "Client"
 
+    const val PUBLIC_SUBJECT: Sub = "urn:ngsi-ld:Subject:public"
+    const val AUTHENTICATED_SUBJECT: Sub = "urn:ngsi-ld:Subject:authenticated"
+    val GENERIC_SUBJECTS = listOf(PUBLIC_SUBJECT, AUTHENTICATED_SUBJECT)
     const val USER_ENTITY_PREFIX = "urn:ngsi-ld:User:"
-    const val CLIENT_ENTITY_PREFIX = "urn:ngsi-ld:Client:"
     const val GROUP_ENTITY_PREFIX = "urn:ngsi-ld:Group:"
 
     const val AUTH_PERMISSION_TERM = "Permission"
@@ -40,7 +42,6 @@ object AuthContextModel {
     const val AUTH_TARGET_TERM = "target"
     const val AUTH_TERM_SUB = "sub"
     const val AUTH_PROP_SUB = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SUB
-    const val AUTH_TERM_CLIENT_ID = "clientId"
     const val AUTH_TERM_NAME = "name"
     const val AUTH_PROP_NAME = "https://schema.org/$AUTH_TERM_NAME"
     const val AUTH_TERM_SID = "serviceAccountId"
@@ -66,14 +67,14 @@ object AuthContextModel {
 // sub as per https://openid.net/specs/openid-connect-core-1_0.html#IDToken
 typealias Sub = String
 
-suspend fun getSubFromSecurityContext(): Sub? {
+suspend fun getSubFromSecurityContext(): Sub {
     return ReactiveSecurityContextHolder.getContext()
         .switchIfEmpty(Mono.just(SecurityContextImpl()))
         .map { context ->
-            // Authentication#getName maps to the JWT’s sub property, if one is present.
+            // Authentication#getName maps to the JWT’s sub property if one is present.
             context.authentication?.name.toOption()
         }
-        .awaitFirst().getOrElse { null }
+        .awaitFirst().getOrElse { PUBLIC_SUBJECT }
 }
 
 fun URI.extractSub(): Sub =

@@ -84,7 +84,7 @@ class ScopeService(
             .bind("value", scopes.toTypedArray())
             .bind("time", createdAt)
             .bind("time_property", temporalProperty.toString())
-            .bind("sub", getSubFromSecurityContext().orEmpty())
+            .bind("sub", getSubFromSecurityContext())
             .execute()
 
     @Transactional
@@ -212,36 +212,40 @@ class ScopeService(
         row: Map<String, Any>,
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): ScopeInstanceResult =
-        if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES) {
-            val startDateTime = toZonedDateTime(row["start"])
-            val endDateTime =
-                if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
-                    toZonedDateTime(row["end"])
-                else
-                    startDateTime.plus(Duration.parse(temporalEntitiesQuery.temporalQuery.aggrPeriodDuration!!))
-            // in a row, there is the result for each requested aggregation method
-            val values = temporalEntitiesQuery.temporalQuery.aggrMethods!!.map {
-                val value = row["${it.method}_value"] ?: ""
-                AggregatedScopeInstanceResult.AggregateResult(it, value, startDateTime, endDateTime)
+        when (temporalEntitiesQuery.temporalRepresentation) {
+            TemporalRepresentation.AGGREGATED_VALUES -> {
+                val startDateTime = toZonedDateTime(row["start"])
+                val endDateTime =
+                    if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
+                        toZonedDateTime(row["end"])
+                    else
+                        startDateTime.plus(Duration.parse(temporalEntitiesQuery.temporalQuery.aggrPeriodDuration!!))
+                // in a row, there is the result for each requested aggregation method
+                val values = temporalEntitiesQuery.temporalQuery.aggrMethods!!.map {
+                    val value = row["${it.method}_value"] ?: ""
+                    AggregatedScopeInstanceResult.AggregateResult(it, value, startDateTime, endDateTime)
+                }
+                AggregatedScopeInstanceResult(
+                    entityId = toUri(row["entity_id"]),
+                    values = values
+                )
             }
-            AggregatedScopeInstanceResult(
-                entityId = toUri(row["entity_id"]),
-                values = values
-            )
-        } else if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES) {
-            SimplifiedScopeInstanceResult(
-                entityId = toUri(row["entity_id"]),
-                scopes = toList(row["value"]),
-                time = toZonedDateTime(row["start"])
-            )
-        } else {
-            FullScopeInstanceResult(
-                entityId = toUri(row["entity_id"]),
-                scopes = toList(row["value"]),
-                time = toZonedDateTime(row["start"]),
-                timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
-                sub = row["sub"] as? String
-            )
+            TemporalRepresentation.TEMPORAL_VALUES -> {
+                SimplifiedScopeInstanceResult(
+                    entityId = toUri(row["entity_id"]),
+                    scopes = toList(row["value"]),
+                    time = toZonedDateTime(row["start"])
+                )
+            }
+            else -> {
+                FullScopeInstanceResult(
+                    entityId = toUri(row["entity_id"]),
+                    scopes = toList(row["value"]),
+                    time = toZonedDateTime(row["start"]),
+                    timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
+                    sub = row["sub"] as? String
+                )
+            }
         }
 
     @Transactional

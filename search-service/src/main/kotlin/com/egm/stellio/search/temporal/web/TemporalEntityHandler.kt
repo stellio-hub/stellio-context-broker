@@ -16,11 +16,13 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
+import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.INVALID_TEMPORAL_INSTANCE_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
@@ -34,7 +36,6 @@ import com.egm.stellio.shared.util.checkNameIsNgsiLdSupported
 import com.egm.stellio.shared.util.extractPayloadAndContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.invalidTemporalInstanceMessage
 import com.egm.stellio.shared.util.missingPathErrorResponse
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
@@ -139,9 +140,10 @@ class TemporalEntityHandler(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT,
-                QP.ENDTIMEAT, QP.LASTN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.SCOPEQ, QP.DATASET_ID
+                QP.ENDTIMEAT, QP.LASTN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.SCOPEQ, QP.DATASET_ID,
+                QP.PICK, QP.OMIT
             ],
-            notImplemented = [QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT, QP.EXPAND_VALUES, QP.CSF]
+            notImplemented = [QP.LOCAL, QP.VIA, QP.EXPAND_VALUES, QP.CSF]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -156,6 +158,7 @@ class TemporalEntityHandler(
         ).bind()
 
         val compactedEntities = compactEntities(temporalEntities, contexts)
+            .filterPickAndOmit(temporalEntitiesQuery.entitiesQuery.pick, temporalEntitiesQuery.entitiesQuery.omit)
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
         buildEntitiesTemporalResponse(
@@ -183,9 +186,9 @@ class TemporalEntityHandler(
         @AllowedParameters(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.ATTRS, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT, QP.LASTN,
-                QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.DATASET_ID
+                QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.DATASET_ID, QP.PICK, QP.OMIT
             ],
-            notImplemented = [QP.LOCAL, QP.VIA, QP.PICK, QP.OMIT]
+            notImplemented = [QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -201,6 +204,10 @@ class TemporalEntityHandler(
         ).bind()
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
+            .filterPickAndOmit(
+                temporalEntitiesQuery.entitiesQuery.pick,
+                temporalEntitiesQuery.entitiesQuery.omit
+            ).bind()
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
@@ -348,6 +355,6 @@ class TemporalEntityHandler(
             }
         }.let {
             if (it) Unit.right()
-            else BadRequestDataException(invalidTemporalInstanceMessage()).left()
+            else BadRequestDataException(INVALID_TEMPORAL_INSTANCE_MESSAGE).left()
         }
 }

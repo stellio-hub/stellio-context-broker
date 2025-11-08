@@ -6,13 +6,9 @@ import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.Scope
-import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
-import com.egm.stellio.shared.util.JsonUtils.deserializeAs
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnore
 import java.net.URI
@@ -43,18 +39,4 @@ data class TargetAsset(
 
     @JsonIgnore
     fun isTargetingEntity() = id != null
-
-    companion object {
-        fun deserialize(
-            input: Map<String, Any>,
-            contexts: List<String>
-        ): Either<APIException, TargetAsset> =
-            runCatching {
-                deserializeAs<TargetAsset>(serializeObject(input.plus(JSONLD_CONTEXT_KW to contexts)))
-                    .expand(contexts)
-            }.fold(
-                { it.right() },
-                { it.toAPIException("Failed to parse target caused by : ${it.message}").left() }
-            )
-    }
 }

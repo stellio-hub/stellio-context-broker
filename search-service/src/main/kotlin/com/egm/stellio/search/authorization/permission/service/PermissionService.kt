@@ -7,7 +7,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.UNIQUENESS_CONFLICT_MESSAGE
+import com.egm.stellio.search.authorization.permission.model.Permission.Companion.alreadyCoveredMessage
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedTargetMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
@@ -26,6 +26,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.SeeOtherException
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
@@ -154,21 +155,23 @@ class PermissionService(
 
         return databaseClient.sql(
             """
-            SELECT exists (
-                SELECT 1
+                SELECT id
                 FROM permission
                 WHERE action = :action
                 AND $targetIsIncludedFilter
-                AND assignee ${if (permission.assignee.isNullOrBlank()) "is null" else "= '${permission.assignee}'"}                   
-            ) as exists
+                AND assignee = '${permission.assignee}'                  
             """.trimIndent()
         )
             .bind("action", permission.action.value)
-            .oneToResult { toBoolean(it["exists"]) }
-            .flatMap {
-                if (it)
-                    AlreadyExistsException(UNIQUENESS_CONFLICT_MESSAGE).left()
-                else
+            .allToMappedList { toUri(it["id"]) }
+            .let {
+                if (it.isNotEmpty()) {
+                    val duplicateId = it.first()
+                    SeeOtherException(
+                        alreadyCoveredMessage(duplicateId),
+                        location = URI("/ngsi-ld/v1/auth/permissions/$duplicateId")
+                    ).left()
+                } else
                     Unit.right()
             }
     }
@@ -429,7 +432,7 @@ class PermissionService(
     }
 
     private fun buildIsAssigneeFilter(uuids: List<Sub>): String =
-        "(assignee is null OR assignee IN ${uuids.toSqlList()})"
+        "(assignee IN ${uuids.toSqlList()})"
 
     private suspend fun buildAdministratedPermissionFilter(uuids: List<Sub>): Either<APIException, WithAndFilter> =
         either {
@@ -560,8 +563,8 @@ class PermissionService(
                     scopes = toOptionalList(row["target_scopes"])
                 ),
                 action = Action.fromString(row["action"] as String).bind(),
-                assigner = row["assigner"] as? String,
-                assignee = row["assignee"] as? String
+                assigner = row["assigner"] as String,
+                assignee = row["assignee"] as String
             )
         }
     }

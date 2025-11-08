@@ -44,6 +44,9 @@ data class Entity(
 
         resultEntity[NGSILD_CREATED_AT_IRI] = buildNonReifiedTemporalValue(createdAt)
         resultEntity[NGSILD_MODIFIED_AT_IRI] = buildNonReifiedTemporalValue(modifiedAt)
+        deletedAt?.run {
+            resultEntity[NGSILD_DELETED_AT_IRI] = buildNonReifiedTemporalValue(deletedAt)
+        }
 
         return resultEntity
     }

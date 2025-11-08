@@ -3,6 +3,7 @@ package com.egm.stellio.search.entity.util
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
@@ -17,7 +18,8 @@ import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
-import com.egm.stellio.shared.util.parseAndExpandQueryParameter
+import com.egm.stellio.shared.util.parseAttrsParameter
+import com.egm.stellio.shared.util.parsePickOmitParameters
 import com.egm.stellio.shared.util.parseQueryParameter
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.validateIdPattern
@@ -38,7 +40,12 @@ fun composeEntitiesQueryFromGet(
      */
     val q = queryParams.getFirst(QueryParameter.Q.key)?.decode()
     val scopeQ = queryParams.getFirst(QueryParameter.SCOPEQ.key)
-    val attrs = parseAndExpandQueryParameter(queryParams.getFirst(QueryParameter.ATTRS.key), contexts)
+    val attrs = parseAttrsParameter(queryParams.getFirst(QueryParameter.ATTRS.key), contexts).bind()
+    val (pick, omit) = parsePickOmitParameters(
+        queryParams.getFirst(QueryParameter.PICK.key),
+        queryParams.getFirst(QueryParameter.OMIT.key)
+    ).bind()
+    validateMutualAttrsProjectionAttributesExclusion(attrs, pick, omit).bind()
     val datasetId = parseQueryParameter(queryParams.getFirst(QueryParameter.DATASET_ID.key))
     val paginationQuery = parsePaginationParameters(
         queryParams,
@@ -62,6 +69,8 @@ fun composeEntitiesQueryFromGet(
         scopeQ = scopeQ,
         paginationQuery = paginationQuery,
         attrs = attrs,
+        pick = pick,
+        omit = omit,
         datasetId = datasetId,
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
@@ -100,6 +109,11 @@ fun composeEntitiesQueryFromPost(
         )
     }
     val attrs = query.attrs.orEmpty().map { JsonLdUtils.expandJsonLdTerm(it.trim(), contexts) }.toSet()
+    val (pick, omit) = parsePickOmitParameters(
+        query.pick?.joinToString(","),
+        query.omit?.joinToString(",")
+    ).bind()
+    validateMutualAttrsProjectionAttributesExclusion(attrs, pick, omit).bind()
     val datasetId = query.datasetId.orEmpty().toSet()
     val geoQuery = query.geoQ?.let {
         val geoQueryElements = mapOf(
@@ -128,9 +142,26 @@ fun composeEntitiesQueryFromPost(
         scopeQ = query.scopeQ,
         paginationQuery = paginationQuery,
         attrs = attrs,
+        pick = pick,
+        omit = omit,
         datasetId = datasetId,
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
         contexts = contexts
     )
 }
+
+fun validateMutualAttrsProjectionAttributesExclusion(
+    attrs: Set<String>,
+    pick: Set<String>,
+    omit: Set<String>
+): Either<APIException, Unit> =
+    if (attrs.isNotEmpty() && (pick.isNotEmpty() || omit.isNotEmpty()))
+        BadRequestDataException(
+            "The 'attrs' parameter cannot be used together with 'pick' or 'omit' parameters"
+        ).left()
+    else if (pick.intersect(omit).isNotEmpty())
+        BadRequestDataException(
+            "An entity member cannot be present in both 'pick' and 'omit' parameters"
+        ).left()
+    else Unit.right()

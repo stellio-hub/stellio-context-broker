@@ -37,6 +37,7 @@ import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -134,7 +135,7 @@ class TemporalQueryServiceTests {
 
         coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
         coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
-        coEvery { entityAttributeService.getForEntity(any(), any(), any(), any()) } returns attributes
+        coEvery { entityAttributeService.getForEntity(any(), any(), any(), any(), any()) } returns attributes
         coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
         coEvery {
             attributeInstanceService.search(any(), any<List<Attribute>>())
@@ -163,7 +164,7 @@ class TemporalQueryServiceTests {
         coVerify {
             entityQueryService.retrieve(entityUri, false)
             authorizationService.userCanReadEntity(entityUri)
-            entityAttributeService.getForEntity(entityUri, emptySet(), emptySet(), false)
+            entityAttributeService.getForEntity(entityUri, emptySet(), emptySet(), emptySet(), false)
             attributeInstanceService.search(
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.temporalQuery.timerel == TemporalQuery.Timerel.AFTER &&
@@ -178,7 +179,62 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should not return an oldest timestamp if not in an aggregattion query`() = runTest {
+    fun `it should retrieve a temporal entity as requested by pick and omit params`() = runTest {
+        val attributes =
+            listOf(INCOMING_IRI, OUTGOING_IRI).map {
+                Attribute(
+                    entityId = entityUri,
+                    attributeName = it,
+                    attributeValueType = Attribute.AttributeValueType.NUMBER,
+                    createdAt = now,
+                    payload = EMPTY_JSON_PAYLOAD
+                )
+            }
+
+        coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
+        coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.getForEntity(any(), any(), any(), any(), any())
+        } returns listOf(attributes[0])
+        coEvery {
+            attributeInstanceService.search(any(), any<List<Attribute>>())
+        } returns listOf(
+            FullAttributeInstanceResult(attributes[0].id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null)
+        ).right()
+
+        temporalQueryService.queryTemporalEntity(
+            entityUri,
+            TemporalEntitiesQueryFromGet(
+                temporalQuery = buildDefaultTestTemporalQuery(
+                    timerel = TemporalQuery.Timerel.AFTER,
+                    timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                ),
+                expandedPickOmitAttributes = Pair(setOf(INCOMING_IRI), setOf(OUTGOING_IRI)),
+                entitiesQuery = EntitiesQueryFromGet(
+                    paginationQuery = PaginationQuery(limit = 0, offset = 50),
+                    pick = setOf(INCOMING_IRI),
+                    omit = setOf(OUTGOING_IRI),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
+            )
+        )
+
+        coVerify {
+            entityQueryService.retrieve(entityUri, false)
+            authorizationService.userCanReadEntity(entityUri)
+            entityAttributeService.getForEntity(entityUri, setOf(INCOMING_IRI), setOf(OUTGOING_IRI), emptySet(), false)
+            attributeInstanceService.search(
+                any(),
+                match<List<Attribute>> { it.size == 1 && it[0].attributeName == INCOMING_IRI }
+            )
+            scopeService wasNot called
+        }
+    }
+
+    @Test
+    fun `it should not return an oldest timestamp if not in an aggregation query`() = runTest {
         val origin = temporalQueryService.calculateOldestTimestamp(
             entityUri,
             TemporalEntitiesQueryFromGet(
@@ -246,6 +302,17 @@ class TemporalQueryServiceTests {
         assertEquals(ZonedDateTime.parse("2023-09-03T12:34:56Z"), origin)
     }
 
+    fun initializeQueryTemporalEntitiesMocks(attribute: Attribute) {
+        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
+        coEvery { entityQueryService.queryEntities(any(), any(), null) } returns listOf(entityUri)
+        coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 1.right()
+        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
+        coEvery {
+            entityAttributeService.getForEntities(any(), any(), any(), any())
+        } returns listOf(attribute)
+        coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
+    }
+
     @Test
     fun `it should query temporal entities as requested by query params`() = runTest {
         val attribute = Attribute(
@@ -256,14 +323,7 @@ class TemporalQueryServiceTests {
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
-        coEvery { entityQueryService.queryEntities(any(), any(), any()) } returns listOf(entityUri)
-        coEvery {
-            entityAttributeService.getForEntities(any(), any())
-        } returns listOf(attribute)
-        coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 1.right()
-        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
-        coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
+        initializeQueryTemporalEntitiesMocks(attribute)
         coEvery {
             attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns
@@ -282,7 +342,7 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
@@ -292,14 +352,7 @@ class TemporalQueryServiceTests {
         )
 
         coVerify {
-            entityAttributeService.getForEntities(
-                listOf(entityUri),
-                EntitiesQueryFromGet(
-                    typeSelection = "$BEEHIVE_IRI,$APIARY_IRI",
-                    paginationQuery = PaginationQuery(limit = 2, offset = 2),
-                    contexts = APIC_COMPOUND_CONTEXTS
-                )
-            )
+            entityAttributeService.getForEntities(listOf(entityUri), emptySet(), emptySet(), emptySet())
             attributeInstanceService.search(
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.temporalQuery.timerel == TemporalQuery.Timerel.BEFORE &&
@@ -323,6 +376,58 @@ class TemporalQueryServiceTests {
     }
 
     @Test
+    fun `it should query temporal entities as requested by pick and omit params`() = runTest {
+        val attribute = Attribute(
+            entityId = entityUri,
+            attributeName = INCOMING_IRI,
+            attributeValueType = Attribute.AttributeValueType.NUMBER,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+
+        initializeQueryTemporalEntitiesMocks(attribute)
+        coEvery {
+            attributeInstanceService.search(any(), any<List<Attribute>>())
+        } returns
+            listOf(
+                SimplifiedAttributeInstanceResult(
+                    attributeUuid = attribute.id,
+                    value = 2.0,
+                    time = ngsiLdDateTime()
+                )
+            ).right()
+
+        temporalQueryService.queryTemporalEntities(
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
+                    typeSelection = "$BEEHIVE_IRI,$APIARY_IRI",
+                    paginationQuery = PaginationQuery(limit = 2, offset = 2),
+                    pick = setOf(INCOMING_IRI),
+                    omit = setOf(OUTGOING_IRI),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                Pair(setOf(INCOMING_IRI), setOf(OUTGOING_IRI)),
+                temporalQuery = buildDefaultTestTemporalQuery(
+                    timerel = TemporalQuery.Timerel.BEFORE,
+                    timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                ),
+                temporalRepresentation = TemporalRepresentation.TEMPORAL_VALUES,
+                withAudit = false
+            )
+        )
+
+        coVerify {
+            entityAttributeService.getForEntities(
+                listOf(entityUri),
+                setOf(INCOMING_IRI),
+                setOf(OUTGOING_IRI),
+                emptySet()
+            )
+            scopeService wasNot called
+        }
+    }
+
+    @Test
     fun `it should not return any entity if no attribute is matching the temporal query`() = runTest {
         val attribute = Attribute(
             entityId = entityUri,
@@ -332,17 +437,10 @@ class TemporalQueryServiceTests {
             payload = EMPTY_JSON_PAYLOAD
         )
 
-        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
-        coEvery { entityQueryService.queryEntities(any(), any(), any()) } returns listOf(entityUri)
-        coEvery {
-            entityAttributeService.getForEntities(any(), any())
-        } returns listOf(attribute)
-        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
+        initializeQueryTemporalEntitiesMocks(attribute)
         coEvery {
             attributeInstanceService.search(any(), any<List<Attribute>>())
         } returns emptyList<AttributeInstanceResult>().right()
-        coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
-        coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 0.right()
 
         temporalQueryService.queryTemporalEntities(
             TemporalEntitiesQueryFromGet(
@@ -351,7 +449,7 @@ class TemporalQueryServiceTests {
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                buildDefaultTestTemporalQuery(
+                temporalQuery = buildDefaultTestTemporalQuery(
                     timerel = TemporalQuery.Timerel.BEFORE,
                     timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
                     aggrMethods = listOf(TemporalQuery.Aggregate.AVG)

@@ -21,26 +21,26 @@ sealed class APIException(
     open val type: URI,
     open val status: HttpStatus,
     override val message: String,
-    open val detail: String? = null
+    open val detail: String? = null,
+    open val location: URI? = null
 ) : Exception(message) {
 
     fun toProblemDetail(): ProblemDetail = ProblemDetail.forStatusAndDetail(status, this.detail).also {
         it.title = this.message
         it.type = this.type
     }
-    fun toErrorResponse(): ResponseEntity<ProblemDetail> {
-        return toProblemDetail().toErrorResponse()
-    }
+    fun toErrorResponse(): ResponseEntity<ProblemDetail> = toProblemDetail().toErrorResponse(location)
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(APIException::class.java)
     }
 }
 
-fun ProblemDetail.toErrorResponse(): ResponseEntity<ProblemDetail> {
+fun ProblemDetail.toErrorResponse(location: URI? = null): ResponseEntity<ProblemDetail> {
     APIException.logger.info("Returning error ${this.type} (${this.title})")
     return ResponseEntity.status(this.status)
         .contentType(MediaType.APPLICATION_JSON)
+        .apply { location?.let { location(it) } }
         .body(this)
 }
 
@@ -110,6 +110,18 @@ data class AlreadyExistsException(override val message: String, override val det
     HttpStatus.CONFLICT,
     message,
     detail
+)
+
+data class SeeOtherException(
+    override val message: String,
+    override val detail: String? = null,
+    override val location: URI,
+) : APIException(
+    ErrorType.CONFLICT.type,
+    HttpStatus.SEE_OTHER,
+    message,
+    detail,
+    location
 )
 
 data class InvalidRequestException(override val message: String, override val detail: String? = null) : APIException(
@@ -208,6 +220,16 @@ data class JsonLdErrorApiResponse(override val message: String, override val det
     detail
 )
 
+data class UnprocessableEntityException(
+    override val message: String,
+    override val detail: String? = null
+) : APIException(
+    ErrorType.UNPROCESSABLE_ENTITY.type,
+    HttpStatus.UNPROCESSABLE_ENTITY,
+    message,
+    detail
+)
+
 fun Throwable.toAPIException(specificMessage: String? = null): APIException =
     when (this) {
         is APIException -> this
@@ -238,5 +260,6 @@ enum class ErrorType(val type: URI) {
     NOT_IMPLEMENTED(URI("https://uri.etsi.org/ngsi-ld/errors/NotImplemented")),
     UNSUPPORTED_MEDIA_TYPE(URI("https://uri.etsi.org/ngsi-ld/errors/UnsupportedMediaType")),
     NOT_ACCEPTABLE(URI("https://uri.etsi.org/ngsi-ld/errors/NotAcceptable")),
-    NONEXISTENT_TENANT(URI("https://uri.etsi.org/ngsi-ld/errors/NonexistentTenant"))
+    NONEXISTENT_TENANT(URI("https://uri.etsi.org/ngsi-ld/errors/NonexistentTenant")),
+    UNPROCESSABLE_ENTITY(URI("https://uri.etsi.org/ngsi-ld/errors/UnprocessableEntity"))
 }

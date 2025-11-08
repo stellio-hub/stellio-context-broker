@@ -7,6 +7,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.common.model.Query
+import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromPost
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
@@ -20,9 +21,12 @@ import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.hasValueInOptionsParam
 import com.egm.stellio.shared.util.parseTimeParameter
 import org.springframework.util.MultiValueMap
@@ -52,9 +56,11 @@ fun composeTemporalEntitiesQueryFromGet(
     ).bind()
     val temporalQuery =
         buildTemporalQuery(requestParams, defaultPagination, inQueryEntities, temporalRepresentation).bind()
+    val expandedPickOmitAttributes = expandAttributesFromPickOmit(entitiesQueryFromGet, contexts)
 
     TemporalEntitiesQueryFromGet(
         entitiesQuery = entitiesQueryFromGet,
+        expandedPickOmitAttributes = expandedPickOmitAttributes,
         temporalQuery = temporalQuery,
         temporalRepresentation = temporalRepresentation,
         withAudit = withAudit
@@ -94,9 +100,11 @@ fun composeTemporalEntitiesQueryFromPost(
         true,
         temporalRepresentation
     ).bind()
+    val expandedPickOmitAttributes = expandAttributesFromPickOmit(entitiesQueryFromPost, contexts)
 
     TemporalEntitiesQueryFromPost(
         entitiesQuery = entitiesQueryFromPost,
+        expandedPickOmitAttributes = expandedPickOmitAttributes,
         temporalQuery = temporalQuery,
         temporalRepresentation = temporalRepresentation,
         withAudit = withAudit
@@ -121,7 +129,9 @@ fun buildTemporalQuery(
     val aggrMethodsParam = params.getFirst(QueryParameter.AGGRMETHODS.key)
     val lastNParam = params.getFirst(QueryParameter.LASTN.key)
     val timeproperty = params.getFirst(QueryParameter.TIMEPROPERTY.key)?.let {
-        AttributeInstance.TemporalProperty.forPropertyName(it)
+        AttributeInstance.TemporalProperty.fromTimeProperty(it).getOrElse { apiException ->
+            return apiException.left()
+        }
     } ?: AttributeInstance.TemporalProperty.OBSERVED_AT
 
     val endTimeAt = endTimeAtParam?.parseTimeParameter("'endTimeAt' parameter is not a valid date")
@@ -176,7 +186,7 @@ fun buildTimerelAndTime(
     } else if (timerelParam != null && timeAtParam != null) {
         val timeRelResult = try {
             Timerel.valueOf(timerelParam.uppercase()).right()
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             "'timerel' is not valid, it should be one of 'before', 'between', or 'after'".left()
         }
 
@@ -188,6 +198,22 @@ fun buildTimerelAndTime(
         }
     } else {
         "'timerel' and 'time' must be used in conjunction".left()
+    }
+
+private fun expandAttributesFromPickOmit(
+    entitiesQueryFromGet: EntitiesQuery,
+    contexts: List<String>
+): Pair<Set<ExpandedTerm>, Set<ExpandedTerm>> =
+    entitiesQueryFromGet.let {
+        Pair(
+            it.pick.minus(COMPACTED_ENTITY_CORE_MEMBERS),
+            it.omit.minus(COMPACTED_ENTITY_CORE_MEMBERS)
+        )
+    }.let {
+        Pair(
+            it.first.map { attr -> expandJsonLdTerm(attr, contexts) }.toSet(),
+            it.second.map { attr -> expandJsonLdTerm(attr, contexts) }.toSet()
+        )
     }
 
 private fun extractTemporalRepresentation(

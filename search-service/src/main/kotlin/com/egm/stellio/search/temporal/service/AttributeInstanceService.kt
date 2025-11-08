@@ -320,37 +320,39 @@ class AttributeInstanceService(
         row: Map<String, Any>,
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): AttributeInstanceResult =
-        if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES) {
-            val startDateTime = toZonedDateTime(row["start"])
-            val endDateTime =
-                if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
-                    toZonedDateTime(row["end"])
-                else
-                    startDateTime.plus(temporalEntitiesQuery.computeAggrPeriodDuration())
-            // in a row, there is the result for each requested aggregation method
-            val values = temporalEntitiesQuery.temporalQuery.aggrMethods!!.map {
-                val value = row["${it.method}_value"] ?: ""
-                AggregateResult(it, value, startDateTime, endDateTime)
+        when (temporalEntitiesQuery.temporalRepresentation) {
+            TemporalRepresentation.AGGREGATED_VALUES -> {
+                val startDateTime = toZonedDateTime(row["start"])
+                val endDateTime =
+                    if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
+                        toZonedDateTime(row["end"])
+                    else
+                        startDateTime.plus(temporalEntitiesQuery.computeAggrPeriodDuration())
+                // in a row, there is the result for each requested aggregation method
+                val values = temporalEntitiesQuery.temporalQuery.aggrMethods!!.map {
+                    val value = row["${it.method}_value"] ?: ""
+                    AggregateResult(it, value, startDateTime, endDateTime)
+                }
+                AggregatedAttributeInstanceResult(
+                    attributeUuid = toUuid(row["temporal_entity_attribute"]),
+                    values = values
+                )
             }
-            AggregatedAttributeInstanceResult(
-                attributeUuid = toUuid(row["temporal_entity_attribute"]),
-                values = values
-            )
-        } else if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES)
-            SimplifiedAttributeInstanceResult(
+            TemporalRepresentation.TEMPORAL_VALUES -> SimplifiedAttributeInstanceResult(
                 attributeUuid = toUuid(row["temporal_entity_attribute"]),
                 // the type of the value of a property may have changed in the history (e.g., from number to string)
                 // in this case, just display an empty value (something happened, but we can't display it)
                 value = row["value"] ?: "",
                 time = toZonedDateTime(row["start"])
             )
-        else FullAttributeInstanceResult(
-            attributeUuid = toUuid(row["temporal_entity_attribute"]),
-            payload = toJsonString(row["payload"]),
-            time = toZonedDateTime(row["start"]),
-            timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
-            sub = row["sub"] as? String
-        )
+            else -> FullAttributeInstanceResult(
+                attributeUuid = toUuid(row["temporal_entity_attribute"]),
+                payload = toJsonString(row["payload"]),
+                time = toZonedDateTime(row["start"]),
+                timeproperty = temporalEntitiesQuery.temporalQuery.timeproperty.propertyName,
+                sub = row["sub"] as? String
+            )
+        }
 
     @Transactional
     suspend fun modifyAttributeInstance(

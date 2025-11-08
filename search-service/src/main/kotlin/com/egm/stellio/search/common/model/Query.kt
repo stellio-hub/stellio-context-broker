@@ -7,6 +7,7 @@ import arrow.core.raise.ensure
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.DataTypes
 
 /**
@@ -19,6 +20,8 @@ data class Query private constructor(
     val type: String,
     val entities: List<EntitySelector>? = null,
     val attrs: List<String>? = null,
+    val pick: List<String>? = null,
+    val omit: List<String>? = null,
     val q: String? = null,
     val geoQ: UnparsedGeoQuery? = null,
     val temporalQ: UnparsedTemporalQuery? = null,
@@ -64,5 +67,5 @@ data class UnparsedGeoQuery(
     val geometry: String,
     val coordinates: List<Any>,
     val georel: String,
-    val geoproperty: String
+    val geoproperty: String = NGSILD_LOCATION_TERM
 )

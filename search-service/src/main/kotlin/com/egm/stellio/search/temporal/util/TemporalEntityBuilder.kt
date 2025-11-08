@@ -73,32 +73,36 @@ object TemporalEntityBuilder {
         temporalEntitiesQuery: TemporalEntitiesQuery,
         coreContext: String
     ): Map<String, Any> =
-        if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES) {
-            val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap, coreContext)
-            mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
-        } else if (temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES) {
-            val attributes = buildAttributesAggregatedRepresentation(
-                attributeAndResultsMap,
-                temporalEntitiesQuery.temporalQuery.aggrMethods!!
-            )
-            mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
-        } else {
-            mergeFullTemporalAttributesOnAttributeName(attributeAndResultsMap)
-                .mapValues { (_, attributeInstanceResults) ->
-                    attributeInstanceResults.map { attributeInstanceResult ->
-                        deserializeObject(attributeInstanceResult.payload)
-                            .let { instancePayload ->
-                                injectSub(temporalEntitiesQuery, attributeInstanceResult, instancePayload)
-                            }.let { instancePayload ->
-                                convertGeoProperty(instancePayload)
-                            }.plus(
-                                Pair(
-                                    NGSILD_PREFIX + attributeInstanceResult.timeproperty,
-                                    buildNonReifiedTemporalValue(attributeInstanceResult.time)
+        when (temporalEntitiesQuery.temporalRepresentation) {
+            TemporalRepresentation.TEMPORAL_VALUES -> {
+                val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap, coreContext)
+                mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
+            }
+            TemporalRepresentation.AGGREGATED_VALUES -> {
+                val attributes = buildAttributesAggregatedRepresentation(
+                    attributeAndResultsMap,
+                    temporalEntitiesQuery.temporalQuery.aggrMethods!!
+                )
+                mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
+            }
+            else -> {
+                mergeFullTemporalAttributesOnAttributeName(attributeAndResultsMap)
+                    .mapValues { (_, attributeInstanceResults) ->
+                        attributeInstanceResults.map { attributeInstanceResult ->
+                            deserializeObject(attributeInstanceResult.payload)
+                                .let { instancePayload ->
+                                    injectSub(temporalEntitiesQuery, attributeInstanceResult, instancePayload)
+                                }.let { instancePayload ->
+                                    convertGeoProperty(instancePayload)
+                                }.plus(
+                                    Pair(
+                                        NGSILD_PREFIX + attributeInstanceResult.timeproperty,
+                                        buildNonReifiedTemporalValue(attributeInstanceResult.time)
+                                    )
                                 )
-                            )
+                        }
                     }
-                }
+            }
         }
 
     private fun convertGeoProperty(instancePayload: Map<String, Any>): Map<String, Any> =

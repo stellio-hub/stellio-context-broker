@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
@@ -49,24 +48,6 @@ fun ExpandedAttributes.flattenOnAttributeAndDatasetId(): List<Triple<ExpandedTer
 
 fun ExpandedAttribute.toExpandedAttributes(): ExpandedAttributes =
     mapOf(this)
-
-fun ExpandedAttributeInstances.addSubAttribute(
-    subAttributeName: ExpandedTerm,
-    subAttributePayload: ExpandedAttributeInstances
-): ExpandedAttributeInstances {
-    if (this.isEmpty() || this.size > 1)
-        throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
-    return listOf(this[0].plus(subAttributeName to subAttributePayload))
-}
-
-fun ExpandedAttributeInstances.addNonReifiedProperty(
-    subAttributeName: ExpandedTerm,
-    subAttributeValue: String
-): ExpandedAttributeInstances {
-    if (this.isEmpty() || this.size > 1)
-        throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
-    return listOf(this[0].plus(subAttributeName to buildNonReifiedPropertyValue(subAttributeValue)))
-}
 
 fun ExpandedAttributeInstances.addNonReifiedTemporalProperty(
     subAttributeName: ExpandedTerm,

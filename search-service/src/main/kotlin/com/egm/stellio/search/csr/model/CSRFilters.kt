@@ -7,7 +7,7 @@ import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.expandTypeSelection
-import com.egm.stellio.shared.util.parseAndExpandQueryParameter
+import com.egm.stellio.shared.util.parseAttrsParameter
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.toTypeSelection
 import com.egm.stellio.shared.util.validateIdPattern
@@ -58,7 +58,7 @@ open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
             val ids = queryParams.getFirst(QueryParameter.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
             val typeSelection = expandTypeSelection(queryParams.getFirst(QueryParameter.TYPE.key), contexts)
             val idPattern = validateIdPattern(queryParams.getFirst(QueryParameter.ID_PATTERN.key)).bind()
-            val attrs = parseAndExpandQueryParameter(queryParams.getFirst(QueryParameter.ATTRS.key), contexts)
+            val attrs = parseAttrsParameter(queryParams.getFirst(QueryParameter.ATTRS.key), contexts).bind()
 
             CSRFilters(ids, typeSelection, idPattern, attrs = attrs)
         }

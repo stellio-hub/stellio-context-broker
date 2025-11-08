@@ -22,6 +22,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.SeeOtherException
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
@@ -126,7 +127,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun `create a second Permission with the same target and assignee should return an error`() = runTest {
         permissionService.create(minimalPermission).shouldSucceed()
         permissionService.create(minimalPermission.copy(id = "urn:ngsi-ld:Permission:differentId".toUri()))
-            .shouldFailWith { it is AlreadyExistsException }
+            .shouldFailWith { it is SeeOtherException }
     }
 
     @ParameterizedTest
@@ -172,7 +173,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 id = "urn:ngsi-ld:Permission:differentId".toUri(),
                 target = TargetAsset(types = newTypes?.split(','), scopes = newScopes?.split(','))
             )
-        ).let { if (shouldSucceed) it.shouldSucceed() else it.shouldFailWith { it is AlreadyExistsException } }
+        ).let { if (shouldSucceed) it.shouldSucceed() else it.shouldFailWith { it is SeeOtherException } }
     }
 
     @Test

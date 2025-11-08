@@ -103,7 +103,7 @@ class SubjectHandler(
             ).bind()
 
         if (count == -1) {
-            return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            return@either ResponseEntity.status(HttpStatus.NO_CONTENT).build()
         }
 
         val compactedEntities = compactEntities(entities, contexts)

@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
@@ -28,7 +29,7 @@ data class Permission(
     val id: URI = "urn:ngsi-ld:Permission:${UUID.randomUUID()}".toUri(),
     val type: String = AUTH_PERMISSION_TERM,
     val target: TargetAsset, // odrl:target
-    val assignee: Sub? = null, // odrl:assignee
+    val assignee: Sub = AUTHENTICATED_SUBJECT, // odrl:assignee
     val action: Action, // odrl:action
     val createdAt: ZonedDateTime = ngsiLdDateTime(),
     val modifiedAt: ZonedDateTime = createdAt,
@@ -66,7 +67,7 @@ data class Permission(
     ): Either<APIException, Permission> = either {
         val mergedPermission = convertTo<Map<String, Any>>(this@Permission).plus(fragment)
         deserialize(mergedPermission, contexts).bind()
-            .copy(modifiedAt = ngsiLdDateTime(), assigner = getSubFromSecurityContext().orEmpty())
+            .copy(modifiedAt = ngsiLdDateTime(), assigner = getSubFromSecurityContext())
     }
 
     companion object {
@@ -84,14 +85,16 @@ data class Permission(
 
         fun notFoundMessage(id: URI) = "Could not find a Permission with id $id"
         fun alreadyExistsMessage(id: URI) = "A Permission with id $id already exists"
-        const val UNIQUENESS_CONFLICT_MESSAGE = "A Permission with the same assignee, target and action already exists"
+        fun alreadyCoveredMessage(id: URI) = "The Permission '$id' already covers the created permission"
         fun unauthorizedTargetMessage(target: TargetAsset) = "User is not authorized to admin the target: $target"
         fun unauthorizedRetrieveMessage(permissionId: URI) = "User is not authorized to read Permission $permissionId"
         val CREATE_OR_UPDATE_OWN_EXCEPTION = BadRequestDataException(
             "Creating or updating an \"own\" permission is prohibited"
         )
         val DELETE_OWN_EXCEPTION = BadRequestDataException("Deleting an \"own\" permission is prohibited")
-        val EVERYONE_AS_ADMIN_EXCEPTION =
-            BadRequestDataException("Adding administration right for everyone is prohibited")
+        val AUTHENTICATED_ADMIN_EXCEPTION =
+            BadRequestDataException("Adding administration right for every authenticated user is prohibited")
+        val PUBLIC_WITH_NON_READ_EXCEPTION =
+            BadRequestDataException("Adding non read right for public access is prohibited")
     }
 }

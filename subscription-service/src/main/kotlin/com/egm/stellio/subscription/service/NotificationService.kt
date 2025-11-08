@@ -17,6 +17,7 @@ import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation
 import com.egm.stellio.shared.model.applyAttributeTransformation
+import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.getTypeAndValue
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.util.JsonLdUtils.compactAttribute
@@ -74,7 +75,8 @@ class NotificationService(
                     )
                 } else {
                     val filteredEntity = expandedEntity.filterAttributes(
-                        it.notification.attributes?.toSet().orEmpty(),
+                        it.notification.attributes?.toSet().orEmpty()
+                    ).applyDatasetView(
                         it.datasetId?.toSet().orEmpty()
                     )
                     val entityRepresentation =
@@ -87,14 +89,15 @@ class NotificationService(
                     compactEntity(
                         filteredEntity,
                         contexts
-                    ).toFinalRepresentation(
-                        NgsiLdDataRepresentation(
-                            entityRepresentation,
-                            attributeRepresentation,
-                            it.notification.sysAttrs,
-                            it.lang
-                        )
-                    ).let { listOf(it) }
+                    ).filterPickAndOmit(it.notification.pick.orEmpty(), it.notification.omit.orEmpty()).bind()
+                        .toFinalRepresentation(
+                            NgsiLdDataRepresentation(
+                                entityRepresentation,
+                                attributeRepresentation,
+                                it.notification.sysAttrs,
+                                it.lang
+                            )
+                        ).let { listOf(it) }
                 }
 
             val compactedEntitiesWithPreviousValues =

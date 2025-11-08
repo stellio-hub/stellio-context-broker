@@ -47,7 +47,7 @@ fun invalidCharacterInScope(name: Any?) =
 
 const val NULL_VALUE_IN_CONTENT = "The JSON-LD object contains a member with a null value (5.5.4)"
 
-fun invalidTemporalInstanceMessage() =
+const val INVALID_TEMPORAL_INSTANCE_MESSAGE =
     "One attribute instance is missing the required $NGSILD_OBSERVED_AT_IRI temporal property"
 
 const val INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE =

@@ -426,7 +426,7 @@ class EntityOperationHandlerTests {
             .expectBody().isEmpty
 
         coVerify(exactly = 1) {
-            entityOperationService.upsert(any(), true, true)
+            entityOperationService.upsert(any(), disallowOverwrite = true, updateMode = true)
         }
     }
 

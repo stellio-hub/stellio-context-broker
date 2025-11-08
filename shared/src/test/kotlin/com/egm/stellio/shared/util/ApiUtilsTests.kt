@@ -171,17 +171,31 @@ class ApiUtilsTests {
 
     @Test
     fun `it should return an empty list if no attrs param is provided`() {
-        assertTrue(parseAndExpandQueryParameter(null, emptyList()).isEmpty())
+        assertTrue(parseAttrsParameter(null, emptyList()).shouldSucceedAndResult().isEmpty())
     }
 
     @Test
     fun `it should return an singleton list if there is one provided attrs param`() {
-        assertEquals(1, parseAndExpandQueryParameter("attr1", NGSILD_TEST_CORE_CONTEXTS).size)
+        assertEquals(
+            1,
+            parseAttrsParameter("attr1", NGSILD_TEST_CORE_CONTEXTS).shouldSucceedAndResult().size
+        )
     }
 
     @Test
     fun `it should return a list with two elements if there are two provided attrs param`() {
-        assertEquals(2, parseAndExpandQueryParameter("attr1, attr2", NGSILD_TEST_CORE_CONTEXTS).size)
+        assertEquals(
+            2,
+            parseAttrsParameter("attr1, attr2", NGSILD_TEST_CORE_CONTEXTS).shouldSucceedAndResult().size
+        )
+    }
+
+    @Test
+    fun `it should return a BadRequestData error if attrs params contains an entity core member`() {
+        parseAttrsParameter("id", NGSILD_TEST_CORE_CONTEXTS).shouldFailWith {
+            it is BadRequestDataException &&
+                it.message == "Entity core members cannot be present in 'attrs' parameter"
+        }
     }
 
     @Test

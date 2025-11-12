@@ -489,10 +489,7 @@ class PermissionService(
         }
 
         val assigneeFilter = permissionFilters.assignee?.let {
-            val assignee = permissionFilters.assignee
-
-            val assigneeUuids = subjectReferentialService.getSubjectAndGroupsUUID(assignee).bind()
-            buildIsAssigneeFilter(assigneeUuids)
+            buildIsAssigneeFilter(listOf(it))
         }
 
         val assignerFilter = permissionFilters.assigner?.let { assigner ->

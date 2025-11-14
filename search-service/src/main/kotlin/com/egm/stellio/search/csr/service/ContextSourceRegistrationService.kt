@@ -19,12 +19,13 @@ import com.egm.stellio.search.csr.model.ContextSourceRegistration.TimeInterval
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RegistrationInfo
+import com.egm.stellio.search.csr.model.RegistrationInfoDBWriter
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildTypeQuery
-import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toSqlArray
 import io.r2dbc.postgresql.codec.Json
@@ -92,7 +93,11 @@ class ContextSourceRegistrationService(
             .bind("mode", contextSourceRegistration.mode.key)
             .bind(
                 "information",
-                Json.of(mapper.writeValueAsString(contextSourceRegistration.information))
+                Json.of(
+                    DataTypes.mapper.writeValueAsString(
+                        contextSourceRegistration.information.map { RegistrationInfoDBWriter(it) }
+                    )
+                )
             )
             .bind("operations", contextSourceRegistration.operations.map { it.key }.toTypedArray())
             .bind("registration_name", contextSourceRegistration.registrationName)
@@ -320,7 +325,7 @@ class ContextSourceRegistrationService(
                 id = toUri(row["id"]),
                 endpoint = toUri(row["endpoint"]),
                 mode = Mode.fromString(row["mode"] as? String),
-                information = mapper.readerForListOf(RegistrationInfo::class.java)
+                information = DataTypes.mapper.readerForListOf(RegistrationInfo::class.java)
                     .readValue((row["information"] as Json).asString()),
                 operations = (row["operations"] as Array<String>).mapNotNull { Operation.fromString(it) },
                 registrationName = row["registration_name"] as? String,

@@ -22,8 +22,12 @@ import java.util.regex.Pattern
 data class EntityInfo(
     val id: URI? = null,
     val idPattern: String? = null,
-    // no WRITE_SINGLE_ELEM_ARRAYS_UNWRAPPED because it is used for the database
-    @JsonFormat(with = [JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY])
+    @JsonFormat(
+        with = [
+            JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY,
+            JsonFormat.Feature.WRITE_SINGLE_ELEM_ARRAYS_UNWRAPPED
+        ]
+    )
     @JsonProperty("type")
     val types: List<String>
 ) {

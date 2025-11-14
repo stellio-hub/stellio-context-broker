@@ -61,34 +61,34 @@ class AttributeService(
     }
 
     suspend fun getAttributeTypeInfoByAttribute(
-        attrinuteName: ExpandedTerm,
+        attributeName: ExpandedTerm,
         contexts: List<String>
     ): Either<APIException, AttributeTypeInfo> {
         val result = databaseClient.sql(
             """
             WITH entities AS (
-                SELECT entity_id, attribute_name, attribute_type
+                SELECT entity_id, attribute_type
                 FROM temporal_entity_attribute 
                 WHERE attribute_name = :attribute_name
                 AND deleted_at IS NULL
             )    
-            SELECT attribute_name, attribute_type, types, count(distinct(attribute_name)) as attribute_count
+            SELECT types, attribute_type, (select count(*) from entities) as attribute_count
             FROM entity_payload
             JOIN entities 
                 ON entity_payload.entity_id = entities.entity_id
                 AND entity_payload.deleted_at IS NULL
-            GROUP BY types, attribute_name, attribute_type
+            GROUP BY types, attribute_type
             """.trimIndent()
         )
-            .bind("attribute_name", attrinuteName)
+            .bind("attribute_name", attributeName)
             .allToMappedList { it }
 
         if (result.isEmpty())
-            return ResourceNotFoundException(attributeNotFoundMessage(attrinuteName)).left()
+            return ResourceNotFoundException(attributeNotFoundMessage(attributeName)).left()
 
         return AttributeTypeInfo(
-            id = toUri(attrinuteName),
-            attributeName = compactTerm(attrinuteName, contexts),
+            id = toUri(attributeName),
+            attributeName = compactTerm(attributeName, contexts),
             attributeTypes = result.map { AttributeType.forKey(it["attribute_type"] as String) }.sorted().toSet(),
             attributeCount = toInt(result.first()["attribute_count"]),
             typeNames = result.map { compactTerms(toList(it["types"]), contexts) }.flatten().sorted().toSet()

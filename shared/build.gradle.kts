@@ -31,7 +31,7 @@ dependencies {
         // to ensure we are using mocks and spies from springmockk lib instead
         exclude(module = "mockito-core")
     }
-    testFixturesImplementation("org.wiremock:wiremock-standalone:3.13.1")
+    testFixturesImplementation("org.wiremock:wiremock-standalone:3.13.2")
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")
 

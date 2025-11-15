@@ -722,7 +722,9 @@ class EntityService(
             entityAttributeService.checkEntityAndAttributeExistence(
                 entityId,
                 attributeName,
-                datasetId
+                datasetId,
+                anyAttributeInstance = deleteAll,
+                excludeDeleted = false
             ).bind()
             entityAttributeService.permanentlyDeleteAttribute(
                 entityId,

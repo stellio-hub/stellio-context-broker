@@ -611,7 +611,9 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should permanently delete an attribute`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
-        coEvery { entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
+        } returns Unit.right()
         coEvery { entityAttributeService.permanentlyDeleteAttribute(any(), any(), any(), any()) } returns Unit.right()
         coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
 
@@ -627,7 +629,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_IRI, null).shouldSucceed()
 
         coVerify {
-            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_IRI, null)
+            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_IRI, null, false, false)
             entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_IRI, null, false)
             entityAttributeService.getAllForEntity(beehiveTestCId)
         }
@@ -637,7 +639,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun `it should return a ResourceNotFound error if trying to permanently delete an unknown attribute`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
-            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
         } returns ResourceNotFoundException("Entity does not exist").left()
 
         loadAndPrepareSampleData("beehive.jsonld")
@@ -654,7 +656,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
 
         coVerify {
-            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, OUTGOING_IRI, null)
+            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, OUTGOING_IRI, null, false, false)
         }
         coVerify(exactly = 0) {
             entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_IRI, null, false)

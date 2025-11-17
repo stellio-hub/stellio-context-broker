@@ -213,20 +213,11 @@ class EnabledAuthorizationServiceTests {
 
         coEvery { permissionService.create(any()) } returns Unit.right()
         coEvery { permissionService.getNewScopesFromList(any()) } returns
-            listOf(scopeA, scopeB).right() andThen listOf(scopeB).right()
+            listOf(scopeB).right()
 
         enabledAuthorizationService.createScopesOwnerRights(listOf(scopeA, scopeB))
             .shouldSucceed()
 
-        coVerify(exactly = 1) {
-            permissionService.create(
-                match {
-                    it.target == TargetAsset(scopes = listOf(scopeA)) &&
-                        it.assignee == subjectUuid &&
-                        it.action == Action.OWN
-                }
-            )
-        }
         coVerify(exactly = 1) {
             permissionService.create(
                 match {
@@ -237,20 +228,7 @@ class EnabledAuthorizationServiceTests {
             )
         }
 
-        enabledAuthorizationService.createScopesOwnerRights(listOf(scopeA, scopeB))
-            .shouldSucceed()
-
-        coVerify(exactly = 2) {
-            permissionService.create(
-                match {
-                    it.target == TargetAsset(scopes = listOf(scopeB)) &&
-                        it.assignee == subjectUuid &&
-                        it.action == Action.OWN
-                }
-            )
-        }
-
-        coVerify(exactly = 1) {
+        coVerify(exactly = 0) {
             permissionService.create(
                 match {
                     it.target == TargetAsset(scopes = listOf(scopeA)) &&

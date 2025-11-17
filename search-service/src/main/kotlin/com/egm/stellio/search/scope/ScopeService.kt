@@ -67,7 +67,7 @@ class ScopeService(
                 TemporalProperty.CREATED_AT,
                 createdAt
             ).bind()
-            authorizationService.createScopesOwnerRights(ngsiLdEntity.scopes!!)
+            authorizationService.createScopesOwnerRights(ngsiLdEntity.scopes!!).bind()
         }
     }
 
@@ -301,7 +301,7 @@ class ScopeService(
                 // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
                 // sub-Property
                 addHistoryEntry(entityId, it, TemporalProperty.OBSERVED_AT, modifiedAt).bind()
-            authorizationService.createScopesOwnerRights(it)
+            authorizationService.createScopesOwnerRights(it).bind()
             operationResult
         } ?: FailedAttributeOperationResult(
             attributeName = NGSILD_SCOPE_IRI,

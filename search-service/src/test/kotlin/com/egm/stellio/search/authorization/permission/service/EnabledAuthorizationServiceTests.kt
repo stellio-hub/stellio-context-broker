@@ -240,6 +240,16 @@ class EnabledAuthorizationServiceTests {
         enabledAuthorizationService.createScopesOwnerRights(listOf(scopeA, scopeB))
             .shouldSucceed()
 
+        coVerify(exactly = 2) {
+            permissionService.create(
+                match {
+                    it.target == TargetAsset(scopes = listOf(scopeB)) &&
+                        it.assignee == subjectUuid &&
+                        it.action == Action.OWN
+                }
+            )
+        }
+
         coVerify(exactly = 1) {
             permissionService.create(
                 match {

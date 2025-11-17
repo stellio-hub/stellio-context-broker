@@ -56,7 +56,7 @@ class ScopeService(
 ) {
 
     @Transactional
-    suspend fun createHistory(
+    suspend fun create(
         ngsiLdEntity: NgsiLdEntity,
         createdAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
@@ -345,7 +345,7 @@ class ScopeService(
         ngsiLdEntity: NgsiLdEntity,
         createdAt: ZonedDateTime
     ): Either<APIException, Unit> = either {
-        createHistory(ngsiLdEntity, createdAt).bind()
+        create(ngsiLdEntity, createdAt).bind()
     }
 
     @Transactional

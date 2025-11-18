@@ -45,7 +45,7 @@ class TemporalServiceTests {
     private fun mockkAuthorizationForCreation() {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
     }
 
     @Test

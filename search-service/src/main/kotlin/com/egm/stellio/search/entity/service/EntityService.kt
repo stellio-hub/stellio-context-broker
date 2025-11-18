@@ -97,7 +97,7 @@ class EntityService(
             logger.debug("Creating entity {}", ngsiLdEntity.id)
 
             createEntityPayload(ngsiLdEntity, expandedEntityWithMetadata, createdAt).bind()
-            scopeService.createHistory(ngsiLdEntity, createdAt).bind()
+            scopeService.create(ngsiLdEntity, createdAt).bind()
             val attrsOperationResult = entityAttributeService.createAttributes(
                 ngsiLdEntity,
                 expandedEntity,
@@ -114,7 +114,7 @@ class EntityService(
                 }
 
             if (neverExisted)
-                authorizationService.createOwnerRight(ngsiLdEntity.id).bind()
+                authorizationService.createEntityOwnerRight(ngsiLdEntity.id).bind()
 
             entityEventService.publishEntityCreateEvent(
                 sub,

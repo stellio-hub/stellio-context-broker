@@ -79,6 +79,11 @@ subprojects {
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test")
+        testImplementation("org.testcontainers:testcontainers") {
+            version {
+                strictly("2.0.2")
+            }
+        }
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("com.ninja-squad:springmockk:4.0.2")
@@ -151,8 +156,14 @@ subprojects {
     project.ext.set(
         "jibFromPlatforms",
         listOf(
-            PlatformParameters().apply { os = "linux"; architecture = "arm64" },
-            PlatformParameters().apply { os = "linux"; architecture = "amd64" }
+            PlatformParameters().apply {
+                os = "linux"
+                architecture = "arm64"
+            },
+            PlatformParameters().apply {
+                os = "linux"
+                architecture = "amd64"
+            }
         )
     )
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")

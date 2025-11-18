@@ -10,5 +10,6 @@ class SearchServiceApplication
 
 @Suppress("SpreadOperator")
 fun main(args: Array<String>) {
+    println("please rebuild search service")
     runApplication<SearchServiceApplication>(*args)
 }

@@ -79,6 +79,9 @@ subprojects {
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test")
+        // Starting from version 29, Docker requires at least API version 1.44,
+        // which is only supported from Testcontainers version 2.0.2.
+        // See testcontainers/testcontainers-java#11212 for more details
         testImplementation("org.testcontainers:testcontainers") {
             version {
                 strictly("2.0.2")

@@ -2,6 +2,7 @@ package com.egm.stellio.search.csr.service
 
 import arrow.core.Either
 import arrow.core.left
+import arrow.core.raise.catch
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.csr.model.CSRFilters
@@ -204,31 +205,31 @@ class DistributedEntityProvisionService(
 
         body?.let { request.bodyValue(body) }
 
-        return runCatching {
-            val (statusCode, response, _) = request.awaitExchange { response ->
-                Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
-            }
-            if (statusCode.value() == HttpStatus.MULTI_STATUS.value()) {
-                ContextSourceException(
-                    type = ErrorType.MULTI_STATUS.type,
-                    status = HttpStatus.MULTI_STATUS,
-                    title = "Context source returned 207",
-                    detail = response ?: "no message"
-                ).left()
-            } else if (statusCode.is2xxSuccessful) {
-                logger.info("Successfully post data to CSR ${csr.id} at $uri")
-                Unit.right()
-            } else if (response == null) {
-                val message = "No error message received from CSR ${csr.id} at $uri"
-                logger.warn(message)
-                BadGatewayException(message).left()
-            } else {
-                logger.warn("Error creating an entity for CSR at $uri: $response")
-                ContextSourceException.fromResponse(response).left()
-            }
-        }.fold(
-            onSuccess = { it },
-            onFailure = { e ->
+        return catch(
+            {
+                val (statusCode, response, _) = request.awaitExchange { response ->
+                    Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
+                }
+                if (statusCode.value() == HttpStatus.MULTI_STATUS.value()) {
+                    ContextSourceException(
+                        type = ErrorType.MULTI_STATUS.type,
+                        status = HttpStatus.MULTI_STATUS,
+                        title = "Context source returned 207",
+                        detail = response ?: "no message"
+                    ).left()
+                } else if (statusCode.is2xxSuccessful) {
+                    logger.info("Successfully post data to CSR ${csr.id} at $uri")
+                    Unit.right()
+                } else if (response == null) {
+                    val message = "No error message received from CSR ${csr.id} at $uri"
+                    logger.warn(message)
+                    BadGatewayException(message).left()
+                } else {
+                    logger.warn("Error creating an entity for CSR at $uri: $response")
+                    ContextSourceException.fromResponse(response).left()
+                }
+            },
+            { e ->
                 logger.warn("Error contacting CSR at $uri: ${e.message}")
                 logger.warn(e.stackTraceToString())
                 GatewayTimeoutException(

@@ -32,7 +32,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
-import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -44,8 +43,6 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
-
-    private val mockUserSub = UUID.randomUUID().toString()
 
     @AfterEach
     fun deleteContextSourceRegistrations() {
@@ -73,8 +70,8 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     fun `create a second CSR with the same id should return an AlreadyExist error`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldFailWith {
+        contextSourceRegistrationService.create(contextSourceRegistration).shouldSucceed()
+        contextSourceRegistrationService.create(contextSourceRegistration).shouldFailWith {
             it is AlreadyExistsException
         }
     }
@@ -83,7 +80,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     fun `get a minimal CSR should return the created CSR`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.create(contextSourceRegistration).shouldSucceed()
 
         contextSourceRegistrationService.getById(
             contextSourceRegistration.id
@@ -96,7 +93,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     fun `get a full CSR should return the created CSR`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_full.json")
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.create(contextSourceRegistration).shouldSucceed()
 
         contextSourceRegistrationService.getById(
             contextSourceRegistration.id
@@ -109,7 +106,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     fun `query CSR on entities ids should return a CSR matching this id uniquely`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.create(contextSourceRegistration).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(ids = setOf("urn:ngsi-ld:BeeHive:A456".toUri()))
@@ -144,7 +141,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
                 }                    
                 """.trimIndent()
             )
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.upsert(contextSourceRegistration).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
@@ -175,7 +172,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
                 }                    
                 """.trimIndent()
             )
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.upsert(contextSourceRegistration).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
@@ -210,7 +207,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
                 }                    
                 """.trimIndent()
             )
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.upsert(contextSourceRegistration).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
@@ -245,7 +242,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
                 }                    
                 """.trimIndent()
             )
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.upsert(contextSourceRegistration).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A456".toUri()))
@@ -258,7 +255,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     fun `query CSR on entities ids should return an empty list if no CSR matches`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.upsert(contextSourceRegistration).shouldSucceed()
 
         val matchingCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(ids = setOf("urn:ngsi-ld:Vehicle:A457".toUri()))
@@ -271,7 +268,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     fun `query on CSR operations should filter the result`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.upsert(contextSourceRegistration).shouldSucceed()
 
         val oneMatchingOperationCsrs = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(operations = listOf(Operation.FEDERATION_OPS))
@@ -293,7 +290,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     fun `query on CSR entity types should filter the result`() = runTest {
         val csr =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
-        contextSourceRegistrationService.create(csr, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.upsert(csr).shouldSucceed()
         val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(typeSelection = BEEHIVE_IRI)
         )
@@ -314,7 +311,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     fun `query on CSR entity idPattern should filter the result`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.upsert(contextSourceRegistration).shouldSucceed()
 
         val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(idPattern = ".*")
@@ -337,7 +334,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
                     )
                 )
 
-        contextSourceRegistrationService.create(newCsr, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.upsert(newCsr).shouldSucceed()
 
         val oneCsrMatching = contextSourceRegistrationService.getContextSourceRegistrations(
             CSRFilters(attrs = setOf(TEMPERATURE_IRI))
@@ -354,7 +351,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     fun `count should apply the filter`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.upsert(contextSourceRegistration).shouldSucceed()
 
         val count = contextSourceRegistrationService.getContextSourceRegistrationsCount(
             CSRFilters(idPattern = ".*")
@@ -371,7 +368,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
     fun `delete an existing CSR should succeed`() = runTest {
         val contextSourceRegistration =
             loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
-        contextSourceRegistrationService.create(contextSourceRegistration, mockUserSub).shouldSucceed()
+        contextSourceRegistrationService.upsert(contextSourceRegistration).shouldSucceed()
 
         contextSourceRegistrationService.delete(contextSourceRegistration.id).shouldSucceed()
 

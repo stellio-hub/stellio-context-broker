@@ -4,6 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.service.ContextSourceRegistrationService
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -11,12 +12,14 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.confirmVerified
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -189,7 +192,7 @@ class ContextSourceRegistrationHandlerTests {
     fun `create CSR should return the errors from the service`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/csr/contextSourceRegistration_minimal_entities.json")
 
-        coEvery { contextSourceRegistrationService.create(any(), any()) } returns AlreadyExistsException("").left()
+        coEvery { contextSourceRegistrationService.create(any()) } returns AlreadyExistsException("").left()
 
         webClient.post()
             .uri(csrUri)
@@ -202,14 +205,14 @@ class ContextSourceRegistrationHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(409)
 
-        coVerify(exactly = 1) { contextSourceRegistrationService.create(any(), any()) }
+        coVerify(exactly = 1) { contextSourceRegistrationService.create(any()) }
     }
 
     @Test
     fun `create CSR should return a 204 if the creation succeeded`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/csr/contextSourceRegistration_minimal_entities.json")
 
-        coEvery { contextSourceRegistrationService.create(any(), any()) } returns Unit.right()
+        coEvery { contextSourceRegistrationService.create(any()) } returns Unit.right()
 
         webClient.post()
             .uri(csrUri)
@@ -223,14 +226,14 @@ class ContextSourceRegistrationHandlerTests {
             .expectStatus().isCreated
             .expectHeader().exists("Location")
 
-        coVerify(exactly = 1) { contextSourceRegistrationService.create(any(), any()) }
+        coVerify(exactly = 1) { contextSourceRegistrationService.create(any()) }
     }
 
     @Test
     fun `create CSR with context in payload should succeed`() = runTest {
         val jsonLdFile = ClassPathResource("/ngsild/csr/contextSourceRegistration.jsonld")
 
-        coEvery { contextSourceRegistrationService.create(any(), any()) } returns Unit.right()
+        coEvery { contextSourceRegistrationService.create(any()) } returns Unit.right()
 
         webClient.post()
             .uri(csrUri)
@@ -239,6 +242,116 @@ class ContextSourceRegistrationHandlerTests {
             .expectStatus().isCreated
             .expectHeader().exists("Location")
 
-        coVerify(exactly = 1) { contextSourceRegistrationService.create(any(), any()) }
+        coVerify(exactly = 1) { contextSourceRegistrationService.create(any()) }
+    }
+
+    @Test
+    fun `update contextSourceRegistration should return a 500 if update in DB failed`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/csr/csr_update.jsonld")
+        val contextSourceRegistrationId = id
+        val parsedCSR = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
+
+        coEvery {
+            contextSourceRegistrationService.getById(any())
+        } returns gimmeRawCSR(id = contextSourceRegistrationId).right()
+
+        coEvery { contextSourceRegistrationService.upsert(any()) } throws RuntimeException("Update failed")
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/csourceRegistrations/$contextSourceRegistrationId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().is5xxServerError
+            .expectBody().json(
+                """
+                    {
+                        "type": "https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                        "title": "java.lang.RuntimeException: Update failed"
+                    }
+                    """
+            )
+
+        coVerify {
+            contextSourceRegistrationService.upsert(
+                match {
+                    it.id == contextSourceRegistrationId &&
+                        it.endpoint.toString() == parsedCSR["endpoint"]
+                }
+            )
+        }
+        coVerify { contextSourceRegistrationService.getById(contextSourceRegistrationId) }
+
+        confirmVerified(contextSourceRegistrationService)
+    }
+
+    @Test
+    fun `update contextSourceRegistration should return a 204 if update succeeded`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/csr/csr_update.jsonld")
+        val contextSourceRegistrationId = id
+        val parsedCSR = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
+
+        coEvery { contextSourceRegistrationService.getById(any()) } returns
+            gimmeRawCSR(id = contextSourceRegistrationId).right()
+
+        coEvery { contextSourceRegistrationService.upsert(any()) } returns Unit.right()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/csourceRegistrations/$contextSourceRegistrationId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify {
+            contextSourceRegistrationService.upsert(
+                match {
+                    it.id == contextSourceRegistrationId &&
+                        it.endpoint.toString() == parsedCSR["endpoint"]
+                }
+            )
+        }
+        coVerify { contextSourceRegistrationService.getById(contextSourceRegistrationId) }
+
+        confirmVerified(contextSourceRegistrationService)
+    }
+
+    @Test
+    fun `update contextSourceRegistration should return a 400 if JSON-LD context is not correct`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/csr/csr_update.json")
+
+        coEvery { contextSourceRegistrationService.getById(any()) } returns gimmeRawCSR(id = id).right()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/csourceRegistrations/$id")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Request payload must contain @context term for a request having an application/ld+json content type"
+                } 
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `update contextSourceRegistration should return a 204 if JSON-LD context is provided in header`() = runTest {
+        val jsonLdFile = ClassPathResource("/ngsild/csr/csr_update.json")
+
+        coEvery { contextSourceRegistrationService.getById(any()) } returns gimmeRawCSR(id = id).right()
+
+        coEvery { contextSourceRegistrationService.upsert(any()) } returns Unit.right()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/csourceRegistrations/$id")
+            .headers {
+                it.accept = listOf(MediaType.APPLICATION_JSON)
+                it.contentType = MediaType.APPLICATION_JSON
+                it.add(HttpHeaders.LINK, AQUAC_HEADER_LINK)
+            }
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
     }
 }

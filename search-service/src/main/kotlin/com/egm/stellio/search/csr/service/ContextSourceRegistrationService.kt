@@ -57,9 +57,9 @@ class ContextSourceRegistrationService(
 
     @Transactional
     suspend fun upsert(
-        contextSourceRegistration: ContextSourceRegistration
+        csr: ContextSourceRegistration
     ): Either<APIException, Unit> = either {
-        contextSourceRegistration.validate().bind()
+        csr.validate().bind()
 
         val insertStatement =
             """
@@ -88,29 +88,30 @@ class ContextSourceRegistrationService(
                 observation_interval_end = :observation_interval_end,
                 management_interval_start = :management_interval_start,
                 management_interval_end = :management_interval_end,
+                sub = :sub,
                 modified_at = :modified_at
             """.trimIndent()
         databaseClient.sql(insertStatement)
-            .bind("id", contextSourceRegistration.id)
-            .bind("endpoint", contextSourceRegistration.endpoint)
-            .bind("mode", contextSourceRegistration.mode.key)
+            .bind("id", csr.id)
+            .bind("endpoint", csr.endpoint)
+            .bind("mode", csr.mode.key)
             .bind(
                 "information",
                 Json.of(
                     DataTypes.mapper.writeValueAsString(
-                        contextSourceRegistration.information.map { RegistrationInfoDBWriter(it) }
+                        csr.information.map { RegistrationInfoDBWriter(it) }
                     )
                 )
             )
-            .bind("operations", contextSourceRegistration.operations.map { it.key }.toTypedArray())
-            .bind("registration_name", contextSourceRegistration.registrationName)
-            .bind("observation_interval_start", contextSourceRegistration.observationInterval?.start)
-            .bind("observation_interval_end", contextSourceRegistration.observationInterval?.end)
-            .bind("management_interval_start", contextSourceRegistration.managementInterval?.start)
-            .bind("management_interval_end", contextSourceRegistration.managementInterval?.end)
+            .bind("operations", csr.operations.map { it.key }.toTypedArray())
+            .bind("registration_name", csr.registrationName)
+            .bind("observation_interval_start", csr.observationInterval?.start)
+            .bind("observation_interval_end", csr.observationInterval?.end)
+            .bind("management_interval_start", csr.managementInterval?.start)
+            .bind("management_interval_end", csr.managementInterval?.end)
             .bind("sub", getSubFromSecurityContext())
-            .bind("created_at", contextSourceRegistration.createdAt)
-            .bind("modified_at", contextSourceRegistration.modifiedAt)
+            .bind("created_at", csr.createdAt)
+            .bind("modified_at", csr.modifiedAt)
             .execute().bind()
     }
 

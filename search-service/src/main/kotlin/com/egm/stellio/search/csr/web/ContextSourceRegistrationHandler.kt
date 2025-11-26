@@ -18,7 +18,6 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
-import com.egm.stellio.shared.util.getAuthzContextFromRequestOrDefault
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.web.BaseHandler
@@ -170,7 +169,7 @@ class ContextSourceRegistrationHandler(
         val currentCSR = contextSourceRegistrationService.getById(id).bind()
 
         val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = getAuthzContextFromRequestOrDefault(httpHeaders, body, applicationProperties.contexts).bind()
+        val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
 
         val csr = currentCSR.mergeWithFragment(body, contexts).bind()
 

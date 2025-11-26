@@ -152,16 +152,17 @@ class DistributedEntityConsumptionService(
     ): Either<NGSILDWarning, QueryEntitiesResponse> = either {
         val path = "/ngsi-ld/v1/entities"
 
-        return kotlin.runCatching {
-            getDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind().let { (response, headers) ->
-                (response?.deserializeAsList() ?: emptyList()) to
-                    // if count was not asked this will be null
-                    headers.header(RESULTS_COUNT_HEADER).firstOrNull()?.toInt()
-            }
-                .right()
-        }.fold(
-            onSuccess = { it },
-            onFailure = { e ->
+        return catch(
+            {
+                getDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind()
+                    .let { (response, headers) ->
+                        (response?.deserializeAsList() ?: emptyList()) to
+                            // if count was not asked this will be null
+                            headers.header(RESULTS_COUNT_HEADER).firstOrNull()?.toInt()
+                    }
+                    .right()
+            },
+            { e ->
                 logger.warn("Badly formed data received from CSR ${csr.id} at $path: ${e.message}")
                 RevalidationFailedWarning(
                     "${csr.id} at $path returned badly formed data message: \"${e.cause}:${e.message}\"",

@@ -13,6 +13,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
+import com.egm.stellio.shared.queryparameter.OrderBy
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -75,6 +76,7 @@ fun composeEntitiesQueryFromGet(
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
         local = local,
+        orderBy = OrderBy.fromParams(queryParams, contexts),
         contexts = contexts
     )
 }
@@ -147,6 +149,7 @@ fun composeEntitiesQueryFromPost(
         datasetId = datasetId,
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
+        orderBy = OrderBy.fromParams(queryParams, contexts),
         contexts = contexts
     )
 }

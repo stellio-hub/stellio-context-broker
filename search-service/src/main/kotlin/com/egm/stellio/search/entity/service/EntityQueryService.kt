@@ -19,10 +19,10 @@ import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.queryparameter.OrderBy.Companion.toSQL
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
-import com.egm.stellio.shared.util.entityNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import java.net.URI
@@ -73,9 +73,10 @@ class EntityQueryService(
         entitiesQuery: EntitiesQuery,
         excludeDeleted: Boolean = true,
         accessRightWithAndFilter: WithAndFilter?,
-    ): List<URI> {
+    ): List<URI> { // todo
         val (adminPermissionWithClause, accessRightFilter) = accessRightWithAndFilter ?: "" to null
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
+        val orderBy = entitiesQuery.orderBy.toSQL()
 
         val selectQuery =
             """
@@ -88,7 +89,7 @@ class EntityQueryService(
                 ${if (excludeDeleted) " AND tea.deleted_at is null " else ""}
             WHERE $filterQuery
             ${if (excludeDeleted) " AND entity_payload.deleted_at is null " else ""}
-            ORDER BY entity_id
+            ORDER BY $orderBy
             LIMIT :limit
             OFFSET :offset   
             """.trimIndent()

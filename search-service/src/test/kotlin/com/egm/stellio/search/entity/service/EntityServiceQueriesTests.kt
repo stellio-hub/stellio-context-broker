@@ -491,6 +491,29 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         assertThat(entitiesIds).contains(entity02Uri)
     }
 
+//    @Test
+//    fun `queryEntities should apply order by`() = runTest {
+// //        val firstRawEntity = loadSampleData("entity_with_all_attributes_1.jsonld")
+// //        val secondRawEntity = loadSampleData("entity_with_all_attributes_2.jsonld")
+// //        val thirdRawEntity = loadSampleData("entity_with_multi_types.jsonld")
+// //        val fourthRawEntity = loadSampleData("beekeeper.jsonld")
+// //        val fifthRawEntity = loadSampleData("apiary.jsonld")
+//
+//        val entitiesIds =
+//            entityQueryService.queryEntities(
+//                EntitiesQueryFromPost(
+//                    orderBy = listOf(OrderBy("name", APIC_COMPOUND_CONTEXTS)),
+//                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+//                    contexts = APIC_COMPOUND_CONTEXTS
+//                ),
+//                null
+//            )
+//
+//        assertThat(entitiesIds)
+//            .hasSize(2)
+//            .contains(entity01Uri, entity02Uri)
+//    }
+
     @Test
     fun `it should retrieve the count of entities`() = runTest {
         entityQueryService.queryEntitiesCount(

@@ -5,6 +5,7 @@ import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery
+import com.egm.stellio.shared.queryparameter.OrderBy
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import java.net.URI
 
@@ -19,6 +20,7 @@ sealed class EntitiesQuery(
     open val geoQuery: GeoQuery?,
     open val linkedEntityQuery: LinkedEntityQuery?,
     open val local: Boolean = false,
+    open val orderBy: List<OrderBy>?,
     open val contexts: List<String>
 )
 
@@ -35,8 +37,9 @@ data class EntitiesQueryFromGet(
     override val datasetId: Set<String> = emptySet(),
     override val geoQuery: GeoQuery? = null,
     override val linkedEntityQuery: LinkedEntityQuery? = null,
-    override val contexts: List<String>,
     override val local: Boolean = false,
+    override val orderBy: List<OrderBy>? = null,
+    override val contexts: List<String>,
 ) : EntitiesQuery(
     q,
     scopeQ,
@@ -48,6 +51,7 @@ data class EntitiesQueryFromGet(
     geoQuery,
     linkedEntityQuery,
     local,
+    orderBy,
     contexts
 )
 
@@ -63,6 +67,7 @@ data class EntitiesQueryFromPost(
     override val geoQuery: GeoQuery? = null,
     override val linkedEntityQuery: LinkedEntityQuery? = null,
     override val local: Boolean = false,
+    override val orderBy: List<OrderBy>? = null,
     override val contexts: List<String>
 ) : EntitiesQuery(
     q,
@@ -75,5 +80,6 @@ data class EntitiesQueryFromPost(
     geoQuery,
     linkedEntityQuery,
     local,
+    orderBy,
     contexts
 )

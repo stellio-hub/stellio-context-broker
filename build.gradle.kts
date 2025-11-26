@@ -11,7 +11,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2025.0.0"
+extra["springCloudVersion"] = "2025.1.0"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
@@ -79,14 +79,7 @@ subprojects {
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test")
-        // Starting from version 29, Docker requires at least API version 1.44,
-        // which is only supported from Testcontainers version 2.0.2.
-        // See testcontainers/testcontainers-java#11212 for more details
-        testImplementation("org.testcontainers:testcontainers") {
-            version {
-                strictly("2.0.2")
-            }
-        }
+
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("com.ninja-squad:springmockk:4.0.2")

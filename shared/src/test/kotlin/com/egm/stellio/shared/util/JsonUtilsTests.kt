@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat

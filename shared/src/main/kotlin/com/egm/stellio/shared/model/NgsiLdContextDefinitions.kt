@@ -1,6 +1,6 @@
 package com.egm.stellio.shared.model
 
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 
 // JSON-LD terms and keywords (https://www.w3.org/TR/json-ld11/#keywords)
 

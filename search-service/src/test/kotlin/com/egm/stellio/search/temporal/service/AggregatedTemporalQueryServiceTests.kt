@@ -16,11 +16,11 @@ import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.OperationNotSupportedException
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.INCOMING_IRI
-import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedWith
-import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import kotlinx.coroutines.test.runTest

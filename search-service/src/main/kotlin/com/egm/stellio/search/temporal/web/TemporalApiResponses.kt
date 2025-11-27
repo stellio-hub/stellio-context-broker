@@ -6,10 +6,10 @@ import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.toFinalRepresentation
+import com.egm.stellio.shared.util.ApiResponses.buildQueryResponse
+import com.egm.stellio.shared.util.ApiResponses.prepareGetSuccessResponseHeaders
+import com.egm.stellio.shared.util.DateUtils.toHttpHeaderFormat
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.buildQueryResponse
-import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
-import com.egm.stellio.shared.util.toHttpHeaderFormat
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType

@@ -14,13 +14,13 @@ import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.OUTGOING_IRI
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource

@@ -21,6 +21,7 @@ import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
@@ -29,14 +30,13 @@ import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
-import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery

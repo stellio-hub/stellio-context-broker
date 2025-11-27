@@ -9,6 +9,8 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.util.ApiUtils.extractContexts
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import org.springframework.core.io.ClassPathResource

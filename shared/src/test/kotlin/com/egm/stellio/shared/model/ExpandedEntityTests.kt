@@ -1,6 +1,8 @@
 package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.ApiUtils.parseAttrsParameter
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -8,13 +10,11 @@ import com.egm.stellio.shared.util.LUMINOSITY_IRI
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.loadAndExpandSampleData
-import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.parseAttrsParameter
 import com.egm.stellio.shared.util.shouldSucceedAndResult
-import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals

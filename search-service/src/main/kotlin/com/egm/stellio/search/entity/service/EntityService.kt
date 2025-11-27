@@ -32,8 +32,8 @@ import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.APIException.Companion.toAPIException
 import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.EXPANDED_ENTITY_SPECIFIC_MEMBERS
 import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedAttributes
@@ -43,14 +43,14 @@ import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.NgsiLdModel.EXPANDED_ENTITY_SPECIFIC_MEMBERS
 import com.egm.stellio.shared.model.addSysAttrs
 import com.egm.stellio.shared.model.flattenOnAttributeAndDatasetId
-import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.model.toNgsiLdAttributes
+import com.egm.stellio.shared.util.ApiResponses.entityAlreadyExistsMessage
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
 import org.springframework.r2dbc.core.DatabaseClient

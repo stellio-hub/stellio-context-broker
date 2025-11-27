@@ -18,8 +18,10 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIARY_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.ApiResponses.attributeNotFoundMessage
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.MANAGED_BY_IRI
@@ -29,11 +31,9 @@ import com.egm.stellio.shared.util.OUTGOING_TERM
 import com.egm.stellio.shared.util.SENSOR_IRI
 import com.egm.stellio.shared.util.SENSOR_TERM
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
-import com.egm.stellio.shared.util.attributeNotFoundMessage
-import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedAndResult
-import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat

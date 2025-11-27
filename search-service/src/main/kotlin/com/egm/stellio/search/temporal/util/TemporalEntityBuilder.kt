@@ -23,6 +23,7 @@ import com.egm.stellio.shared.model.NGSILD_PREFIX
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUB
+import com.egm.stellio.shared.util.GeoUtils.wktToGeoJson
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
@@ -30,7 +31,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandGeoPropertyFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
-import com.egm.stellio.shared.util.wktToGeoJson
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
 typealias AttributesWithInstances = Map<Attribute, List<AttributeInstanceResult>>

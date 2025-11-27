@@ -5,8 +5,8 @@ import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.INCOMING_TERM
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.config.WebClientConfig

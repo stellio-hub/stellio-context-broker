@@ -12,11 +12,11 @@ import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.util.GeoUtils.parseGeometryToWKT
+import com.egm.stellio.shared.util.GeoUtils.stringifyCoordinates
+import com.egm.stellio.shared.util.HttpUtils.decode
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils
-import com.egm.stellio.shared.util.decode
-import com.egm.stellio.shared.util.parseGeometryToWKT
-import com.egm.stellio.shared.util.stringifyCoordinates
 
 data class GeoQuery(
     val georel: String,

@@ -14,9 +14,9 @@ import com.egm.stellio.search.discovery.model.EntityTypeList
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.ApiResponses.typeNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
-import com.egm.stellio.shared.util.typeNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Component
 

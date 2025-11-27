@@ -6,8 +6,8 @@ import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.subscription.config.WebClientConfig
 import com.egm.stellio.subscription.model.Notification

@@ -11,11 +11,11 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.ApiUtils.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.ApiUtils.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.MOCK_USER_SUB
-import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify

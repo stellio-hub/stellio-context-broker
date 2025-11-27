@@ -1,8 +1,8 @@
 package com.egm.stellio.search.authorization.permission.service
 
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.shouldSucceedWith
-import com.egm.stellio.shared.util.toUri
 import io.mockk.spyk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals

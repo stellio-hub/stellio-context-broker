@@ -5,7 +5,6 @@ import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.util.guessPropertyValueType
 import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.temporal.model.AttributeInstance
-import com.egm.stellio.shared.model.EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -18,6 +17,7 @@ import com.egm.stellio.shared.model.NgsiLdAttributeInstance
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdJsonPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdLanguagePropertyInstance
+import com.egm.stellio.shared.model.NgsiLdModel.EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.NgsiLdVocabPropertyInstance
@@ -25,13 +25,13 @@ import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.getMemberValueAsString
 import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.util.ApiUtils.extractContexts
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.expandDeserializedPayload
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.extractContexts
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.toSqlArray
-import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.api.migration.BaseJavaMigration
 import org.flywaydb.core.api.migration.Context

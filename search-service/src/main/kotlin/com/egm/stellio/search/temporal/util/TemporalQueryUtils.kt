@@ -21,14 +21,14 @@ import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.model.NgsiLdModel.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ApiUtils.hasValueInOptionsParam
+import com.egm.stellio.shared.util.ApiUtils.parseTimeParameter
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
-import com.egm.stellio.shared.util.hasValueInOptionsParam
-import com.egm.stellio.shared.util.parseTimeParameter
 import org.springframework.util.MultiValueMap
 import org.springframework.util.MultiValueMapAdapter
 import java.time.ZonedDateTime

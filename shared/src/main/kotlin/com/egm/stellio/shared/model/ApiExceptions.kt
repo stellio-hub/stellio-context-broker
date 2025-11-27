@@ -3,7 +3,7 @@ package com.egm.stellio.shared.model
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -33,6 +33,21 @@ sealed class APIException(
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(APIException::class.java)
+
+        fun Throwable.toAPIException(specificMessage: String? = null): APIException =
+            when (this) {
+                is APIException -> this
+                is JsonLdError ->
+                    if (this.code == JsonLdErrorCode.LOADING_REMOTE_CONTEXT_FAILED ||
+                        this.code == JsonLdErrorCode.LOADING_DOCUMENT_FAILED
+                    )
+                        LdContextNotAvailableException(
+                            specificMessage ?: "Unable to load remote context",
+                            "caused by: $this"
+                        )
+                    else BadRequestDataException("Unexpected error while parsing payload", "caused by: $this")
+                else -> BadRequestDataException(specificMessage ?: this.localizedMessage)
+            }
     }
 }
 
@@ -229,18 +244,6 @@ data class UnprocessableEntityException(
     message,
     detail
 )
-
-fun Throwable.toAPIException(specificMessage: String? = null): APIException =
-    when (this) {
-        is APIException -> this
-        is JsonLdError ->
-            if (this.code == JsonLdErrorCode.LOADING_REMOTE_CONTEXT_FAILED ||
-                this.code == JsonLdErrorCode.LOADING_DOCUMENT_FAILED
-            )
-                LdContextNotAvailableException(specificMessage ?: "Unable to load remote context", "caused by: $this")
-            else BadRequestDataException("Unexpected error while parsing payload", "caused by: $this")
-        else -> BadRequestDataException(specificMessage ?: this.localizedMessage)
-    }
 
 enum class ErrorType(val type: URI) {
     INVALID_REQUEST(URI("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest")),

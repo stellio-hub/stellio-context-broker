@@ -8,10 +8,10 @@ import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTem
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.QP
-import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.ApiUtils.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.ApiUtils.getApplicableMediaType
+import com.egm.stellio.shared.util.ApiUtils.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
-import com.egm.stellio.shared.util.getApplicableMediaType
-import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType

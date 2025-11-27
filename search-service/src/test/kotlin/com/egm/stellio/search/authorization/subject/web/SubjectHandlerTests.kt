@@ -11,6 +11,8 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.AUTHZ_HEADER_LINK
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AUTHZ_TEST_CONTEXT
+import com.egm.stellio.shared.util.ApiUtils.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.ApiUtils.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_FAMILY_NAME
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_GIVEN_NAME
@@ -20,11 +22,9 @@ import com.egm.stellio.shared.util.AuthContextModel.GROUP_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_COMPACT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.NAME_IRI
-import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import kotlinx.coroutines.test.runTest

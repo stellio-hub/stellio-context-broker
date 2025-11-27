@@ -15,11 +15,11 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.OUTGOING_IRI
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
-import com.egm.stellio.shared.util.toUri
 import io.mockk.every
 import io.mockk.mockkClass
 import kotlinx.coroutines.test.runTest

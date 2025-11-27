@@ -14,9 +14,9 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.util.ENTITIY_CREATION_FORBIDDEN_MESSAGE
-import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.ApiResponses.ENTITIY_CREATION_FORBIDDEN_MESSAGE
+import com.egm.stellio.shared.util.ApiResponses.ENTITY_ADMIN_FORBIDDEN_MESSAGE
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.coEvery

@@ -5,7 +5,7 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime

@@ -6,7 +6,14 @@ import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
+import com.egm.stellio.shared.util.ApiUtils.qPattern
+import com.egm.stellio.shared.util.ApiUtils.scopeSelectionRegex
+import com.egm.stellio.shared.util.ApiUtils.typeSelectionRegex
+import com.egm.stellio.shared.util.DateUtils.isDate
+import com.egm.stellio.shared.util.DateUtils.isDateTime
+import com.egm.stellio.shared.util.DateUtils.isTime
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.UriUtils.isURI
 import java.util.regex.Pattern
 
 /**

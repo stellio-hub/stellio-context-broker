@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.model
 
+import com.egm.stellio.shared.model.EntitySelector.Companion.areTypesInSelection
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest

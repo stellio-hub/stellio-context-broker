@@ -5,7 +5,7 @@ import com.egm.stellio.search.authorization.permission.model.Permission
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import java.net.URI
 import java.util.UUID
 

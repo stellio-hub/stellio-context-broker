@@ -14,9 +14,9 @@ import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.mapper
-import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.mockk.every
 import io.mockk.mockkObject

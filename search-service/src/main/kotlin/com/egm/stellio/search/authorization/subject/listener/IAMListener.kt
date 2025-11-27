@@ -16,12 +16,12 @@ import com.egm.stellio.shared.model.AttributeCreateEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.NGSILD_OBJECT_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.model.NgsiLdModel.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES

@@ -7,6 +7,7 @@ import com.egm.stellio.shared.model.NGSILD_OPERATION_SPACE_IRI
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.queryparameter.GeoQuery.GeometryType
+import com.egm.stellio.shared.util.GeoUtils.geoJsonToWkt
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf

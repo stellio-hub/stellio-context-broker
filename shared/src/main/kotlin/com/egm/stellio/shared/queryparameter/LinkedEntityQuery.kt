@@ -6,7 +6,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.toListOfUri
+import com.egm.stellio.shared.util.UriUtils.toListOfUri
 import java.net.URI
 import kotlin.UInt
 

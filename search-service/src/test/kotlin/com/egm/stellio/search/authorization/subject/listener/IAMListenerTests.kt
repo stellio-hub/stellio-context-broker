@@ -10,8 +10,8 @@ import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify

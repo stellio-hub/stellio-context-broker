@@ -17,7 +17,7 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.addCoreMembers
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.toNgsiLdEntity
-import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI

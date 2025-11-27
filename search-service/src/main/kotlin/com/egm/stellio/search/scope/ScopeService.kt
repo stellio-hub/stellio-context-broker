@@ -36,10 +36,10 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.model.getScopes
-import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
+import com.egm.stellio.shared.util.ApiResponses.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service

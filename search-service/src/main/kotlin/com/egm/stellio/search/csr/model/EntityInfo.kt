@@ -4,7 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.areTypesInSelection
+import com.egm.stellio.shared.model.EntitySelector.Companion.areTypesInSelection
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm

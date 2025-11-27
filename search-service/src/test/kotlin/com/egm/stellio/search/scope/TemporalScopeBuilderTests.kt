@@ -7,9 +7,9 @@ import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant

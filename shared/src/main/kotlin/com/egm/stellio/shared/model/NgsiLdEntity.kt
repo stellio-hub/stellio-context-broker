@@ -7,10 +7,23 @@ import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import arrow.core.right
 import arrow.fx.coroutines.parMap
-import com.egm.stellio.shared.util.isURI
+import com.egm.stellio.shared.model.NgsiLdModel.EXPANDED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.GEOPROPERTIES_CORE_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.GEOPROPERTIES_FORBIDDEN_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.JSONPROPERTIES_CORE_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.JSONPROPERTIES_FORBIDDEN_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.LANGUAGEPROPERTIES_CORE_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.LANGUAGEPROPERTIES_FORBIDDEN_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.PROPERTIES_CORE_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.PROPERTIES_FORBIDDEN_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.RELATIONSHIPS_CORE_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.RELATIONSHIPS_FORBIDDEN_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.VOCABPROPERTIES_CORE_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.VOCABPROPERTIES_FORBIDDEN_MEMBERS
+import com.egm.stellio.shared.util.UriUtils.isURI
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.Locale
+import java.util.*
 
 class NgsiLdEntity private constructor(
     val id: URI,

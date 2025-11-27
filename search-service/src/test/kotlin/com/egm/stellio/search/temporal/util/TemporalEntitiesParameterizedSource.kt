@@ -9,8 +9,8 @@ import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
 import java.time.Instant
 import java.time.ZoneOffset

@@ -3,9 +3,9 @@ package com.egm.stellio.shared.model
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedAndResult
-import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals

@@ -5,6 +5,7 @@ import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ApiUtils.parsePickOmitParameters
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

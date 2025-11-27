@@ -8,6 +8,9 @@ import arrow.core.toOption
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.ApiUtils.canExpandJsonLdKeyFromCore
+import com.egm.stellio.shared.util.ApiUtils.checkAndGetContext
+import com.egm.stellio.shared.util.ApiUtils.getContextFromLinkHeader
 import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR

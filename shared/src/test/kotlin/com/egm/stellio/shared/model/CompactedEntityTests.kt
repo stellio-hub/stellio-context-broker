@@ -3,11 +3,11 @@ package com.egm.stellio.shared.model
 import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedEntity
 import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedMultiAttributeEntity
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.ApiUtils.parsePickOmitParameters
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.parsePickOmitParameters
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import kotlinx.coroutines.test.runTest

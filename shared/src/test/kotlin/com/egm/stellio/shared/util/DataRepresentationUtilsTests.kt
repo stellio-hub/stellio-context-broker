@@ -1,6 +1,9 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.DataRepresentationUtils.checkContentIsNgsiLdSupported
+import com.egm.stellio.shared.util.DataRepresentationUtils.checkNamesAreNgsiLdSupported
+import com.egm.stellio.shared.util.DataRepresentationUtils.checkScopesNamesAreNgsiLdSupported
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals

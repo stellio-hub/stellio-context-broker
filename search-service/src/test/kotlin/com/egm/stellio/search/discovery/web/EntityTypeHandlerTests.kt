@@ -14,11 +14,11 @@ import com.egm.stellio.shared.config.FirewallConfig
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
+import com.egm.stellio.shared.util.ApiResponses.typeNotFoundMessage
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.MOCK_USER_SUB
-import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.shared.util.typeNotFoundMessage
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify

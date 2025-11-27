@@ -20,10 +20,10 @@ import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ApiUtils.RESULTS_COUNT_HEADER
+import com.egm.stellio.shared.util.ApiUtils.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
-import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders

@@ -2,8 +2,8 @@ package com.egm.stellio.search.temporal.web
 
 import arrow.core.Either
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.shared.util.DateUtils.toNgsiLdFormat
 import com.egm.stellio.shared.util.loadAndExpandSampleData
-import com.egm.stellio.shared.util.toNgsiLdFormat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest

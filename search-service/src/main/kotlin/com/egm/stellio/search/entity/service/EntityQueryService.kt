@@ -19,10 +19,10 @@ import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.ApiResponses.entityNotFoundMessage
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
-import com.egm.stellio.shared.util.entityNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import java.net.URI

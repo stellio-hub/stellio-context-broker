@@ -42,8 +42,10 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.ApiResponses.attributeOrInstanceNotFoundMessage
 import com.egm.stellio.shared.util.CATEGORY_IRI
 import com.egm.stellio.shared.util.CATEGORY_TERM
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.FRIENDLYNAME_IRI
 import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
 import com.egm.stellio.shared.util.INCOMING_IRI
@@ -55,14 +57,12 @@ import com.egm.stellio.shared.util.LUMINOSITY_IRI
 import com.egm.stellio.shared.util.LUMINOSITY_TERM
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.OUTGOING_TERM
-import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedWith
-import com.egm.stellio.shared.util.toUri
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking

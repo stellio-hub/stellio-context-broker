@@ -4,7 +4,7 @@ import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.OffsetDateTime

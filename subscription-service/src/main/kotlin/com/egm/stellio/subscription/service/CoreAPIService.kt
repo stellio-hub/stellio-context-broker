@@ -3,9 +3,9 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.HttpUtils.encode
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
-import com.egm.stellio.shared.util.encode
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.NotificationParams
 import kotlinx.coroutines.reactive.awaitFirst

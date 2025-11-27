@@ -11,13 +11,13 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIARY_TERM
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
+import com.egm.stellio.shared.util.ApiUtils.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.ApiUtils.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.INCOMING_IRI
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.OUTGOING_IRI
-import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify

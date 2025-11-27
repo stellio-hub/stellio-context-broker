@@ -21,7 +21,7 @@ import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
-import com.egm.stellio.shared.util.isDateTime
+import com.egm.stellio.shared.util.DateUtils.isDateTime
 import java.time.ZonedDateTime
 import kotlin.random.Random.Default.nextBoolean
 

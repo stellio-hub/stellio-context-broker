@@ -4,9 +4,9 @@ import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.shouldSucceedAndResult
-import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.GeoQ

@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.BEEKEEPER_IRI
 import com.egm.stellio.shared.util.BEEKEEPER_TERM
 import com.egm.stellio.shared.util.DEVICE_IRI
 import com.egm.stellio.shared.util.DEVICE_TERM
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -28,14 +29,13 @@ import com.egm.stellio.shared.util.SENSOR_IRI
 import com.egm.stellio.shared.util.SENSOR_TERM
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_TERM
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.loadAndExpandMinimalEntity
 import com.egm.stellio.shared.util.loadAndExpandSampleData
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
-import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification

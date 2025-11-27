@@ -5,7 +5,6 @@ import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AttributeRepresentation
 import com.egm.stellio.shared.model.AttributesValuesMapping.Companion.fromAttributeNameTerm
-import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntityRepresentation
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
@@ -16,15 +15,16 @@ import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation
+import com.egm.stellio.shared.model.NgsiLdModel.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.applyAttributeTransformation
 import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.getTypeAndValue
 import com.egm.stellio.shared.model.toFinalRepresentation
+import com.egm.stellio.shared.util.ApiUtils.acceptToMediaType
 import com.egm.stellio.shared.util.JsonLdUtils.compactAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.acceptToMediaType
-import com.egm.stellio.shared.util.getTenantFromContext
+import com.egm.stellio.shared.util.TenantUtils.getTenantFromContext
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint

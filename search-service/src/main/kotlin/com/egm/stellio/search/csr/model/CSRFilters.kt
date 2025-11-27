@@ -6,11 +6,11 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.expandTypeSelection
-import com.egm.stellio.shared.util.parseAttrsParameter
-import com.egm.stellio.shared.util.toListOfUri
+import com.egm.stellio.shared.util.ApiUtils.expandTypeSelection
+import com.egm.stellio.shared.util.ApiUtils.parseAttrsParameter
+import com.egm.stellio.shared.util.ApiUtils.validateIdPattern
+import com.egm.stellio.shared.util.UriUtils.toListOfUri
 import com.egm.stellio.shared.util.toTypeSelection
-import com.egm.stellio.shared.util.validateIdPattern
 import org.springframework.util.MultiValueMap
 import java.net.URI
 

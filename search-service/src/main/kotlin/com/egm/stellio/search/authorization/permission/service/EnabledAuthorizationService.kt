@@ -15,11 +15,11 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.util.ADMIN_ROLES
+import com.egm.stellio.shared.util.ApiResponses.ENTITIY_READ_FORBIDDEN_MESSAGE
+import com.egm.stellio.shared.util.ApiResponses.ENTITY_ADMIN_FORBIDDEN_MESSAGE
+import com.egm.stellio.shared.util.ApiResponses.ENTITY_UPDATE_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.CREATION_ROLES
-import com.egm.stellio.shared.util.ENTITIY_READ_FORBIDDEN_MESSAGE
-import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
-import com.egm.stellio.shared.util.ENTITY_UPDATE_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty

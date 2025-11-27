@@ -12,8 +12,8 @@ import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.entity.web.JsonLdNgsiLdEntity
 import com.egm.stellio.search.entity.web.entityId
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.APIException.Companion.toAPIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.toAPIException
 import org.springframework.stereotype.Component
 import java.net.URI
 

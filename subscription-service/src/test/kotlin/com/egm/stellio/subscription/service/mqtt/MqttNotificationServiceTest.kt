@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.service.mqtt
 
 import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification

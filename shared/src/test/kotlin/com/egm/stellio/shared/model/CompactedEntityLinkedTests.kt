@@ -5,8 +5,8 @@ import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedMultiAt
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
-import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

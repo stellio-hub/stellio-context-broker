@@ -6,8 +6,8 @@ import arrow.core.right
 import com.egm.stellio.shared.queryparameter.FormatValue
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.ApiUtils.GEO_JSON_MEDIA_TYPE
+import com.egm.stellio.shared.util.ApiUtils.JSON_LD_MEDIA_TYPE
 import org.springframework.http.MediaType
 import org.springframework.util.MultiValueMap
 

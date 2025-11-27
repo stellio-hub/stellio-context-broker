@@ -30,11 +30,11 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.model.SeeOtherException
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.toSqlArray
 import com.egm.stellio.shared.util.toSqlList
-import com.egm.stellio.shared.util.toUri
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query

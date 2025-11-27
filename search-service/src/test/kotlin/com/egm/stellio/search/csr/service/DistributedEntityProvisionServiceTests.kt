@@ -18,9 +18,9 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.toTypeSelection
-import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.badRequest
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.stubFor

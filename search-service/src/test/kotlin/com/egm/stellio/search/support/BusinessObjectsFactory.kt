@@ -18,10 +18,10 @@ import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.ZonedDateTime

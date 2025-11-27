@@ -1,6 +1,6 @@
 package com.egm.stellio.subscription.utils
 
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.OffsetDateTime

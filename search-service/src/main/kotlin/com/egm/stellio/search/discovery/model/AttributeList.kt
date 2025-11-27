@@ -1,6 +1,6 @@
 package com.egm.stellio.search.discovery.model
 
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import java.net.URI
 import java.util.UUID
 

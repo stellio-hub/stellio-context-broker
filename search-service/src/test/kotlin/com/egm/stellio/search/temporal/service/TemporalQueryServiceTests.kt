@@ -28,14 +28,14 @@ import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AUTHZ_TEST_CONTEXT
+import com.egm.stellio.shared.util.ApiResponses.entityNotFoundMessage
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.OUTGOING_IRI
-import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.called
 import io.mockk.coEvery

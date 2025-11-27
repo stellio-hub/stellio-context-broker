@@ -4,9 +4,9 @@ import arrow.core.Either
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ApiUtils.expandTypeSelection
 import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.expandTypeSelection
-import com.egm.stellio.shared.util.toListOfUri
+import com.egm.stellio.shared.util.UriUtils.toListOfUri
 import org.springframework.util.MultiValueMap
 import java.net.URI
 

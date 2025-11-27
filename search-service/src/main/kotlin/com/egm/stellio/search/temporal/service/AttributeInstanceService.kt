@@ -37,10 +37,10 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toNgsiLdAttribute
-import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
-import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
+import com.egm.stellio.shared.util.ApiResponses.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
+import com.egm.stellio.shared.util.ApiResponses.attributeOrInstanceNotFoundMessage
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service

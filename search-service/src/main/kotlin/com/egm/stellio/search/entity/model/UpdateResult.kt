@@ -1,7 +1,7 @@
 package com.egm.stellio.search.entity.model
 
-import com.egm.stellio.shared.model.EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.model.NgsiLdModel.EXPANDED_ENTITY_CORE_MEMBERS
 import com.fasterxml.jackson.annotation.JsonIgnore
 import java.net.URI
 

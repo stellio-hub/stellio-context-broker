@@ -15,14 +15,14 @@ import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryPar
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ApiUtils.expandTypeSelection
+import com.egm.stellio.shared.util.ApiUtils.parseAttrsParameter
+import com.egm.stellio.shared.util.ApiUtils.parsePickOmitParameters
+import com.egm.stellio.shared.util.ApiUtils.parseQueryParameter
+import com.egm.stellio.shared.util.ApiUtils.validateIdPattern
+import com.egm.stellio.shared.util.HttpUtils.decode
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.decode
-import com.egm.stellio.shared.util.expandTypeSelection
-import com.egm.stellio.shared.util.parseAttrsParameter
-import com.egm.stellio.shared.util.parsePickOmitParameters
-import com.egm.stellio.shared.util.parseQueryParameter
-import com.egm.stellio.shared.util.toListOfUri
-import com.egm.stellio.shared.util.validateIdPattern
+import com.egm.stellio.shared.util.UriUtils.toListOfUri
 import org.springframework.util.MultiValueMap
 
 fun composeEntitiesQueryFromGet(

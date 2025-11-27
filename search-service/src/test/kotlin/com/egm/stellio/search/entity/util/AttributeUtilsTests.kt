@@ -2,9 +2,9 @@ package com.egm.stellio.search.entity.util
 
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Attribute.AttributeType
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

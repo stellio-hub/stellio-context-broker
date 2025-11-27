@@ -2,7 +2,6 @@ package com.egm.stellio.subscription.service
 
 import arrow.core.filterIsInstance
 import arrow.core.right
-import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_LANG_TERM
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
@@ -10,9 +9,11 @@ import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.model.NgsiLdModel.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.ApiUtils.buildContextLinkHeader
 import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
@@ -22,11 +23,10 @@ import com.egm.stellio.shared.util.MANAGED_BY_TERM
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NAME_TERM
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
-import com.egm.stellio.shared.util.buildContextLinkHeader
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedWith
-import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint

@@ -7,9 +7,9 @@ import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.shouldSucceed
-import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify

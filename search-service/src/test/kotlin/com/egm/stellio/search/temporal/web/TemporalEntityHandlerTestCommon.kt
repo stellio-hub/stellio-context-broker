@@ -4,7 +4,7 @@ import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.service.TemporalService
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.ApiUtils.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.ninjasquad.springmockk.MockkBean
 import org.junit.jupiter.api.BeforeAll

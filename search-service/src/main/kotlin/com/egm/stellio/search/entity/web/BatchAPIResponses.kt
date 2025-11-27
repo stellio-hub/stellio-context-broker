@@ -7,7 +7,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NGSILD_LOCAL
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toErrorResponse
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
 import org.springframework.http.HttpStatus

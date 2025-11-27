@@ -1,7 +1,8 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
-import com.egm.stellio.shared.model.NGSILD_SYSATTRS_TERMS
+import com.egm.stellio.shared.model.NgsiLdModel.NGSILD_SYSATTRS_TERMS
+import com.egm.stellio.shared.util.ApiUtils.JSON_LD_MEDIA_TYPE
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature

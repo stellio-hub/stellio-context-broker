@@ -1,6 +1,6 @@
 package com.egm.stellio.shared.support
 
-import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.ApiUtils.JSON_LD_CONTENT_TYPE
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.get

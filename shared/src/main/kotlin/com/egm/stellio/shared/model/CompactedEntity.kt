@@ -9,15 +9,18 @@ import com.egm.stellio.shared.model.AttributeCompactedType.LANGUAGEPROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.PROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.RELATIONSHIP
 import com.egm.stellio.shared.model.AttributeCompactedType.VOCABPROPERTY
+import com.egm.stellio.shared.model.NgsiLdModel.COMPACTED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.COMPACTED_ENTITY_MINIMAL_MEMBERS
+import com.egm.stellio.shared.model.NgsiLdModel.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.FEATURES_PROPERTY_TERM
-import com.egm.stellio.shared.util.FEATURE_COLLECTION_TYPE
-import com.egm.stellio.shared.util.FEATURE_TYPE
-import com.egm.stellio.shared.util.GEOMETRY_PROPERTY_TERM
-import com.egm.stellio.shared.util.PROPERTIES_PROPERTY_TERM
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.GeoUtils.FEATURES_PROPERTY_TERM
+import com.egm.stellio.shared.util.GeoUtils.FEATURE_COLLECTION_TYPE
+import com.egm.stellio.shared.util.GeoUtils.FEATURE_TYPE
+import com.egm.stellio.shared.util.GeoUtils.GEOMETRY_PROPERTY_TERM
+import com.egm.stellio.shared.util.GeoUtils.PROPERTIES_PROPERTY_TERM
+import com.egm.stellio.shared.util.UriUtils.toUri
 import java.net.URI
-import java.util.Locale
+import java.util.*
 
 typealias CompactedEntity = Map<String, Any>
 typealias CompactedAttributeInstance = Map<String, Any>

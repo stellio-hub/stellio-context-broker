@@ -4,9 +4,10 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.mapValuesNotNull
 import arrow.core.right
+import com.egm.stellio.shared.model.NgsiLdModel.EXPANDED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.util.ApiResponses.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import java.net.URI
 import java.time.ZonedDateTime
 

@@ -1,9 +1,9 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.COMPACTED_ATTRIBUTES_TERMS
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.NGSILD_JSON_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.model.NgsiLdModel.COMPACTED_ATTRIBUTES_TERMS
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper

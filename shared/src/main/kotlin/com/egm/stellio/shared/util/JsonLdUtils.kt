@@ -13,8 +13,8 @@ import com.apicatalog.jsonld.http.DefaultHttpClient
 import com.apicatalog.jsonld.loader.DocumentLoaderOptions
 import com.apicatalog.jsonld.loader.HttpLoader
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.APIException.Companion.toAPIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ExpandedAttribute
@@ -40,7 +40,10 @@ import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
-import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.model.NgsiLdModel.COMPACTED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.util.DateUtils.toNgsiLdFormat
+import com.egm.stellio.shared.util.GeoUtils.throwingGeoJsonToWkt
+import com.egm.stellio.shared.util.GeoUtils.wktToGeoJson
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap

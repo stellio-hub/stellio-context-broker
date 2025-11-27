@@ -6,7 +6,7 @@ import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.BEEHIVE_IRI
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

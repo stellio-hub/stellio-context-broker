@@ -6,8 +6,8 @@ import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RegistrationInfo
 import com.egm.stellio.shared.util.APIARY_IRI
-import com.egm.stellio.shared.util.ngsiLdDateTime
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.DateUtils.ngsiLdDateTime
+import com.egm.stellio.shared.util.UriUtils.toUri
 import java.net.URI
 
 object CsrUtils {

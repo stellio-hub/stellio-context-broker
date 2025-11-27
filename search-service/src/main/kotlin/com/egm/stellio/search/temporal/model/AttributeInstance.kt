@@ -13,7 +13,7 @@ import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.UriUtils.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
 import java.time.ZonedDateTime

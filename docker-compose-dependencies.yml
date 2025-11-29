@@ -1,6 +1,6 @@
 services:
   kafka:
-    image: confluentinc/cp-kafka:7.6.0
+    image: confluentinc/cp-kafka:8.1.0
     container_name: "${CONTAINER_NAME_PREFIX}stellio-kafka"
     hostname: stellio-kafka
     ports:

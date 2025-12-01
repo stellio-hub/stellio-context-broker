@@ -89,7 +89,7 @@ subprojects {
         }
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
         testImplementation("io.projectreactor:reactor-test")
-        testImplementation("com.ninja-squad:springmockk:4.0.2")
+        testImplementation("com.ninja-squad:springmockk:5.0.1")
         testImplementation("io.mockk:mockk:1.14.6")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")

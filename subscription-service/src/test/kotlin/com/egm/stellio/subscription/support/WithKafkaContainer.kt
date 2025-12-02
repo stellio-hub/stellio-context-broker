@@ -14,7 +14,7 @@ open class WithKafkaContainer {
         @Container
         @ServiceConnection
         @JvmStatic
-        val kafkaContainer = ConfluentKafkaContainer("confluentinc/cp-kafka:7.6.0").apply {
+        val kafkaContainer = ConfluentKafkaContainer("confluentinc/cp-kafka:8.1.0").apply {
             withReuse(true)
         }
     }

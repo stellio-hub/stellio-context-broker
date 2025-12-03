@@ -523,8 +523,6 @@ class PermissionService(
                   (target_id is null AND target_types is null)
                   OR
                   ( ${buildTypeQuery(permissionFilters.targetTypeSelection, "target_types")} )
-                  OR 
-                  ( ${buildTypeQuery(permissionFilters.targetTypeSelection)} )
                ) 
             """.trimIndent()
         else null
@@ -537,8 +535,6 @@ class PermissionService(
                   (target_id is null AND target_scopes is null)
                   OR
                   ( ${buildScopeQQuery(permissionFilters.targetScopeSelection, columnName = "target_scopes")} )
-                  OR 
-                  ( ${buildScopeQQuery(permissionFilters.targetScopeSelection)} )
                 )
             """.trimIndent()
         else null

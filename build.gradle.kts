@@ -22,8 +22,8 @@ plugins {
     id("org.springframework.boot") version "3.5.7" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("org.graalvm.buildtools.native") version "0.11.3"
-    kotlin("jvm") version "2.1.20" apply false
-    kotlin("plugin.spring") version "2.1.20" apply false
+    kotlin("jvm") version "2.2.21" apply false
+    kotlin("plugin.spring") version "2.2.21" apply false
     id("com.google.cloud.tools.jib") version "3.5.1" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
     id("org.sonarqube") version "7.1.0.6387"

@@ -519,11 +519,8 @@ class PermissionService(
         val targetTypeFilter = if (!permissionFilters.targetTypeSelection.isNullOrEmpty())
             """
                 -- target type selection filter
-                (
-                  (target_id is null AND target_types is null)
-                  OR
-                  ( ${buildTypeQuery(permissionFilters.targetTypeSelection, "target_types")} )
-               ) 
+                ( ${buildTypeQuery(permissionFilters.targetTypeSelection, "target_types")} )
+
             """.trimIndent()
         else null
 
@@ -531,11 +528,7 @@ class PermissionService(
         val targetScopeFilter = if (!permissionFilters.targetScopeSelection.isNullOrEmpty())
             """
                 -- target scope selection filter
-                (
-                  (target_id is null AND target_scopes is null)
-                  OR
-                  ( ${buildScopeQQuery(permissionFilters.targetScopeSelection, columnName = "target_scopes")} )
-                )
+                ( ${buildScopeQQuery(permissionFilters.targetScopeSelection, columnName = "target_scopes")} )
             """.trimIndent()
         else null
 

@@ -11,6 +11,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.GeoQuery
+import com.egm.stellio.shared.queryparameter.OrderBy
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -491,28 +492,42 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         assertThat(entitiesIds).contains(entity02Uri)
     }
 
-//    @Test
-//    fun `queryEntities should apply order by`() = runTest {
-// //        val firstRawEntity = loadSampleData("entity_with_all_attributes_1.jsonld")
-// //        val secondRawEntity = loadSampleData("entity_with_all_attributes_2.jsonld")
-// //        val thirdRawEntity = loadSampleData("entity_with_multi_types.jsonld")
-// //        val fourthRawEntity = loadSampleData("beekeeper.jsonld")
-// //        val fifthRawEntity = loadSampleData("apiary.jsonld")
-//
-//        val entitiesIds =
-//            entityQueryService.queryEntities(
-//                EntitiesQueryFromPost(
-//                    orderBy = listOf(OrderBy("name", APIC_COMPOUND_CONTEXTS)),
-//                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
-//                    contexts = APIC_COMPOUND_CONTEXTS
-//                ),
-//                null
-//            )
-//
-//        assertThat(entitiesIds)
-//            .hasSize(2)
-//            .contains(entity01Uri, entity02Uri)
-//    }
+    // possible ids :
+    // urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02
+    // urn:ngsi-ld:MultiTypes:03,urn:ngsi-ld:Beekeeper:04,
+    @ParameterizedTest
+    @CsvSource(
+        "id;asc,'urn:ngsi-ld:Apiary:05,urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
+        "id;desc,'urn:ngsi-ld:MultiTypes:03,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:Apiary:05'",
+        "name;desc,'urn:ngsi-ld:BeeHive:01'",
+        "string;desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+        "integer;desc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "float;desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+        "jsonObject[aNumber];desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+        "jsonObject[aString];desc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "jsonObject[anObject.name];desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+    )
+    fun `queryEntities should apply order by`(orderBy: String, expectedOrderString: String) = runTest {
+        //        val firstRawEntity = loadSampleData("entity_with_all_attributes_1.jsonld")
+        //        val secondRawEntity = loadSampleData("entity_with_all_attributes_2.jsonld")
+        //        val thirdRawEntity = loadSampleData("entity_with_multi_types.jsonld")
+        //        val fourthRawEntity = loadSampleData("beekeeper.jsonld")
+        //        val fifthRawEntity = loadSampleData("apiary.jsonld")
+        val expectedOrder = expectedOrderString.split(",").map { it.toUri() }
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromPost(
+                    orderBy = listOf(OrderBy(orderBy, APIC_COMPOUND_CONTEXTS)),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                null
+            )
+
+        expectedOrder.forEachIndexed { index, expectedID ->
+            assertEquals(entitiesIds[index], expectedID)
+        }
+    }
 
     @Test
     fun `it should retrieve the count of entities`() = runTest {

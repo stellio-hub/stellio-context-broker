@@ -8,7 +8,7 @@ import com.egm.stellio.shared.model.InvalidRequestException
 import org.springframework.util.MultiValueMap
 
 data class OrderBy(val param: String, val contexts: List<String>) {
-    val direction: Direction = enumValueOf(param.substringAfter(';', "ASC"))
+    val direction: Direction = Direction.fromString(param.substringAfter(';')).fold({ Direction.ASC }, { it })
     val attributePath: AttributePath = AttributePath(param.substringBefore(';'), contexts)
 
     fun buildSql(): String {
@@ -26,7 +26,7 @@ data class OrderBy(val param: String, val contexts: List<String>) {
         fun fromParams(queryParams: MultiValueMap<String, String>, contexts: List<String>): List<OrderBy>? =
             queryParams.getFirst(QueryParameter.ORDER_BY.key)?.split(',')?.map { OrderBy(it, contexts) }
 
-        fun List<OrderBy>?.toSQL() = this?.joinToString(", ") { it.buildSql() } ?: "entity_id"
+        fun List<OrderBy>?.toSQL() = this?.joinToString(", ") { it.buildSql() } ?: "entity_payload.entity_id"
     }
     enum class Direction(val value: String) {
 

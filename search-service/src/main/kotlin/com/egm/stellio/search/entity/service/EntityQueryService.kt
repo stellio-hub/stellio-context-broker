@@ -79,17 +79,18 @@ class EntityQueryService(
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
         val orderBy = entitiesQuery.orderBy.toSQL()
 
-        val selectQuery =
+        val selectQuery = // todo performance impact?
             """
             $adminPermissionWithClause
             
-            SELECT DISTINCT(entity_payload.entity_id)
+            SELECT entity_payload.entity_id
             FROM entity_payload
             LEFT JOIN temporal_entity_attribute tea
             ON tea.entity_id = entity_payload.entity_id 
                 ${if (excludeDeleted) " AND tea.deleted_at is null " else ""}
             WHERE $filterQuery
             ${if (excludeDeleted) " AND entity_payload.deleted_at is null " else ""}
+            GROUP BY entity_payload.entity_id, entity_payload.payload
             ORDER BY $orderBy
             LIMIT :limit
             OFFSET :offset   

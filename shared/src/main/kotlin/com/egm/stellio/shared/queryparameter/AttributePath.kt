@@ -22,6 +22,7 @@ data class AttributePath(val term: String, val contexts: List<String>) {
         val mainPathString = mainPath.joinToString(".") { "\"$it\"" }
         val trailingPathString = trailingPath.joinToString(".") { "\"$it\"" }
         return when {
+            term == "id" -> """$."@id"""" // todo case modifiedAt, id, type, observedAt
             mainPath.size > 1 ->
                 """$.$mainPathString.**{0 to 2}."$JSONLD_VALUE_KW""""
             trailingPath.isEmpty() ->

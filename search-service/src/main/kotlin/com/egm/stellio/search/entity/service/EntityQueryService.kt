@@ -74,10 +74,10 @@ class EntityQueryService(
         entitiesQuery: EntitiesQuery,
         excludeDeleted: Boolean = true,
         accessRightWithAndFilter: WithAndFilter?,
-    ): List<URI> { // todo
+    ): List<URI> {
         val (adminPermissionWithClause, accessRightFilter) = accessRightWithAndFilter ?: "" to null
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
-        val orderBy = entitiesQuery.orderBy.toSQL()
+        val orderBy = entitiesQuery.orderBy.toSQL() // todo apply to all query request
 
         val selectQuery = // todo performance impact?
             """

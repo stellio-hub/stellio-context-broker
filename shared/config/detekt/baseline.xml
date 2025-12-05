@@ -6,14 +6,8 @@
     <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `it should inline two entities with their respective relationhips`()</ID>
     <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `it should simplify relationships for inlined entities`()</ID>
     <ID>LongMethod:QueryUtils.kt$private fun transformQQueryToSqlJsonPath( attributePath: AttributePath, operator: String, value: String )</ID>
-    <ID>LongParameterList:ApiResponses.kt$ApiResponses$( body: String, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
-    <ID>LongParameterList:ApiResponses.kt$ApiResponses$( entities: Any, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
-    <ID>MaxLineLength:ApiUtils.kt$ApiUtils$"JSON-LD Link header must not be provided for a request having an application/ld+json content type"</ID>
-    <ID>MaxLineLength:ApiUtils.kt$ApiUtils$"Request payload must contain @context term for a request having an application/ld+json content type"</ID>
-    <ID>MaxLineLength:ApiUtils.kt$ApiUtils$"Request payload must not contain @context term for a request having an application/json content type"</ID>
-    <ID>MaxLineLength:ApiUtils.kt$ApiUtils$*</ID>
-    <ID>MaxLineLength:EntitySelector.kt$EntitySelector.Companion$return areTypesInSelection(types, it.groups[1]!!.value) &amp;&amp; areTypesInSelection(types, it.groups[2]!!.value)</ID>
-    <ID>MaxLineLength:EntitySelector.kt$EntitySelector.Companion$return areTypesInSelection(types, it.groups[1]!!.value) || areTypesInSelection(types, it.groups[2]!!.value)</ID>
+    <ID>LongParameterList:ApiResponses.kt$( body: String, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
+    <ID>LongParameterList:ApiResponses.kt$( entities: Any, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
     <ID>NestedBlockDepth:JsonLdUtils.kt$JsonLdUtils$fun expandJsonLdTerm(term: String, contexts: List&lt;String&gt;): String</ID>
     <ID>TooManyFunctions:JsonLdUtils.kt$JsonLdUtils</ID>
   </CurrentIssues>

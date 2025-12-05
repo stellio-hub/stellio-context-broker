@@ -3,9 +3,7 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.queryparameter.AttributePath
-
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.UriUtils.isURI
 import java.util.regex.Pattern
 
 /**

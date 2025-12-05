@@ -23,6 +23,7 @@ import com.egm.stellio.shared.queryparameter.OrderBy.Companion.toSQL
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
+import com.egm.stellio.shared.util.entityNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import java.net.URI

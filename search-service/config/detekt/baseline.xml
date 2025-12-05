@@ -26,17 +26,17 @@
     <ID>LongParameterList:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$( entityId: URI, attributeName: ExpandedTerm, datasetId: URI?, attributePayload: ExpandedAttributeInstance, ngsiLdAttributeInstance: NgsiLdAttributeInstance, defaultCreatedAt: ZonedDateTime )</ID>
     <ID>MaxLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$"$permissionUri?targetId=$id&amp;action=${Action.OWN.value}&amp;assignee=assigneeId&amp;assigner=assignerId&amp;targetType=${BEEHIVE_TERM}"</ID>
     <ID>MaxLineLength:PermissionHandlerTests.kt$PermissionHandlerTests$fun</ID>
+    <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" '$BEEHIVE_IRI,$BEEKEEPER_IRI', '/A,/B' , '$beehiveTypeAndScopeA', '$beehiveWithScope,$beekeeper,$scopeA,$beehiveType'"</ID>
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" '$BEEHIVE_IRI,$BEEKEEPER_IRI', '/A,/B' , '$beehiveWithScope,$beehiveTypeAndScopeA' , '$beekeeper,$scopeA,$beehiveType'"</ID>
-    <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" '$BEEHIVE_IRI,$BEEKEEPER_IRI', '/A,/B' , '$beehiveWithScope,$scopeA,$beehiveType,$beehiveTypeAndScopeA', '$beekeeper'"</ID>
+    <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" '$BEEHIVE_IRI,$BEEKEEPER_IRI', null , '$beehiveType,$beehiveTypeAndScopeA', '$beekeeper,$beehiveWithScope,$scopeA'"</ID>
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" '$BEEHIVE_IRI,$BEEKEEPER_IRI', null , '$beekeeper,$beehiveWithScope,$beehiveType,$beehiveTypeAndScopeA', '$scopeA'"</ID>
-    <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" '$BEEHIVE_IRI,$BEEKEEPER_IRI', null , '$beekeeper,$beehiveWithScope,$scopeA,$beehiveType,$beehiveTypeAndScopeA', null"</ID>
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" '$BEEKEEPER_IRI' , '/B' , null, '$beehiveType,$beekeeper,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'"</ID>
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" '$BEEKEEPER_IRI' , null , '$beekeeper', '$beehiveWithScope,$beehiveType,$beehiveTypeAndScopeA,$scopeA'"</ID>
-    <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" '$BEEKEEPER_IRI' , null , '$beekeeper,$scopeA', '$beehiveWithScope,$beehiveType,$beehiveTypeAndScopeA'"</ID>
-    <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" null , '/A,/B' , '$beehiveWithScope,$scopeA,$beehiveType,$beehiveTypeAndScopeA', '$beekeeper'"</ID>
+    <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" '$BEEKEEPER_IRI' , null , null, '$beehiveWithScope,$beehiveType,$beekeeper,$beehiveTypeAndScopeA,$scopeA'"</ID>
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" null , '/A,/B' , '$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA', '$beekeeper,$beehiveType'"</ID>
-    <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" null , '/B' , '$beehiveType', '$beekeeper,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'"</ID>
+    <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" null , '/A,/B' , '$scopeA,$beehiveTypeAndScopeA', '$beekeeper,$beehiveType,$beehiveWithScope'"</ID>
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" null , '/B' , null, '$beehiveType,$beekeeper,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'"</ID>
+    <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" null , '/B' , null, '$beekeeper,$beehiveType,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'"</ID>
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$fun</ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
   </CurrentIssues>

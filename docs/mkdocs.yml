@@ -1,6 +1,6 @@
 site_name: Stellio Context Broker
 site_url: https://stellio.readthedocs.org
-repo_url: https://github.com/stellio-hub/stellio-docs
+repo_url: https://github.com/stellio-hub/stellio-context-broker
 site_description: Stellio Context Broker Documentation
 docs_dir: files
 site_dir: html

@@ -1,7 +1,10 @@
 # Contributing to Stellio
 
 Thanks for checking out the Stellio Project. We're excited to hear and learn from you. We've put together the following
-guidelines to help you figure out where you can best be helpful.
+guidelines to help you figure out where you can best be helpful. 
+
+This file only cover contribution best practices, if you need information about development you can find them [here](docs/files/development_guide.md).
+
 
 ## Ground rules & expectations
 

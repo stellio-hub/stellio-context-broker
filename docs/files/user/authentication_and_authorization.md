@@ -192,8 +192,8 @@ The result will look like this:
 You can filter the requested permissions with the following query parameters:
 
 - `targetId=urn:id:1,urn:id:2` to get the permissions targeting entities with id urn:id:1 and urn:id:2
-- `targetType=MyType` to get the permissions targeting selected type or targeting entities matching the corresponding type (note: the field support complex entity type selection as defined in section 4.17 of the specification)
-- `targetScopeQ=/my/Scope` to get the permissions targeting selected scope or targeting  entities matching the corresponding scope (note: the field support complex scope query as defined in section 4.19 of the specification)
+- `targetType=MyType` to get the permissions targeting selected type (note: it supports entity type selection as defined in section 4.17 of the specification)
+- `targetScopeQ=/my/Scope` to get the permissions targeting selected scope (note: it supports scope query as defined in section 4.19 of the specification)
 - `assignee=my:assignee` to get the permissions directly assigned to “my:assignee”
 - `assigner=my:assigner` to get the permissions created by “my:assigner”
 - `action=read` to get the permissions giving the right to read

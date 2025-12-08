@@ -2,9 +2,9 @@ site_name: Stellio Context Broker
 site_url: https://stellio.readthedocs.org
 repo_url: https://github.com/stellio-hub/stellio-docs
 site_description: Stellio Context Broker Documentation
-docs_dir: docs/files
+docs_dir: files
 site_dir: html
-edit_uri: edit/master/docs/files
+edit_uri: edit/master/files
 markdown_extensions: [toc,fenced_code]
 use_directory_urls: false
 theme: readthedocs

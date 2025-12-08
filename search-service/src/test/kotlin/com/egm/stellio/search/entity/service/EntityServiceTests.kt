@@ -130,7 +130,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -158,7 +158,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 eq(USER_UUID),
                 any()
             )
-            authorizationService.createOwnerRight(beehiveTestCId)
+            authorizationService.createEntityOwnerRight(beehiveTestCId)
         }
     }
 
@@ -277,7 +277,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap()),
         ).right()
         coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -319,7 +319,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             entityAttributeService.getAllForEntity(
                 eq(beehiveTestCId)
             )
-            authorizationService.createOwnerRight(beehiveTestCId)
+            authorizationService.createEntityOwnerRight(beehiveTestCId)
         }
     }
 
@@ -336,7 +336,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap())
         ).right()
         coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -376,7 +376,8 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap())
         ).right()
         coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createScopesOwnerRights(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_minimal.jsonld").shouldSucceedAndResult()
@@ -419,7 +420,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
         // called when replacing the initial entity
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
@@ -611,7 +612,9 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should permanently delete an attribute`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
-        coEvery { entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
+        } returns Unit.right()
         coEvery { entityAttributeService.permanentlyDeleteAttribute(any(), any(), any(), any()) } returns Unit.right()
         coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
 
@@ -627,7 +630,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_IRI, null).shouldSucceed()
 
         coVerify {
-            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_IRI, null)
+            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_IRI, null, false, false)
             entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_IRI, null, false)
             entityAttributeService.getAllForEntity(beehiveTestCId)
         }
@@ -637,7 +640,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun `it should return a ResourceNotFound error if trying to permanently delete an unknown attribute`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
-            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any())
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
         } returns ResourceNotFoundException("Entity does not exist").left()
 
         loadAndPrepareSampleData("beehive.jsonld")
@@ -654,7 +657,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
 
         coVerify {
-            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, OUTGOING_IRI, null)
+            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, OUTGOING_IRI, null, false, false)
         }
         coVerify(exactly = 0) {
             entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_IRI, null, false)

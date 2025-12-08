@@ -13,12 +13,12 @@ import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePagi
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.web.BaseHandler
 import kotlinx.coroutines.reactive.awaitFirst
@@ -30,6 +30,7 @@ import org.springframework.util.MultiValueMap
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -60,11 +61,10 @@ class ContextSourceRegistrationHandler(
         authorizationService.userIsAdmin().bind()
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
-        val sub = getSubFromSecurityContext()
 
         val contextSourceRegistration = deserialize(body, contexts).bind()
 
-        contextSourceRegistrationService.create(contextSourceRegistration, sub).bind()
+        contextSourceRegistrationService.create(contextSourceRegistration).bind()
 
         ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/csourceRegistrations/${contextSourceRegistration.id}"))
@@ -149,6 +149,33 @@ class ContextSourceRegistrationHandler(
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .body(contextSourceRegistration.serialize(contexts, mediaType, includeSysAttrs))
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
+    @PatchMapping(
+        "/{id}",
+        consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
+    )
+    suspend fun update(
+        @PathVariable id: URI,
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters // no query parameter is allowed
+        @RequestParam queryParams: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
+        authorizationService.userIsAdmin().bind()
+        val currentCSR = contextSourceRegistrationService.getById(id).bind()
+
+        val body = requestBody.awaitFirst().deserializeAsMap()
+        val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
+
+        val csr = currentCSR.mergeWithFragment(body, contexts).bind()
+
+        contextSourceRegistrationService.upsert(csr).bind()
+
+        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
         { it.toErrorResponse() },
         { it }

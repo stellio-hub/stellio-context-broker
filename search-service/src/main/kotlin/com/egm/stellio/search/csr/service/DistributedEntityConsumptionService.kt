@@ -3,6 +3,7 @@ package com.egm.stellio.search.csr.service
 import arrow.core.Either
 import arrow.core.getOrNone
 import arrow.core.left
+import arrow.core.raise.catch
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.separateEither
@@ -89,15 +90,15 @@ class DistributedEntityConsumptionService(
     ): Either<NGSILDWarning, CompactedEntity?> = either {
         val path = "/ngsi-ld/v1/entities/$id"
 
-        return kotlin.runCatching {
-            getDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind()
-                .first?.deserializeAsMap().right()
-        }.fold(
-            onSuccess = { it },
-            onFailure = { e ->
+        return catch(
+            {
+                getDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind()
+                    .first?.deserializeAsMap().right()
+            },
+            { e ->
                 logger.warn("Badly formed data received from CSR ${csr.id} at $path: ${e.message}")
                 RevalidationFailedWarning(
-                    "${csr.id} at $path returned badly formed data message: \"${e.cause}:${e.message}\"",
+                    "${csr.id} at $path returned badly formed data message :'${e.message}'",
                     csr
                 ).left()
             }
@@ -151,16 +152,17 @@ class DistributedEntityConsumptionService(
     ): Either<NGSILDWarning, QueryEntitiesResponse> = either {
         val path = "/ngsi-ld/v1/entities"
 
-        return kotlin.runCatching {
-            getDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind().let { (response, headers) ->
-                (response?.deserializeAsList() ?: emptyList()) to
-                    // if count was not asked this will be null
-                    headers.header(RESULTS_COUNT_HEADER).firstOrNull()?.toInt()
-            }
-                .right()
-        }.fold(
-            onSuccess = { it },
-            onFailure = { e ->
+        return catch(
+            {
+                getDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind()
+                    .let { (response, headers) ->
+                        (response?.deserializeAsList() ?: emptyList()) to
+                            // if count was not asked this will be null
+                            headers.header(RESULTS_COUNT_HEADER).firstOrNull()?.toInt()
+                    }
+                    .right()
+            },
+            { e ->
                 logger.warn("Badly formed data received from CSR ${csr.id} at $path: ${e.message}")
                 RevalidationFailedWarning(
                     "${csr.id} at $path returned badly formed data message: \"${e.cause}:${e.message}\"",
@@ -200,32 +202,32 @@ class DistributedEntityConsumptionService(
                 httpHeaders.getOrNone(HttpHeaders.LINK).onSome { link -> newHeaders[HttpHeaders.LINK] = link }
             }
 
-        return runCatching {
-            val (statusCode, response, headers) = request.awaitExchange { response ->
-                Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
-            }
-            when {
-                statusCode.is2xxSuccessful -> {
-                    logger.info("Successfully received data from CSR ${csr.id} at $uri")
-                    (response to headers).right()
+        return catch(
+            {
+                val (statusCode, response, headers) = request.awaitExchange { response ->
+                    Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
                 }
+                when {
+                    statusCode.is2xxSuccessful -> {
+                        logger.info("Successfully received data from CSR ${csr.id} at $uri")
+                        (response to headers).right()
+                    }
 
-                statusCode.isSameCodeAs(HttpStatus.NOT_FOUND) -> {
-                    logger.info("CSR returned 404 at $uri: $response")
-                    (null to headers).right()
-                }
+                    statusCode.isSameCodeAs(HttpStatus.NOT_FOUND) -> {
+                        logger.info("CSR returned 404 at $uri: $response")
+                        (null to headers).right()
+                    }
 
-                else -> {
-                    logger.warn("Error contacting CSR at $uri: $response")
-                    MiscellaneousPersistentWarning(
-                        "$uri returned an error $statusCode with response: $response",
-                        csr
-                    ).left()
+                    else -> {
+                        logger.warn("Error contacting CSR at $uri: $response")
+                        MiscellaneousPersistentWarning(
+                            "$uri returned an error $statusCode with response: $response",
+                            csr
+                        ).left()
+                    }
                 }
-            }
-        }.fold(
-            onSuccess = { it },
-            onFailure = { e ->
+            },
+            { e ->
                 logger.warn("Error contacting CSR at $uri: ${e.message}")
                 logger.warn(e.stackTraceToString())
                 MiscellaneousWarning(

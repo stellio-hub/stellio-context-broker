@@ -18,6 +18,7 @@ import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toBoolean
 import com.egm.stellio.search.common.util.toInt
+import com.egm.stellio.search.common.util.toList
 import com.egm.stellio.search.common.util.toOptionalList
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
@@ -26,6 +27,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.model.SeeOtherException
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildScopeQQuery
@@ -112,6 +114,23 @@ class PermissionService(
             .bind("assigner", permission.assigner)
             .execute().bind()
     }
+
+    suspend fun getNewScopesFromList(
+        scopes: List<Scope>,
+    ): Either<APIException, List<Scope>> =
+        databaseClient.sql(
+            """
+                WITH existing_scopes AS (
+                  SELECT DISTINCT unnest(target_scopes) AS scopes
+                  FROM permission
+                )
+                SELECT ARRAY(
+                  SELECT unnest(${scopes.toSqlArray()})
+                  EXCEPT
+                  SELECT scopes FROM existing_scopes
+                ) AS result
+            """.trimIndent()
+        ).oneToResult { toList(it["result"]) }
 
     suspend fun checkExistence(
         id: URI,
@@ -489,10 +508,7 @@ class PermissionService(
         }
 
         val assigneeFilter = permissionFilters.assignee?.let {
-            val assignee = permissionFilters.assignee
-
-            val assigneeUuids = subjectReferentialService.getSubjectAndGroupsUUID(assignee).bind()
-            buildIsAssigneeFilter(assigneeUuids)
+            buildIsAssigneeFilter(listOf(it))
         }
 
         val assignerFilter = permissionFilters.assigner?.let { assigner ->
@@ -503,13 +519,8 @@ class PermissionService(
         val targetTypeFilter = if (!permissionFilters.targetTypeSelection.isNullOrEmpty())
             """
                 -- target type selection filter
-                (
-                  (target_id is null AND target_types is null)
-                  OR
-                  ( ${buildTypeQuery(permissionFilters.targetTypeSelection, "target_types")} )
-                  OR 
-                  ( ${buildTypeQuery(permissionFilters.targetTypeSelection)} )
-               ) 
+                ( ${buildTypeQuery(permissionFilters.targetTypeSelection, "target_types")} )
+
             """.trimIndent()
         else null
 
@@ -517,13 +528,7 @@ class PermissionService(
         val targetScopeFilter = if (!permissionFilters.targetScopeSelection.isNullOrEmpty())
             """
                 -- target scope selection filter
-                (
-                  (target_id is null AND target_scopes is null)
-                  OR
-                  ( ${buildScopeQQuery(permissionFilters.targetScopeSelection, columnName = "target_scopes")} )
-                  OR 
-                  ( ${buildScopeQQuery(permissionFilters.targetScopeSelection)} )
-                )
+                ( ${buildScopeQQuery(permissionFilters.targetScopeSelection, columnName = "target_scopes")} )
             """.trimIndent()
         else null
 

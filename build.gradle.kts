@@ -21,12 +21,12 @@ plugins {
     // and the shared lib is obviously not one
     id("org.springframework.boot") version "3.5.7" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
-    id("org.graalvm.buildtools.native") version "0.11.2"
+    id("org.graalvm.buildtools.native") version "0.11.3"
     kotlin("jvm") version "2.1.20" apply false
     kotlin("plugin.spring") version "2.1.20" apply false
-    id("com.google.cloud.tools.jib") version "3.4.5" apply false
+    id("com.google.cloud.tools.jib") version "3.5.1" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
-    id("org.sonarqube") version "7.0.1.6134"
+    id("org.sonarqube") version "7.2.0.6526"
     jacoco
 }
 
@@ -79,6 +79,14 @@ subprojects {
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test")
+        // Starting from version 29, Docker requires at least API version 1.44,
+        // which is only supported from Testcontainers version 2.0.2.
+        // See testcontainers/testcontainers-java#11212 for more details
+        testImplementation("org.testcontainers:testcontainers") {
+            version {
+                strictly("2.0.2")
+            }
+        }
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("com.ninja-squad:springmockk:4.0.2")
@@ -151,8 +159,14 @@ subprojects {
     project.ext.set(
         "jibFromPlatforms",
         listOf(
-            PlatformParameters().apply { os = "linux"; architecture = "arm64" },
-            PlatformParameters().apply { os = "linux"; architecture = "amd64" }
+            PlatformParameters().apply {
+                os = "linux"
+                architecture = "arm64"
+            },
+            PlatformParameters().apply {
+                os = "linux"
+                architecture = "amd64"
+            }
         )
     )
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")

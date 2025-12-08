@@ -124,6 +124,14 @@ data class ContextSourceRegistration(
             } ?: listOf(this.copy(information = listOf(registrationInfo)))
         }.filter { it.matchCSF(csrFilters) }
 
+    fun mergeWithFragment(
+        fragment: Map<String, Any>,
+        contexts: List<String>
+    ): Either<APIException, ContextSourceRegistration> = either {
+        val mergedPermission = convertTo<Map<String, Any>>(this@ContextSourceRegistration).plus(fragment)
+        deserialize(mergedPermission, contexts).bind()
+            .copy(modifiedAt = ngsiLdDateTime())
+    }
     private fun getMatchingInformation(csrFilters: CSRFilters): List<RegistrationInfo> =
         information.filter { it.matchCSF(csrFilters) }
 

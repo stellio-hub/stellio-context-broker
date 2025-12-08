@@ -19,12 +19,14 @@ import com.egm.stellio.search.csr.model.ContextSourceRegistration.TimeInterval
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RegistrationInfo
+import com.egm.stellio.search.csr.model.RegistrationInfoDBWriter
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildTypeQuery
-import com.egm.stellio.shared.util.mapper
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toSqlArray
 import io.r2dbc.postgresql.codec.Json
@@ -47,62 +49,69 @@ class ContextSourceRegistrationService(
 
     @Transactional
     suspend fun create(
-        contextSourceRegistration: ContextSourceRegistration,
-        sub: Sub
+        csr: ContextSourceRegistration,
     ): Either<APIException, Unit> = either {
-        contextSourceRegistration.validate().bind()
-        checkExistence(contextSourceRegistration.id, true).bind()
+        checkExistence(csr.id, true).bind()
+        upsert(csr).bind()
+    }
+
+    @Transactional
+    suspend fun upsert(
+        csr: ContextSourceRegistration
+    ): Either<APIException, Unit> = either {
+        csr.validate().bind()
 
         val insertStatement =
             """
             INSERT INTO context_source_registration(
-                id,
-                endpoint,
-                mode,
-                information,
-                operations,
-                registration_name,
-                observation_interval_start,
-                observation_interval_end,
-                management_interval_start,
-                management_interval_end,
-                sub,
-                created_at,
-                modified_at
+                id, endpoint, mode,
+                information, operations,  registration_name,
+                observation_interval_start, observation_interval_end,
+                management_interval_start, management_interval_end,
+                sub, created_at, modified_at
             )
             VALUES(
-                :id,
-                :endpoint,
-                :mode,
-                :information,
-                :operations,
-                :registration_name,
-                :observation_interval_start,
-                :observation_interval_end,
-                :management_interval_start,
-                :management_interval_end,
-                :sub,
-                :created_at,
-                :modified_at
+                :id, :endpoint, :mode,
+                :information, :operations, :registration_name,
+                :observation_interval_start, :observation_interval_end,
+                :management_interval_start, :management_interval_end,
+                :sub, :created_at, :modified_at
             )
+            ON CONFLICT (id)
+            DO UPDATE SET
+                endpoint = :endpoint,
+                mode = :mode,
+                information = :information,
+                operations = :operations,
+                registration_name = :registration_name,
+                observation_interval_start = :observation_interval_start,
+                observation_interval_end = :observation_interval_end,
+                management_interval_start = :management_interval_start,
+                management_interval_end = :management_interval_end,
+                sub = :sub,
+                modified_at = :modified_at
             """.trimIndent()
         databaseClient.sql(insertStatement)
-            .bind("id", contextSourceRegistration.id)
-            .bind("endpoint", contextSourceRegistration.endpoint)
-            .bind("mode", contextSourceRegistration.mode.key)
+            .bind("id", csr.id)
+            .bind("endpoint", csr.endpoint)
+            .bind("mode", csr.mode.key)
             .bind(
                 "information",
-                Json.of(mapper.writeValueAsString(contextSourceRegistration.information))
+                Json.of(
+                    DataTypes.mapper.writeValueAsString(
+                        csr.information.map { RegistrationInfoDBWriter(it) }
+                    )
+                )
             )
-            .bind("operations", contextSourceRegistration.operations.map { it.key }.toTypedArray())
-            .bind("registration_name", contextSourceRegistration.registrationName)
-            .bind("observation_interval_start", contextSourceRegistration.observationInterval?.start)
-            .bind("observation_interval_end", contextSourceRegistration.observationInterval?.end)
-            .bind("management_interval_start", contextSourceRegistration.managementInterval?.start)
-            .bind("management_interval_end", contextSourceRegistration.managementInterval?.end)
-            .bind("sub", sub)
-            .bind("created_at", contextSourceRegistration.createdAt)
-            .bind("modified_at", contextSourceRegistration.modifiedAt)
+            .bind("operations", csr.operations.map { it.key }.toTypedArray())
+            .bind("registration_name", csr.registrationName)
+            .bind("observation_interval_start", csr.observationInterval?.start)
+            .bind("observation_interval_end", csr.observationInterval?.end)
+            .bind("management_interval_start", csr.managementInterval?.start)
+            .bind("management_interval_end", csr.managementInterval?.end)
+            .bind("sub", getSubFromSecurityContext())
+            .bind("created_at", csr.createdAt)
+            .bind("modified_at", csr.modifiedAt)
             .execute().bind()
     }
 
@@ -320,7 +329,7 @@ class ContextSourceRegistrationService(
                 id = toUri(row["id"]),
                 endpoint = toUri(row["endpoint"]),
                 mode = Mode.fromString(row["mode"] as? String),
-                information = mapper.readerForListOf(RegistrationInfo::class.java)
+                information = DataTypes.mapper.readerForListOf(RegistrationInfo::class.java)
                     .readValue((row["information"] as Json).asString()),
                 operations = (row["operations"] as Array<String>).mapNotNull { Operation.fromString(it) },
                 registrationName = row["registration_name"] as? String,

@@ -24,7 +24,10 @@ spring:
                   - GET
                   - POST
                   - PATCH
+                  - PUT
                   - DELETE
+                  - HEAD
+                  - OPTIONS
                 allowedHeaders: "*"
 
 application:

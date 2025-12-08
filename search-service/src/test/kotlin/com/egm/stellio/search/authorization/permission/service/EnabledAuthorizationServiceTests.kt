@@ -184,7 +184,7 @@ class EnabledAuthorizationServiceTests {
     fun `it should create owner link for a set of entities`() = runTest {
         coEvery { permissionService.create(any()) } returns Unit.right()
 
-        enabledAuthorizationService.createOwnerRights(listOf(entityId01, entityId02))
+        enabledAuthorizationService.createEntitiesOwnerRights(listOf(entityId01, entityId02))
             .shouldSucceed()
 
         coVerifyAll {
@@ -198,6 +198,40 @@ class EnabledAuthorizationServiceTests {
             permissionService.create(
                 match {
                     it.target == TargetAsset(entityId02) &&
+                        it.assignee == subjectUuid &&
+                        it.action == Action.OWN
+                }
+            )
+        }
+    }
+
+    @Test
+    @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
+    fun `it should only create ownership on non existing scopes`() = runTest {
+        val scopeA = "/A"
+        val scopeB = "/B"
+
+        coEvery { permissionService.create(any()) } returns Unit.right()
+        coEvery { permissionService.getNewScopesFromList(any()) } returns
+            listOf(scopeB).right()
+
+        enabledAuthorizationService.createScopesOwnerRights(listOf(scopeA, scopeB))
+            .shouldSucceed()
+
+        coVerify(exactly = 1) {
+            permissionService.create(
+                match {
+                    it.target == TargetAsset(scopes = listOf(scopeB)) &&
+                        it.assignee == subjectUuid &&
+                        it.action == Action.OWN
+                }
+            )
+        }
+
+        coVerify(exactly = 0) {
+            permissionService.create(
+                match {
+                    it.target == TargetAsset(scopes = listOf(scopeA)) &&
                         it.assignee == subjectUuid &&
                         it.action == Action.OWN
                 }

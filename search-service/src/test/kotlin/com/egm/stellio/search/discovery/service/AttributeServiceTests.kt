@@ -5,7 +5,6 @@ import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.discovery.model.AttributeDetails
 import com.egm.stellio.search.discovery.model.AttributeType
-import com.egm.stellio.search.discovery.model.AttributeTypeInfo
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
@@ -31,14 +30,15 @@ import com.egm.stellio.shared.util.SENSOR_IRI
 import com.egm.stellio.shared.util.SENSOR_TERM
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.attributeNotFoundMessage
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
-import com.egm.stellio.shared.util.shouldSucceedWith
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -47,8 +47,6 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import java.time.ZoneOffset
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -63,30 +61,36 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    private val now = Instant.now().atZone(ZoneOffset.UTC)
+    private val now = ngsiLdDateTime()
 
     private val entityPayload1 = gimmeEntityPayload("urn:ngsi-ld:BeeHive:TESTA", listOf(BEEHIVE_IRI, SENSOR_IRI))
     private val entityPayload2 = gimmeEntityPayload("urn:ngsi-ld:Sensor:TESTB", listOf(SENSOR_IRI))
     private val entityPayload3 = gimmeEntityPayload("urn:ngsi-ld:Apiary:TESTC", listOf(APIARY_IRI))
-    private val attribute1 = newAttribute(
+    private val beehiveIncoming = newAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         INCOMING_IRI,
         Attribute.AttributeType.Property,
         Attribute.AttributeValueType.NUMBER
     )
-    private val attribute2 = newAttribute(
+    private val managedByBeehive = newAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         MANAGED_BY_IRI,
         Attribute.AttributeType.Relationship,
         Attribute.AttributeValueType.STRING
     )
-    private val attribute3 = newAttribute(
+    private val locationApiary = newAttribute(
         "urn:ngsi-ld:Apiary:TESTC",
         NGSILD_LOCATION_IRI,
         Attribute.AttributeType.GeoProperty,
         Attribute.AttributeValueType.GEOMETRY
     )
-    private val attribute4 = newAttribute(
+    private val incomingApiary = newAttribute(
+        "urn:ngsi-ld:Apiary:TESTC",
+        INCOMING_IRI,
+        Attribute.AttributeType.Property,
+        Attribute.AttributeValueType.NUMBER
+    )
+    private val outgoingSensor = newAttribute(
         "urn:ngsi-ld:Sensor:TESTB",
         OUTGOING_IRI,
         Attribute.AttributeType.Property,
@@ -104,23 +108,19 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         createEntityPayload(entityPayload1)
         createEntityPayload(entityPayload2)
         createEntityPayload(entityPayload3)
-        createAttribute(attribute1)
-        createAttribute(attribute2)
-        createAttribute(attribute3)
-        createAttribute(attribute4)
+        createAttribute(beehiveIncoming)
+        createAttribute(managedByBeehive)
+        createAttribute(locationApiary)
+        createAttribute(outgoingSensor)
+        createAttribute(incomingApiary)
     }
 
     @Test
     fun `it should return an AttributeList`() = runTest {
         val attributeNames = attributeService.getAttributeList(APIC_COMPOUND_CONTEXTS)
-        assertTrue(
-            attributeNames.attributeList == listOf(
-                INCOMING_TERM,
-                OUTGOING_TERM,
-                MANAGED_BY_TERM,
-                NGSILD_LOCATION_TERM
-            )
-        )
+
+        assertThat(attributeNames.attributeList)
+            .containsAll(listOf(INCOMING_TERM, OUTGOING_TERM, MANAGED_BY_TERM, NGSILD_LOCATION_TERM))
     }
 
     @Test
@@ -128,20 +128,22 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         clearPreviousAttributesAndObservations()
 
         val attributeNames = attributeService.getAttributeList(APIC_COMPOUND_CONTEXTS)
-        assert(attributeNames.attributeList.isEmpty())
+
+        assertThat(attributeNames.attributeList).isEmpty()
     }
 
     @Test
     fun `it should return a list of AttributeDetails`() = runTest {
         val attributeDetails = attributeService.getAttributeDetails(APIC_COMPOUND_CONTEXTS)
+
         assertEquals(4, attributeDetails.size)
-        assertTrue(
-            attributeDetails.containsAll(
+        assertThat(attributeDetails)
+            .containsAll(
                 listOf(
                     AttributeDetails(
                         id = INCOMING_IRI.toUri(),
                         attributeName = INCOMING_TERM,
-                        typeNames = setOf(BEEHIVE_TERM, SENSOR_TERM)
+                        typeNames = setOf(BEEHIVE_TERM, SENSOR_TERM, APIARY_TERM)
                     ),
                     AttributeDetails(
                         id = OUTGOING_IRI.toUri(),
@@ -160,7 +162,6 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     )
                 )
             )
-        )
     }
 
     @Test
@@ -168,23 +169,22 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         clearPreviousAttributesAndObservations()
 
         val attributeDetails = attributeService.getAttributeDetails(APIC_COMPOUND_CONTEXTS)
-        assertTrue(attributeDetails.isEmpty())
+
+        assertThat(attributeDetails).isEmpty()
     }
 
     @Test
     fun `it should return an attribute Information by specific attribute`() = runTest {
         val attributeTypeInfo =
             attributeService.getAttributeTypeInfoByAttribute(INCOMING_IRI, APIC_COMPOUND_CONTEXTS)
+                .shouldSucceedAndResult()
 
-        attributeTypeInfo.shouldSucceedWith {
-            AttributeTypeInfo(
-                id = toUri(INCOMING_IRI),
-                attributeName = INCOMING_TERM,
-                attributeCount = 1,
-                attributeTypes = setOf(AttributeType.Property),
-                typeNames = setOf(BEEHIVE_TERM)
-            )
-        }
+        assertThat(attributeTypeInfo)
+            .hasFieldOrPropertyWithValue("id", toUri(INCOMING_IRI))
+            .hasFieldOrPropertyWithValue("attributeName", INCOMING_TERM)
+            .hasFieldOrPropertyWithValue("attributeCount", 2)
+            .hasFieldOrPropertyWithValue("attributeTypes", setOf(AttributeType.Property))
+            .hasFieldOrPropertyWithValue("typeNames", setOf(BEEHIVE_TERM, SENSOR_TERM, APIARY_TERM))
     }
 
     @Test

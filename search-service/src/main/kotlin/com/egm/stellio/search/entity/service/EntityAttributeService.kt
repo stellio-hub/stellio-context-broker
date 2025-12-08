@@ -571,7 +571,8 @@ class EntityAttributeService(
         entityId: URI,
         attributeName: ExpandedTerm,
         datasetId: URI? = null,
-        anyAttributeInstance: Boolean = false
+        anyAttributeInstance: Boolean = false,
+        excludeDeleted: Boolean = true
     ): Either<APIException, Unit> {
         val datasetIdFilter =
             if (anyAttributeInstance) ""
@@ -589,7 +590,7 @@ class EntityAttributeService(
                     from temporal_entity_attribute 
                     where entity_id = :entity_id 
                     and attribute_name = :attribute_name
-                    and deleted_at is null
+                    ${if (excludeDeleted) " and deleted_at is null " else ""}
                     $datasetIdFilter
                 ) as attributeNameExists;
             """.trimIndent()

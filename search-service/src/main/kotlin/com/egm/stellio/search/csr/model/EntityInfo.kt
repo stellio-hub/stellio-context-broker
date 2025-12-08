@@ -22,8 +22,12 @@ import java.util.regex.Pattern
 data class EntityInfo(
     val id: URI? = null,
     val idPattern: String? = null,
-    // no WRITE_SINGLE_ELEM_ARRAYS_UNWRAPPED because it is used for the database
-    @JsonFormat(with = [JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY])
+    @JsonFormat(
+        with = [
+            JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY,
+            JsonFormat.Feature.WRITE_SINGLE_ELEM_ARRAYS_UNWRAPPED
+        ]
+    )
     @JsonProperty("type")
     val types: List<String>
 ) {
@@ -65,8 +69,12 @@ data class EntityInfo(
             entityInfo: EntityInfo
         ): MultiValueMap<String, String> {
             val newParams = CollectionUtils.toMultiValueMap(this.toMutableMap())
-            newParams[QP.TYPE.key] = entityInfo.types.toTypeSelection()
             entityInfo.id?.let { id -> newParams[QP.ID.key] = id.toString() }
+
+            // an intersection between the two type selection would only return the matching data (better)
+            // but an intersection between two id_pattern is impossible
+            if (this.getFirst(QP.TYPE.key) == null)
+                newParams[QP.TYPE.key] = entityInfo.types.toTypeSelection()
             if (this.getFirst(QP.ID_PATTERN.key) == null && entityInfo.idPattern != null)
                 newParams[QP.ID_PATTERN.key] = entityInfo.idPattern
             return newParams

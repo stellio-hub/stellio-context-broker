@@ -1,0 +1,6 @@
+{
+  "endpoint": "http://my.csr.updated.endpoint/",
+  "@context": [
+    "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+  ]
+}

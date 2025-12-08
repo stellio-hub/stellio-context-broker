@@ -177,6 +177,27 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    fun `getNewScopesFromList should only keep scopes not existing in permissions table`() = runTest {
+        val scopeA = "/A"
+        val scopeB = "/B"
+
+        permissionService.getNewScopesFromList(
+            listOf(scopeA, scopeB)
+        ).shouldSucceedWith {
+            assertThat(it).hasSize(2).contains(scopeA, scopeB)
+        }
+
+        val permission = gimmeRawPermission(target = TargetAsset(scopes = listOf(scopeA)))
+        permissionService.create(permission).shouldSucceed()
+
+        permissionService.getNewScopesFromList(
+            listOf(scopeA, scopeB)
+        ).shouldSucceedWith {
+            assertThat(it).hasSize(1).contains(scopeB)
+        }
+    }
+
+    @Test
     fun `get a minimal Permission should return the created Permission`() = runTest {
         permissionService.create(minimalPermission).shouldSucceed()
 
@@ -406,16 +427,16 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @ParameterizedTest
     @CsvSource(
         // typeQ                        ,  scopeQ  , expectedIds , nonExpectedIds
-        "  '$BEEHIVE_IRI,$BEEKEEPER_IRI', '/A,/B'  , '$beehiveWithScope,$scopeA,$beehiveType,$beehiveTypeAndScopeA', '$beekeeper'",
-        "  '$BEEHIVE_IRI,$BEEKEEPER_IRI',  null    , '$beekeeper,$beehiveWithScope,$scopeA,$beehiveType,$beehiveTypeAndScopeA', null",
-        "  '$BEEKEEPER_IRI'             ,  null    , '$beekeeper,$scopeA', '$beehiveWithScope,$beehiveType,$beehiveTypeAndScopeA'",
-        "  null                         , '/A,/B'  , '$beehiveWithScope,$scopeA,$beehiveType,$beehiveTypeAndScopeA', '$beekeeper'",
-        "  null                         , '/B'     , '$beehiveType', '$beekeeper,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'",
+        "  '$BEEHIVE_IRI,$BEEKEEPER_IRI', '/A,/B'  , '$beehiveTypeAndScopeA', '$beehiveWithScope,$beekeeper,$scopeA,$beehiveType'",
+        "  '$BEEHIVE_IRI,$BEEKEEPER_IRI',  null    , '$beehiveType,$beehiveTypeAndScopeA', '$beekeeper,$beehiveWithScope,$scopeA'",
+        "  '$BEEKEEPER_IRI'             ,  null    , null, '$beehiveWithScope,$beehiveType,$beekeeper,$beehiveTypeAndScopeA,$scopeA'",
+        "  null                         , '/A,/B'  , '$scopeA,$beehiveTypeAndScopeA', '$beekeeper,$beehiveType,$beehiveWithScope'",
+        "  null                         , '/B'     , null, '$beekeeper,$beehiveType,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'",
         "  '$BEEKEEPER_IRI'             , '/B'     , null, '$beehiveType,$beekeeper,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'",
         nullValues = ["null"]
     )
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `query Permissions should return Permissions that affect the filtered typeQ and scopeQ`(
+    fun `query Permissions should return Permissions that directly target the filtered typeQ and scopeQ`(
         typeQ: String?,
         scopeQ: String?,
         expectedIds: String?,

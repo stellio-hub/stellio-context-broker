@@ -94,7 +94,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `it should return a list of JSON-LD entities when querying entities`() = runTest {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
-        coEvery { authorizationService.createOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
         coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
 
         loadAndPrepareSampleData("beehive.jsonld")

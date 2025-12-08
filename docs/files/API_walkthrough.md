@@ -6,7 +6,6 @@ This quickstart guide shows a real use case scenario of interaction with the API
 
 The provided examples make use of the HTTPie command line tool (installation instructions: [https://httpie.org/docs#installation](https://httpie.org/docs#installation))
 
--- todo
 All requests are grouped in a Postman collection that can be found [here](https://raw.githubusercontent.com/stellio-hub/stellio-docs/master/collection/API_Quick_Start.postman_collection.json).
 For more details about how to import a Postman collection see [https://learning.postman.com/docs/getting-started/importing-and-exporting-data](https://learning.postman.com/docs/getting-started/importing-and-exporting-data).
 
@@ -18,7 +17,7 @@ export CONTEXT_LINK="<https://easy-global-market.github.io/ngsild-api-data-model
 ````
 
 ## Starting the Stellio Context Broker
-The Stellio Context Broker source code can be found here : https://github.com/stellio-hub/stellio-context-broker
+The Stellio Context Broker source code can be found here : [https://github.com/stellio-hub/stellio-context-broker](https://github.com/stellio-hub/stellio-context-broker).
 
 To Start a Stellio instance. You can clone the Stellio repository and use the provided Docker compose configuration to run containers:
 

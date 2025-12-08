@@ -77,7 +77,7 @@ The version number is obtained during the build process by using the `version` i
 
 ## Usage
 
-To start using Stellio, you can follow the [API walkthrough](https://github.com/stellio-hub/stellio-docs/blob/master/docs/API_walkthrough.md).
+You can follow the [API walkthrough](https://github.com/stellio-hub/stellio-docs/blob/master/docs/API_walkthrough.md) to have a tutorial on Stellio's API.
 
 ## Minimal hardware requirements
 

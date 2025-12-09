@@ -1,5 +1,5 @@
 # Development guide
-### Launch the project
+## Launch the project
 
 Requirements:
 * Java 21 (we recommend using [sdkman!](https://sdkman.io/) to install and manage versions of the JDK)
@@ -16,7 +16,7 @@ Then, from the root directory, launch the service:
 ./gradlew search-service:bootRun
 ```
 
-### Running the tests
+## Running the tests
 
 Each service has a suite of unit and integration tests. You can run them without manually launching any external component, thanks
 to Spring Boot embedded test support and to the great [TestContainers](https://www.testcontainers.org/) library.
@@ -27,7 +27,7 @@ For instance, you can launch the test suite for entity service with the followin
 ./gradlew search-service:test
 ```
 
-### Building the project
+## Building the project
 
 To build all the services, you can launch:
 
@@ -46,7 +46,7 @@ If you want to build only one of the services, you can launch:
 ./gradlew search-service:build
 ```
 
-### Committing
+## Committing
 
 * Commits follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/)
 * Branches follow the [Conventional Branch specification](https://conventional-branch.github.io/)
@@ -54,7 +54,7 @@ If you want to build only one of the services, you can launch:
     `fix/`, `hotfix/` and `chore/`.
 
 
-### Code quality
+## Code quality
 
 Code formatting and standard code quality checks are performed by [Detekt](https://detekt.github.io/detekt/index.html).
 Detekt as an autocorrect command to help on easily fixable formatting:
@@ -71,15 +71,15 @@ that applies changed code refactoring and optimized imports on save.
 
 * You can also set up a precommit hook to run detekt autocorrect automatically 
 
-### Pre-commit
+## Pre-commit
 
-#### Automatic setup with [pre-commit](https://pre-commit.com/) tool 
+### Automatic setup with [pre-commit](https://pre-commit.com/) tool 
 
 (if you don't have Python installed, use the manual setup below)
 * install ```pip install pre-commit```
 * then run ```pre-commit install```
  
-#### Manual setup
+### Manual setup
 
 * copy the script in ```config/detekt/detekt_auto_correct.sh``` in your ```.git/pre-commit``` file
 

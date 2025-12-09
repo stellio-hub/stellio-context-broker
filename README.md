@@ -121,6 +121,6 @@ It mainly makes use of the following libraries and frameworks (dependencies of d
 
 ## Contribution and development
 
-Stellio is an open source project you are welcome to contribute to the project. 
-- You can find guideline for development [here](docs/files/development_guide.md). 
-- And good practice for contribution [here](CONTRIBUTING.md).
+Stellio is an open-source project, and contributions are welcome!
+- You can find the development guidelines [here](docs/files/development_guide.md).
+- For best practices on contributing, check out the [contribution guide](CONTRIBUTING.md).

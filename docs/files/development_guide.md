@@ -109,6 +109,6 @@ The CI will then create and publish Docker images tagged with the published vers
 
 * On GitHub, check and publish the release notes in https://github.com/stellio-hub/stellio-context-broker/releases
 
-## Contribution 
+## Contributing
 
-guideline for contributing are [available here](https://github.com/stellio-hub/stellio-context-broker/blob/develop/CONTRIBUTING.md)
+Guidelines for contributing are [available here](https://github.com/stellio-hub/stellio-context-broker/blob/develop/CONTRIBUTING.md)

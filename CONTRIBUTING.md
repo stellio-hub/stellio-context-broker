@@ -3,7 +3,7 @@
 Thanks for checking out the Stellio Project. We're excited to hear and learn from you. We've put together the following
 guidelines to help you figure out where you can best be helpful. 
 
-This file only cover contribution best practices, if you need information about development you can find them [here](docs/files/development_guide.md).
+This file covers contribution best practices. For more information on how you can contribute to Stellio, please have a look at [the development guide](docs/files/development_guide.md).
 
 
 ## Ground rules & expectations

@@ -19,6 +19,7 @@ nav:
       - Multitenancy: 'user/multitenancy.md'
       - Internal event model: 'user/internal_event_model.md'
   - Installation & Administration Manual:
+      - Architecture: 'admin/architecture.md'
       - Production deployment: 'admin/production_deployment.md'
       - Monitoring and logging: 'admin/monitoring_and_logging.md'
       - Backup and restore: 'admin/backup_and_restore.md'
@@ -44,3 +45,5 @@ nav:
         - Upgrading to 2.19.0: 'admin/upgrading_to_2.19.0.md'
         - Upgrading to 2.24.0: 'admin/upgrading_to_2.24.0.md'
         - Upgrading to 2.27.0: 'admin/upgrading_to_2.27.0.md'
+  - Contributing :
+      - Development: 'contributing/development_guide.md'

@@ -7,8 +7,6 @@ Welcome to Stellio documentation!
 
 Stellio is an NGSI-LD compliant context broker developed by EGM.
 
-NGSI-LD is an Open API and Datamodel specification for context
-management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf).
+NGSI-LD is an Open API and Datamodel specification for context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf).
 
-This project is part of [FIWARE](https://www.fiware.org/). For more information check the FIWARE Catalogue entry for 
-[Core Context](https://github.com/Fiware/catalogue/tree/master/core).
+This project is part of [FIWARE](https://www.fiware.org/). For more information check the FIWARE Catalogue entry for [Core Context](https://github.com/Fiware/catalogue/tree/master/core).

@@ -107,7 +107,7 @@ volumes:
 where:
 
 - `realm_name` is the name of the realm to be created in the next section
-- `tenant_name` is the name of the tenant in Stellio that the realm will be binded to (see the [multitenancy page](../user/multinenancy.md) for more details on this), set it to `urn:ngsi-ld:tenant:default` to use the default tenant.
+- `tenant_name` is the name of the tenant in Stellio that the realm will be binded to (see the [multitenancy page](../user/multitenancy.md) for more details on this), set it to `urn:ngsi-ld:tenant:default` to use the default tenant.
 - `kafka_ip` is the IP address where the Stellio's Kafka instance is reachable (e.g., your laptop or VM IP)
 
 The `.env` file contains the following environment variables:

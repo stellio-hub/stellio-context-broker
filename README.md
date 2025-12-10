@@ -122,5 +122,5 @@ It mainly makes use of the following libraries and frameworks (dependencies of d
 ## Contribution and development
 
 Stellio is an open-source project, and contributions are welcome!
-- You can find the development guidelines [here](docs/files/development_guide.md).
+- You can find the development guidelines [here](docs/development_guide.md).
 - For best practices on contributing, check out the [contribution guide](CONTRIBUTING.md).

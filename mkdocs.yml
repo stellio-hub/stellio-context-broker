@@ -2,9 +2,9 @@ site_name: Stellio Context Broker
 site_url: https://stellio.readthedocs.org
 repo_url: https://github.com/stellio-hub/stellio-context-broker
 site_description: Stellio Context Broker Documentation
-docs_dir: files
+docs_dir: docs
 site_dir: html
-edit_uri: edit/master/files
+edit_uri: edit/master/docs
 markdown_extensions: [toc,fenced_code]
 use_directory_urls: false
 theme: readthedocs
@@ -47,3 +47,4 @@ nav:
         - Upgrading to 2.27.0: 'admin/upgrading_to_2.27.0.md'
   - Contributing :
       - Development: 'contributing/development_guide.md'
+      - Roadmap: 'roadmap.md'

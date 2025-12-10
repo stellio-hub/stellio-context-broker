@@ -17,4 +17,4 @@ docker exec -it stellio-postgres psql --host=localhost -d stellio_search -U stel
 docker exec -it stellio-postgres psql --host=localhost -d stellio_subscription -U stellio -W -X -c "ALTER EXTENSION timescaledb UPDATE;"
 ```
 
-Also, starting from this version, there is a new documentation available explaining [how to enable compression in TimescaleDB](./enabling_timescale_compression.md).
+Also, starting from this version, there is a new documentation available explaining [how to enable compression in TimescaleDB](enabling_timescale_compression.md).

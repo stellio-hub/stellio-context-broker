@@ -16,15 +16,15 @@ build:
         # Cancel building pull requests when there aren't changed in the docs directory.
         # 183 is a special exit code on Read the Docs that will cancel the build immediately.
         - |
-          if [ "$READTHEDOCS_VERSION_TYPE" = "external" ] && git diff --quiet origin/main -- docs/ .readthedocs.yml requirements/docs.txt;
+          if [ "$READTHEDOCS_VERSION_TYPE" = "external" ] && git diff --quiet origin/main -- docs/ .readthedocs.yml mkdocs.yml
           then
             echo "No changes to docs/ - exiting the build.";
             exit 183;
           fi
 mkdocs:
-  configuration: docs/mkdocs.yml
+  configuration: mkdocs.yml
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
    install:
-   - requirements: docs/files/requirements.txt
+   - requirements: docs/requirements.txt

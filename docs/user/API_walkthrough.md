@@ -3,7 +3,7 @@
 This quickstart guide shows a real use case scenario of interaction with the API in an Apiculture context.
 
 ## Prepare your environment
-
+<!-- todo reword and update postman collection to new requests-->
 The provided examples make use of the HTTPie command line tool (installation instructions: [https://httpie.org/docs#installation](https://httpie.org/docs#installation))
 
 All requests are grouped in a Postman collection that can be found [here](https://www.postman.com/stellio-doc/workspace/stellio/collection/34896864-4c88c4ee-aeb9-4851-b745-59f676e358d5?action=share&source=copy-link&creator=34896864).
@@ -33,9 +33,10 @@ docker compose -f docker-compose.yml up -d && docker compose -f docker-compose.y
 
 This case study is written for anyone who wants to get familiar with the API, we use a real example to make it more concrete.
 
-We will use the following simple example of an apiary :
- - managed by a beekeeper
- - with a temperature observed by a sensor.
+We will use the following simple example:
+ - an apiary
+   - managed by a beekeeper
+   - with a temperature observed by a sensor.
 
 ## Queries
 
@@ -121,6 +122,13 @@ The created beehive can be retrieved by id:
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Link:$CONTEXT_LINK
 ```
+
+<details>
+<Summary>Show response</Summary>
+
+<!--todo-->
+</details>
+
 * The consumption endpoints support a lot of parameters
 -  `format=keyValues` will return a reduced version of the entity providing only top level attribute and their value or object.
 -  `join=inline` will join the relationships to the result.
@@ -161,7 +169,7 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  join==inl
 <details>
 <Summary>Show response</Summary>
 
-todo
+<!--todo-->
 </details>
 
 
@@ -171,7 +179,7 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  pick==id,
 <details>
 <Summary>Show response</Summary>
 
-todo
+<!--todo-->
 </details>
 
 #### Query Entity
@@ -191,15 +199,18 @@ http http://localhost:8080/ngsi-ld/v1/entities 'georel==near;maxDistance==0' geo
 <details>
 <Summary>Show response</Summary>
 
-todo
+<!--todo-->
 </details>
 
 ### Modify Entity 
+<!-- todo -->
 
 #### Update Entity
+<!-- todo -->
 
 
 #### Merge Entity
+<!-- todo (done later) -->
 
 
 #### Delete Entity
@@ -309,7 +320,8 @@ To get more details about a type of an entity, a Beekeeper for example:
 http http://localhost:8080/ngsi-ld/v1/types/Beekeeper Link:$CONTEXT_LINK
 ```
 
-Sample payload returned showing more details about the entity Beekeeper:
+<details>
+<Summary>Show response</Summary>
 
 ```json
 {
@@ -329,14 +341,15 @@ Sample payload returned showing more details about the entity Beekeeper:
     ]
 }
 ```
+</details>
 
 #### Discover Attributes
 
--- todo link to the spec.
+<!---- todo link to the spec.-->
 
 
 ### Attribute endpoints
-todo complete
+<!--todo complete-->
 
 #### Append Attributes on Entities
 Let's add a name to the created beehive:
@@ -409,8 +422,8 @@ http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01 \
     endTimeAt==2021-10-27T12:00:00Z \
     Link:$CONTEXT_LINK
 ```
-
-Sample payload returned showing the temporal evolution of temperature and humidity properties:
+<details>
+<Summary>Show response</Summary>
 
 ```json
 {
@@ -449,6 +462,7 @@ Sample payload returned showing the temporal evolution of temperature and humidi
     ]
 }
 ```
+</details>
 
 We can get the simplified temporal representation of the temperature property of the beehive by adding the request parameter `format` with the value `temporalValues` in the query:
 
@@ -497,7 +511,9 @@ http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?o
 
 ### Subscription
 
-* Let's create a subscription on the Beehive entity. We would like to be notified when the temperature of the BeeHive exceeds 40. To do so, we need a working `endpoint` in order to receive the notification related to the subscription. For this example, we are using Post Server V2 [http://ptsv2.com/](http://ptsv2.com/). This is a free public service. It is used only for tests and debugs. You need to configure your appropriate working `endpoint` for your private data.
+#### Create a subscripion 
+We can ask to be notified when the temperature of the BeeHive exceeds 40. To do so, we need a working `endpoint` in order to receive the notification.
+For this example, we are using Post Server V2 [http://ptsv2.com/](http://ptsv2.com/). This is a free public service. It is used only for tests and debugs. You need to configure your appropriate working `endpoint` for your private data.
 
 ```shell
 http POST http://localhost:8080/ngsi-ld/v1/subscriptions Content-Type:application/ld+json <<<'
@@ -524,13 +540,15 @@ http POST http://localhost:8080/ngsi-ld/v1/subscriptions Content-Type:applicatio
 }
 '
 ```
-
-* The created subscription can be retrieved by id:
+#### Retrieve a Subscription
+We can retrieved a subscription by id:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:01 Link:$CONTEXT_LINK
 ```
 
+#### Triggering a notification
+<!--todo reword-->
 Running the previous partial update [query](#partial-attributes-updates) (after the creation of the subscription), will trigger sending notification to the configured endpoint. The body of the notification query sent to the endpoint URI is:
 
 ```json

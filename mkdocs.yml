@@ -12,9 +12,8 @@ extra_css: ["https://www.fiware.org/style/fiware_readthedocs.css", "https://www.
 nav:
   - Home: index.md
   - Getting Started: 'quick_start_guide.md'
-  - API Walkthrough: 'API_walkthrough.md'
-  - Troubleshoot: 'TROUBLESHOOT.md'
   - User & Programmers Manual:
+      - API Walkthrough: 'user/API_walkthrough.md'
       - Authentication and authorization: 'user/authentication_and_authorization.md'
       - Multitenancy: 'user/multitenancy.md'
       - Internal event model: 'user/internal_event_model.md'

@@ -47,4 +47,5 @@ nav:
         - Upgrading to 2.27.0: 'admin/upgrading_to_2.27.0.md'
   - Contributing :
       - Development: 'contributing/development_guide.md'
+      - Documentation: 'contributing/documentation.md'
       - Roadmap: 'roadmap.md'

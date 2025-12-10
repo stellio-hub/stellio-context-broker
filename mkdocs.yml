@@ -1,0 +1,51 @@
+site_name: Stellio Context Broker
+site_url: https://stellio.readthedocs.org
+repo_url: https://github.com/stellio-hub/stellio-context-broker
+site_description: Stellio Context Broker Documentation
+docs_dir: docs
+site_dir: html
+edit_uri: edit/master/docs
+markdown_extensions: [toc,fenced_code]
+use_directory_urls: false
+theme: readthedocs
+extra_css: ["https://www.fiware.org/style/fiware_readthedocs.css", "https://www.fiware.org/style/fiware_readthedocs_core.css"]
+nav:
+  - Home: index.md
+  - Getting Started: 'quick_start_guide.md'
+  - API Walkthrough: 'API_walkthrough.md'
+  - Troubleshoot: 'TROUBLESHOOT.md'
+  - User & Programmers Manual:
+      - Authentication and authorization: 'user/authentication_and_authorization.md'
+      - Multitenancy: 'user/multitenancy.md'
+      - Internal event model: 'user/internal_event_model.md'
+  - Installation & Administration Manual:
+      - Architecture: 'admin/architecture.md'
+      - Production deployment: 'admin/production_deployment.md'
+      - Monitoring and logging: 'admin/monitoring_and_logging.md'
+      - Backup and restore: 'admin/backup_and_restore.md'
+      - Enabling temporal data compression: 'admin/enabling_timescale_compression.md'
+      - Keycloak integration: 'admin/keycloak_integration.md'
+      - Performance considerations and results: 'admin/performance.md'
+      - Misc configuration tips: 'admin/misc_configuration_tips.md'
+      - Second instance: 'admin/second_instance.md'
+      - Upgrading:
+        - General notes: 'admin/upgrading_general_notes.md'
+        - Upgrading to 0.7.0: 'admin/upgrading_to_0.7.0.md'
+        - Upgrading to 1.0.0: 'admin/upgrading_to_1.0.0.md'
+        - Upgrading to 1.5.0: 'admin/upgrading_to_1.5.0.md'
+        - Upgrading to 1.6.0: 'admin/upgrading_to_1.6.0.md'
+        - Upgrading to 1.7.0: 'admin/upgrading_to_1.7.0.md'
+        - Upgrading to 1.8.0: 'admin/upgrading_to_1.8.0.md'
+        - Upgrading to 1.9.0: 'admin/upgrading_to_1.9.0.md'
+        - Upgrading to 2.0.0: 'admin/upgrading_to_2.0.0.md'
+        - Upgrading to 2.2.0: 'admin/upgrading_to_2.2.0.md'
+        - Upgrading to 2.7.0: 'admin/upgrading_to_2.7.0.md'
+        - Upgrading to 2.11.0: 'admin/upgrading_to_2.11.0.md'
+        - Upgrading to 2.16.0: 'admin/upgrading_to_2.16.0.md'
+        - Upgrading to 2.19.0: 'admin/upgrading_to_2.19.0.md'
+        - Upgrading to 2.24.0: 'admin/upgrading_to_2.24.0.md'
+        - Upgrading to 2.27.0: 'admin/upgrading_to_2.27.0.md'
+  - Contributing :
+      - Development: 'contributing/development_guide.md'
+      - Documentation: 'contributing/documentation.md'
+      - Roadmap: 'roadmap.md'

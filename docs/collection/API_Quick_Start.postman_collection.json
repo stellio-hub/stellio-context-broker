@@ -7,406 +7,146 @@
 	},
 	"item": [
 		{
-			"name": "Create entities",
+			"name": "Create entity",
 			"item": [
 				{
-					"name": "Create entity",
-					"item": [
-						{
-							"name": "Create Beekeeper",
-							"id": "4d861782-4087-473c-a25f-16cbd34b05e7",
-							"protocolProfileBehavior": {
-								"disableBodyPruning": true
-							},
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Link",
-										"value": "{{apicContextLink}}",
-										"type": "text"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n   \"id\":\"urn:ngsi-ld:Beekeeper:01\",\n   \"type\":\"Beekeeper\",\n   \"name\":{\n       \"type\":\"Property\",\n       \"value\":\"Scalpa\"\n   }\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities",
-									"host": [
-										"{{gatewayServer}}"
-									],
-									"path": [
-										"ngsi-ld",
-										"v1",
-										"entities"
-									]
+					"name": "Create Beekeeper",
+					"id": "4d861782-4087-473c-a25f-16cbd34b05e7",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"id\":\"urn:ngsi-ld:Beekeeper:01\",\n   \"type\":\"Beekeeper\",\n   \"name\":{\n       \"type\":\"Property\",\n       \"value\":\"Scalpa\"\n   }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
 								}
-							},
-							"response": []
+							}
 						},
-						{
-							"name": "Create Apiary",
-							"id": "ab026ca5-9f3a-4b9c-8d7b-c633245f58d6",
-							"protocolProfileBehavior": {
-								"disabledSystemHeaders": {},
-								"disableBodyPruning": true
-							},
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Link",
-										"value": "{{apicContextLink}}",
-										"type": "text"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"id\":\"urn:ngsi-ld:Apiary:01\",\n    \"type\":\"Apiary\",\n    \"name\":{\n        \"type\":\"Property\",\n        \"value\":\"ApiarySophia\"\n    },\n    \"location\": {\n        \"type\": \"GeoProperty\",\n        \"value\": {\n            \"type\": \"Point\",\n            \"coordinates\": [\n            24.30623,\n            60.07966\n            ]\n        }\n    }\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities",
-									"host": [
-										"{{gatewayServer}}"
-									],
-									"path": [
-										"ngsi-ld",
-										"v1",
-										"entities"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Create Humidity Sensor",
-							"id": "9db1f3b8-a4d9-4fbe-97c6-5d765d7298fe",
-							"protocolProfileBehavior": {
-								"disabledSystemHeaders": {},
-								"disableBodyPruning": true
-							},
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Link",
-										"value": "{{apicContextLink}}",
-										"type": "text"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"id\": \"urn:ngsi-ld:Sensor:01\",\n    \"type\": \"Sensor\",\n    \"deviceParameter\":{\n            \"type\":\"Property\",\n            \"value\":\"humidity\"\n    }\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities",
-									"host": [
-										"{{gatewayServer}}"
-									],
-									"path": [
-										"ngsi-ld",
-										"v1",
-										"entities"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Create Beehive",
-							"id": "7106f100-6070-4575-926f-cab80efe73be",
-							"protocolProfileBehavior": {
-								"disabledSystemHeaders": {},
-								"disableBodyPruning": true
-							},
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Link",
-										"value": "{{apicContextLink}}",
-										"type": "text",
-										"disabled": true
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"id\": \"urn:ngsi-ld:BeeHive:01\",\n    \"type\": \"BeeHive\",\n    \"belongs\": {\n        \"type\": \"Relationship\",\n        \"object\": \"urn:ngsi-ld:Apiary:01\"\n    },\n    \"managedBy\": {\n        \"type\": \"Relationship\",\n        \"object\": \"urn:ngsi-ld:Beekeeper:01\"\n    },\n    \"location\": {\n        \"type\": \"GeoProperty\",\n        \"value\": {\n            \"type\": \"Point\",\n            \"coordinates\": [\n            24.30623,\n            60.07966\n            ]\n        }\n    },\n    \"temperature\": {\n        \"type\": \"Property\",\n        \"value\": 22.2,\n        \"unitCode\": \"CEL\",\n        \"observedAt\": \"2019-10-26T21:32:52.98601Z\",\n        \"observedBy\": {\n            \"type\": \"Relationship\",\n            \"object\": \"urn:ngsi-ld:Sensor:01\"\n        }\n    },\n    \"humidity\": {\n        \"type\": \"Property\",\n        \"value\": 60,\n        \"unitCode\": \"P1\",\n        \"observedAt\": \"2019-10-26T21:32:52.98601Z\",\n        \"observedBy\": {\n            \"type\": \"Relationship\",\n            \"object\": \"urn:ngsi-ld:Sensor:02\"\n        }\n    }\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities",
-									"host": [
-										"{{gatewayServer}}"
-									],
-									"path": [
-										"ngsi-ld",
-										"v1",
-										"entities"
-									]
-								}
-							},
-							"response": []
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"entities"
+							]
 						}
-					],
-					"id": "07d6b2b8-4d26-43df-97e0-2acca37cc8c8"
+					},
+					"response": []
 				},
 				{
-					"name": "Create batch of entities",
-					"item": [
-						{
-							"name": "Create Apiculture Entities",
-							"id": "0bd9d6c1-57d1-42c9-b34c-2c54f0e9e94a",
-							"protocolProfileBehavior": {
-								"disableBodyPruning": true
-							},
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Link",
-										"value": "{{apicContextLink}}",
-										"type": "text"
-									},
-									{
-										"key": "",
-										"value": "",
-										"type": "text",
-										"disabled": true
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "[\n    {\n       \"id\":\"urn:ngsi-ld:Beekeeper:01\",\n       \"type\":\"Beekeeper\",\n       \"name\":{\n           \"type\":\"Property\",\n           \"value\":\"Scalpa\"\n       }\n    },\n    {\n       \"id\":\"urn:ngsi-ld:Apiary:01\",\n       \"type\":\"Apiary\",\n       \"name\":{\n          \"type\":\"Property\",\n          \"value\":\"ApiarySophia\"\n       },\n       \"location\": {\n          \"type\": \"GeoProperty\",\n          \"value\": {\n             \"type\": \"Point\",\n             \"coordinates\": [\n                24.30623,\n                60.07966\n             ]\n          }\n       }\n    },\n    {\n       \"id\": \"urn:ngsi-ld:BeeHive:01\",\n       \"type\": \"BeeHive\",\n       \"belongs\": {\n          \"type\": \"Relationship\",\n          \"object\": \"urn:ngsi-ld:Apiary:01\"\n       },\n       \"managedBy\": {\n         \"type\": \"Relationship\",\n         \"object\": \"urn:ngsi-ld:Beekeeper:01\"\n       },\n       \"location\": {\n          \"type\": \"GeoProperty\",\n          \"value\": {\n             \"type\": \"Point\",\n             \"coordinates\": [\n                24.30623,\n                60.07966\n             ]\n          }\n       },\n       \"temperature\": {\n          \"type\": \"Property\",\n          \"value\": 22.2,\n          \"unitCode\": \"CEL\",\n          \"observedAt\": \"2019-10-26T21:32:52.98601Z\",\n          \"observedBy\": {\n             \"type\": \"Relationship\",\n             \"object\": \"urn:ngsi-ld:Sensor:01\"\n          }\n       },\n       \"humidity\": {\n          \"type\": \"Property\",\n          \"value\": 60,\n          \"unitCode\": \"P1\",\n          \"observedAt\": \"2019-10-26T21:32:52.98601Z\",\n          \"observedBy\": {\n             \"type\": \"Relationship\",\n             \"object\": \"urn:ngsi-ld:Sensor:02\"\n          }\n       }\n    },\n    {\n       \"id\": \"urn:ngsi-ld:Sensor:01\",\n       \"type\": \"Sensor\",\n       \"deviceParameter\":{\n             \"type\":\"Property\",\n             \"value\":\"humidity\"\n       }\n    },\n    {\n       \"id\": \"urn:ngsi-ld:Sensor:02\",\n       \"type\": \"Sensor\",\n       \"deviceParameter\":{\n             \"type\":\"Property\",\n             \"value\":\"temperature\"\n       }\n    }\n]",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{gatewayServer}}/ngsi-ld/v1/entityOperations/create",
-									"host": [
-										"{{gatewayServer}}"
-									],
-									"path": [
-										"ngsi-ld",
-										"v1",
-										"entityOperations",
-										"create"
-									]
+					"name": "Create Temperature Sensor",
+					"id": "9db1f3b8-a4d9-4fbe-97c6-5d765d7298fe",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {},
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"id\": \"urn:ngsi-ld:Sensor:01\",\n   \"type\": \"Sensor\",\n   \"deviceParameter\":{\n         \"type\":\"Property\",\n         \"value\":\"temperature\"\n   }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
 								}
-							},
-							"response": []
+							}
+						},
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"entities"
+							]
 						}
-					],
-					"id": "51019665-bf0c-46a4-90fc-8399a3f58157"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Beehive",
+					"id": "7106f100-6070-4575-926f-cab80efe73be",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {},
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"urn:ngsi-ld:BeeHive:01\",\n    \"type\": \"BeeHive\",\n    \"managedBy\": {\n        \"type\": \"Relationship\",\n        \"object\": \"urn:ngsi-ld:Beekeeper:01\"\n    },\n    \"location\": {\n        \"type\": \"GeoProperty\",\n        \"value\": {\n            \"type\": \"Point\",\n            \"coordinates\": [\n            24.30623,\n            60.07966\n            ]\n        }\n    },\n   \"temperature\": {\n      \"type\": \"Property\",\n      \"value\": 22.2,\n      \"unitCode\": \"CEL\",\n      \"observedAt\": \"2025-10-26T21:32:52.98601Z\",\n      \"observedBy\": {\n         \"type\": \"Relationship\",\n         \"object\": \"urn:ngsi-ld:Sensor:01\"\n      }\n   }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"entities"
+							]
+						}
+					},
+					"response": []
 				}
 			],
 			"id": "2accae2e-5d9a-4101-bb9a-aa35fb6ca8a5"
 		},
 		{
-			"name": "Delete Entities",
+			"name": "Consume entities",
 			"item": [
 				{
-					"name": "Delete batch of entities",
+					"name": "Retrieve Entity",
 					"item": [
 						{
-							"name": "Delete Apiculture Entities",
-							"id": "17b84840-b1a2-4a55-a2d6-506f5ac5a6c6",
+							"name": "Retrieve By id",
+							"id": "977eb073-2b42-49f0-822c-dd30e5ecb9a8",
 							"protocolProfileBehavior": {
 								"disableBodyPruning": true
 							},
 							"request": {
-								"method": "POST",
+								"method": "GET",
 								"header": [
 									{
 										"key": "Link",
 										"value": "{{apicContextLink}}",
 										"type": "text"
-									},
-									{
-										"key": "",
-										"value": "",
-										"type": "text",
-										"disabled": true
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "[\n    \"urn:ngsi-ld:Beekeeper:01\",\n    \"urn:ngsi-ld:Apiary:01\",\n    \"urn:ngsi-ld:BeeHive:01\",\n    \"urn:ngsi-ld:Sensor:01\",\n    \"urn:ngsi-ld:Sensor:02\"\n]",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{gatewayServer}}/ngsi-ld/v1/entityOperations/delete",
-									"host": [
-										"{{gatewayServer}}"
-									],
-									"path": [
-										"ngsi-ld",
-										"v1",
-										"entityOperations",
-										"delete"
-									]
-								}
-							},
-							"response": []
-						}
-					],
-					"id": "125562c7-1f4d-4da2-9476-e54a9189b3bd"
-				},
-				{
-					"name": "Delete entity",
-					"item": [
-						{
-							"name": "Delete Beekeeper",
-							"id": "7300ca90-e4b0-4774-9843-2f49818a13f3",
-							"protocolProfileBehavior": {
-								"disableBodyPruning": true
-							},
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "",
-										"value": "",
-										"type": "text",
-										"disabled": true
-									},
-									{
-										"key": "",
-										"value": "",
-										"type": "text",
-										"disabled": true
-									}
-								],
-								"url": {
-									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:Beekeeper:01",
-									"host": [
-										"{{gatewayServer}}"
-									],
-									"path": [
-										"ngsi-ld",
-										"v1",
-										"entities",
-										"urn:ngsi-ld:Beekeeper:01"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Delete Temperature Sensor",
-							"id": "37f15fa6-f62e-4061-85e6-e73f3bcb5f87",
-							"protocolProfileBehavior": {
-								"disableBodyPruning": true
-							},
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "",
-										"value": "",
-										"type": "text",
-										"disabled": true
-									},
-									{
-										"key": "",
-										"value": "",
-										"type": "text",
-										"disabled": true
-									}
-								],
-								"url": {
-									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:02",
-									"host": [
-										"{{gatewayServer}}"
-									],
-									"path": [
-										"ngsi-ld",
-										"v1",
-										"entities",
-										"urn:ngsi-ld:Sensor:02"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Delete Humidity Sensor",
-							"id": "3252d54d-125b-4516-b794-4be97f0739b9",
-							"protocolProfileBehavior": {
-								"disableBodyPruning": true
-							},
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "",
-										"value": "",
-										"type": "text",
-										"disabled": true
-									},
-									{
-										"key": "",
-										"value": "",
-										"type": "text",
-										"disabled": true
-									}
-								],
-								"url": {
-									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:01",
-									"host": [
-										"{{gatewayServer}}"
-									],
-									"path": [
-										"ngsi-ld",
-										"v1",
-										"entities",
-										"urn:ngsi-ld:Sensor:01"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Delete Beehive",
-							"id": "28d7a906-7340-41c3-86f4-22e2a90f3c5b",
-							"protocolProfileBehavior": {
-								"disableBodyPruning": true
-							},
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "",
-										"value": "",
-										"type": "text",
-										"disabled": true
 									},
 									{
 										"key": "",
@@ -429,20 +169,378 @@
 								}
 							},
 							"response": []
+						},
+						{
+							"name": "Retrieve By id - keyValues",
+							"id": "d83bb949-0555-4edf-8850-346b17af8fd6",
+							"protocolProfileBehavior": {
+								"disabledSystemHeaders": {
+									"accept": true
+								},
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Link",
+										"value": "{{apicContextLink}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01?format=keyValues",
+									"host": [
+										"{{gatewayServer}}"
+									],
+									"path": [
+										"ngsi-ld",
+										"v1",
+										"entities",
+										"urn:ngsi-ld:BeeHive:01"
+									],
+									"query": [
+										{
+											"key": "format",
+											"value": "keyValues"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Retrieve By id - join=inline",
+							"id": "99b4d98c-7808-45a7-ae40-d975e05ae2ba",
+							"protocolProfileBehavior": {
+								"disabledSystemHeaders": {
+									"accept": true
+								},
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Link",
+										"value": "{{apicContextLink}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01?join=inline",
+									"host": [
+										"{{gatewayServer}}"
+									],
+									"path": [
+										"ngsi-ld",
+										"v1",
+										"entities",
+										"urn:ngsi-ld:BeeHive:01"
+									],
+									"query": [
+										{
+											"key": "join",
+											"value": "inline"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Retrieve By id - pick attributes",
+							"id": "215d3caf-535a-4a71-a709-bb4d3d1cbd8a",
+							"protocolProfileBehavior": {
+								"disabledSystemHeaders": {
+									"accept": true
+								},
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Link",
+										"value": "{{apicContextLink}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01?pick=id,temperature",
+									"host": [
+										"{{gatewayServer}}"
+									],
+									"path": [
+										"ngsi-ld",
+										"v1",
+										"entities",
+										"urn:ngsi-ld:BeeHive:01"
+									],
+									"query": [
+										{
+											"key": "pick",
+											"value": "id,temperature"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Retrieve By id - omit attributes",
+							"id": "7752ab9b-7d56-4000-b299-20bedad41171",
+							"protocolProfileBehavior": {
+								"disabledSystemHeaders": {
+									"accept": true
+								},
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Link",
+										"value": "{{apicContextLink}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01?omit=temperature,location",
+									"host": [
+										"{{gatewayServer}}"
+									],
+									"path": [
+										"ngsi-ld",
+										"v1",
+										"entities",
+										"urn:ngsi-ld:BeeHive:01"
+									],
+									"query": [
+										{
+											"key": "omit",
+											"value": "temperature,location"
+										}
+									]
+								}
+							},
+							"response": []
 						}
 					],
-					"id": "138eeab3-9135-408a-9e2a-159ddd8cd2a1"
+					"id": "841a7277-f344-4499-afb1-73918dc93ae2"
+				},
+				{
+					"name": "Query Entities",
+					"item": [
+						{
+							"name": "Query by types",
+							"id": "3bc633dd-9eaa-41d6-9040-79574977954e",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Link",
+										"value": "{{apicContextLink}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities?type=BeeHive,Sensor",
+									"host": [
+										"{{gatewayServer}}"
+									],
+									"path": [
+										"ngsi-ld",
+										"v1",
+										"entities"
+									],
+									"query": [
+										{
+											"key": "type",
+											"value": "BeeHive,Sensor"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Query by condition",
+							"id": "dfec945f-d063-4b48-a6a7-5ef1947ee8e2",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Link",
+										"value": "{{apicContextLink}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities?q=temperature>=22",
+									"host": [
+										"{{gatewayServer}}"
+									],
+									"path": [
+										"ngsi-ld",
+										"v1",
+										"entities"
+									],
+									"query": [
+										{
+											"key": "q",
+											"value": "temperature>=22"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Query by location",
+							"id": "e827772d-8b90-4a3e-93f9-27b621155134",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Link",
+										"value": "{{apicContextLink}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities?georel=near;maxDistance==1&geometry=Point&coordinates=[24.30623,60.07966]",
+									"host": [
+										"{{gatewayServer}}"
+									],
+									"path": [
+										"ngsi-ld",
+										"v1",
+										"entities"
+									],
+									"query": [
+										{
+											"key": "georel",
+											"value": "near;maxDistance==1"
+										},
+										{
+											"key": "geometry",
+											"value": "Point"
+										},
+										{
+											"key": "coordinates",
+											"value": "[24.30623,60.07966]"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"id": "2567ac8c-19a9-47a0-aa20-6138a7414abc",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								],
+								"id": "6ab911bc-663b-40b5-9657-2056215c85bf"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								],
+								"id": "502713eb-3196-43d5-9f6e-b2ab79c5894f"
+							}
+						}
+					]
 				}
 			],
-			"id": "9dee334c-29c0-4bc2-bc88-ba8ba1215165"
+			"id": "106f0f24-701d-4ae3-b3b1-ce62db0048f9"
 		},
 		{
-			"name": "Update Attributes",
+			"name": "Modify entity",
 			"item": [
 				{
-					"name": "Update Beehive temperature",
-					"id": "58db6810-9de0-4e1e-831d-b36bacaccdfd",
+					"name": "Replace entity",
+					"id": "3012c50d-7ac8-447b-830b-76ef667f3e3a",
 					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {},
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"id\": \"urn:ngsi-ld:BeeHive:01\",\n   \"type\": \"BeeHive\",\n    \"managedBy\": {\n        \"type\": \"Relationship\",\n        \"object\": \"urn:ngsi-ld:Beekeeper:01\"\n    },\n   \"temperature\": {\n      \"type\": \"Property\",\n      \"value\": 43.2,\n      \"unitCode\": \"CEL\",\n      \"observedAt\": \"2025-10-26T21:32:52.98601Z\",\n      \"observedBy\": {\n         \"type\": \"Relationship\",\n         \"object\": \"urn:ngsi-ld:Sensor:01\"\n      }\n   }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"entities",
+								"urn:ngsi-ld:BeeHive:01"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Merge entity",
+					"id": "d0a0d536-30ba-4717-9066-e9cf117654c9",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {},
 						"disableBodyPruning": true
 					},
 					"request": {
@@ -452,17 +550,11 @@
 								"key": "Link",
 								"value": "{{apicContextLink}}",
 								"type": "text"
-							},
-							{
-								"key": "",
-								"value": "",
-								"type": "text",
-								"disabled": true
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n   \"temperature\": {\n     \"type\": \"Property\",\n     \"value\": 43,\n     \"unitCode\": \"CEL\",\n     \"observedAt\": \"2020-10-26T22:35:52.98601Z\",\n     \"observedBy\": {\n        \"type\": \"Relationship\",\n        \"object\": \"urn:ngsi-ld:Sensor:01\"\n     }\n   }\n}",
+							"raw": "{\n    \"id\": \"urn:ngsi-ld:BeeHive:01\",\n    \"type\": \"BeeHive\",\n    \"managedBy\": {\n        \"type\": \"Relationship\",\n        \"object\": \"urn:ngsi-ld:Beekeeper:01\",\n        \"subProperty\": {\n            \"type\": \"Property\",\n            \"value\": \"addSubProperty\"\n        }\n    },\n    \"location\": {\n        \"type\": \"GeoProperty\",\n        \"value\": {\n            \"type\": \"Point\",\n            \"coordinates\": [\n            24.30623,\n            60.07966\n            ]\n        }\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -470,7 +562,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs",
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01",
 							"host": [
 								"{{gatewayServer}}"
 							],
@@ -478,269 +570,26 @@
 								"ngsi-ld",
 								"v1",
 								"entities",
-								"urn:ngsi-ld:BeeHive:01",
-								"attrs"
+								"urn:ngsi-ld:BeeHive:01"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Update Beehive humidity",
-					"id": "525910d4-546a-4f84-afc6-16628b22e258",
+					"name": "Delete Entity",
+					"id": "7300ca90-e4b0-4774-9843-2f49818a13f3",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
 					"request": {
-						"method": "PATCH",
+						"method": "DELETE",
 						"header": [
-							{
-								"key": "Link",
-								"value": "{{apicContextLink}}",
-								"type": "text"
-							},
 							{
 								"key": "",
 								"value": "",
 								"type": "text",
 								"disabled": true
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n   \"humidity\": {\n     \"type\": \"Property\",\n     \"value\": 58,\n     \"unitCode\": \"P1\",\n     \"observedAt\": \"2019-10-26T21:35:52.98601Z\",\n     \"observedBy\": {\n        \"type\": \"Relationship\",\n        \"object\": \"urn:ngsi-ld:Sensor:02\"\n     }\n  }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs",
-							"host": [
-								"{{gatewayServer}}"
-							],
-							"path": [
-								"ngsi-ld",
-								"v1",
-								"entities",
-								"urn:ngsi-ld:BeeHive:01",
-								"attrs"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Patch update Beehive temperature",
-					"id": "489a7358-1cee-4cda-ad75-37b351072e0d",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Link",
-								"value": "{{apicContextLink}}",
-								"type": "text"
-							},
-							{
-								"key": "",
-								"value": "",
-								"type": "text",
-								"disabled": true
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"value\": 2,\n    \"observedAt\": \"2021-01-08T10:20:30.98601Z\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/temperature",
-							"host": [
-								"{{gatewayServer}}"
-							],
-							"path": [
-								"ngsi-ld",
-								"v1",
-								"entities",
-								"urn:ngsi-ld:BeeHive:01",
-								"attrs",
-								"temperature"
-							]
-						}
-					},
-					"response": []
-				}
-			],
-			"id": "182bb838-ebb1-403d-9ebd-504b8786af34"
-		},
-		{
-			"name": "Retrieve Entities",
-			"item": [
-				{
-					"name": "Retrieve Beekeeper",
-					"id": "d9a0187a-c6a5-4999-b26b-4664ddeba7dd",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Link",
-								"value": "{{apicContextLink}}",
-								"type": "text"
-							},
-							{
-								"key": "",
-								"value": "",
-								"type": "text",
-								"disabled": true
-							}
-						],
-						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:Beekeeper:01",
-							"host": [
-								"{{gatewayServer}}"
-							],
-							"path": [
-								"ngsi-ld",
-								"v1",
-								"entities",
-								"urn:ngsi-ld:Beekeeper:01"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Retrieve Apiary",
-					"id": "058c62a3-40c2-4881-b965-078d31286d25",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Link",
-								"value": "{{apicContextLink}}",
-								"type": "text"
-							},
-							{
-								"key": "",
-								"value": "",
-								"type": "text",
-								"disabled": true
-							}
-						],
-						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:Apiary:01",
-							"host": [
-								"{{gatewayServer}}"
-							],
-							"path": [
-								"ngsi-ld",
-								"v1",
-								"entities",
-								"urn:ngsi-ld:Apiary:01"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Retrieve Temperature Sensor",
-					"id": "5d0cf695-30de-4b4f-a8df-5e148124df7b",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Link",
-								"value": "{{apicContextLink}}",
-								"type": "text"
-							},
-							{
-								"key": "",
-								"value": "",
-								"type": "text",
-								"disabled": true
-							}
-						],
-						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:01",
-							"host": [
-								"{{gatewayServer}}"
-							],
-							"path": [
-								"ngsi-ld",
-								"v1",
-								"entities",
-								"urn:ngsi-ld:Sensor:01"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Retrieve Humidity Sensor",
-					"id": "9db7d2fc-0ad9-42b2-9e62-b86b4809b5fe",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Link",
-								"value": "{{apicContextLink}}",
-								"type": "text"
-							},
-							{
-								"key": "",
-								"value": "",
-								"type": "text",
-								"disabled": true
-							}
-						],
-						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:02",
-							"host": [
-								"{{gatewayServer}}"
-							],
-							"path": [
-								"ngsi-ld",
-								"v1",
-								"entities",
-								"urn:ngsi-ld:Sensor:02"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Retrieve Beehive",
-					"id": "977eb073-2b42-49f0-822c-dd30e5ecb9a8",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Link",
-								"value": "{{apicContextLink}}",
-								"type": "text"
 							},
 							{
 								"key": "",
@@ -765,30 +614,29 @@
 					"response": []
 				},
 				{
-					"name": "Retrieve Beehive - keyValues representation",
-					"id": "d83bb949-0555-4edf-8850-346b17af8fd6",
+					"name": "Delete Entity Sensor",
+					"id": "7956831d-d7d0-46af-b51f-1a2fa22a47f1",
 					"protocolProfileBehavior": {
-						"disabledSystemHeaders": {
-							"accept": true
-						},
 						"disableBodyPruning": true
 					},
 					"request": {
-						"method": "GET",
+						"method": "DELETE",
 						"header": [
 							{
-								"key": "Accept",
-								"value": "application/json",
-								"type": "text"
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
 							},
 							{
-								"key": "Link",
-								"value": "{{apicContextLink}}",
-								"type": "text"
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01?options=keyValues",
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:01",
 							"host": [
 								"{{gatewayServer}}"
 							],
@@ -796,89 +644,116 @@
 								"ngsi-ld",
 								"v1",
 								"entities",
-								"urn:ngsi-ld:BeeHive:01"
-							],
-							"query": [
-								{
-									"key": "options",
-									"value": "keyValues"
-								}
+								"urn:ngsi-ld:Sensor:01"
 							]
 						}
 					},
 					"response": []
 				}
 			],
-			"id": "841a7277-f344-4499-afb1-73918dc93ae2"
+			"id": "bcfab074-8dd0-40ce-859f-38cd3bf7ce8a"
 		},
 		{
-			"name": "Query Entities",
+			"name": "Batch operations",
 			"item": [
 				{
-					"name": "Search Beehive",
-					"id": "3bc633dd-9eaa-41d6-9040-79574977954e",
+					"name": "Delete Apiculture Entities",
+					"id": "17b84840-b1a2-4a55-a2d6-506f5ac5a6c6",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
 					"request": {
-						"method": "GET",
+						"method": "POST",
 						"header": [
 							{
 								"key": "Link",
 								"value": "{{apicContextLink}}",
 								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    \"urn:ngsi-ld:BeeHive:01\",\n    \"urn:ngsi-ld:Sensor:01\"\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities?type=BeeHive",
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/entityOperations/delete",
 							"host": [
 								"{{gatewayServer}}"
 							],
 							"path": [
 								"ngsi-ld",
 								"v1",
-								"entities"
-							],
-							"query": [
-								{
-									"key": "type",
-									"value": "BeeHive"
+								"entityOperations",
+								"delete"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Batch Entities",
+					"id": "0bd9d6c1-57d1-42c9-b34c-2c54f0e9e94a",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n       \"id\": \"urn:ngsi-ld:Sensor:01\",\n       \"type\": \"Sensor\",\n       \"deviceParameter\":{\n             \"type\":\"Property\",\n             \"value\":\"temperature\"\n       }\n    },\n    {\n       \"id\": \"urn:ngsi-ld:BeeHive:01\",\n       \"type\": \"BeeHive\",\n       \"managedBy\": {\n         \"type\": \"Relationship\",\n         \"object\": \"urn:ngsi-ld:Beekeeper:01\"\n       },\n       \"location\": {\n          \"type\": \"GeoProperty\",\n          \"value\": {\n             \"type\": \"Point\",\n             \"coordinates\": [\n                24.30623,\n                60.07966\n             ]\n          }\n       },\n       \"temperature\": {\n          \"type\": \"Property\",\n          \"value\": 22.1,\n          \"unitCode\": \"CEL\",\n          \"observedAt\": \"2025-10-26T21:32:52.98601Z\",\n          \"observedBy\": {\n             \"type\": \"Relationship\",\n             \"object\": \"urn:ngsi-ld:Sensor:01\"\n          }\n       }\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
 								}
+							}
+						},
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/entityOperations/create",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"entityOperations",
+								"create"
 							]
 						}
 					},
 					"response": []
 				}
 			],
-			"id": "2567ac8c-19a9-47a0-aa20-6138a7414abc",
-			"event": [
-				{
-					"listen": "prerequest",
-					"script": {
-						"type": "text/javascript",
-						"exec": [
-							""
-						],
-						"id": "6ab911bc-663b-40b5-9657-2056215c85bf"
-					}
-				},
-				{
-					"listen": "test",
-					"script": {
-						"type": "text/javascript",
-						"exec": [
-							""
-						],
-						"id": "502713eb-3196-43d5-9f6e-b2ab79c5894f"
-					}
-				}
-			]
+			"id": "8c265be0-e7d4-467d-85f0-2f4660abc47a"
 		},
 		{
-			"name": "Append Attributes",
+			"name": "Modify Attributes",
 			"item": [
 				{
-					"name": "Add name to Beehive",
+					"name": "Append attributes",
 					"id": "fb63062f-88ba-491e-9be2-19298de67244",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
@@ -922,15 +797,102 @@
 						}
 					},
 					"response": []
-				}
-			],
-			"id": "0c325efc-d57c-4549-832f-66cea18a6ca5"
-		},
-		{
-			"name": "Delete Attributes",
-			"item": [
+				},
 				{
-					"name": "Remove name from Beehive",
+					"name": "Update attributes",
+					"id": "58db6810-9de0-4e1e-831d-b36bacaccdfd",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"temperature\": {\n     \"type\": \"Property\",\n     \"value\": 30.7,\n     \"unitCode\": \"CEL\",\n     \"observedAt\": \"2025-10-26T22:35:52.98601Z\",\n     \"observedBy\": {\n        \"type\": \"Relationship\",\n        \"object\": \"urn:ngsi-ld:Sensor:01\"\n     }\n   }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"entities",
+								"urn:ngsi-ld:BeeHive:01",
+								"attrs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Partial Update on attribute",
+					"id": "489a7358-1cee-4cda-ad75-37b351072e0d",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": 42,\n    \"observedAt\": \"2025-10-12T10:20:30.98601Z\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/temperature",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"entities",
+								"urn:ngsi-ld:BeeHive:01",
+								"attrs",
+								"temperature"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete attribute",
 					"id": "48e7ce6a-02bc-4f06-a556-3dcfc76f3c55",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
@@ -968,176 +930,13 @@
 					"response": []
 				}
 			],
-			"id": "48dcbab8-7a2a-4c05-b7cc-374363b8f42c"
-		},
-		{
-			"name": "Create Subscription",
-			"item": [
-				{
-					"name": "Create subscription to Beehive",
-					"id": "e67a53d3-2d77-4058-b63c-1176ac48ee0f",
-					"protocolProfileBehavior": {
-						"disabledSystemHeaders": {},
-						"disableBodyPruning": true
-					},
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Link",
-								"value": "{{apicContextLink}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"id\":\"urn:ngsi-ld:Subscription:01\",\n  \"type\":\"Subscription\",\n  \"entities\": [\n    {\n      \"type\": \"BeeHive\"\n    }\n  ],\n  \"q\": \"temperature>40\",\n  \"notification\": {\n    \"attributes\": [\"temperature\"],\n    \"format\": \"normalized\",\n    \"endpoint\": {\n      \"uri\": \"http://my-domain-name\",\n      \"accept\": \"application/json\",\n      \"info\": [\n          {\n            \"key\": \"Authorization-token\",\n            \"value\": \"Authorization-token-value\"\n          }\n      ]\n    }\n  }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/subscriptions",
-							"host": [
-								"{{gatewayServer}}"
-							],
-							"path": [
-								"ngsi-ld",
-								"v1",
-								"subscriptions"
-							]
-						}
-					},
-					"response": []
-				}
-			],
-			"id": "fa249093-a292-4d6f-97f9-b66b6d9c5e6e"
-		},
-		{
-			"name": "Delete Subscription",
-			"item": [
-				{
-					"name": "Delete subscription to Beehive",
-					"id": "81cc52f3-66ea-4b05-9674-97c927bdcb3e",
-					"protocolProfileBehavior": {
-						"disabledSystemHeaders": {
-							"content-type": true
-						},
-						"disableBodyPruning": true
-					},
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/ld+json",
-								"type": "text"
-							},
-							{
-								"key": "",
-								"value": "",
-								"type": "text",
-								"disabled": true
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:01",
-							"host": [
-								"{{gatewayServer}}"
-							],
-							"path": [
-								"ngsi-ld",
-								"v1",
-								"subscriptions",
-								"urn:ngsi-ld:Subscription:01"
-							]
-						}
-					},
-					"response": []
-				}
-			],
-			"id": "05a51797-5bea-46e5-b36e-a00a9b89a0d6"
-		},
-		{
-			"name": "Retrieve Subscription",
-			"item": [
-				{
-					"name": "Retrieve subscription to Beehive",
-					"id": "2fea6d65-b643-4f07-a421-65ce84a4a67d",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Link",
-								"value": "{{apicContextLink}}",
-								"type": "text"
-							},
-							{
-								"key": "",
-								"value": "",
-								"type": "text",
-								"disabled": true
-							}
-						],
-						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:01",
-							"host": [
-								"{{gatewayServer}}"
-							],
-							"path": [
-								"ngsi-ld",
-								"v1",
-								"subscriptions",
-								"urn:ngsi-ld:Subscription:01"
-							]
-						}
-					},
-					"response": []
-				}
-			],
-			"id": "1d1ff4b9-63f6-4a20-a56a-a6196b539af9",
-			"event": [
-				{
-					"listen": "prerequest",
-					"script": {
-						"type": "text/javascript",
-						"exec": [
-							""
-						],
-						"id": "59bb44d4-a6e4-4311-9101-3dc8b930941f"
-					}
-				},
-				{
-					"listen": "test",
-					"script": {
-						"type": "text/javascript",
-						"exec": [
-							""
-						],
-						"id": "39b00cfd-126c-46f7-a559-702eabf1c4cb"
-					}
-				}
-			]
+			"id": "d268094d-3aef-49ff-ba90-213986015b9f"
 		},
 		{
 			"name": "Get Temporal Evolution of Entities",
 			"item": [
 				{
-					"name": "Temporal evolution of Beehive properties",
+					"name": "Retrieve Temporal Entity",
 					"id": "8b37e929-b7b0-441b-9668-2cf8bc8bc347",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
@@ -1158,7 +957,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?timerel=between&timeAt=2019-10-25T12:00:00Z&endTimeAt=2021-01-10T12:00:00Z",
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01",
 							"host": [
 								"{{gatewayServer}}"
 							],
@@ -1168,27 +967,13 @@
 								"temporal",
 								"entities",
 								"urn:ngsi-ld:BeeHive:01"
-							],
-							"query": [
-								{
-									"key": "timerel",
-									"value": "between"
-								},
-								{
-									"key": "timeAt",
-									"value": "2019-10-25T12:00:00Z"
-								},
-								{
-									"key": "endTimeAt",
-									"value": "2021-01-10T12:00:00Z"
-								}
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Simplified temporal evolution of Beehive properties",
+					"name": "Retrieve Temporal Entity - temporalValues",
 					"id": "5d90570b-5401-47bd-9621-80ae7e9bab18",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
@@ -1209,7 +994,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?options=temporalValues&attrs=temperature&timerel=between&timeAt=2019-10-25T12:00:00Z&endTimeAt=2021-01-10T12:00:00Z",
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?format=temporalValues",
 							"host": [
 								"{{gatewayServer}}"
 							],
@@ -1222,24 +1007,149 @@
 							],
 							"query": [
 								{
-									"key": "options",
+									"key": "format",
 									"value": "temporalValues"
-								},
-								{
-									"key": "attrs",
-									"value": "temperature"
-								},
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve Temporal Entity - filter by time",
+					"id": "3f8ed50d-a107-4108-ab9d-69b18e068ab9",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?timerel=after&timeAt=2025-10-26T12:00:00Z",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"temporal",
+								"entities",
+								"urn:ngsi-ld:BeeHive:01"
+							],
+							"query": [
 								{
 									"key": "timerel",
-									"value": "between"
+									"value": "after"
 								},
 								{
 									"key": "timeAt",
-									"value": "2019-10-25T12:00:00Z"
+									"value": "2025-10-26T12:00:00Z"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve Temporal Entity - lastN values",
+					"id": "4362a80b-d4d2-4418-8879-b17d36b8f302",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?lastN=2",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"temporal",
+								"entities",
+								"urn:ngsi-ld:BeeHive:01"
+							],
+							"query": [
+								{
+									"key": "lastN",
+									"value": "2"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve Temporal Entity - aggregate values",
+					"id": "0cca2780-3334-49f5-b827-8bb13dc16d19",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?format=aggregatedValues&aggrMethods=max,avg,totalCount&aggrPeriodDuration=P1D",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"temporal",
+								"entities",
+								"urn:ngsi-ld:BeeHive:01"
+							],
+							"query": [
+								{
+									"key": "format",
+									"value": "aggregatedValues"
 								},
 								{
-									"key": "endTimeAt",
-									"value": "2021-01-10T12:00:00Z"
+									"key": "aggrMethods",
+									"value": "max,avg,totalCount"
+								},
+								{
+									"key": "aggrPeriodDuration",
+									"value": "P1D"
 								}
 							]
 						}
@@ -1319,6 +1229,135 @@
 				}
 			],
 			"id": "49f62762-1ea1-4599-be75-e1d1a0b455d1"
+		},
+		{
+			"name": "Subscription",
+			"item": [
+				{
+					"name": "Create subscription to Beehive",
+					"id": "e67a53d3-2d77-4058-b63c-1176ac48ee0f",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {},
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\":\"urn:ngsi-ld:Subscription:01\",\n  \"type\":\"Subscription\",\n  \"entities\": [\n    {\n      \"type\": \"BeeHive\"\n    }\n  ],\n  \"q\": \"temperature>40\",\n  \"notification\": {\n    \"attributes\": [\"temperature\"],\n    \"format\": \"normalized\",\n    \"endpoint\": {\n      \"uri\": \"http://my-domain-name\",\n      \"accept\": \"application/json\",\n      \"info\": [\n          {\n            \"key\": \"Authorization-token\",\n            \"value\": \"Authorization-token-value\"\n          }\n      ]\n    }\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/subscriptions",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"subscriptions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve subscription to Beehive",
+					"id": "2fea6d65-b643-4f07-a421-65ce84a4a67d",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:01",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"subscriptions",
+								"urn:ngsi-ld:Subscription:01"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete subscription to Beehive",
+					"id": "81cc52f3-66ea-4b05-9674-97c927bdcb3e",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						},
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/ld+json",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:01",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"subscriptions",
+								"urn:ngsi-ld:Subscription:01"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "9948d9fc-49d1-4660-a2ea-a2c2a7ff9110"
 		}
 	],
 	"event": [

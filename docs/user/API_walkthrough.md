@@ -3,23 +3,11 @@
 This quickstart guide shows a real use case scenario of interaction with the API in an Apiculture context.
 
 ## Prepare your environment
-<!-- todo reword and update postman collection to new requests-->
-The provided examples make use of the HTTPie command line tool (installation instructions: [https://httpie.org/docs#installation](https://httpie.org/docs#installation))
 
-All requests are grouped in a Postman collection that can be found [here](https://www.postman.com/stellio-doc/workspace/stellio/collection/34896864-4c88c4ee-aeb9-4851-b745-59f676e358d5?action=share&source=copy-link&creator=34896864).
-For more details about how to import a Postman collection see [https://learning.postman.com/docs/getting-started/importing-and-exporting-data](https://learning.postman.com/docs/getting-started/importing-and-exporting-data).
+### Starting the Stellio Context Broker
+The source code can be found here : [https://github.com/stellio-hub/stellio-context-broker](https://github.com/stellio-hub/stellio-context-broker).
 
-Export the link to the JSON-LD context used in this use case in an environment variable for easier referencing in
-the requests:
-
-````shell
-export CONTEXT_LINK="<https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
-````
-
-## Starting the Stellio Context Broker
-The Stellio Context Broker source code can be found here : [https://github.com/stellio-hub/stellio-context-broker](https://github.com/stellio-hub/stellio-context-broker).
-
-To Start a Stellio instance. You can clone the Stellio repository and use the provided Docker compose configuration to run containers:
+To Start a Stellio instance. You can clone the repository and use the provided Docker compose configuration to run containers:
 
 ```shell
 git clone https://github.com/stellio-hub/stellio-context-broker
@@ -28,6 +16,28 @@ cd stellio-context-broker
 
 docker compose -f docker-compose.yml up -d && docker compose -f docker-compose.yml logs -f
 ```
+
+### Launching requests
+You have multiple solutions to launch the requests :
+
+#### HTTPie command line tool
+The HTTPie command line tool, works with a linux terminal including mac-os and WSL (installation instructions: [https://httpie.org/docs#installation](https://httpie.org/docs#installation)). 
+
+Export the link to the JSON-LD context used in this use case in an environment variable for easier referencing in the requests:
+
+```shell
+export CONTEXT_LINK="<https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
+```
+
+#### Postman collection
+
+The [postman collection](https://www.postman.com/stellio-doc/workspace/stellio/api/52d19e25-79fe-41a0-9646-4e30cc8ab2ab?action=share&creator=34896864).
+can be used to launch the request. 
+The postman website is unable to reach your localhost, you will need to install postman or use a broker with a public url. 
+
+If you prefer [importing the collection](https://learning.postman.com/docs/getting-started/importing-and-exporting-data)
+directly, the [exported collection](https://raw.githubusercontent.com/stellio-hub/stellio-docs/master/collection/API_Quick_Start.postman_collection.json)
+is available.
 
 ## Case study
 
@@ -1064,7 +1074,7 @@ http POST http://localhost:8080/ngsi-ld/v1/subscriptions Content-Type:applicatio
 '
 ```
 ### Retrieve a Subscription
-We can retrieved a subscription by id:
+We can retrieve a subscription by id:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:01 Link:$CONTEXT_LINK

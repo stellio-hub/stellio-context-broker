@@ -478,7 +478,8 @@ If needed we can delete the created entities :
 http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01
 http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:01
 ```
-
+Note : This endpoint keep the historical representation of the entity and mark is as deleted.
+ If you want to permanently delete an entity you should use the [Temporal delete](#permanently-delete-entity).
 
 ## Batch Operations
 ### Batch Create Entities
@@ -866,12 +867,68 @@ aggrPeriodDuration==P1D \
 </details>
 
 ### Query Temporal evolution of entities
-<!-- todo -->
+We can also Query multiple temporal entities :
 
+```shell
+http http://localhost:8080/ngsi-ld/v1/temporal/entities \
+  type=BeeHive \
+  timerel=after \
+  timeAt=2025-10-26T12:00:00Z \
+  Link:$CONTEXT_LINK
+```
+Note 1: The endpoint support the parameter from Query Entity and Retrieve Temporal Entity
+Note 2: It is mandatory to provide a time filter (timerel, timeAt) and an entity filter (q, type, geoQ, attrs or local=true)
+
+<details>
+<Summary>Show response</Summary>
+
+```json
+[
+    {
+        "id": "urn:ngsi-ld:BeeHive:01",
+        "type": "BeeHive",
+        "temperature": [
+            {
+                "type": "Property",
+                "value": 22.1,
+                "unitCode": "CEL",
+                "instanceId": "urn:ngsi-ld:Instance:03b60d8c-1fde-4acb-853c-6ebf2697675c",
+                "observedAt": "2025-10-26T21:32:52.986010Z",
+                "observedBy": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Sensor:01"
+                }
+            },
+            {
+                "type": "Property",
+                "value": 43,
+                "unitCode": "CEL",
+                "instanceId": "urn:ngsi-ld:Instance:7844b05f-8b71-46e8-9cbb-ec989448ec98",
+                "observedAt": "2025-10-26T22:35:52.986010Z",
+                "observedBy": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Sensor:01"
+                }
+            }
+        ],
+        "@context": [
+            "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
+        ]
+    }
+]
+```
+The list will contain multiple values if multiple entity match the request.
+</details>
 
 ## Modify Temporal Data
 ### Permanently delete entity
+You can delete an entity and all its history with :
+```shell
+http DELETE http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01
+```
 
+### Other Endpoints
+Other temporal provision endpoint are described in [sections #6.20 to #6.22 of the specification](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.20)
 
 
 ## Discovery Endpoint
@@ -881,6 +938,7 @@ All available types of entities can be retrieved:
 ```shell
 http http://localhost:8080/ngsi-ld/v1/types Link:$CONTEXT_LINK
 ```
+Note: support `details=true` for additional information.
 
 <details>
 <Summary>Show response</Summary>
@@ -929,8 +987,50 @@ http http://localhost:8080/ngsi-ld/v1/types/Beekeeper Link:$CONTEXT_LINK
 </details>
 
 ### Discover Attributes
+All available attributes inside entities can be retrieved:
+```shell
+http http://localhost:8080/ngsi-ld/v1/attributes Link:$CONTEXT_LINK
+```
 
-<!---- todo link to the spec.-->
+<details>
+<Summary>Show response</Summary>
+
+```json
+{
+    "id": "urn:ngsi-ld:AttributeList:f0f85f20-5fa1-431b-83d9-9a61703d7a31",
+    "type": "AttributeList",
+    "attributeList": [
+        "deviceParameter",
+        "name"
+    ]
+}
+```
+</details>
+
+More details about a specific attribute can be retrieved with ::
+```shell
+http http://localhost:8080/ngsi-ld/v1/attributes/name Link:$CONTEXT_LINK
+```
+Note: support `details=true` for additional information.
+
+<details>
+<Summary>Show response</Summary>
+
+```json
+{
+    "id": "https://schema.org/name",
+    "type": "Attribute",
+    "attributeName": "name",
+    "attributeTypes": [
+        "Property"
+    ],
+    "typeNames": [
+        "Beekeeper"
+    ],
+    "attributeCount": 1
+}
+```
+</details>
 
 ## Subscription
 
@@ -971,8 +1071,7 @@ http http://localhost:8080/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:01 
 ```
 
 ### Triggering a notification
-<!--todo reword-->
-Running the previous partial update [query](#partial-attributes-updates) (after the creation of the subscription), will trigger sending notification to the configured endpoint. The body of the notification query sent to the endpoint URI is:
+Running the previous partial update [query](#partial-attribute-update) (after the creation of the subscription), will trigger sending notification to the configured endpoint. The body of the notification query sent to the endpoint URI is:
 
 ```json
 {

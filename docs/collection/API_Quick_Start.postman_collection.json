@@ -1155,15 +1155,109 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "QueryTemporal Entities",
+					"id": "801db8a5-ffdf-4b05-b33b-bce29b1f16f4",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/temporal/entities?timerel=after&timeAt=2025-10-26T12:00:00Z&type=BeeHive",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"temporal",
+								"entities"
+							],
+							"query": [
+								{
+									"key": "timerel",
+									"value": "after"
+								},
+								{
+									"key": "timeAt",
+									"value": "2025-10-26T12:00:00Z"
+								},
+								{
+									"key": "type",
+									"value": "BeeHive"
+								}
+							]
+						}
+					},
+					"response": []
 				}
 			],
 			"id": "6d813e1a-0027-4dd2-bf7e-22edfc7f91a2"
 		},
 		{
+			"name": "Modify Temporal",
+			"item": [
+				{
+					"name": "Permanently Delete Entity",
+					"id": "280fcfd1-d4e3-4adb-89dd-8f75903bea1d",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"temporal",
+								"entities",
+								"urn:ngsi-ld:BeeHive:01"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "df7255f9-965c-4e9f-8fe2-12df6e50737f"
+		},
+		{
 			"name": "Discovery",
 			"item": [
 				{
-					"name": "Retrieve Entity Types",
+					"name": "Retrieve All Entity Types",
 					"id": "00fba5f9-5031-4721-827f-94af9956445c",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
@@ -1172,10 +1266,9 @@
 						"method": "GET",
 						"header": [
 							{
-								"key": "",
-								"value": "",
-								"type": "text",
-								"disabled": true
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							}
 						],
 						"url": {
@@ -1213,7 +1306,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{gatewayServer}}/ngsi-ld/v1/types/https%3A%2F%2Fontology.eglobalmark.com%2Fapic%23Beekeeper",
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/types/Beekeeper",
 							"host": [
 								"{{gatewayServer}}"
 							],
@@ -1221,7 +1314,73 @@
 								"ngsi-ld",
 								"v1",
 								"types",
-								"https%3A%2F%2Fontology.eglobalmark.com%2Fapic%23Beekeeper"
+								"Beekeeper"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve All Attributes",
+					"id": "fb17a308-1a24-42ae-b6fe-f9ba8832fd76",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/attributes",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"attributes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve Entities of an Attribute",
+					"id": "2cde0735-6333-4fc0-bd81-e9ac3ac23ba8",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayServer}}/ngsi-ld/v1/types/Beekeeper/name",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"ngsi-ld",
+								"v1",
+								"types",
+								"Beekeeper",
+								"name"
 							]
 						}
 					},

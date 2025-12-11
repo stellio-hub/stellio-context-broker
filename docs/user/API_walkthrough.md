@@ -34,13 +34,12 @@ docker compose -f docker-compose.yml up -d && docker compose -f docker-compose.y
 This case study is written for anyone who wants to get familiar with the API, we use a real example to make it more concrete.
 
 We will use the following simple example:
+
  - an apiary
    - managed by a beekeeper
    - with a temperature observed by a sensor.
 
-## Queries
-
-### Create the entities
+## Create the entities
 
 * Create the beekeeper entity:
 
@@ -101,7 +100,7 @@ http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/ld+
       "type": "Property",
       "value": 22.2,
       "unitCode": "CEL",
-      "observedAt": "2019-10-26T21:32:52.98601Z",
+      "observedAt": "2025-10-26T21:32:52.98601Z",
       "observedBy": {
          "type": "Relationship",
          "object": "urn:ngsi-ld:Sensor:01"
@@ -114,9 +113,9 @@ http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/ld+
 '
 ```
 
-### Consume Entities
+## Consume Entities
 
-#### Retrieve Entity
+### Retrieve Entity
 The created beehive can be retrieved by id:
 
 ```shell
@@ -126,14 +125,46 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Link:$CONT
 <details>
 <Summary>Show response</Summary>
 
-<!--todo-->
+````json
+{
+    "id": "urn:ngsi-ld:BeeHive:01",
+    "type": "ngsi-ld:default-context/BeeHive",
+    "location": {
+        "type": "GeoProperty",
+        "value": {
+            "type": "Point",
+            "coordinates": [
+                24.30623,
+                60.07966
+            ]
+        }
+    },
+    "ngsi-ld:default-context/humidity": {
+        "type": "Property",
+        "value": 60,
+        "unitCode": "P1",
+        "observedAt": "2025-10-26T21:32:52.98601Z",
+        "ngsi-ld:default-context/observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:01"
+        }
+    },
+    "ngsi-ld:default-context/managedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Beekeeper:01"
+    }
+}
+````
 </details>
 
-* The consumption endpoints support a lot of parameters
+The consumption endpoints support a lot of parameters:
+
 -  `format=keyValues` will return a reduced version of the entity providing only top level attribute and their value or object.
 -  `join=inline` will join the relationships to the result.
 -  `pick=id,temperature` will only return the selected attributes
--  `omit=temperature` will not returned the selected attributes
+-  `omit=location,temperature` will not returned the selected attributes
+
+Note: These parameters also work for Query Entities and temporal retrieve operations 
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  options==keyValues Link:$CONTEXT_LINK
@@ -145,9 +176,7 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  options==
 {
     "id": "urn:ngsi-ld:BeeHive:01",
     "type": "BeeHive",
-    "humidity": 60,
     "temperature": 22.2,
-    "belongs": "urn:ngsi-ld:Apiary:01",
     "managedBy": "urn:ngsi-ld:Beekeeper:01",
     "location": {
         "type": "Point",
@@ -169,7 +198,44 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  join==inl
 <details>
 <Summary>Show response</Summary>
 
-<!--todo-->
+```json 
+{
+    "id": "urn:ngsi-ld:BeeHive:01",
+    "type": "BeeHive",
+    "location": {
+        "type": "GeoProperty",
+        "value": {
+            "type": "Point",
+            "coordinates": [
+                24.30623,
+                60.07966
+            ]
+        }
+    },
+    "managedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Beekeeper:01",
+        "entity": {
+            "id": "urn:ngsi-ld:Beekeeper:01",
+            "type": "Beekeeper",
+            "name": {
+                "type": "Property",
+                "value": "Scalpa"
+            }
+        }
+    },
+    "temperature": {
+        "type": "Property",
+        "value": 22.2,
+        "unitCode": "CEL",
+        "observedAt": "2025-10-26T21:32:52.98601Z",
+        "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:01"
+        }
+    }
+}
+```
 </details>
 
 
@@ -179,70 +245,249 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  pick==id,
 <details>
 <Summary>Show response</Summary>
 
-<!--todo-->
+```json
+{
+    "id": "urn:ngsi-ld:BeeHive:01",
+    "temperature": {
+        "type": "Property",
+        "value": 22.2,
+        "unitCode": "CEL",
+        "observedAt": "2025-10-26T21:32:52.98601Z",
+        "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:01"
+        }
+    }
+}
+```
 </details>
 
-#### Query Entity
+```shell
+http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  omit==temperature,location Link:$CONTEXT_LINK
+```
+<details>
+<Summary>Show response</Summary>
+
+```json
+{
+    "id": "urn:ngsi-ld:BeeHive:01",
+    "type": "BeeHive",
+    "managedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Beekeeper:01"
+    }
+}
+```
+</details>
+
+### Query Entities
 
 You can also retrieve multiple entities via a query :
 
 The query endpoint support different filter strategy
--  `type=Beehive|Sensor` only returned entities of type Beehive or Sensor (see [the specification #4.17](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.17))
--  `q=temperature>=22` only returned entities which temperature are superior to 22.2 (see [the specification #4.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.19))
+
+-  `type=Beehive` only returned entities of type Beehive or Sensor (see [the specification #4.17](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.17))
+-  `q=temperature>=22` only returned entities which temperature are superior to 22 (see [the specification #4.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.19))
 -  `georel=near;maxDistance==1&geometry=Point&coordinates=[24.30623,60.07966]` let you find entities near a point (see [specification #4.10](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.10))
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities type==BeeHive Link:$CONTEXT_LINK
 http http://localhost:8080/ngsi-ld/v1/entities q==temperature>=22 Link:$CONTEXT_LINK
-http http://localhost:8080/ngsi-ld/v1/entities 'georel==near;maxDistance==0' geometry==Point coordinates==[24.30623,60.07966] Link:$CONTEXT_LINK
+http http://localhost:8080/ngsi-ld/v1/entities 'georel==near;maxDistance==1' geometry==Point coordinates==[24.30623,60.07966] Link:$CONTEXT_LINK
 ```
 <details>
 <Summary>Show response</Summary>
 
-<!--todo-->
+```json 
+[
+    {
+        "id": "urn:ngsi-ld:Sensor:01",
+        "type": "Sensor",
+        "deviceParameter": {
+            "type": "Property",
+            "value": "temperature"
+        }
+    },
+    {
+        "id": "urn:ngsi-ld:BeeHive:01",
+        "type": "BeeHive",
+        "location": {
+            "type": "GeoProperty",
+            "value": {
+                "type": "Point",
+                "coordinates": [
+                    24.30623,
+                    60.07966
+                ]
+            }
+        },
+        "managedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Beekeeper:01"
+        },
+        "temperature": {
+            "type": "Property",
+            "value": 22.2,
+            "unitCode": "CEL",
+            "observedAt": "2025-10-26T21:32:52.98601Z",
+            "observedBy": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:Sensor:01"
+            }
+        }
+    }
+]
+```
 </details>
 
-### Modify Entity 
-<!-- todo -->
+### Query By post
+If the request parameter is too long you can use the url `entityOperation/query` to do a [query by post #6.23](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.23).
+The request param will be defined in the body of type [query object #5.2.23](https://cim.etsi.org/NGSI-LD/official/clause-5.html#5.2.23).
 
-#### Update Entity
-<!-- todo -->
+## Modify Entity
+### Replace Entity 
+The replace entity endpoint will override the whole entity with the new payload.
+
+```shell
+http PUT http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Content-Type:application/ld+json <<< '
+{
+    "id": "urn:ngsi-ld:BeeHive:01",
+    "type": "BeeHive",
+   "temperature": {
+      "type": "Property",
+      "value": 43.2,
+      "unitCode": "CEL",
+      "observedAt": "2025-10-26T21:32:52.98601Z",
+      "observedBy": {
+         "type": "Relationship",
+         "object": "urn:ngsi-ld:Sensor:01"
+      }
+   },
+   "@context": [
+      "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
+   ]
+}
+'
+```
+The result is visible when we [fetch the entity](#consume-entities).
+<details>
+<Summary>Show response</Summary>
+
+```json 
+{
+   "id": "urn:ngsi-ld:BeeHive:01",
+   "type": "BeeHive",
+   "temperature": {
+      "type": "Property",
+      "value": 43.2,
+      "unitCode": "CEL",
+      "observedAt": "2025-10-26T21:32:52.98601Z",
+      "observedBy": {
+         "type": "Relationship",
+         "object": "urn:ngsi-ld:Sensor:01"
+      }
+   },
+   "@context": [
+      "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
+   ]
+}
+```
+</details>
 
 
-#### Merge Entity
-<!-- todo (done later) -->
+### Merge Entity
+The Merge entity will only update attributes who are present in the payload.
 
+```shell
+http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Content-Type:application/ld+json <<< '
+{
+   "id": "urn:ngsi-ld:BeeHive:01",
+   "type": "BeeHive",
+   "managedBy": {
+       "type": "Relationship",
+       "object": "urn:ngsi-ld:Beekeeper:01",
+        "subProperty": {
+            "type": "Property",
+            "value": "addSubProperty"
+        }
+   },
+   "location": {
+       "type": "GeoProperty",
+       "value": {
+           "type": "Point",
+           "coordinates": [
+           24.30623,
+           60.07966
+           ]
+       }
+   },
+   "@context": [
+      "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
+   ]
+}
+'
+```
+The result is visible when we [fetch the entity](#consume-entities).
 
-#### Delete Entity
+<details>
+<Summary>Show response</Summary>
+
+```json 
+{
+    "id": "urn:ngsi-ld:BeeHive:01",
+    "type": "BeeHive",
+    "location": {
+        "type": "GeoProperty",
+        "value": {
+            "type": "Point",
+            "coordinates": [
+                24.30623,
+                60.07966
+            ]
+        }
+    },
+    "managedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Beekeeper:01",
+        "subProperty": {
+            "type": "Property",
+            "value": "addSubProperty"
+        }
+    },
+    "temperature": {
+        "type": "Property",
+        "value": 43.2,
+        "unitCode": "CEL",
+        "observedAt": "2025-10-26T21:32:52.98601Z",
+        "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:01"
+        }
+    },
+   "@context": [
+      "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
+   ]
+}
+```
+</details>
+### Delete Entity
 
 If needed we can delete the created entities :
 
 ```shell
-http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:Beekeeper:01
-http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:01
 http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01
+http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:01
 ```
 
 
-### Batch Operations
-#### Batch Create Entities
+## Batch Operations
+### Batch Create Entities
 
 We can recreate multiple entities in one batch request :
 
 ```shell
 http POST http://localhost:8080/ngsi-ld/v1/entityOperations/create Content-Type:application/ld+json <<<'
 [
-    {
-        "id":"urn:ngsi-ld:Beekeeper:01",
-        "type":"Beekeeper",
-        "name":{
-            "type":"Property",
-            "value":"Scalpa"
-        },
-        "@context":[
-            "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
-        ]
-    },
     {
         "id": "urn:ngsi-ld:Sensor:01",
         "type": "Sensor",
@@ -275,7 +520,7 @@ http POST http://localhost:8080/ngsi-ld/v1/entityOperations/create Content-Type:
             "type": "Property",
             "value": 22.2,
             "unitCode": "CEL",
-            "observedAt": "2019-10-26T21:32:52.98601Z",
+            "observedAt": "2025-10-26T21:32:52.98601Z",
             "observedBy": {
                 "type": "Relationship",
                 "object": "urn:ngsi-ld:Sensor:01"
@@ -288,9 +533,349 @@ http POST http://localhost:8080/ngsi-ld/v1/entityOperations/create Content-Type:
 ]
 '
 ```
+### Batch Entity creation or update (upsert)
+The endpoint create every entity in the payload or update them if they already existed. 
 
-### Discovery Endpoint
-#### Discover types
+`POST entityOperations/upsert`
+Additionally we can specify `options=replace` or `option=update` see [#6.15](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.15)
+
+### Batch Entity update
+The endpoint update every entity in the payload. 
+
+`POST entityOperations/update`
+Additionally we can specify the `noOverwrite` parameter see [#6.16](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.16)
+
+### Batch Entity merge
+The endpoint merge every entity in the payload with their existing entity see [#6.31](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.31).
+
+`POST entityOperations/merge`
+
+### Batch Entity delete
+The endpoint receive a list of id and delete the corresponding entities see [#6.17](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.17).
+
+`POST entityOperations/delete`
+
+## Attribute endpoints
+<!--todo complete-->
+
+### Append Attributes on Entities
+Let's add a name to the created beehive:
+
+```shell
+http POST http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
+    Link:$CONTEXT_LINK <<<'
+{
+   "name":{
+      "type":"Property",
+      "value":"BeeHiveSophia"
+   }
+}
+'
+```
+
+### Update Attributes
+We can update the entire temperature attribute with:
+
+```shell
+http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
+    Link:$CONTEXT_LINK <<<'
+{
+   "temperature": {
+     "type": "Property",
+     "value": 30.7,
+     "unitCode": "P1",
+     "observedAt": "2025-10-26T21:35:52.98601Z",
+     "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:01"
+     }
+  }
+}
+'
+```
+
+### Partial Attribute Update
+
+We can update only part of the temperature attribute with:
+
+```shell
+http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/temperature \
+    Link:$CONTEXT_LINK <<<'
+{
+     "value": 42,
+     "observedAt": "2025-10-12T10:20:30.98601Z"
+}
+'
+```
+
+### Replace attribute
+We can also completely replace an attribute with `PUT /entities/urn:ngsi-ld:BeeHive:01/attrs/temperature` see [#6.7.3.3](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.7.3.3)
+
+### Delete attribute
+The recently added name property can be deleted:
+
+```shell
+http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/name Link:$CONTEXT_LINK
+```
+
+
+
+## Consume Temporal Data
+### Retrieve Temporal Evolution of an entity
+
+Since we updated the temperature, we can get the temporal evolution with:
+
+```shell
+http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01  Link:$CONTEXT_LINK
+```
+<details>
+<Summary>Show response</Summary>
+
+```json
+{
+    "id": "urn:ngsi-ld:BeeHive:01",
+    "type": "BeeHive",
+    "temperature": [
+        {
+            "type": "Property",
+            "value": 2,
+            "unitCode": "CEL",
+            "instanceId": "urn:ngsi-ld:Instance:29b397cd-8c95-42c5-94a4-6d8928bfda4a",
+            "observedAt": "2025-10-12T10:20:30.986010Z",
+            "observedBy": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:Sensor:01"
+            }
+        },
+        {
+            "type": "Property",
+            "value": 22.1,
+            "unitCode": "CEL",
+            "instanceId": "urn:ngsi-ld:Instance:03b60d8c-1fde-4acb-853c-6ebf2697675c",
+            "observedAt": "2025-10-26T21:32:52.986010Z",
+            "observedBy": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:Sensor:01"
+            }
+        },
+        {
+            "type": "Property",
+            "value": 43,
+            "unitCode": "CEL",
+            "instanceId": "urn:ngsi-ld:Instance:7844b05f-8b71-46e8-9cbb-ec989448ec98",
+            "observedAt": "2025-10-26T22:35:52.986010Z",
+            "observedBy": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:Sensor:01"
+            }
+        }
+    ],
+    "@context": [
+        "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
+    ]
+}
+```
+</details>
+The temporal consumption endpoints support a lot of parameters:
+
+-  `format=temporalValues` will reduce the payload size by returning the temporal representation as a list of Pair [value, timestamp].
+-  `timerel==after&timeAt==2025-26-10T12:00:00Z` will only return temporal value from 2025 and forward, see [#4.11](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.11) for more details.
+-  `lastN=2` will only return the last 2 values
+-  `format=aggregatedValues&aggrMethods=max,avg&aggrPeriodDuration=P1D` will calculate the max, average and will count values for each day, see [#4.5.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.5.19.1) for more details.
+
+Note: These parameters also work for Query Temporal Entities.
+```shell
+http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01 format==temporalValues Link:$CONTEXT_LINK
+```
+
+<details>
+<Summary>Show response</Summary>
+
+```json
+ {
+     "id": "urn:ngsi-ld:BeeHive:01",
+     "type": "BeeHive",
+     "temperature": {
+         "type": "Property",
+         "values": [
+             [
+                 2.0,
+                 "2025-10-12T10:20:30.98601Z"
+             ],
+             [
+                 22.1,
+                 "2025-10-26T21:32:52.98601Z"
+             ],
+             [
+                 43.0,
+                 "2025-10-26T22:35:52.98601Z"
+             ]
+         ]
+     },
+    "@context": [
+        "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
+    ]
+}
+```
+</details>
+
+```shell
+http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01 timerel==after  timeAt==2025-10-26T12:00:00Z Link:$CONTEXT_LINK
+```
+
+<details>
+<Summary>Show response</Summary>
+
+```json
+{
+    "id": "urn:ngsi-ld:BeeHive:01",
+    "type": "BeeHive",
+    "temperature": [
+        {
+            "type": "Property",
+            "value": 22.1,
+            "unitCode": "CEL",
+            "instanceId": "urn:ngsi-ld:Instance:03b60d8c-1fde-4acb-853c-6ebf2697675c",
+            "observedAt": "2025-10-26T21:32:52.986010Z",
+            "observedBy": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:Sensor:01"
+            }
+        },
+        {
+            "type": "Property",
+            "value": 43,
+            "unitCode": "CEL",
+            "instanceId": "urn:ngsi-ld:Instance:7844b05f-8b71-46e8-9cbb-ec989448ec98",
+            "observedAt": "2025-10-26T22:35:52.986010Z",
+            "observedBy": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:Sensor:01"
+            }
+        }
+    ],
+    "@context": [
+        "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
+    ]
+}
+```
+</details>
+
+
+```shell
+http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01 lastN==2 Link:$CONTEXT_LINK
+```
+
+<details>
+<Summary>Show response</Summary>
+
+```json
+{
+    "id": "urn:ngsi-ld:BeeHive:01",
+    "type": "BeeHive",
+    "temperature": [
+        {
+            "type": "Property",
+            "value": 22.1,
+            "unitCode": "CEL",
+            "instanceId": "urn:ngsi-ld:Instance:03b60d8c-1fde-4acb-853c-6ebf2697675c",
+            "observedAt": "2025-10-26T21:32:52.986010Z",
+            "observedBy": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:Sensor:01"
+            }
+        },
+        {
+            "type": "Property",
+            "value": 43,
+            "unitCode": "CEL",
+            "instanceId": "urn:ngsi-ld:Instance:7844b05f-8b71-46e8-9cbb-ec989448ec98",
+            "observedAt": "2025-10-26T22:35:52.986010Z",
+            "observedBy": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:Sensor:01"
+            }
+        }
+    ],
+    "@context": [
+        "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
+    ]
+}
+```
+</details>
+
+```shell
+http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01 \
+format==aggregatedValues \
+aggrMethods==max,avg,totalCount \
+aggrPeriodDuration==P1D \
+ Link:$CONTEXT_LINK
+```
+
+<details>
+<Summary>Show response</Summary>
+
+```json
+{
+    "id": "urn:ngsi-ld:BeeHive:01",
+    "type": "BeeHive",
+    "temperature": {
+        "type": "Property",
+        "max": [
+            [
+                2.0,
+                "2025-10-12T10:20:30.98601Z",
+                "2025-10-13T10:20:30.98601Z"
+            ],
+            [
+                43.0,
+                "2025-10-26T10:20:30.98601Z",
+                "2025-10-27T10:20:30.98601Z"
+            ]
+        ],
+        "avg": [
+            [
+                2.0,
+                "2025-10-12T10:20:30.98601Z",
+                "2025-10-13T10:20:30.98601Z"
+            ],
+            [
+                32.55,
+                "2025-10-26T10:20:30.98601Z",
+                "2025-10-27T10:20:30.98601Z"
+            ]
+        ],
+        "totalCount": [
+            [
+                1,
+                "2025-10-12T10:20:30.98601Z",
+                "2025-10-13T10:20:30.98601Z"
+            ],
+            [
+                2,
+                "2025-10-26T10:20:30.98601Z",
+                "2025-10-27T10:20:30.98601Z"
+            ]
+        ]
+    },
+    "@context": [
+        "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
+    ]
+}
+```
+</details>
+
+### Query Temporal evolution of entities
+<!-- todo -->
+
+
+## Modify Temporal Data
+### Permanently delete entity
+
+
+
+## Discovery Endpoint
+### Discover types
 
 All available types of entities can be retrieved:
 ```shell
@@ -314,7 +899,7 @@ http http://localhost:8080/ngsi-ld/v1/types Link:$CONTEXT_LINK
 ```
 </details>
 
-To get more details about a type of an entity, a Beekeeper for example:
+To get more details about a type of entity :
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/types/Beekeeper Link:$CONTEXT_LINK
@@ -343,175 +928,13 @@ http http://localhost:8080/ngsi-ld/v1/types/Beekeeper Link:$CONTEXT_LINK
 ```
 </details>
 
-#### Discover Attributes
+### Discover Attributes
 
 <!---- todo link to the spec.-->
 
+## Subscription
 
-### Attribute endpoints
-<!--todo complete-->
-
-#### Append Attributes on Entities
-Let's add a name to the created beehive:
-
-```shell
-http POST http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
-    Link:$CONTEXT_LINK <<<'
-{
-   "name":{
-      "type":"Property",
-      "value":"BeeHiveSophia"
-   }
-}
-'
-```
-#### Delete attribute
-The recently added name property can be deleted:
-
-```shell
-http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/name Link:$CONTEXT_LINK
-```
-
-#### Update Attributes
-We can also update the entire temperature attribute with:
-
-```shell
-http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
-    Link:$CONTEXT_LINK <<<'
-{
-   "humidity": {
-     "type": "Property",
-     "value": 58,
-     "unitCode": "P1",
-     "observedAt": "2019-10-26T21:35:52.98601Z",
-     "observedBy": {
-        "type": "Relationship",
-        "object": "urn:ngsi-ld:Sensor:02"
-     }
-  }
-}
-'
-```
-
-#### Partial Attribute Update
-
-We can update only part of the temperature attribute with:
-
-```shell
-http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/temperature \
-    Link:$CONTEXT_LINK <<<'
-{
-     "value": 42,
-     "observedAt": "2019-10-26T22:35:52.98601Z"
-}
-'
-```
-
-
-
-### Consume Temporal Data
-
-#### Retrieve Temporal Evolution of an entity
-
-Since we updated the temperature, we can get the temporal evolution with:
-
-```shell
-http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01 \
-    timerel==between \
-    timeAt==2019-10-25T12:00:00Z \
-    endTimeAt==2021-10-27T12:00:00Z \
-    Link:$CONTEXT_LINK
-```
-<details>
-<Summary>Show response</Summary>
-
-```json
-{
-    "id": "urn:ngsi-ld:BeeHive:01",
-    "type": "BeeHive",
-    "humidity": [
-        {
-            "instanceId": "urn:ngsi-ld:Instance:a768ffb8-79e0-488f-9a4c-e7217ba2dff4",
-            "observedAt": "2019-10-26T21:35:52.986010Z",
-            "type": "Property",
-            "value": 58.0
-        },
-        {
-            "instanceId": "urn:ngsi-ld:Instance:28e44b9e-86f5-4bbb-a363-718d849d1782",
-            "observedAt": "2019-10-26T21:32:52.986010Z",
-            "type": "Property",
-            "value": 60.0
-        }
-    ],
-    "temperature": [
-        {
-            "instanceId": "urn:ngsi-ld:Instance:33642ff7-9b66-42c4-bcdf-9ca640cba782",
-            "observedAt": "2019-10-26T22:35:52.986010Z",
-            "type": "Property",
-            "value": 42.0
-        },
-        {
-            "instanceId": "urn:ngsi-ld:Instance:73226f04-1c47-49a6-ab88-976cb7493bea",
-            "observedAt": "2019-10-26T21:32:52.986010Z",
-            "type": "Property",
-            "value": 22.2
-        }
-    ],
-    "@context": [
-        "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
-    ]
-}
-```
-</details>
-
-We can get the simplified temporal representation of the temperature property of the beehive by adding the request parameter `format` with the value `temporalValues` in the query:
-
-```shell
-http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?options=temporalValues \
-    option==temporalValues \
-    attrs==temperature \ 
-    timerel==between \
-    timeAt==2019-10-25T12:00:00Z \
-    endTimeAt==2020-10-27T12:00:00Z \
-    Link:$CONTEXT_LINK
-```
-
-<details>
-<Summary>Show response</Summary>
-
-```json
-{
-    "id": "urn:ngsi-ld:BeeHive:01",
-    "type": "BeeHive",
-    "temperature": {
-        "type": "Property",
-        "values": [
-            [
-                42.0,
-                "2019-10-26T22:35:52.986010Z"
-            ],
-            [
-                22.2,
-                "2019-10-26T21:32:52.986010Z"
-            ],
-            [
-                100.0,
-                "2020-05-10T10:20:30.98601Z"
-            ]
-        ]
-    },
-    "@context": [
-        "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
-    ]
-}
-```
-</details>
-
-#### Query
-
-### Subscription
-
-#### Create a subscripion 
+### Create a subscripion 
 We can ask to be notified when the temperature of the BeeHive exceeds 40. To do so, we need a working `endpoint` in order to receive the notification.
 For this example, we are using Post Server V2 [http://ptsv2.com/](http://ptsv2.com/). This is a free public service. It is used only for tests and debugs. You need to configure your appropriate working `endpoint` for your private data.
 
@@ -540,14 +963,14 @@ http POST http://localhost:8080/ngsi-ld/v1/subscriptions Content-Type:applicatio
 }
 '
 ```
-#### Retrieve a Subscription
+### Retrieve a Subscription
 We can retrieved a subscription by id:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:01 Link:$CONTEXT_LINK
 ```
 
-#### Triggering a notification
+### Triggering a notification
 <!--todo reword-->
 Running the previous partial update [query](#partial-attributes-updates) (after the creation of the subscription), will trigger sending notification to the configured endpoint. The body of the notification query sent to the endpoint URI is:
 
@@ -570,7 +993,7 @@ Running the previous partial update [query](#partial-attributes-updates) (after 
                 },
                 "createdAt": "2021-07-16T15:51:54.215300Z",
                 "value": 42,
-                "observedAt": "2019-10-26T22:35:52.986010Z",
+                "observedAt": "2025-10-26T22:35:52.986010Z",
                 "unitCode": "CEL"
             },
             "@context": [
@@ -580,3 +1003,5 @@ Running the previous partial update [query](#partial-attributes-updates) (after 
     ]
 }
 ```
+
+<!-- todo datasetId csr and other advanced -->

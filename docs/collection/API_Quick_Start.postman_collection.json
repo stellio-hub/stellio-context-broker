@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "d0fc62a1-f084-452d-89bf-a4bdc53119be",
+		"_postman_id": "cb1bc233-7ec5-45dd-817f-8130b1818e40",
 		"name": "API_Quick_Start_No_Auth",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "7071011"
+		"_uid": "34896864-cb1bc233-7ec5-45dd-817f-8130b1818e40"
 	},
 	"item": [
 		{
@@ -14,6 +14,10 @@
 					"item": [
 						{
 							"name": "Create Beekeeper",
+							"id": "4d861782-4087-473c-a25f-16cbd34b05e7",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
 							"request": {
 								"method": "POST",
 								"header": [
@@ -48,8 +52,10 @@
 						},
 						{
 							"name": "Create Apiary",
+							"id": "ab026ca5-9f3a-4b9c-8d7b-c633245f58d6",
 							"protocolProfileBehavior": {
-								"disabledSystemHeaders": {}
+								"disabledSystemHeaders": {},
+								"disableBodyPruning": true
 							},
 							"request": {
 								"method": "POST",
@@ -84,46 +90,11 @@
 							"response": []
 						},
 						{
-							"name": "Create Temperature Sensor",
-							"protocolProfileBehavior": {
-								"disabledSystemHeaders": {}
-							},
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Link",
-										"value": "{{apicContextLink}}",
-										"type": "text"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"id\": \"urn:ngsi-ld:Sensor:02\",\n    \"type\": \"Sensor\",\n    \"deviceParameter\":{\n            \"type\":\"Property\",\n            \"value\":\"temperature\"\n    }\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities",
-									"host": [
-										"{{gatewayServer}}"
-									],
-									"path": [
-										"ngsi-ld",
-										"v1",
-										"entities"
-									]
-								}
-							},
-							"response": []
-						},
-						{
 							"name": "Create Humidity Sensor",
+							"id": "9db1f3b8-a4d9-4fbe-97c6-5d765d7298fe",
 							"protocolProfileBehavior": {
-								"disabledSystemHeaders": {}
+								"disabledSystemHeaders": {},
+								"disableBodyPruning": true
 							},
 							"request": {
 								"method": "POST",
@@ -159,8 +130,10 @@
 						},
 						{
 							"name": "Create Beehive",
+							"id": "7106f100-6070-4575-926f-cab80efe73be",
 							"protocolProfileBehavior": {
-								"disabledSystemHeaders": {}
+								"disabledSystemHeaders": {},
+								"disableBodyPruning": true
 							},
 							"request": {
 								"method": "POST",
@@ -195,13 +168,18 @@
 							},
 							"response": []
 						}
-					]
+					],
+					"id": "07d6b2b8-4d26-43df-97e0-2acca37cc8c8"
 				},
 				{
 					"name": "Create batch of entities",
 					"item": [
 						{
 							"name": "Create Apiculture Entities",
+							"id": "0bd9d6c1-57d1-42c9-b34c-2c54f0e9e94a",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
 							"request": {
 								"method": "POST",
 								"header": [
@@ -241,9 +219,11 @@
 							},
 							"response": []
 						}
-					]
+					],
+					"id": "51019665-bf0c-46a4-90fc-8399a3f58157"
 				}
-			]
+			],
+			"id": "2accae2e-5d9a-4101-bb9a-aa35fb6ca8a5"
 		},
 		{
 			"name": "Delete Entities",
@@ -253,6 +233,10 @@
 					"item": [
 						{
 							"name": "Delete Apiculture Entities",
+							"id": "17b84840-b1a2-4a55-a2d6-506f5ac5a6c6",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
 							"request": {
 								"method": "POST",
 								"header": [
@@ -292,13 +276,18 @@
 							},
 							"response": []
 						}
-					]
+					],
+					"id": "125562c7-1f4d-4da2-9476-e54a9189b3bd"
 				},
 				{
 					"name": "Delete entity",
 					"item": [
 						{
 							"name": "Delete Beekeeper",
+							"id": "7300ca90-e4b0-4774-9843-2f49818a13f3",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
 							"request": {
 								"method": "DELETE",
 								"header": [
@@ -331,53 +320,24 @@
 							"response": []
 						},
 						{
-							"name": "Delete Apiary",
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "",
-										"type": "text",
-										"value": "",
-										"disabled": true
-									},
-									{
-										"key": "",
-										"type": "text",
-										"value": "",
-										"disabled": true
-									}
-								],
-								"url": {
-									"raw": "{{gatewayServer}}/ngsi-ld/v1/entities/urn:ngsi-ld:Apiary:01",
-									"host": [
-										"{{gatewayServer}}"
-									],
-									"path": [
-										"ngsi-ld",
-										"v1",
-										"entities",
-										"urn:ngsi-ld:Apiary:01"
-									]
-								}
-							},
-							"response": []
-						},
-						{
 							"name": "Delete Temperature Sensor",
+							"id": "37f15fa6-f62e-4061-85e6-e73f3bcb5f87",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
 							"request": {
 								"method": "DELETE",
 								"header": [
 									{
 										"key": "",
-										"type": "text",
 										"value": "",
+										"type": "text",
 										"disabled": true
 									},
 									{
 										"key": "",
-										"type": "text",
 										"value": "",
+										"type": "text",
 										"disabled": true
 									}
 								],
@@ -398,19 +358,23 @@
 						},
 						{
 							"name": "Delete Humidity Sensor",
+							"id": "3252d54d-125b-4516-b794-4be97f0739b9",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
 							"request": {
 								"method": "DELETE",
 								"header": [
 									{
 										"key": "",
-										"type": "text",
 										"value": "",
+										"type": "text",
 										"disabled": true
 									},
 									{
 										"key": "",
-										"type": "text",
 										"value": "",
+										"type": "text",
 										"disabled": true
 									}
 								],
@@ -431,19 +395,23 @@
 						},
 						{
 							"name": "Delete Beehive",
+							"id": "28d7a906-7340-41c3-86f4-22e2a90f3c5b",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
 							"request": {
 								"method": "DELETE",
 								"header": [
 									{
 										"key": "",
-										"type": "text",
 										"value": "",
+										"type": "text",
 										"disabled": true
 									},
 									{
 										"key": "",
-										"type": "text",
 										"value": "",
+										"type": "text",
 										"disabled": true
 									}
 								],
@@ -462,27 +430,33 @@
 							},
 							"response": []
 						}
-					]
+					],
+					"id": "138eeab3-9135-408a-9e2a-159ddd8cd2a1"
 				}
-			]
+			],
+			"id": "9dee334c-29c0-4bc2-bc88-ba8ba1215165"
 		},
 		{
 			"name": "Update Attributes",
 			"item": [
 				{
 					"name": "Update Beehive temperature",
+					"id": "58db6810-9de0-4e1e-831d-b36bacaccdfd",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "PATCH",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -513,18 +487,22 @@
 				},
 				{
 					"name": "Update Beehive humidity",
+					"id": "525910d4-546a-4f84-afc6-16628b22e258",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "PATCH",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -555,18 +533,22 @@
 				},
 				{
 					"name": "Patch update Beehive temperature",
+					"id": "489a7358-1cee-4cda-ad75-37b351072e0d",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "PATCH",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -596,13 +578,18 @@
 					},
 					"response": []
 				}
-			]
+			],
+			"id": "182bb838-ebb1-403d-9ebd-504b8786af34"
 		},
 		{
 			"name": "Retrieve Entities",
 			"item": [
 				{
 					"name": "Retrieve Beekeeper",
+					"id": "d9a0187a-c6a5-4999-b26b-4664ddeba7dd",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -635,18 +622,22 @@
 				},
 				{
 					"name": "Retrieve Apiary",
+					"id": "058c62a3-40c2-4881-b965-078d31286d25",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -667,18 +658,22 @@
 				},
 				{
 					"name": "Retrieve Temperature Sensor",
+					"id": "5d0cf695-30de-4b4f-a8df-5e148124df7b",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -699,18 +694,22 @@
 				},
 				{
 					"name": "Retrieve Humidity Sensor",
+					"id": "9db7d2fc-0ad9-42b2-9e62-b86b4809b5fe",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -731,18 +730,22 @@
 				},
 				{
 					"name": "Retrieve Beehive",
+					"id": "977eb073-2b42-49f0-822c-dd30e5ecb9a8",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -763,23 +766,25 @@
 				},
 				{
 					"name": "Retrieve Beehive - keyValues representation",
+					"id": "d83bb949-0555-4edf-8850-346b17af8fd6",
 					"protocolProfileBehavior": {
 						"disabledSystemHeaders": {
 							"accept": true
-						}
+						},
+						"disableBodyPruning": true
 					},
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Accept",
-								"type": "text",
-								"value": "application/json"
+								"value": "application/json",
+								"type": "text"
 							},
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							}
 						],
 						"url": {
@@ -803,13 +808,18 @@
 					},
 					"response": []
 				}
-			]
+			],
+			"id": "841a7277-f344-4499-afb1-73918dc93ae2"
 		},
 		{
 			"name": "Query Entities",
 			"item": [
 				{
 					"name": "Search Beehive",
+					"id": "3bc633dd-9eaa-41d6-9040-79574977954e",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -840,6 +850,7 @@
 					"response": []
 				}
 			],
+			"id": "2567ac8c-19a9-47a0-aa20-6138a7414abc",
 			"event": [
 				{
 					"listen": "prerequest",
@@ -847,7 +858,8 @@
 						"type": "text/javascript",
 						"exec": [
 							""
-						]
+						],
+						"id": "6ab911bc-663b-40b5-9657-2056215c85bf"
 					}
 				},
 				{
@@ -856,7 +868,8 @@
 						"type": "text/javascript",
 						"exec": [
 							""
-						]
+						],
+						"id": "502713eb-3196-43d5-9f6e-b2ab79c5894f"
 					}
 				}
 			]
@@ -866,18 +879,22 @@
 			"item": [
 				{
 					"name": "Add name to Beehive",
+					"id": "fb63062f-88ba-491e-9be2-19298de67244",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "POST",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -906,25 +923,30 @@
 					},
 					"response": []
 				}
-			]
+			],
+			"id": "0c325efc-d57c-4549-832f-66cea18a6ca5"
 		},
 		{
 			"name": "Delete Attributes",
 			"item": [
 				{
 					"name": "Remove name from Beehive",
+					"id": "48e7ce6a-02bc-4f06-a556-3dcfc76f3c55",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "DELETE",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -945,23 +967,26 @@
 					},
 					"response": []
 				}
-			]
+			],
+			"id": "48dcbab8-7a2a-4c05-b7cc-374363b8f42c"
 		},
 		{
 			"name": "Create Subscription",
 			"item": [
 				{
 					"name": "Create subscription to Beehive",
+					"id": "e67a53d3-2d77-4058-b63c-1176ac48ee0f",
 					"protocolProfileBehavior": {
-						"disabledSystemHeaders": {}
+						"disabledSystemHeaders": {},
+						"disableBodyPruning": true
 					},
 					"request": {
 						"method": "POST",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							}
 						],
 						"body": {
@@ -987,30 +1012,33 @@
 					},
 					"response": []
 				}
-			]
+			],
+			"id": "fa249093-a292-4d6f-97f9-b66b6d9c5e6e"
 		},
 		{
 			"name": "Delete Subscription",
 			"item": [
 				{
 					"name": "Delete subscription to Beehive",
+					"id": "81cc52f3-66ea-4b05-9674-97c927bdcb3e",
 					"protocolProfileBehavior": {
 						"disabledSystemHeaders": {
 							"content-type": true
-						}
+						},
+						"disableBodyPruning": true
 					},
 					"request": {
 						"method": "DELETE",
 						"header": [
 							{
 								"key": "Content-Type",
-								"type": "text",
-								"value": "application/ld+json"
+								"value": "application/ld+json",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -1038,25 +1066,30 @@
 					},
 					"response": []
 				}
-			]
+			],
+			"id": "05a51797-5bea-46e5-b36e-a00a9b89a0d6"
 		},
 		{
 			"name": "Retrieve Subscription",
 			"item": [
 				{
 					"name": "Retrieve subscription to Beehive",
+					"id": "2fea6d65-b643-4f07-a421-65ce84a4a67d",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -1076,6 +1109,7 @@
 					"response": []
 				}
 			],
+			"id": "1d1ff4b9-63f6-4a20-a56a-a6196b539af9",
 			"event": [
 				{
 					"listen": "prerequest",
@@ -1083,7 +1117,8 @@
 						"type": "text/javascript",
 						"exec": [
 							""
-						]
+						],
+						"id": "59bb44d4-a6e4-4311-9101-3dc8b930941f"
 					}
 				},
 				{
@@ -1092,7 +1127,8 @@
 						"type": "text/javascript",
 						"exec": [
 							""
-						]
+						],
+						"id": "39b00cfd-126c-46f7-a559-702eabf1c4cb"
 					}
 				}
 			]
@@ -1102,18 +1138,22 @@
 			"item": [
 				{
 					"name": "Temporal evolution of Beehive properties",
+					"id": "8b37e929-b7b0-441b-9668-2cf8bc8bc347",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -1149,18 +1189,22 @@
 				},
 				{
 					"name": "Simplified temporal evolution of Beehive properties",
+					"id": "5d90570b-5401-47bd-9621-80ae7e9bab18",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Link",
-								"type": "text",
-								"value": "{{apicContextLink}}"
+								"value": "{{apicContextLink}}",
+								"type": "text"
 							},
 							{
 								"key": "",
-								"type": "text",
 								"value": "",
+								"type": "text",
 								"disabled": true
 							}
 						],
@@ -1202,13 +1246,18 @@
 					},
 					"response": []
 				}
-			]
+			],
+			"id": "6d813e1a-0027-4dd2-bf7e-22edfc7f91a2"
 		},
 		{
 			"name": "Discovery",
 			"item": [
 				{
 					"name": "Retrieve Entity Types",
+					"id": "00fba5f9-5031-4721-827f-94af9956445c",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -1235,6 +1284,10 @@
 				},
 				{
 					"name": "Retrieve Attributes of an Entity Type",
+					"id": "b20abb6d-34f0-4a2f-ae11-f326120a4524",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -1264,7 +1317,8 @@
 					},
 					"response": []
 				}
-			]
+			],
+			"id": "49f62762-1ea1-4599-be75-e1d1a0b455d1"
 		}
 	],
 	"event": [
@@ -1274,7 +1328,8 @@
 				"type": "text/javascript",
 				"exec": [
 					""
-				]
+				],
+				"id": "ed78dc85-e565-412f-a4ce-59f4830f841d"
 			}
 		},
 		{
@@ -1283,16 +1338,19 @@
 				"type": "text/javascript",
 				"exec": [
 					""
-				]
+				],
+				"id": "6f2ee4fd-9f35-4aec-8179-caba3f05c762"
 			}
 		}
 	],
 	"variable": [
 		{
+			"id": "2ac981a5-a44c-4026-9c89-bcf765f872e8",
 			"key": "apicContextLink",
 			"value": "<https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
 		},
 		{
+			"id": "5cae8cea-c7d0-49a0-999a-2fa0c83f2060",
 			"key": "gatewayServer",
 			"value": "http://localhost:8080"
 		}

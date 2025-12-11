@@ -23,7 +23,7 @@ The services are based on the [Spring Boot](https://spring.io/projects/spring-bo
 
 ## Internal event model
 
-As explained in the [Getting Started page](../quick_start_guide.md), Stellio internally uses a Kafka message broker to decouple communication between the 2 main micro-services.
+As explained above, Stellio internally uses a Kafka message broker to decouple communication between the 2 main services.
 
 This communication is based on an event model inspired by the NGSI-LD API and does its best to follow the same design principles.
 

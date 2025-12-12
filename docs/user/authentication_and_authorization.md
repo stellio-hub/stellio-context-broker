@@ -1,37 +1,42 @@
 # Authentication and authorization
+> **Warning:**   This page is specific to stellio instances that are configured with authentication: [see keycloak_integration](../admin/keycloak_integration.md).
 
-## Pre-requisites
+## Authenticate
 
-For all the API operations described in this page, the [EGM's authorization context](https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization.jsonld) has to be included in every operation.
-These operations respect the rules of the section 6.3.5 of the NGSI-LD specification ("JSON-LD @context resolution"), with the exception that the [EGM's compound authorization context](https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld) is considered as the default context for all operations found here.
+Stellio authentication works with [jwt token](https://www.jwt.io/) and [oauth2.0](https://oauth.net/2/).
+When doing a request you need to provide an Authorization header with your access-token ex :
 
-## Terminology
+```shell
+http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 \
+Link:$CONTEXT_LINK \
+Authorization:Bearer my.token
+```
+The way to get your access token may depend on your identity provider, but we made two examples for keycloak :
+- [client-credentials with Python](https://colab.research.google.com/drive/1r9AlqSAb2qr72e-FfyKxgZDbHPIAQVFp?usp=sharing) (need a client-id and client-secret)
+- [username password with Postman](https://www.postman.com/stellio-doc/workspace/stellio/api/52d19e25-79fe-41a0-9646-4e30cc8ab2ab?action=share&creator=34896864) (need a client-id, a username and a password)
 
-- `user`: an entity that is authenticated and can access Stellio. It can be a physical user or a client with a service account enabled.
+## Manage rights
+### Introduction
 
-## Specific access policy
+The described operations respect the rules of section [#6.3.5](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.3.5) of the NGSI-LD specification, with the exception that the [EGM's compound authorization context](https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld) is considered as the default context.
 
-Stellio supports providing a specific property, called `specificAccessPolicy`, to allow any authenticated user to read or update an entity.
+### Terminology
 
-This property can be set at entity creation time.
+- `subject`: an entity that is authenticated and can access Stellio. It can be a physical user or a client with a service account enabled.
 
-It currently supports the following two values (more may be added in the future):
+### Admin role
 
-- `read`: any authenticated user can read the entity
-- `write`: any authenticated user can update the entity (it of course implies the `read` right)
+Stellio defines the `stellio-admin` role. If a subject has this role, they are considered a global administrator and can perform any operation on the broker.
+When non `stellio-admin` subjects need to perform operations on the broker, an administrator must first grant them the necessary permissions.
 
-## Admin role
 
-Stellio defines the `stellio-admin` role. If a user has this role, they are considered a global administrator and can perform any operation on the broker.
-When non `stellio-admin` users need to perform operations on the broker, an administrator must first grant them the necessary permissions.
+### Endpoints for permission management
 
-## Endpoints for permission management
-
-Stellio exposes endpoints that help in managing permissions on entities inside the context broker.
+Stellio exposes endpoints that help in managing permissions inside the context broker. ([postman example](https://www.postman.com/stellio-doc/workspace/stellio/api/52d19e25-79fe-41a0-9646-4e30cc8ab2ab?action=share&creator=34896864))
 
 The permissions are represented by a `Permission` data type.
 
-### Permission data type
+#### Permission data type
 
 ```json
 {
@@ -49,7 +54,8 @@ The permissions are represented by a `Permission` data type.
 }
 ```
 
-The properties are based on ODRL Permission class but do not respect the entire ODRL model.
+The properties are based on [ODRL Permission class](https://www.w3.org/TR/odrl-model/#permission) 
+except for the target dataType is specific to this implementation.
 
 The following properties are used:
 
@@ -82,16 +88,16 @@ A permission targeting types and scopes gives right to entities having a matchin
 To avoid security issues and keep computing time low, it is not possible to combine multiple permissions.
 For example, if you gain admin rights on type `A` and `B` from different permission, you can't create or see permission on type `[A,B]`
 
-#### Owner permission
-An owner permission is created when an entity is created or when a not already existing scope is added to an entity (at creation or modification time).
+##### Owner permission
+An owner permission is created when a scope or entity is created for the first time.
 This permission gives the same right as an admin permission except you cannot add, modify or delete "own" permissions.
 
 
-### Permission provision
+#### Permission provision
 
-To be able to create, update or delete a permission, an user must be administrator of the target of the permission.
+To be able to create, update or delete a permission, the subject must be administrator of the target of the permission.
 
-#### Special business rules
+##### Special business rules
 
 - Modifying or creating a permission with the "own" action is forbidden
 - Combining the "admin" action with the special "any authenticated" assignee (`urn:ngsi-ld:Subject:authenticated`) is forbidden
@@ -99,7 +105,7 @@ To be able to create, update or delete a permission, an user must be administrat
 - Creating a permission with the same assignee, action and target as an existing permission is considered redundant
 and results in a 303 (See Other) response
 
-#### Create a permission
+##### Create a permission
 
 -  POST /auth/permissions
 
@@ -116,7 +122,7 @@ and results in a 303 (See Other) response
 }
 ```
 
-#### Update a permission
+##### Update a permission
 
 -  PATCH /auth/permissions/{id}
 
@@ -125,17 +131,16 @@ Note:
 - Modifying a permission will make you the new assigner of this permission. It is not possible to put someone else than you as an assigner.
 - If a target is specified, it will entirely replace the previous target.
 
-#### Delete a permission
+##### Delete a permission
 
 -  DELETE /auth/permissions/{id}
 
-### Permission consumption
+#### Permission consumption
 
-You can only access permissions that are assigned to you or permissions targeting entities you have at least admin right on
-
-#### Retrieve a permission
+##### Retrieve a permission
 
 -  GET /auth/permissions/{id}
+Note: You can only access permissions that are assigned to you or permissions targeting entities you have at least admin right on
 
 ```json
 {
@@ -151,7 +156,7 @@ You can only access permissions that are assigned to you or permissions targetin
 ```
 
 You can ask to retrieve the entity and assignee information in the same request by adding `details=true` in the query parameters.
-In addition you can filter what property of the target entity you want to retrieve by adding `detailsPick=attr1`.
+In addition, you can filter what property of the target entity you want to retrieve by adding `detailsPick=attr1`.
 
 The result will look like this:
 
@@ -185,7 +190,7 @@ The result will look like this:
 }
 ```
 
-#### Query the permissions that you can administer
+##### Query the permissions that you can administer
 
 -  GET /auth/permissions
 
@@ -209,21 +214,21 @@ Other parameter:
 
 This endpoint supports the usual pagination parameters (`count`, `limit`, `offset`). They are functionally identical to the query entities operation.
 
-#### Query the permissions assigned to you
+##### Query the permissions assigned to you
 
 -  GET /auth/permissions/assigned
 
 This endpoint supports the same parameters as the previous endpoint (GET /auth/permissions).
 
-## Get groups the currently authenticated user belongs to 
+### Get groups the currently authenticated subject belongs to 
 
-This endpoint allows an user to get the groups it belongs to.
+This endpoint allows a subject to get the groups it belongs to.
 
 It is available under `/ngsi-ld/v1/auth/subjects/groups` and can be called with a `GET` request.
 
 There are several possible answers:
 
-* If user is not _stellio-admin_: 
+* If subject is not _stellio-admin_: 
 
 ```json
 [
@@ -239,7 +244,7 @@ There are several possible answers:
 ]
 ```
 
-* If user is _stellio-admin_, all groups are returned:
+* If subject is _stellio-admin_, all groups are returned:
 
 ```json
 [
@@ -263,14 +268,25 @@ The body also contains membership information.
 
 * If authentication is not enabled, a 204 (No content) response is returned. 
 
-## Get users
+### Specific access policy
 
-This endpoint allows an user with `stellio-admin` role to get a list of all users
+Stellio supports providing a specific property, called `specificAccessPolicy`, to allow any authenticated user to read or update an entity.
+
+This property can be set at entity creation time.
+
+It currently supports the following two values :
+
+- `read`: create a "read" permission for any authenticated subject
+- `write`: create a "write" permission for any authenticated subject
+
+### Get users
+
+This endpoint allows a subject with `stellio-admin` role to get a list of all users
 
 It is available under `/ngsi-ld/v1/auth/subjects/users` and can be called with a `GET` request.
 
-* If user is not _stellio-admin_, an error 403 is returned
-* If user is _stellio-admin_, all users are returned (`givenName` and `familyName` are optional fields that may not be part of the response):
+* If subject is not _stellio-admin_, an error 403 is returned
+* If subject is _stellio-admin_, all users are returned (`givenName` and `familyName` are optional fields that may not be part of the response):
 
 ```json
 [
@@ -305,7 +321,7 @@ The `subjectInfo` property is present only if other user attributes are known to
 
 * If authentication is not enabled, a 204 (No content) response is returned.
 
-## Delete entities owned by Stellio User if said user is deleted
+### Delete entities owned by Stellio User if said user is deleted
 
 Stellio allows the deletion of all entities owned by a user, if said user is deleted. 
 

@@ -1,0 +1,384 @@
+{
+	"info": {
+		"_postman_id": "fa88f0ce-ab48-405b-b570-57ff4512ad4e",
+		"name": "Authentication and right management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_uid": "34896864-fa88f0ce-ab48-405b-b570-57ff4512ad4e"
+	},
+	"item": [
+		{
+			"name": "Permission",
+			"item": [
+				{
+					"name": "Retrieve Permission",
+					"id": "70159cf5-3d22-4213-a5e1-d7c9e2c2c82f",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{gatewayServer}}/auth/permissions/{{permissionId}}",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"auth",
+								"permissions",
+								"{{permissionId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Query permissions",
+					"id": "c7246917-51a1-4a48-9a81-98c61a26bdb4",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{gatewayServer}}/auth/permissions/{{permissionId}}",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"auth",
+								"permissions",
+								"{{permissionId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create permission",
+					"id": "b1879a51-cb15-47db-b531-b0c9c26a6b99",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"id\": \"urn:ngsi-ld:Permission:public\",\r\n  \"type\": \"Permission\",\r\n  \"target\": {\r\n    \"types\": [\r\n        \"WeatherInformation\",\r\n        \"WeatherObserved\"\r\n        ]\r\n  },\r\n  \"assignee\": \"urn:ngsi-ld:Subject:public\",\r\n  \"action\": \"read\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{gatewayServer}}/auth/permissions",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"auth",
+								"permissions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update permission",
+					"id": "608a6da2-12e4-4edf-b9f2-3d1e49441577",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"target\": {\r\n    \"id\": \"urn:ngsi-ld:Vehicle:A456\"\r\n  },\r\n  \"action\": \"write\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{gatewayServer}}/auth/permissions/{{permissionId}}",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"auth",
+								"permissions",
+								"{{permissionId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Permission",
+					"id": "eb64ba9b-8f07-4a57-9602-5221abce4c9e",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Link",
+								"value": "{{apicContextLink}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{gatewayServer}}/auth/permissions/{{permissionId}}",
+							"host": [
+								"{{gatewayServer}}"
+							],
+							"path": [
+								"auth",
+								"permissions",
+								"{{permissionId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "fad67cdf-189a-4c06-8415-21c4e58e8e1c",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{token}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "5690ddce-7083-4068-9755-1ec26de2f5b5",
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "4666775d-882c-43be-ad8d-9eed977290f8",
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Request token username - password",
+			"id": "6b5f7592-15e1-409a-9b1a-353e52b025b3",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "oauth2",
+					"oauth2": [
+						{
+							"key": "grant_type",
+							"value": "authorization_code_with_pkce",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "Skp3QUqnFDwcXBzlbC3u",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "keycloak",
+							"type": "string"
+						},
+						{
+							"key": "scope",
+							"value": "stellio",
+							"type": "string"
+						},
+						{
+							"key": "clientSecret",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "clientId",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "accessTokenUrl",
+							"value": "https://localhost/auth/realms/master/protocol/openid-connect/token",
+							"type": "string"
+						},
+						{
+							"key": "addTokenTo",
+							"value": "header",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "client_id",
+						"value": "my-client-id",
+						"type": "text"
+					},
+					{
+						"key": "username",
+						"value": "my-username",
+						"type": "text"
+					},
+					{
+						"key": "password",
+						"value": "my-password",
+						"type": "text"
+					},
+					{
+						"key": "grant_type",
+						"value": "password",
+						"type": "text"
+					},
+					{
+						"key": "Body",
+						"value": "x-www-form-urlencoded",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/auth/realms/master/protocol/openid-connect/token",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"auth",
+						"realms",
+						"master",
+						"protocol",
+						"openid-connect",
+						"token"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "oauth2",
+		"oauth2": [
+			{
+				"key": "addTokenTo",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "205fa4ea-03ee-4856-a974-7541ed1e20bf",
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "f63c8b59-e60d-4370-bb1b-6adbd131c255",
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

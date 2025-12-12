@@ -36,7 +36,7 @@ can be used to launch the request.
 The postman website is unable to reach your localhost, you will need to install postman or use a broker with a public url. 
 
 If you prefer [importing the collection](https://learning.postman.com/docs/getting-started/importing-and-exporting-data)
-directly, the [exported collection](https://raw.githubusercontent.com/stellio-hub/stellio-docs/master/collection/API_Quick_Start.postman_collection.json)
+directly, the [exported collection](https://raw.githubusercontent.com/stellio-hub/stellio-docs/master/collection/API_walkthrough.json)
 is available.
 
 ## Case study
@@ -115,7 +115,7 @@ http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/ld+
          "type": "Relationship",
          "object": "urn:ngsi-ld:Sensor:01"
       }
-   }
+   },
    "@context": [
       "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
    ]
@@ -1046,7 +1046,8 @@ Note: support `details=true` for additional information.
 
 ### Create a subscripion 
 We can ask to be notified when the temperature of the BeeHive exceeds 40. To do so, we need a working `endpoint` in order to receive the notification.
-For this example, we are using Post Server V2 [http://ptsv2.com/](http://ptsv2.com/). This is a free public service. It is used only for tests and debugs. You need to configure your appropriate working `endpoint` for your private data.
+For this example, we are using Post Server V2 [http://ptsv2.com/](http://ptsv2.com/). You will need to configure an appropriate working `endpoint` for your private data.
+The endpoint support http or mqtt address.
 
 ```shell
 http POST http://localhost:8080/ngsi-ld/v1/subscriptions Content-Type:application/ld+json <<<'
@@ -1113,4 +1114,5 @@ Running the previous partial update [query](#partial-attribute-update) (after th
 }
 ```
 
-<!-- todo datasetId csr and other advanced -->
+## Going further
+To go further you can follow the [authentication and authorization guide](authentication_and_authorization.md)

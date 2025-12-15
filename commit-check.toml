@@ -5,7 +5,7 @@ subject_capitalized = false
 subject_imperative = true
 # subject_max_length = 50 # Optional - no limit by default
 # subject_min_length = 5 # Optional - no limit by default
-allow_commit_types = ["feat", "fix", "docs", "style", "refactor", "test", "chore"]
+allow_commit_types = ["feat", "fix", "docs", "refactor", "chore"]
 allow_merge_commits = true
 allow_revert_commits = true
 allow_empty_commits = false
@@ -20,6 +20,6 @@ require_signed_off_by = false
 [branch]
 # https://conventional-branch.github.io/
 conventional_branch = true
-allow_branch_types = ["feature", "hotfix", "release", "chore", "fix"]
+allow_branch_types = ["feature", "hotfix", "refactor", "chore", "fix"]
 # require_rebase_target = "main"  # Optional - no rebase requirement by default
 # ignore_authors = [] # Optional - no authors ignored by default

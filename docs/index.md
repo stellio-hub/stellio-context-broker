@@ -1,8 +1,8 @@
 Welcome to Stellio documentation!
 =================================
 
-[![fiware_core](images/core-badge.svg)](https://www.fiware.org/developers/catalogue/)
-[![fiware_stackoverflow](images/stackoverflow-badge.svg)](https://stackoverflow.com/questions/tagged/fiware/)
+[![fiware_core](style/core-badge.svg)](https://www.fiware.org/developers/catalogue/)
+[![fiware_stackoverflow](style/stackoverflow-badge.svg)](https://stackoverflow.com/questions/tagged/fiware/)
 [![License:Apache-2.0](https://img.shields.io/badge/license-APL%202.0-blue.svg)](https://spdx.org/licenses/Apache-2.0.html)
 
 Stellio is an NGSI-LD compliant context broker developed by EGM.

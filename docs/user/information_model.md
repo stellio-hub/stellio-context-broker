@@ -1,16 +1,17 @@
 # Information model
 
 ## JSON-LD
-The information model is base on [json-ld](https://json-ld.org/). 
-More precisely Stellio expect an `@context` describing the provided data. 
-If you don't provide one Stellio will use the [ngsi-ld default context](https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.9.jsonld).
+The information model is based on [JSON-LD](https://json-ld.org/).
+Stellio expects an `@context` describing the provided data.
+If you do not provide one, Stellio uses the [NGSI-LD default context](https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.9.jsonld).
 
-Using an `@context` enable semantic interoperability, you can find out more with this [tutorial](https://ngsi-ld-tutorials.readthedocs.io/en/latest/working-with-%40context.html).
+Using an `@context` enables semantic interoperability. You can find out more in this [tutorial](https://ngsi-ld-tutorials.readthedocs.io/en/latest/working-with-%40context.html).
+
 ## Model
-### entity
-The data is stored in the form of entities. An entity is represented by an `id` and a `type`.
+### Entity
+Data is stored as entities. An entity is identified by an `id` and a `type`.
 
-minimal entity:
+Minimal entity:
 ```json
 {
   "id":"urn:ngsi-ld:BeeHive:01",
@@ -18,21 +19,21 @@ minimal entity:
 }
 ```
 
-### attribute
-You can describe information belonging to the entity via attributes. 
-An attribute can be a `Property` or a `Relationship`.
+### Attribute
+You describe information about an entity with attributes.
+An attribute is either a `Property` or a `Relationship`.
 
 #### Property
-A property is any information who possessed a value.
+A property is any piece of information that has a value.
 
-There multiple types of Property:
+There are several property types:
 
-- ``Property``: a string, number, date, time, datetime or a boolean
-- ``JsonProperty``: a valid json
-- ``GeoProperty``: a GeoJSON geometry (use `location` to represent the location of the entity)
-- ``LanguageProperty``: a text in multiple languages
+- `Property`: a string, number, date, time, datetime, or boolean
+- `JsonProperty`: valid JSON data
+- `GeoProperty`: a GeoJSON geometry (use `location` to represent the entity’s location)
+- `LanguageProperty`: text in multiple languages
 
-example for different attributes:
+Example with different attributes:
 ```json
 {
    "id": "urn:ngsi-ld:BeeHive:01",
@@ -75,13 +76,13 @@ example for different attributes:
 
 Properties can include:
 
-- a unitCode property (it should have to follow [the common codes for units of measurement of UNECE/CEFACT](https://www.unece.org/fileadmin/DAM/cefact/recommendations/rec20/rec20_Rev9e_2014.xls?__cf_chl_tk=MMGgtNzYV_GbFE.GlTg4dCrEy.s50PElEClw44dp440-1765788868-1.0.1.1-PYn_GV8dqKssSgMl0XPZkkbkpT5chpBBYLVk35YMSe4)).
-- an observedAt representing a UTC timestamp (using the ISO 8601 Extended format) 
+- a `unitCode` (it should follow the [UNECE/CEFACT Common Code list for units of measurement](https://www.unece.org/fileadmin/DAM/cefact/recommendations/rec20/rec20_Rev9e_2014.xls?__cf_chl_tk=MMGgtNzYV_GbFE.GlTg4dCrEy.s50PElEClw44dp440-1765788868-1.0.1.1-PYn_GV8dqKssSgMl0XPZkkbkpT5chpBBYLVk35YMSe4)).
+- an `observedAt` timestamp in UTC (ISO 8601 extended format)
 
 #### Relationship
-A relationship represent a link to another entity in Stellio.
+A relationship represents a link to another entity in Stellio.
 
-example of relationship:
+Example of a relationship:
 ```json
 {
    "id": "urn:ngsi-ld:BeeHive:01",
@@ -96,8 +97,8 @@ example of relationship:
 }
 ```
 
-#### SubAttribute
-Attributes can have sub attributes, for example:
+#### Sub-attribute
+Attributes can have sub-attributes. For example:
 
 ```json
 {
@@ -119,8 +120,8 @@ Attributes can have sub attributes, for example:
 }
 ```
 
-#### Multi attribute
-You can define different values for the same attribute with the help of datasetIds:
+#### Multi-attribute
+You can assign multiple values to the same attribute by using `datasetId`s:
 ```json
 {
    "id": "urn:ngsi-ld:BeeHive:01",
@@ -154,4 +155,4 @@ You can define different values for the same attribute with the help of datasetI
 ```
 
 ## Going further
-To go further you can follow the [api walkthrough](API_walkthrough.md).
+For a practical walkthrough, see the [API walkthrough](API_walkthrough.md).

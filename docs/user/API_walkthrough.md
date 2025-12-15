@@ -1,13 +1,13 @@
 # Quickstart
 
-This quickstart guide shows a real use case scenario of interaction with the API in an Apiculture context.
+This quickstart walks you through a realistic example of interacting with the API in an apiculture context.
 
 ## Prepare your environment
 
 ### Starting the Stellio Context Broker
-The code of Stellio can be found here: [https://github.com/stellio-hub/stellio-context-broker](https://github.com/stellio-hub/stellio-context-broker).
+The code of stellio can be found here: [https://github.com/stellio-hub/stellio-context-broker](https://github.com/stellio-hub/stellio-context-broker).
 
-To start a Stellio instance, you can clone the repository and use the provided Docker compose configuration to run the containers:
+To start a local Stellio instance, clone the repository and use the provided Docker Compose configuration:
 
 ```shell
 git clone https://github.com/stellio-hub/stellio-context-broker
@@ -17,13 +17,13 @@ cd stellio-context-broker
 docker compose -f docker-compose.yml up -d && docker compose -f docker-compose.yml logs -f
 ```
 
-### Launching requests
-You have multiple solutions to launch the requests:
+### Sending requests
+You can use one of the following tools to send requests:
 
-#### HTTPie command line tool
-The HTTPie command line tool, works with a linux terminal including macOS and WSL (installation instructions: [https://httpie.org/docs#installation](https://httpie.org/docs#installation)). 
+#### HTTPie (command-line)
+HTTPie works on Linux, macOS, and Windows (including WSL). Installation instructions: [https://httpie.org/docs#installation](https://httpie.org/docs#installation).
 
-Export the link to the JSON-LD context used in this use case in an environment variable for easier referencing in the requests:
+Export the link to the JSON-LD context used in this walkthrough to an environment variable for easier reuse in requests:
 
 ```shell
 export CONTEXT_LINK="<https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
@@ -31,23 +31,21 @@ export CONTEXT_LINK="<https://easy-global-market.github.io/ngsild-api-data-model
 
 #### Postman collection
 
-The [postman collection](https://www.postman.com/stellio-doc/workspace/stellio/api/52d19e25-79fe-41a0-9646-4e30cc8ab2ab?action=share&creator=34896864).
-can be used to launch the request. 
-The postman website is unable to reach your localhost, you will need to install postman or use a broker with a public url. 
+You can also use our Postman collection to send the requests: <https://www.postman.com/stellio-doc/workspace/stellio/api/52d19e25-79fe-41a0-9646-4e30cc8ab2ab?action=share&creator=34896864>.
 
-If you prefer [importing the collection](https://learning.postman.com/docs/getting-started/importing-and-exporting-data)
-directly, the [API walkthrough collection](https://raw.githubusercontent.com/stellio-hub/stellio-docs/master/collection/API_walkthrough.json)
-is available.
+Note: The Postman web app cannot access `localhost`. To test against a local broker, install the Postman desktop app or use a broker with a public URL.
+
+If you prefer importing the collection directly, use: <https://raw.githubusercontent.com/stellio-hub/stellio-docs/master/collection/API_walkthrough.json> (see Postman’s guide: <https://learning.postman.com/docs/getting-started/importing-and-exporting-data>).
 
 ## Case study
 
-This case study is written for anyone who wants to get familiar with the API, we use a real example to make it more concrete.
+This case study is for anyone who wants to get familiar with the API. We use a simple, concrete example.
 
-We will use the following simple example:
+We will model the following scenario:
 
  - an apiary
    - managed by a beekeeper
-   - with a temperature observed by a sensor.
+   - with temperature observed by a sensor
 
 ## Create the entities
 
@@ -130,10 +128,10 @@ http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/ld+
 ```
 </details>
 
-## Consume Entities
+## Consume entities
 
-### Retrieve Entity
-The created beehive can be retrieved by id:
+### Retrieve an entity
+You can retrieve the created beehive by ID:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Link:$CONTEXT_LINK
@@ -175,17 +173,17 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Link:$CONT
 </details>
 <br>
 
-The consumption endpoints support a lot of parameters:
+The consumption endpoints support several parameters:
 
--  `format=keyValues` will return a reduced version of the entity providing only top level attribute and their value or object
--  `join=inline` will join the relationships to the result
--  `pick=id,temperature` will only return the selected attributes
--  `omit=location,temperature` will not return the selected attributes
+- `format=keyValues` returns a reduced representation of the entity, keeping only top‑level attributes and their values or objects.
+- `join=inline` includes related entities by inlining relationships.
+- `pick=id,temperature` returns only the selected attributes.
+- `omit=location,temperature` excludes the selected attributes from the response.
 
-Note: These parameters also work for Query Entities and temporal retrieve operations 
+Note: These parameters also work for Query Entities and temporal retrieval operations.
 
 <br>
-Example of keyValues:
+Example using `keyValues`:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  options==keyValues Link:$CONTEXT_LINK
@@ -214,7 +212,7 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  options==
 </details>
 <br>
 
-Example of join:
+Example using `join`:
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  join==inline Link:$CONTEXT_LINK
 ```
@@ -262,7 +260,7 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  join==inl
 </details>
 <br>
 
-Example of pick:
+Example using `pick`:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  pick==id,temperature Link:$CONTEXT_LINK
@@ -287,7 +285,7 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  pick==id,
 ```
 </details>
 <br>
-Example of omit:
+Example using `omit`:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  omit==temperature,location Link:$CONTEXT_LINK
@@ -308,15 +306,15 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  omit==tem
 </details>
 <br>
 
-### Query Entities
+### Query entities
 
-You can also retrieve multiple entities via a query.
+You can retrieve multiple entities with a query.
 
-The query endpoint supports different filter strategies:
+The query endpoint supports several filtering strategies:
 
--  `type=BeeHive,Sensor` only returned entities of type Beehive or Sensor (see [the specification #4.17](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.17))
--  `q=temperature>=22` only return entities whose temperature is above 22 (see [the specification #4.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.19))
--  `georel=near;maxDistance==1&geometry=Point&coordinates=[24.30623,60.07966]` let you find entities near a point (see [specification #4.10](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.10))
+- `type=Beehive` returns only entities of type `BeeHive` (see [specification §4.17](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.17)).
+- `q=temperature>=22` returns only entities with a temperature greater than or equal to 22 (see [specification §4.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.19)).
+- `georel=near;maxDistance==1&geometry=Point&coordinates=[24.30623,60.07966]` finds entities near a point (see [specification §4.10](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.10)).
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities type==BeeHive,Sensor Link:$CONTEXT_LINK
@@ -369,13 +367,13 @@ http http://localhost:8080/ngsi-ld/v1/entities 'georel==near;maxDistance==1' geo
 </details>
 <br>
 
-### Query By post
-If the request parameters are too long you can use the url `entityOperation/query` to do a [query by post #6.23](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.23).
-The request parameters will be defined in the body of type [query object #5.2.23](https://cim.etsi.org/NGSI-LD/official/clause-5.html#5.2.23).
+### Query by POST
+If the request parameters are too long, use `entityOperations/query` for a [query by POST (§6.23)](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.23).
+Pass the parameters in the request body as a [Query object (§5.2.23)](https://cim.etsi.org/NGSI-LD/official/clause-5.html#5.2.23).
 
-## Modify Entity
-### Replace Entity 
-The replace entity endpoint will override the whole entity with the new payload.
+## Modify an entity
+### Replace an entity 
+This endpoint replaces the entire entity with the new payload.
 
 ```shell
 http PUT http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Content-Type:application/ld+json <<< '
@@ -398,7 +396,7 @@ http PUT http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Conten
 }
 '
 ```
-The result is visible when we [fetch the entity](#consume-entities).
+Fetch the entity to see the result: [Consume entities](#consume-entities).
 <details>
 <Summary>Show response</Summary>
 
@@ -425,8 +423,8 @@ The result is visible when we [fetch the entity](#consume-entities).
 <br>
 
 
-### Merge Entity
-The Merge entity will only update attributes who are present in the payload.
+### Merge an entity
+This endpoint updates only the attributes present in the payload.
 
 ```shell
 http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Content-Type:application/ld+json <<< '
@@ -457,7 +455,7 @@ http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Cont
 }
 '
 ```
-The result is visible when we [fetch the entity](#consume-entities).
+Fetch the entity to see the result: [Consume entities](#consume-entities).
 
 <details>
 <Summary>Show response</Summary>
@@ -501,21 +499,21 @@ The result is visible when we [fetch the entity](#consume-entities).
 ```
 </details>
 <br>
-### Delete Entity
+### Delete an entity
 
-If needed we can delete the created entities:
+Delete the created entities if needed:
 
 ```shell
 http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01
 http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:01
 ```
-Note: This endpoint keeps the historical representation of the entity and mark it as deleted.
-If you want to permanently delete an entity you should use the [Temporal delete](#permanently-delete-entity).
+Note: This endpoint keeps the historical representation of the entity and marks it as deleted.
+To permanently delete an entity, use [Temporal delete](#permanently-delete-entity).
 
-## Batch Operations
-### Batch Create Entities
+## Batch operations
+### Batch create entities
 
-We can recreate multiple entities in one batch request:
+Create multiple entities in a single batch request:
 
 ```shell
 http POST http://localhost:8080/ngsi-ld/v1/entityOperations/create Content-Type:application/ld+json <<<'
@@ -565,32 +563,32 @@ http POST http://localhost:8080/ngsi-ld/v1/entityOperations/create Content-Type:
 ]
 '
 ```
-### Batch Entity creation or update (upsert)
-The endpoint create every entity in the payload or update them if they already existed. 
+### Batch entity creation or update (upsert)
+This endpoint creates each entity in the payload, or updates it if it already exists.
 
 `POST entityOperations/upsert`
-Additionally we can specify `options=replace` or `option=update` see [#6.15](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.15)
+You can also specify `options=replace` or `options=update` (see [§6.15](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.15)).
 
-### Batch Entity update
-The endpoint update every entity in the payload. 
+### Batch entity update
+This endpoint updates each entity in the payload.
 
 `POST entityOperations/update`
-Additionally we can specify the `noOverwrite` parameter see [#6.16](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.16)
+You can also specify the `noOverwrite` parameter (see [§6.16](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.16)).
 
-### Batch Entity merge
-The endpoint merge every entity in the payload with their existing entity see [#6.31](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.31).
+### Batch entity merge
+This endpoint merges each entity in the payload with the existing one (see [§6.31](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.31)).
 
 `POST entityOperations/merge`
 
-### Batch Entity delete
-The endpoint receive a list of id and delete the corresponding entities see [#6.17](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.17).
+### Batch entity delete
+This endpoint receives a list of IDs and deletes the corresponding entities (see [§6.17](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.17)).
 
 `POST entityOperations/delete`
 
 ## Attribute endpoints
 
-### Append Attributes on Entities
-Let's add a name to the created beehive:
+### Append attributes to an entity
+Add a name to the created beehive:
 
 ```shell
 http POST http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
@@ -604,8 +602,8 @@ http POST http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs
 '
 ```
 
-### Update Attributes
-We can update the entire temperature attribute with:
+### Update attributes
+Update the entire `temperature` attribute:
 
 ```shell
 http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
@@ -625,9 +623,9 @@ http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attr
 '
 ```
 
-### Partial Attribute Update
+### Partially update an attribute
 
-We can update only part of the temperature attribute with:
+Update only part of the `temperature` attribute:
 
 ```shell
 http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/temperature \
@@ -639,11 +637,11 @@ http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attr
 '
 ```
 
-### Replace attribute
-We can also completely replace an attribute with `PUT /entities/urn:ngsi-ld:BeeHive:01/attrs/temperature` see [#6.7.3.3](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.7.3.3)
+### Replace an attribute
+You can completely replace an attribute with `PUT /entities/urn:ngsi-ld:BeeHive:01/attrs/temperature` (see [§6.7.3.3](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.7.3.3)).
 
-### Delete attribute
-The recently added name property can be deleted:
+### Delete an attribute
+Delete the `name` property added earlier:
 
 ```shell
 http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/name Link:$CONTEXT_LINK
@@ -651,10 +649,10 @@ http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/att
 
 
 
-## Consume Temporal Data
-### Retrieve Temporal Evolution of an entity
+## Consume temporal data
+### Retrieve an entity’s temporal evolution
 
-Since we updated the temperature, we can get the temporal evolution with:
+Since we updated the temperature, retrieve the temporal evolution with:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01  Link:$CONTEXT_LINK
@@ -708,12 +706,12 @@ http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01  
 ```
 </details>
 <br>
-The temporal consumption endpoints support a lot of parameters:
+The temporal endpoints support several parameters:
 
--  `format=temporalValues` will reduce the payload size by returning the temporal representation as a list of Pair [value, timestamp].
--  `timerel==after&timeAt==2025-26-10T12:00:00Z` will only return temporal value from 2025 and forward, see [#4.11](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.11) for more details.
--  `lastN=2` will only return the last 2 values
--  `format=aggregatedValues&aggrMethods=max,avg&aggrPeriodDuration=P1D` will calculate the max, average and will count values for each day, see [#4.5.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.5.19.1) for more details.
+- `format=temporalValues` reduces the payload size by returning the temporal representation as a list of pairs [value, timestamp].
+- `timerel==after&timeAt==2025-26-10T12:00:00Z` returns temporal values from the specified time onwards (see [§4.11](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.11)).
+- `lastN=2` returns only the last two values.
+- `format=aggregatedValues&aggrMethods=max,avg&aggrPeriodDuration=P1D` calculates the maximum, average, and counts values per day (see [§4.5.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.5.19.1)).
 
 Note: These parameters also work for Query Temporal Entities.
 ```shell
@@ -901,8 +899,8 @@ aggrPeriodDuration==P1D \
 </details>
 <br>
 
-### Query Temporal evolution of entities
-We can also Query multiple temporal entities:
+### Query temporal evolution of entities
+You can also query multiple temporal entities:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/temporal/entities \
@@ -911,8 +909,8 @@ http http://localhost:8080/ngsi-ld/v1/temporal/entities \
   timeAt=2025-10-26T12:00:00Z \
   Link:$CONTEXT_LINK
 ```
-Note 1: The endpoint support the parameter from Query Entity and Retrieve Temporal Entity
-Note 2: It is mandatory to provide a time filter (timerel, timeAt) and an entity filter (q, type, geoQ, attrs or local=true)
+Note 1: This endpoint supports the parameters from Query Entity and Retrieve Temporal Entity.
+Note 2: You must provide a time filter (`timerel`, `timeAt`) and an entity filter (`q`, `type`, `geoQ`, `attrs`, or `local=true`).
 
 <details>
 <Summary>Show response</Summary>
@@ -952,28 +950,28 @@ Note 2: It is mandatory to provide a time filter (timerel, timeAt) and an entity
     }
 ]
 ```
-The list will contain multiple values if multiple entity match the request.
+The list contains multiple values if multiple entities match the request.
 </details>
 
-## Modify Temporal Data
-### Permanently delete entity
-You can delete an entity and all its history with:
+## Modify temporal data
+### Permanently delete an entity
+Delete an entity and all its history with:
 ```shell
 http DELETE http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01
 ```
 
-### Other Endpoints
-Other temporal provision endpoint are described in [sections #6.20 to #6.22 of the specification](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.20)
+### Other endpoints
+Other temporal provisioning endpoints are described in [§§6.20–6.22 of the specification](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.20).
 
 
-## Discovery Endpoint
+## Discovery endpoint
 ### Discover types
 
-All available types of entities can be retrieved with:
+Retrieve all available entity types with:
 ```shell
 http http://localhost:8080/ngsi-ld/v1/types Link:$CONTEXT_LINK
 ```
-Note: support `details=true` for additional information.
+Note: supports `details=true` for additional information.
 
 <details>
 <Summary>Show response</Summary>
@@ -993,7 +991,7 @@ Note: support `details=true` for additional information.
 </details>
 <br>
 
-Additional details about a type of entity can be retrieved with:
+Retrieve additional details about a specific entity type with:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/types/Beekeeper Link:$CONTEXT_LINK
@@ -1023,8 +1021,8 @@ http http://localhost:8080/ngsi-ld/v1/types/Beekeeper Link:$CONTEXT_LINK
 </details>
 <br>
 
-### Discover Attributes
-All available attributes inside entities can be retrieved with:
+### Discover attributes
+Retrieve all available attributes across entities with:
 ```shell
 http http://localhost:8080/ngsi-ld/v1/attributes Link:$CONTEXT_LINK
 ```
@@ -1045,11 +1043,11 @@ http http://localhost:8080/ngsi-ld/v1/attributes Link:$CONTEXT_LINK
 </details>
 <br>
 
-More details about a specific attribute can be retrieved with:
+Retrieve more details about a specific attribute with:
 ```shell
 http http://localhost:8080/ngsi-ld/v1/attributes/name Link:$CONTEXT_LINK
 ```
-Note: support `details=true` for additional information.
+Note: supports `details=true` for additional information.
 
 <details>
 <Summary>Show response</Summary>
@@ -1073,10 +1071,10 @@ Note: support `details=true` for additional information.
 
 ## Subscription
 
-### Create a subscripion 
-We can ask to be notified when the temperature of the BeeHive exceeds 40. To do so, we need a working `endpoint` in order to receive the notification.
-For this example, we are using Post Server V2 [http://ptsv2.com/](http://ptsv2.com/). You will need to configure an appropriate working `endpoint` for your private data.
-The endpoint support http or mqtt address.
+### Create a subscription 
+Create a subscription to be notified when the temperature of the `BeeHive` exceeds 40. You need a working endpoint to receive the notification.
+For this example, use Post Server V2 (<http://ptsv2.com/>). Configure an appropriate endpoint for your own data.
+The endpoint supports HTTP or MQTT.
 
 ```shell
 http POST http://localhost:8080/ngsi-ld/v1/subscriptions Content-Type:application/ld+json <<<'
@@ -1103,16 +1101,16 @@ http POST http://localhost:8080/ngsi-ld/v1/subscriptions Content-Type:applicatio
 }
 '
 ```
-### Retrieve a Subscription
-We can retrieve a subscription by id:
+### Retrieve a subscription
+Retrieve a subscription by ID:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:01 Link:$CONTEXT_LINK
 ```
 
-### Triggering a notification
-Running the previous partial update [query](#partial-attribute-update) (after the creation of the subscription), will send a notification to the configured endpoint.
-The body of the notification query sent to the endpoint URI would be:
+### Trigger a notification
+Running the previous partial update [query](#partially-update-an-attribute) after creating the subscription sends a notification to the configured endpoint.
+The body of the notification sent to the endpoint URI is:
 
 ```json
 {
@@ -1145,4 +1143,4 @@ The body of the notification query sent to the endpoint URI would be:
 ```
 
 ## Going further
-To go further you can follow the [authentication and authorization guide](authentication_and_authorization.md)
+For more information, see the [authentication and authorisation guide](authentication_and_authorization.md).

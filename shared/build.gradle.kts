@@ -36,6 +36,6 @@ dependencies {
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")
 
     testFixturesApi("org.testcontainers:testcontainers")
-    testFixturesApi("org.testcontainers:junit-jupiter")
-    testFixturesApi("org.testcontainers:kafka")
+    testFixturesApi("org.testcontainers:testcontainers-junit-jupiter")
+    testFixturesApi("org.testcontainers:testcontainers-kafka")
 }

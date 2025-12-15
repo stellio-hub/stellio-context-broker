@@ -32,9 +32,9 @@ dependencies {
     runtimeOnly("io.r2dbc:r2dbc-pool")
 
     testImplementation("org.wiremock:wiremock-standalone:3.13.2")
-    testImplementation("org.testcontainers:postgresql")
-    testImplementation("org.testcontainers:kafka")
-    testImplementation("org.testcontainers:r2dbc")
+    testImplementation("org.testcontainers:testcontainers-postgresql")
+    testImplementation("org.testcontainers:testcontainers-r2dbc")
+    testImplementation("org.testcontainers:testcontainers-kafka")
     testImplementation(testFixtures(project(":shared")))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

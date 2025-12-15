@@ -4,14 +4,15 @@
 ## Authenticate
 
 Stellio authentication works with [jwt token](https://www.jwt.io/) and [oauth2.0](https://oauth.net/2/).
-When doing a request you need to provide an Authorization header with your access-token ex :
+When doing a request you need to provide an Authorization header with your access-token:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 \
 Link:$CONTEXT_LINK \
 Authorization:Bearer my.token
 ```
-The way to get your access token may depend on your identity provider, but we made two examples for keycloak :
+The way to get your access token may depend on your identity provider, but we made two examples for keycloak:
+
 - [client-credentials with Python](https://colab.research.google.com/drive/1r9AlqSAb2qr72e-FfyKxgZDbHPIAQVFp?usp=sharing) (need a client-id and client-secret)
 - [username password with Postman](https://www.postman.com/stellio-doc/workspace/stellio/api/52d19e25-79fe-41a0-9646-4e30cc8ab2ab?action=share&creator=34896864) (need a client-id, a username and a password)
 
@@ -55,7 +56,7 @@ The permissions are represented by a `Permission` data type.
 ```
 
 The properties are based on [ODRL Permission class](https://www.w3.org/TR/odrl-model/#permission) 
-except for the target dataType is specific to this implementation.
+except for the target dataType who is specific to this implementation.
 
 The following properties are used:
 
@@ -274,7 +275,7 @@ Stellio supports providing a specific property, called `specificAccessPolicy`, t
 
 This property can be set at entity creation time.
 
-It currently supports the following two values :
+It currently supports the following two values:
 
 - `read`: create a "read" permission for any authenticated subject
 - `write`: create a "write" permission for any authenticated subject
@@ -333,7 +334,7 @@ If Stellio is running from `docker-compose`, `search.on-owner-delete-cascade-ent
 SEARCH_ON_OWNER_DELETE_CASCADE_ENTITIES = true
 ```
 
-Then it can be added in the environment section of `search-service` :
+Then it can be added in the environment section of `search-service`:
 
 ```
 SEARCH_ON_OWNER_DELETE_CASCADE_ENTITIES = ${ON_OWNER_DELETE_CASCADE_ENTITIES}

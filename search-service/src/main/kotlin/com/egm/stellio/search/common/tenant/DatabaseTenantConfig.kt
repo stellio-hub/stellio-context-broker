@@ -6,7 +6,7 @@ import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.ConnectionFactoryOptions
 import jakarta.annotation.PostConstruct
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties
+import org.springframework.boot.r2dbc.autoconfigure.R2dbcProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.r2dbc.config.AbstractR2dbcConfiguration

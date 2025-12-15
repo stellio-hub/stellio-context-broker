@@ -17,37 +17,37 @@ class ApiTestsBootstrapper(
     private val subjectReferentialService: SubjectReferentialService
 ) : CommandLineRunner {
 
-    @Value("\${application.apitests.userid.1}")
+    @Value($$"${application.apitests.userid.1}")
     val apiTestUserId1: String? = null
 
-    @Value("\${application.apitests.username.1}")
+    @Value($$"${application.apitests.username.1}")
     val apiTestUsername1: String? = null
 
-    @Value("\${application.apitests.userid.2}")
+    @Value($$"${application.apitests.userid.2}")
     val apiTestUserId2: String? = null
 
-    @Value("\${application.apitests.username.2}")
+    @Value($$"${application.apitests.username.2}")
     val apiTestUsername2: String? = null
 
-    @Value("\${application.apitests.userid.3}")
+    @Value($$"${application.apitests.userid.3}")
     val apiTestUserId3: String? = null
 
-    @Value("\${application.apitests.username.3}")
+    @Value($$"${application.apitests.username.3}")
     val apiTestUsername3: String? = null
 
-    @Value("\${application.apitests.groupid.1}")
+    @Value($$"${application.apitests.groupid.1}")
     val apiTestGroupId1: String? = null
 
-    @Value("\${application.apitests.group.name.1}")
+    @Value($$"${application.apitests.group.name.1}")
     val apiTestGroupName1: String? = null
 
-    @Value("\${application.apitests.groupid.2}")
+    @Value($$"${application.apitests.groupid.2}")
     val apiTestGroupId2: String? = null
 
-    @Value("\${application.apitests.group.name.2}")
+    @Value($$"${application.apitests.group.name.2}")
     val apiTestGroupName2: String? = null
 
-    override fun run(vararg args: String?) {
+    override fun run(vararg args: String) {
         runBlocking {
             createSubject(
                 apiTestUserId1!!,

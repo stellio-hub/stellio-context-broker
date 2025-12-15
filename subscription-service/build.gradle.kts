@@ -12,8 +12,10 @@ plugins {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("org.springframework:spring-jdbc")
     implementation("org.flywaydb:flyway-core")

@@ -45,6 +45,7 @@ nav:
         - Upgrading to 2.19.0: 'admin/upgrading_to_2.19.0.md'
         - Upgrading to 2.24.0: 'admin/upgrading_to_2.24.0.md'
         - Upgrading to 2.27.0: 'admin/upgrading_to_2.27.0.md'
+        - Upgrading to 2.29.0: 'admin/upgrading_to_2.29.0.md'
   - Contributing :
       - Development: 'contributing/development_guide.md'
       - Documentation: 'contributing/documentation.md'

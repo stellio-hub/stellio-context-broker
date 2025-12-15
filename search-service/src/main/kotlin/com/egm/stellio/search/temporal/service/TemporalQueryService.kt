@@ -155,7 +155,7 @@ class TemporalQueryService(
             attributesWithMatchingInstances,
             temporalEntitiesQuery
         )
-
+        val desiredOrder = entitiesIds.mapIndexed { i, v -> v to i }.toMap()
         val attributeInstancesPerEntityAndAttribute =
             paginatedAttributesWithInstances
                 .toList()
@@ -171,7 +171,7 @@ class TemporalQueryService(
                 .toList()
                 // the ordering made when searching matching attributes is lost
                 // since we are now iterating over the map of attributes with their instances
-                .sortedBy { it.first.entityId }
+                .sortedBy { desiredOrder[it.first.entityId] }
                 .map {
                     EntityTemporalResult(it.first, scopesHistory[it.first.entityId] ?: emptyList(), it.second)
                 }

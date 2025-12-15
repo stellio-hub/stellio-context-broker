@@ -77,9 +77,9 @@ class EntityQueryService(
     ): List<URI> {
         val (adminPermissionWithClause, accessRightFilter) = accessRightWithAndFilter ?: "" to null
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
-        val orderBy = entitiesQuery.orderBy.toSQL() // todo apply to all query request
+        val orderBy = entitiesQuery.orderBy.toSQL()
 
-        val selectQuery = // todo performance impact?
+        val selectQuery =
             """
             $adminPermissionWithClause
             

@@ -567,7 +567,6 @@ The endpoint receive a list of id and delete the corresponding entities see [#6.
 `POST entityOperations/delete`
 
 ## Attribute endpoints
-<!--todo complete-->
 
 ### Append Attributes on Entities
 Let's add a name to the created beehive:

@@ -144,32 +144,32 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Link:$CONT
 
 ````json
 {
-    "id": "urn:ngsi-ld:BeeHive:01",
-    "type": "ngsi-ld:default-context/BeeHive",
-    "location": {
-        "type": "GeoProperty",
-        "value": {
-            "type": "Point",
-            "coordinates": [
-                24.30623,
-                60.07966
-            ]
-        }
-    },
-    "ngsi-ld:default-context/humidity": {
-        "type": "Property",
-        "value": 60,
-        "unitCode": "P1",
-        "observedAt": "2025-10-26T21:32:52.98601Z",
-        "ngsi-ld:default-context/observedBy": {
-            "type": "Relationship",
-            "object": "urn:ngsi-ld:Sensor:01"
-        }
-    },
-    "ngsi-ld:default-context/managedBy": {
-        "type": "Relationship",
-        "object": "urn:ngsi-ld:Beekeeper:01"
-    }
+   "id": "urn:ngsi-ld:BeeHive:01",
+   "type": "BeeHive",
+   "managedBy": {
+     "type": "Relationship",
+     "object": "urn:ngsi-ld:Beekeeper:01"
+   },
+   "location": {
+      "type": "GeoProperty",
+      "value": {
+         "type": "Point",
+         "coordinates": [24.30623, 60.07966]
+      }
+   },
+   "temperature": {
+      "type": "Property",
+      "value": 22.2,
+      "unitCode": "CEL",
+      "observedAt": "2025-10-26T21:32:52.98601Z",
+      "observedBy": {
+         "type": "Relationship",
+         "object": "urn:ngsi-ld:Sensor:01"
+      }
+   },
+   "@context": [
+      "https://easy-global-market.github.io/ngsild-api-data-models/apic/jsonld-contexts/apic-compound.jsonld"
+   ]
 }
 ````
 </details>
@@ -314,12 +314,12 @@ You can also retrieve multiple entities via a query.
 
 The query endpoint supports different filter strategies:
 
--  `type=Beehive` only returned entities of type Beehive or Sensor (see [the specification #4.17](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.17))
+-  `type=BeeHive,Sensor` only returned entities of type Beehive or Sensor (see [the specification #4.17](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.17))
 -  `q=temperature>=22` only return entities whose temperature is above 22 (see [the specification #4.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.19))
 -  `georel=near;maxDistance==1&geometry=Point&coordinates=[24.30623,60.07966]` let you find entities near a point (see [specification #4.10](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.10))
 
 ```shell
-http http://localhost:8080/ngsi-ld/v1/entities type==BeeHive Link:$CONTEXT_LINK
+http http://localhost:8080/ngsi-ld/v1/entities type==BeeHive,Sensor Link:$CONTEXT_LINK
 http http://localhost:8080/ngsi-ld/v1/entities q==temperature>=22 Link:$CONTEXT_LINK
 http http://localhost:8080/ngsi-ld/v1/entities 'georel==near;maxDistance==1' geometry==Point coordinates==[24.30623,60.07966] Link:$CONTEXT_LINK
 ```
@@ -380,8 +380,8 @@ The replace entity endpoint will override the whole entity with the new payload.
 ```shell
 http PUT http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Content-Type:application/ld+json <<< '
 {
-    "id": "urn:ngsi-ld:BeeHive:01",
-    "type": "BeeHive",
+   "id": "urn:ngsi-ld:BeeHive:01",
+   "type": "BeeHive",
    "temperature": {
       "type": "Property",
       "value": 43.2,

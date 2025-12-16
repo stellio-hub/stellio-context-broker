@@ -15,7 +15,7 @@ It is completed with:
     that simply forwards the incoming requests to one of the downstream services, based on the request path
 -   A [Kafka](https://kafka.apache.org/) streaming engine that decouples communication inside the broker 
     (and allows plugging other services seamlessly). It is described in more details in the
-    next chapter [internal event model](#internal-event-model)
+    next chapter on the [internal event model](#internal-event-model)
 
 ![](images/Stellio_General_Architecture.png)
 

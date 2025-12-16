@@ -5,9 +5,9 @@ This quickstart guide shows a real use case scenario of interaction with the API
 ## Prepare your environment
 
 ### Starting the Stellio Context Broker
-The code of stellio can be found here: [https://github.com/stellio-hub/stellio-context-broker](https://github.com/stellio-hub/stellio-context-broker).
+The code of Stellio can be found here: [https://github.com/stellio-hub/stellio-context-broker](https://github.com/stellio-hub/stellio-context-broker).
 
-To Start a Stellio instance. You can clone the repository and use the provided Docker compose configuration to run containers:
+To start a Stellio instance, you can clone the repository and use the provided Docker compose configuration to run the containers:
 
 ```shell
 git clone https://github.com/stellio-hub/stellio-context-broker
@@ -21,7 +21,7 @@ docker compose -f docker-compose.yml up -d && docker compose -f docker-compose.y
 You have multiple solutions to launch the requests:
 
 #### HTTPie command line tool
-The HTTPie command line tool, works with a linux terminal including mac-os and WSL (installation instructions: [https://httpie.org/docs#installation](https://httpie.org/docs#installation)). 
+The HTTPie command line tool, works with a linux terminal including macOS and WSL (installation instructions: [https://httpie.org/docs#installation](https://httpie.org/docs#installation)). 
 
 Export the link to the JSON-LD context used in this use case in an environment variable for easier referencing in the requests:
 
@@ -36,7 +36,7 @@ can be used to launch the request.
 The postman website is unable to reach your localhost, you will need to install postman or use a broker with a public url. 
 
 If you prefer [importing the collection](https://learning.postman.com/docs/getting-started/importing-and-exporting-data)
-directly, the [API_walkthrough collection](https://raw.githubusercontent.com/stellio-hub/stellio-docs/master/collection/API_walkthrough.json)
+directly, the [API walkthrough collection](https://raw.githubusercontent.com/stellio-hub/stellio-docs/master/collection/API_walkthrough.json)
 is available.
 
 ## Case study
@@ -86,7 +86,7 @@ http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/ld+
 
 ```
 
-* Create the beekeeper entity:
+* Create the Beekeeper entity:
 <details>
 <Summary>Show request</Summary>
 
@@ -180,7 +180,7 @@ The consumption endpoints support a lot of parameters:
 -  `format=keyValues` will return a reduced version of the entity providing only top level attribute and their value or object
 -  `join=inline` will join the relationships to the result
 -  `pick=id,temperature` will only return the selected attributes
--  `omit=location,temperature` will not returned the selected attributes
+-  `omit=location,temperature` will not return the selected attributes
 
 Note: These parameters also work for Query Entities and temporal retrieve operations 
 
@@ -312,10 +312,10 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01  omit==tem
 
 You can also retrieve multiple entities via a query.
 
-The query endpoint support different filter strategy:
+The query endpoint supports different filter strategies:
 
 -  `type=Beehive` only returned entities of type Beehive or Sensor (see [the specification #4.17](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.17))
--  `q=temperature>=22` only returned entities which temperature are superior to 22 (see [the specification #4.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.19))
+-  `q=temperature>=22` only return entities whose temperature is above 22 (see [the specification #4.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.19))
 -  `georel=near;maxDistance==1&geometry=Point&coordinates=[24.30623,60.07966]` let you find entities near a point (see [specification #4.10](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.10))
 
 ```shell
@@ -371,7 +371,7 @@ http http://localhost:8080/ngsi-ld/v1/entities 'georel==near;maxDistance==1' geo
 
 ### Query By post
 If the request parameters are too long you can use the url `entityOperation/query` to do a [query by post #6.23](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.23).
-The request param will be defined in the body of type [query object #5.2.23](https://cim.etsi.org/NGSI-LD/official/clause-5.html#5.2.23).
+The request parameters will be defined in the body of type [query object #5.2.23](https://cim.etsi.org/NGSI-LD/official/clause-5.html#5.2.23).
 
 ## Modify Entity
 ### Replace Entity 
@@ -509,7 +509,7 @@ If needed we can delete the created entities:
 http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01
 http DELETE http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:01
 ```
-Note: This endpoint keep the historical representation of the entity and mark iy as deleted.
+Note: This endpoint keeps the historical representation of the entity and mark it as deleted.
 If you want to permanently delete an entity you should use the [Temporal delete](#permanently-delete-entity).
 
 ## Batch Operations

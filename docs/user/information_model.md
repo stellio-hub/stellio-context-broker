@@ -2,6 +2,7 @@
 
 ## JSON-LD
 The information model is based on [JSON-LD](https://json-ld.org/).
+
 Stellio expects an `@context` describing the provided data.
 If you do not provide one, Stellio uses the [NGSI-LD default context](https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.9.jsonld).
 

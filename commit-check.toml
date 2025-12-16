@@ -21,5 +21,6 @@ require_signed_off_by = false
 # https://conventional-branch.github.io/
 conventional_branch = true
 allow_branch_types = ["feature", "hotfix", "refactor", "chore", "fix", "dependabot"]
+allow_branch_names = ["develop"]
 # require_rebase_target = "main"  # Optional - no rebase requirement by default
 # ignore_authors = [] # Optional - no authors ignored by default

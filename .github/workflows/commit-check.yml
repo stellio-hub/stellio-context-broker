@@ -2,7 +2,7 @@ name: Commit Check
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "develop", "master" ]
   pull_request:
     branches: [ "develop" ]
 

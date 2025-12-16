@@ -9,6 +9,9 @@ markdown_extensions: [toc,fenced_code]
 use_directory_urls: false
 theme: readthedocs
 extra_css: ["style/fiware_readthedocs.css"]
+extra_javascript:
+  - style/no-nav-autoscroll.js
+  - style/better-autoscroll.js
 nav:
   - Home: index.md
   - Getting Started: 'quick_start_guide.md'

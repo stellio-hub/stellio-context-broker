@@ -3,25 +3,25 @@
 
 ## Authenticate
 
-Stellio authentication works with [jwt token](https://www.jwt.io/) and [oauth2.0](https://oauth.net/2/).
-When doing a request you need to provide an Authorization header with your access-token:
+Stellio authentication works with [JWT token](https://www.jwt.io/) and [OAuth2.0](https://oauth.net/2/).
+When making a request you need to provide an Authorization header with your access token:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 \
 Link:$CONTEXT_LINK \
 Authorization:Bearer my.token
 ```
-The way to get your access token may depend on your identity provider, but we made two examples for keycloak:
+The way to get your access token may depend on your identity provider, but we made two examples for Keycloak:
 
-- [client-credentials with Python](https://colab.research.google.com/drive/1r9AlqSAb2qr72e-FfyKxgZDbHPIAQVFp?usp=sharing) (need a client-id and client-secret)
-- [username password with Postman](https://www.postman.com/stellio-doc/workspace/stellio/api/52d19e25-79fe-41a0-9646-4e30cc8ab2ab?action=share&creator=34896864) (need a client-id, a username and a password)
+- [client credentials with Python](https://colab.research.google.com/drive/1r9AlqSAb2qr72e-FfyKxgZDbHPIAQVFp?usp=sharing) (need a client-id and client-secret)
+- [username/password with Postman](https://www.postman.com/stellio-doc/workspace/stellio/api/52d19e25-79fe-41a0-9646-4e30cc8ab2ab?action=share&creator=34896864) (need a client-id, a username and a password)
 
-## Manage rights
+## Manage access rights
 ### Introduction
 
-The described operations respect the rules of section [#6.3.5](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.3.5) of the NGSI-LD specification, with the exception that the [EGM's compound authorization context](https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld) is considered as the default context.
+The described operations comply with the rules of section [#6.3.5](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.3.5) of the NGSI-LD specification, with the exception that the [EGM's compound authorization context](https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld) is considered the default context.
 
-### Terminology
+#### Terminology
 
 - `subject`: an entity that is authenticated and can access Stellio. It can be a physical user or a client with a service account enabled.
 

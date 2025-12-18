@@ -12,9 +12,11 @@ import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.NGSILD_OBSERVATION_SPACE_IRI
+import com.egm.stellio.shared.queryparameter.AttributePath
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.Georel
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinType
+import com.egm.stellio.shared.queryparameter.OrderBy
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
@@ -256,7 +258,10 @@ class EntitiesQueryUtilsTests {
                 "datasetId": ["urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"],
                 "join": "flat",
                 "joinLevel": "2",
-                "containedBy": ["urn:ngsi-ld:BeeHive:TESTA", "urn:ngsi-ld:BeeHive:TESTB"]
+                "containedBy": ["urn:ngsi-ld:BeeHive:TESTA", "urn:ngsi-ld:BeeHive:TESTB"],
+                "ordering":{
+                    "orderBy": "id"
+                }
             }
         """.trimIndent()
 
@@ -286,6 +291,8 @@ class EntitiesQueryUtilsTests {
                 setOf("urn:ngsi-ld:BeeHive:TESTA".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
                 it.linkedEntityQuery?.containedBy
             )
+            assertEquals(it.ordering.orderBy.first().direction, OrderBy.Direction.ASC)
+            assertEquals(it.ordering.orderBy.first().attributePath.term, "id")
         }
     }
 
@@ -530,6 +537,32 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals("An entity member cannot be present in both 'pick' and 'omit' parameters", it.message)
+        }
+    }
+
+    @Test
+    fun `it should parse a Query with multiple orderBy`() {
+        val query = """
+            {
+                "type": "Query",
+                "ordering":{
+                    "orderBy": ["id","name;desc","name[surname]"]
+                }
+            }
+        """.trimIndent()
+
+        composeEntitiesQueryFromPostRequest(
+            buildDefaultPagination(30, 100),
+            query,
+            LinkedMultiValueMap(),
+            APIC_COMPOUND_CONTEXTS
+        ).shouldSucceedWith {
+            assertEquals(it.ordering.orderBy[0].attributePath, AttributePath("id", APIC_COMPOUND_CONTEXTS))
+            assertEquals(it.ordering.orderBy[0].direction, OrderBy.Direction.ASC)
+            assertEquals(it.ordering.orderBy[1].attributePath, AttributePath("name", APIC_COMPOUND_CONTEXTS))
+            assertEquals(it.ordering.orderBy[1].direction, OrderBy.Direction.DESC)
+            assertEquals(it.ordering.orderBy[2].attributePath, AttributePath("name[surname]", APIC_COMPOUND_CONTEXTS))
+            assertEquals(it.ordering.orderBy[2].direction, OrderBy.Direction.ASC)
         }
     }
 

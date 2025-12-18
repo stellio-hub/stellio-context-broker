@@ -19,7 +19,6 @@ import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.queryparameter.OrderBy.Companion.toSQL
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
@@ -77,7 +76,7 @@ class EntityQueryService(
     ): List<URI> {
         val (adminPermissionWithClause, accessRightFilter) = accessRightWithAndFilter ?: "" to null
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
-        val orderBy = entitiesQuery.orderBy.toSQL()
+        val orderBy = entitiesQuery.ordering.toSQL()
 
         val selectQuery =
             """

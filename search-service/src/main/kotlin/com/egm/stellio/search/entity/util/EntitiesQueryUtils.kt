@@ -13,7 +13,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
-import com.egm.stellio.shared.queryparameter.OrderBy
+import com.egm.stellio.shared.queryparameter.OrderingParams
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -62,6 +62,10 @@ fun composeEntitiesQueryFromGet(
     ).bind()
     val local = queryParams.getFirst(QueryParameter.LOCAL.key)?.toBoolean() ?: false
 
+    val ordering = OrderingParams(
+        queryParams.getFirst(QueryParameter.ORDER_BY.key)?.split(','),
+        contexts
+    )
     EntitiesQueryFromGet(
         ids = ids,
         typeSelection = typeSelection,
@@ -76,7 +80,7 @@ fun composeEntitiesQueryFromGet(
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
         local = local,
-        orderBy = OrderBy.fromParams(queryParams, contexts),
+        ordering = ordering,
         contexts = contexts
     )
 }
@@ -138,6 +142,11 @@ fun composeEntitiesQueryFromPost(
         defaultPagination.limitMax
     ).bind()
 
+    val ordering = OrderingParams(
+        query.ordering?.orderBy,
+        contexts
+    )
+
     EntitiesQueryFromPost(
         entitySelectors = entitySelectors,
         q = query.q?.decode(),
@@ -149,7 +158,7 @@ fun composeEntitiesQueryFromPost(
         datasetId = datasetId,
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
-        orderBy = OrderBy.fromParams(queryParams, contexts),
+        ordering = ordering,
         contexts = contexts
     )
 }

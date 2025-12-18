@@ -12,6 +12,7 @@ import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.OrderBy
+import com.egm.stellio.shared.queryparameter.OrderingParams
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -517,7 +518,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
-                    orderBy = listOf(OrderBy(orderBy, APIC_COMPOUND_CONTEXTS)),
+                    ordering = OrderingParams(listOf(OrderBy(orderBy, APIC_COMPOUND_CONTEXTS))),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),

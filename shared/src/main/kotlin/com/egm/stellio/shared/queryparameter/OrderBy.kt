@@ -5,11 +5,13 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.InvalidRequestException
-import org.springframework.util.MultiValueMap
 
-data class OrderBy(val param: String, val contexts: List<String>) {
+data class OrderBy(
+    val param: String,
+    val contexts: List<String>
+) {
     val direction: Direction = Direction.fromString(param.substringAfter(';')).fold({ Direction.ASC }, { it })
-    val attributePath: AttributePath = AttributePath(param.substringBefore(';'), contexts)
+    val attributePath: AttributePath = AttributePath(param.substringBefore(';', param), contexts)
 
     fun buildSql(): String {
         val attributeSql = attributePath.buildSqlOrderClause()
@@ -22,12 +24,6 @@ data class OrderBy(val param: String, val contexts: List<String>) {
         return "$attributeSql $directionSql"
     }
 
-    companion object {
-        fun fromParams(queryParams: MultiValueMap<String, String>, contexts: List<String>): List<OrderBy>? =
-            queryParams.getFirst(QueryParameter.ORDER_BY.key)?.split(',')?.map { OrderBy(it, contexts) }
-
-        fun List<OrderBy>?.toSQL() = this?.joinToString(", ") { it.buildSql() } ?: "entity_payload.entity_id"
-    }
     enum class Direction(val value: String) {
 
         ASC("asc"),

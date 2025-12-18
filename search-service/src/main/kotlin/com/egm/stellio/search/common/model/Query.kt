@@ -30,7 +30,8 @@ data class Query private constructor(
     val datasetId: List<String>? = null,
     val join: String? = null,
     val joinLevel: Int? = null,
-    val containedBy: List<String>? = null
+    val containedBy: List<String>? = null,
+    val ordering: UnparsedOrderingParams? = null
 ) {
     companion object {
         operator fun invoke(queryBody: String): Either<APIException, Query> = either {
@@ -69,3 +70,16 @@ data class UnparsedGeoQuery(
     val georel: String,
     val geoproperty: String = NGSILD_LOCATION_TERM
 )
+
+data class UnparsedOrderingParams(
+    val orderBy: List<String>?,
+    val collation: String?,
+    val geometry: String?,
+    val coordinates: List<Any>?
+) {
+    init {
+        if (!coordinates.isNullOrEmpty() || !collation.isNullOrEmpty() || !geometry.isNullOrEmpty()) {
+            throw NotImplementedError("coordinates, collation and geometry ordering are not implemented.")
+        }
+    }
+}

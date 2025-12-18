@@ -1,10 +1,10 @@
 # Authentication and authorization
-> **Warning:**   This page is specific to stellio instances that are configured with authentication: [see keycloak_integration](../admin/keycloak_integration.md).
+> **Warning:** This page is specific to Stellio instances that are configured with authentication (see [Keycloak integration](../admin/keycloak_integration.md)).
 
 ## Authenticate
 
 Stellio authentication works with [JWT token](https://www.jwt.io/) and [OAuth2.0](https://oauth.net/2/).
-When making a request you need to provide an Authorization header with your access token:
+When sending a request, you need to provide an Authorization header with your access token:
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 \
@@ -56,7 +56,7 @@ The permissions are represented by a `Permission` data type.
 ```
 
 The properties are based on [ODRL Permission class](https://www.w3.org/TR/odrl-model/#permission) 
-except for the target dataType who is specific to this implementation.
+except for the target dataType which is specific to this implementation.
 
 The following properties are used:
 
@@ -69,13 +69,13 @@ The following properties are used:
         - can only be specified if `types` and `scopes` are null
     - `types`:
         - a type or a list of types
-        - the permission gives right to entities having at least one of specified types.
-        - if null the permission is considered to be for every types
+        - the permission gives right to entities having at least one of the specified types.
+        - if null, the permission is considered to be for every type
         - can only be specified if `id` is null
     - `scopes`:
         - a scope or a list of scopes
-        - the permission gives right to entities having at least one of specified scopes.
-        - if null the permission is considered to be for every scopes
+        - the permission gives right to entities having at least one of the specified scopes.
+        - if null, the permission is considered to be for every scope
         - you can specify `@none` to target the entities with no scope
         - can only be specified if `id` is null
 - `assignee`: id of the subject (group or user) getting the permission
@@ -84,19 +84,19 @@ The following properties are used:
 - `assigner`: id of the creator
 - `action`: can be "read", "write", "admin" and "own"
 
-A permission targeting types and scopes gives right to entities having a matching type **AND** a matching scope 
+A permission targeting types and scopes gives the right to entities having a matching type **AND** a matching scope 
 
 To avoid security issues and keep computing time low, it is not possible to combine multiple permissions.
 For example, if you gain admin rights on type `A` and `B` from different permission, you can't create or see permission on type `[A,B]`
 
 ##### Owner permission
 An owner permission is created when a scope or entity is created for the first time.
-This permission gives the same right as an admin permission except you cannot add, modify or delete "own" permissions.
+This permission gives the same right as an admin permission, except you cannot add, modify or delete "own" permissions.
 
 
 #### Permission provision
 
-To be able to create, update or delete a permission, the subject must be administrator of the target of the permission.
+To be able to create, update or delete a permission, the subject must be an administrator of the target of the permission.
 
 ##### Special business rules
 
@@ -204,10 +204,10 @@ You can filter the requested permissions with the following query parameters:
 - `assigner=my:assigner` to get the permissions created by “my:assigner”
 - `action=read` to get the permissions giving the right to read
     - the default value is admin
-    - also return the actions including the requested action (i.e requesting write permissions also return admin and own permissions)
+    - also return the actions including the requested action (i.e., requesting write permissions also return admin and own permissions)
 
 You can ask to retrieve the entity and the assignee information in the same request by adding `details=true` in the query parameters.
-In addition you can filter what property of the target entity you want to retrieve by adding `detailsPick=attr1`
+In addition, you can filter what property of the target entity you want to retrieve by adding `detailsPick=attr1`
 
 Other parameter:
 
@@ -229,7 +229,7 @@ It is available under `/ngsi-ld/v1/auth/subjects/groups` and can be called with 
 
 There are several possible answers:
 
-* If subject is not _stellio-admin_: 
+* If the subject is not _stellio-admin_: 
 
 ```json
 [
@@ -245,7 +245,7 @@ There are several possible answers:
 ]
 ```
 
-* If subject is _stellio-admin_, all groups are returned:
+* If the subject is _stellio-admin_, all groups are returned:
 
 ```json
 [
@@ -286,8 +286,8 @@ This endpoint allows a subject with `stellio-admin` role to get a list of all us
 
 It is available under `/ngsi-ld/v1/auth/subjects/users` and can be called with a `GET` request.
 
-* If subject is not _stellio-admin_, an error 403 is returned
-* If subject is _stellio-admin_, all users are returned (`givenName` and `familyName` are optional fields that may not be part of the response):
+* If the subject is not _stellio-admin_, an error 403 is returned
+* If the subject is _stellio-admin_, all users are returned (`givenName` and `familyName` are optional fields that may not be part of the response):
 
 ```json
 [

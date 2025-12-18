@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.DataTypes
+import com.fasterxml.jackson.annotation.JsonFormat
 
 /**
  * A Query data type as defined in 5.2.23.
@@ -72,6 +73,7 @@ data class UnparsedGeoQuery(
 )
 
 data class UnparsedOrderingParams(
+    @JsonFormat(with = [JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY, ])
     val orderBy: List<String>?,
     val collation: String?,
     val geometry: String?,

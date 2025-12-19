@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.common.model.OrderingParams
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
@@ -13,7 +14,6 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
-import com.egm.stellio.shared.queryparameter.OrderingParams
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils

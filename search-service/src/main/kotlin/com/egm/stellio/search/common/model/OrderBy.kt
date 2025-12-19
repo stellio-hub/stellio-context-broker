@@ -1,10 +1,11 @@
-package com.egm.stellio.shared.queryparameter
+package com.egm.stellio.search.common.model
 
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.queryparameter.AttributePath
 
 data class OrderBy(
     val param: String,

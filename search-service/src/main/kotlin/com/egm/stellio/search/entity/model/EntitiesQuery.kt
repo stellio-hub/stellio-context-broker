@@ -1,11 +1,11 @@
 package com.egm.stellio.search.entity.model
 
+import com.egm.stellio.search.common.model.OrderingParams
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery
-import com.egm.stellio.shared.queryparameter.OrderingParams
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import java.net.URI
 

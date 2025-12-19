@@ -1,4 +1,4 @@
-package com.egm.stellio.shared.queryparameter
+package com.egm.stellio.search.common.model
 
 /**
  * A Query data type as defined in 5.2.23.

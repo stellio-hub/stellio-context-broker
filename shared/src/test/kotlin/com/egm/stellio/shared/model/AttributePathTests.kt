@@ -50,7 +50,6 @@ class AttributePathTests {
         expectedTrailingPath: List<ExpandedTerm> = emptyList()
     ) = runTest {
         val queryTerm = AttributePath(term, APIC_COMPOUND_CONTEXTS)
-        println("QueryTerm: $queryTerm")
         assertEquals(expectedMainPath, queryTerm.mainPath)
         assertEquals(expectedTrailingPath, queryTerm.trailingPath)
     }

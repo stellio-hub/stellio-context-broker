@@ -2,6 +2,8 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
+import com.egm.stellio.search.common.model.OrderBy
+import com.egm.stellio.search.common.model.OrderingParams
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
@@ -11,8 +13,6 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.GeoQuery
-import com.egm.stellio.shared.queryparameter.OrderBy
-import com.egm.stellio.shared.queryparameter.OrderingParams
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS

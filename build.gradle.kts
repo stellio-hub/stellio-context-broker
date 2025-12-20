@@ -89,7 +89,12 @@ subprojects {
     kotlin {
         compilerOptions {
             // https://kotlinlang.org/docs/whatsnew2020.html#data-class-copy-function-to-have-the-same-visibility-as-constructor
-            freeCompilerArgs.addAll("-Xjsr305=strict", "-Xconsistent-data-class-copy-visibility")
+            // https://youtrack.jetbrains.com/issue/KT-73255
+            freeCompilerArgs.addAll(
+                "-Xjsr305=strict",
+                "-Xconsistent-data-class-copy-visibility",
+                "-Xannotation-default-target=param-property"
+            )
             apiVersion.set(KotlinVersion.KOTLIN_2_1)
             jvmTarget.set(JvmTarget.JVM_21)
         }
@@ -108,7 +113,7 @@ subprojects {
     configurations.matching { it.name == "detekt" }.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
-                useVersion("2.0.21")
+                useVersion(io.gitlab.arturbosch.detekt.getSupportedKotlinVersion())
             }
         }
     }

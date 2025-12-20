@@ -19,7 +19,6 @@ dependencies {
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("org.springframework:spring-jdbc")
     implementation("org.postgresql:r2dbc-postgresql")
-    implementation("org.flywaydb:flyway-database-postgresql")
     implementation("com.jayway.jsonpath:json-path:2.10.0")
     implementation(project(":shared"))
     implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
@@ -29,6 +28,7 @@ dependencies {
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("io.r2dbc:r2dbc-pool")
 

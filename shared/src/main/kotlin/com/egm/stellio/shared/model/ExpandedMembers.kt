@@ -113,11 +113,11 @@ fun ExpandedAttributeInstance.getMemberValue(memberName: ExpandedTerm): Any? {
         val finalValueType = firstListEntry[JSONLD_TYPE_KW]
         when {
             finalValueType != null -> {
-                val finalValue = firstListEntry[JSONLD_VALUE_KW] as String
+                val finalValue = firstListEntry[JSONLD_VALUE_KW]
                 when (finalValueType) {
-                    NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue)
-                    NGSILD_DATE_TYPE -> LocalDate.parse(finalValue)
-                    NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
+                    NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue as String)
+                    NGSILD_DATE_TYPE -> LocalDate.parse(finalValue as String)
+                    NGSILD_TIME_TYPE -> LocalTime.parse(finalValue as String)
                     else -> finalValue
                 }
             }

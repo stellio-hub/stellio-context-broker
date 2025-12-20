@@ -8,13 +8,11 @@ import tools.jackson.core.JacksonException
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.databind.ser.std.SimpleBeanPropertyFilter
 import tools.jackson.databind.ser.std.SimpleFilterProvider
-import tools.jackson.module.kotlin.jacksonMapperBuilder
+import tools.jackson.module.kotlin.jsonMapper
+import tools.jackson.module.kotlin.kotlinModule
 import kotlin.reflect.KClass
 
-val mapper: JsonMapper =
-    jacksonMapperBuilder()
-        .findAndAddModules()
-        .build()
+val mapper: JsonMapper = jsonMapper { addModule(kotlinModule()) }
 
 object JsonUtils {
 

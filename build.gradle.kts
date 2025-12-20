@@ -51,20 +51,18 @@ subprojects {
     }
 
     dependencies {
+        implementation("org.jetbrains.kotlin:kotlin-reflect")
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
         implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 
         implementation("org.springframework.boot:spring-boot-starter-actuator")
         implementation("org.springframework.boot:spring-boot-starter-webflux")
-        implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-        implementation("org.springframework.boot:spring-boot-starter-security")
+        implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
         implementation("org.springframework.boot:spring-boot-starter-validation")
-        // it provides support for JWT decoding and verification
-        implementation("org.springframework.security:spring-security-oauth2-jose")
 
         implementation("org.springframework.boot:spring-boot-starter-kafka")
 
-        implementation("tools.jackson.module:jackson-module-kotlin:3.0.+")
+        implementation("tools.jackson.module:jackson-module-kotlin")
 
         implementation("com.apicatalog:titanium-json-ld:1.7.0")
         implementation("org.glassfish:jakarta.json:2.0.1")
@@ -78,14 +76,13 @@ subprojects {
         runtimeOnly("de.siegmar:logback-gelf:6.1.2")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
-        testImplementation("org.springframework.boot:spring-boot-starter-test")
         testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
         testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
-        testImplementation("org.springframework.security:spring-security-test")
-        testImplementation("io.projectreactor:reactor-test")
+        testImplementation("org.springframework.boot:spring-boot-starter-security-test")
         testImplementation("com.ninja-squad:springmockk:5.0.1")
         testImplementation("io.mockk:mockk:1.14.7")
+        testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
 

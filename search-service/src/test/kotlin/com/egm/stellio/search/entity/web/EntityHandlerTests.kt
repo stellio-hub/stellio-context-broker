@@ -1129,7 +1129,7 @@ class EntityHandlerTests {
         webClient.get()
             .uri("/ngsi-ld/v1/entities/$beehiveId?pick=name")
             .exchange()
-            .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+            .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT)
             .expectBody().json(
                 """
                 {

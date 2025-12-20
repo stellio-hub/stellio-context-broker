@@ -33,10 +33,9 @@ import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException
 import org.springframework.data.annotation.Id
-import org.springframework.data.annotation.Transient
 import org.springframework.http.MediaType
+import tools.jackson.databind.exc.UnrecognizedPropertyException
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -77,16 +76,6 @@ data class Subscription(
     @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
     val jsonldContext: URI? = null
 ) {
-
-    @Transient
-    val status: SubscriptionStatus =
-        if (!isActive)
-            SubscriptionStatus.PAUSED
-        else if (expiresAt != null && expiresAt.isBefore(ngsiLdDateTime()))
-            SubscriptionStatus.EXPIRED
-        else
-            SubscriptionStatus.ACTIVE
-
     fun validate(): Either<APIException, Subscription> = either {
         checkTypeIsSubscription().bind()
         checkIdIsValid().bind()
@@ -258,14 +247,25 @@ data class Subscription(
             watchedAttributes = this.watchedAttributes?.map { compactTerm(it, contexts) }
         )
 
+    fun computeStatus(): SubscriptionStatus =
+        if (!isActive)
+            SubscriptionStatus.PAUSED
+        else if (expiresAt != null && expiresAt.isBefore(ngsiLdDateTime()))
+            SubscriptionStatus.EXPIRED
+        else
+            SubscriptionStatus.ACTIVE
+
     fun prepareForRendering(
         contexts: List<String>,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE,
         includeSysAttrs: Boolean = false
-    ): String =
-        convertTo<Map<String, Any>>(this.compact(contexts))
+    ): String {
+        val status = computeStatus()
+        return convertTo<Map<String, Any>>(this.compact(contexts))
+            .plus("status" to status.status)
             .toFinalRepresentation(mediaType, includeSysAttrs)
             .let { serialize(it) }
+    }
 
     fun prepareForRendering(
         context: String,
@@ -363,7 +363,9 @@ fun List<Subscription>.prepareForRendering(
     includeSysAttrs: Boolean = false
 ): String =
     this.map {
+        val status = it.computeStatus()
         convertTo<Map<String, Any>>(it.compact(contexts))
+            .plus("status" to status.status)
             .toFinalRepresentation(mediaType, includeSysAttrs)
     }.let {
         serialize(it)

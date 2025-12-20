@@ -7,13 +7,12 @@ plugins {
 
 dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-webclient")
     implementation("org.zalando:logbook-spring-boot-webflux-autoconfigure:4.0.0-RC.1")
 
-    // https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#test_framework_implementation_dependencies
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")
+
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 springBoot {

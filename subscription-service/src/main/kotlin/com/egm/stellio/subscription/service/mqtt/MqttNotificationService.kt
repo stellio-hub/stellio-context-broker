@@ -13,7 +13,7 @@ import org.eclipse.paho.mqttv5.client.MqttConnectionOptions
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.util.*
+import java.util.UUID
 import org.eclipse.paho.client.mqttv3.MqttException as MqttExceptionV3
 import org.eclipse.paho.mqttv5.common.MqttException as MqttExceptionV5
 

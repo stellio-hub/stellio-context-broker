@@ -21,7 +21,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     testFixturesImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    testFixturesImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    testFixturesImplementation("tools.jackson.module:jackson-module-kotlin:3.0.+")
     testFixturesImplementation("org.springframework:spring-core")
     testFixturesImplementation("org.springframework.security:spring-security-oauth2-jose")
     testFixturesImplementation("org.springframework.security:spring-security-test")

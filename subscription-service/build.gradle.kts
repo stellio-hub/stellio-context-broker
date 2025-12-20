@@ -18,7 +18,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("org.springframework:spring-jdbc")
-    implementation("org.flywaydb:flyway-core")
     implementation("org.postgresql:r2dbc-postgresql")
     implementation("com.jayway.jsonpath:json-path:2.10.0")
     implementation(project(":shared"))

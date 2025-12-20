@@ -43,7 +43,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
-import com.ninjasquad.springmockk.SpykBean
+import com.ninjasquad.springmockk.MockkSpyBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
@@ -69,7 +69,7 @@ import wiremock.com.google.common.net.HttpHeaders.CONTENT_TYPE
 @ActiveProfiles("test")
 class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
-    @SpykBean
+    @MockkSpyBean
     private lateinit var distributedEntityConsumptionService: DistributedEntityConsumptionService
 
     @Autowired

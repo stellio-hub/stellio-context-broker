@@ -86,13 +86,13 @@ fun composeTemporalEntitiesQueryFromPost(
         OptionsValue.AUDIT
     ).bind()
     val temporalParams = mapOf(
-        QueryParameter.TIMEREL.key to listOf(query.temporalQ?.timerel),
-        QueryParameter.TIMEAT.key to listOf(query.temporalQ?.timeAt),
-        QueryParameter.ENDTIMEAT.key to listOf(query.temporalQ?.endTimeAt),
-        QueryParameter.AGGRPERIODDURATION.key to listOf(query.temporalQ?.aggrPeriodDuration),
-        QueryParameter.AGGRMETHODS.key to query.temporalQ?.aggrMethods,
-        QueryParameter.LASTN.key to listOf(query.temporalQ?.lastN.toString()),
-        QueryParameter.TIMEPROPERTY.key to listOf(query.temporalQ?.timeproperty)
+        QueryParameter.TIMEREL.key to listOfNotNull(query.temporalQ?.timerel),
+        QueryParameter.TIMEAT.key to listOfNotNull(query.temporalQ?.timeAt),
+        QueryParameter.ENDTIMEAT.key to listOfNotNull(query.temporalQ?.endTimeAt),
+        QueryParameter.AGGRPERIODDURATION.key to listOfNotNull(query.temporalQ?.aggrPeriodDuration),
+        QueryParameter.AGGRMETHODS.key to (query.temporalQ?.aggrMethods ?: emptyList()),
+        QueryParameter.LASTN.key to listOfNotNull(query.temporalQ?.lastN.toString()),
+        QueryParameter.TIMEPROPERTY.key to listOfNotNull(query.temporalQ?.timeproperty)
     )
     val temporalQuery = buildTemporalQuery(
         MultiValueMapAdapter(temporalParams),

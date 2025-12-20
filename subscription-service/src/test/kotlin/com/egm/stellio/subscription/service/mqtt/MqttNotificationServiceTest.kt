@@ -9,7 +9,7 @@ import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.support.WithMosquittoContainer
-import com.ninjasquad.springmockk.SpykBean
+import com.ninjasquad.springmockk.MockkSpyBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
@@ -37,7 +37,7 @@ import org.eclipse.paho.mqttv5.common.MqttMessage as MqttMessageV5
 @ActiveProfiles("test")
 class MqttNotificationServiceTest : WithMosquittoContainer {
 
-    @SpykBean
+    @MockkSpyBean
     private lateinit var mqttNotificationService: MqttNotificationService
 
     private val mqttContainerPort = WithMosquittoContainer.getPort()

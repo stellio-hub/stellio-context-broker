@@ -51,9 +51,9 @@ class DatabaseTenantConfig(
     fun defaultConnectionFactory(): ConnectionFactory {
         return ConnectionFactories.get(
             ConnectionFactoryOptions.builder()
-                .from(ConnectionFactoryOptions.parse(r2dbcProperties.url))
-                .option(ConnectionFactoryOptions.USER, r2dbcProperties.username)
-                .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password)
+                .from(ConnectionFactoryOptions.parse(r2dbcProperties.url as String))
+                .option(ConnectionFactoryOptions.USER, r2dbcProperties.username as String)
+                .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password as String)
                 .build()
         )
     }
@@ -79,13 +79,13 @@ class DatabaseTenantConfig(
         val tenantConnectionFactory = ConnectionFactories.get(
             ConnectionFactoryOptions.builder()
                 .let {
-                    if (r2dbcProperties.url.contains("?"))
+                    if (r2dbcProperties.url?.contains("?") == true)
                         it.from(ConnectionFactoryOptions.parse(r2dbcProperties.url + "&schema=" + dbSchema))
                     else
                         it.from(ConnectionFactoryOptions.parse(r2dbcProperties.url + "?schema=" + dbSchema))
                 }
-                .option(ConnectionFactoryOptions.USER, r2dbcProperties.username)
-                .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password)
+                .option(ConnectionFactoryOptions.USER, r2dbcProperties.username as String)
+                .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password as String)
                 .build()
         )
         tenantConnectionFactories.putIfAbsent(name, tenantConnectionFactory)

@@ -18,10 +18,8 @@ dependencies {
     // required for Flyway's direct access to the DB to apply migration scripts
     // (https://github.com/flyway/flyway/issues/2502)
     implementation("org.springframework:spring-jdbc")
-    implementation("org.flywaydb:flyway-core")
     // implementation (and not runtime) because we are using the native jsonb encoding provided by PG
     implementation("org.postgresql:r2dbc-postgresql")
-    implementation("org.springframework.boot:spring-boot-starter-kafka")
     implementation("com.github.stellio-hub:json-merge:0.1.0")
     implementation("org.json:json:20251224")
     implementation(project(":shared"))

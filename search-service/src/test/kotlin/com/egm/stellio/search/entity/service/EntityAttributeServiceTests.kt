@@ -38,7 +38,7 @@ import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import com.ninjasquad.springmockk.SpykBean
+import com.ninjasquad.springmockk.MockkSpyBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
@@ -68,7 +68,7 @@ import java.time.ZonedDateTime
 class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
-    @SpykBean
+    @MockkSpyBean
     private lateinit var entityAttributeService: EntityAttributeService
 
     @MockkBean

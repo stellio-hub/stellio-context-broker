@@ -1,7 +1,6 @@
 package com.egm.stellio.search.csr.service
 
 import arrow.core.Either
-import arrow.core.getOrNone
 import arrow.core.left
 import arrow.core.raise.catch
 import arrow.core.raise.either
@@ -199,7 +198,7 @@ class DistributedEntityConsumptionService(
                     .queryParams(queryParams)
                     .build()
             }.headers { newHeaders ->
-                httpHeaders.getOrNone(HttpHeaders.LINK).onSome { link -> newHeaders[HttpHeaders.LINK] = link }
+                httpHeaders.getFirst(HttpHeaders.LINK)?.let { link -> newHeaders[HttpHeaders.LINK] = link }
             }
 
         return catch(

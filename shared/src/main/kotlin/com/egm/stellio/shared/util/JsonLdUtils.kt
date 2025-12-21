@@ -51,6 +51,7 @@ import jakarta.json.JsonArray
 import jakarta.json.JsonObject
 import jakarta.json.JsonString
 import jakarta.json.JsonStructure
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
@@ -75,6 +76,8 @@ object JsonLdUtils {
         documentCache = LruCache(DOCUMENT_CACHE_CAPACITY)
     }
     private val loader = HttpLoader(DefaultHttpClient.defaultInstance())
+
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
 
     private fun buildContextDocument(contexts: List<String>): JsonStructure {
         val contextsArray = Json.createArrayBuilder()
@@ -196,7 +199,7 @@ object JsonLdUtils {
                 fragment.plus(JSONLD_CONTEXT_KW to contexts)
 
         return try {
-            withContext(Dispatchers.Default) {
+            withContext(dispatcher) {
                 val expansionProcess = this.async {
                     JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))
                         .options(jsonLdOptions)

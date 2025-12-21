@@ -8,7 +8,7 @@ import java.net.URI
 open class BaseHandler {
 
     @InitBinder
-    fun initBinder(binder: WebDataBinder) {
+    open fun initBinder(binder: WebDataBinder) {
         binder.registerCustomEditor(
             URI::class.java,
             UriPropertyEditor()

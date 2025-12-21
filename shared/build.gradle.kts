@@ -16,8 +16,6 @@ the<DependencyManagementExtension>().apply {
 }
 
 dependencies {
-    // https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#test_framework_implementation_dependencies
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     testFixturesImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
@@ -26,11 +24,8 @@ dependencies {
     testFixturesImplementation("org.springframework.security:spring-security-oauth2-jose")
     testFixturesImplementation("org.springframework.security:spring-security-test")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+    testFixturesImplementation("org.springframework.boot:spring-boot-starter-test")
     testFixturesImplementation("io.arrow-kt:arrow-fx-coroutines:2.2.0")
-    testFixturesImplementation("org.springframework.boot:spring-boot-starter-test") {
-        // to ensure we are using mocks and spies from springmockk lib instead
-        exclude(module = "mockito-core")
-    }
     testFixturesImplementation("org.wiremock:wiremock-standalone:3.13.2")
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")

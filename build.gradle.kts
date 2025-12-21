@@ -95,7 +95,7 @@ subprojects {
                 "-Xconsistent-data-class-copy-visibility",
                 "-Xannotation-default-target=param-property"
             )
-            apiVersion.set(KotlinVersion.KOTLIN_2_1)
+            apiVersion.set(KotlinVersion.KOTLIN_2_2)
             jvmTarget.set(JvmTarget.JVM_21)
         }
         jvmToolchain(21)

@@ -292,7 +292,7 @@ class EnabledAuthorizationServiceTests {
         )
         coEvery { subjectReferentialService.getCountAllGroups() } returns Either.Right(2)
 
-        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS)
+        enabledAuthorizationService.getGroupsMemberships(0, 2)
             .shouldSucceedWith {
                 assertEquals(2, it.first)
                 it.second.forEach { jsonLdEntity ->
@@ -317,7 +317,7 @@ class EnabledAuthorizationServiceTests {
         )
         coEvery { subjectReferentialService.getCountGroups() } returns Either.Right(1)
 
-        enabledAuthorizationService.getGroupsMemberships(0, 2, AUTHZ_TEST_COMPOUND_CONTEXTS)
+        enabledAuthorizationService.getGroupsMemberships(0, 2)
             .shouldSucceedWith {
                 assertEquals(1, it.first)
                 assertEquals(1, it.second[0].types.size)

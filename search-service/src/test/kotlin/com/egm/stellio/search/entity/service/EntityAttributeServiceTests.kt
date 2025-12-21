@@ -105,7 +105,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     fun clearPreviousAttributesAndObservations() {
         r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
 
-        r2dbcEntityTemplate.delete(AttributeInstance::class.java)
+        r2dbcEntityTemplate.delete<AttributeInstance>()
             .all()
             .block()
 

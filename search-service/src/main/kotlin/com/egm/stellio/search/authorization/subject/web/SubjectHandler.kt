@@ -53,8 +53,7 @@ class SubjectHandler(
         val (count, entities) =
             authorizationService.getGroupsMemberships(
                 entitiesQuery.paginationQuery.offset,
-                entitiesQuery.paginationQuery.limit,
-                contexts
+                entitiesQuery.paginationQuery.limit
             ).bind()
 
         if (count == -1) {

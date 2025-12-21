@@ -16,8 +16,8 @@ data class EntitySelector(
     val typeSelection: EntityTypeSelection
 )
 
-val orRegex = "^(.*)[|,](.*)\$".toRegex()
-val andRegex = "^(.*);(.*)\$".toRegex()
+val orRegex = "^(.*)[|,](.*)$".toRegex()
+val andRegex = "^(.*);(.*)$".toRegex()
 val innerParanthesisRegex = "\\(([^()]*)\\)".toRegex()
 
 fun areTypesInSelection(types: List<ExpandedTerm>, typeSelection: EntityTypeSelection): Boolean {

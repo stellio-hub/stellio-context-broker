@@ -137,18 +137,22 @@ data class BadRequestDataException(override val message: String, override val de
     message,
     detail
 )
+
 data class OperationNotSupportedException(override val message: String, override val detail: String? = null) :
     APIException(
         ErrorType.OPERATION_NOT_SUPPORTED.type,
         HttpStatus.BAD_REQUEST,
-        message
+        message,
+        detail
     )
+
 data class ResourceNotFoundException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.RESOURCE_NOT_FOUND.type,
     HttpStatus.NOT_FOUND,
     message,
     detail
 )
+
 data class InternalErrorException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.INTERNAL_ERROR.type,
     HttpStatus.INTERNAL_SERVER_ERROR,
@@ -162,36 +166,44 @@ data class TooManyResultsException(override val message: String, override val de
     message,
     detail
 )
+
 data class AccessDeniedException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.ACCESS_DENIED.type,
     HttpStatus.FORBIDDEN,
     message,
     detail
 )
+
 data class NotImplementedException(override val message: String, override val detail: String? = null) :
     APIException(
         ErrorType.NOT_IMPLEMENTED.type,
         HttpStatus.NOT_IMPLEMENTED,
-        message
+        message,
+        detail
     )
+
 data class LdContextNotAvailableException(override val message: String, override val detail: String? = null) :
     APIException(
         ErrorType.LD_CONTEXT_NOT_AVAILABLE.type,
         HttpStatus.SERVICE_UNAVAILABLE,
-        message
+        message,
+        detail
     )
+
 data class NonexistentTenantException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.NONEXISTENT_TENANT.type,
     HttpStatus.NOT_FOUND,
     message,
     detail
 )
+
 data class TooComplexQueryException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.TOO_COMPLEX_QUERY.type,
     HttpStatus.FORBIDDEN,
     message,
     detail
 )
+
 data class NotAcceptableException(override val message: String, override val detail: String? = null) : APIException(
     ErrorType.NOT_ACCEPTABLE.type,
     HttpStatus.NOT_ACCEPTABLE,
@@ -210,7 +222,8 @@ data class UnsupportedMediaTypeStatusApiException(override val message: String, 
     APIException(
         ErrorType.UNSUPPORTED_MEDIA_TYPE.type,
         HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-        message
+        message,
+        detail
     )
 
 data class JsonLdErrorApiResponse(override val message: String, override val detail: String) : APIException(

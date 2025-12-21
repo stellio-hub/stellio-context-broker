@@ -3,12 +3,12 @@ package com.egm.stellio.shared.queryparameter
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.toListOfUri
 import java.net.URI
-import kotlin.UInt
 
 data class LinkedEntityQuery(
     val join: JoinType = JoinType.NONE,
@@ -49,9 +49,10 @@ data class LinkedEntityQuery(
                 )
             }?.bind()
 
-            if ((joinLevel != null || containedBy.isNotEmpty()) && join == null)
-                raise(BadRequestDataException("'join' must be specified if 'joinLevel' or 'containedBy' are specified"))
-            else join?.let { LinkedEntityQuery(it, joinLevel ?: DEFAULT_JOIN_LEVEL.toUInt(), containedBy) }
+            ensure(!((joinLevel != null || containedBy.isNotEmpty()) && join == null)) {
+                BadRequestDataException("'join' must be specified if 'joinLevel' or 'containedBy' are specified")
+            }
+            join?.let { LinkedEntityQuery(it, joinLevel ?: DEFAULT_JOIN_LEVEL.toUInt(), containedBy) }
         }
 
         private fun badJoinParameterMessage(param: String) =

@@ -10,10 +10,10 @@ import org.springframework.context.annotation.Bean
 @SpringBootApplication
 class ApiGatewayApplication {
 
-    @Value("\${application.search-service.url:search-service}")
+    @Value($$"${application.search-service.url:search-service}")
     private val searchServiceUrl: String = ""
 
-    @Value("\${application.subscription-service.url:subscription-service}")
+    @Value($$"${application.subscription-service.url:subscription-service}")
     private val subscriptionServiceUrl: String = ""
 
     @Bean

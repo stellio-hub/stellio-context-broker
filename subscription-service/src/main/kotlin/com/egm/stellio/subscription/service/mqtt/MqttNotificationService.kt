@@ -19,7 +19,7 @@ import org.eclipse.paho.mqttv5.common.MqttException as MqttExceptionV5
 
 @Service
 class MqttNotificationService(
-    @Value("\${subscription.mqtt.clientId}")
+    @Value($$"${subscription.mqtt.clientId}")
     private val clientId: String,
 ) {
 

@@ -48,7 +48,6 @@ const val EGM_NO_BRANCH_BASE_CONTEXT_URL =
 
 const val EGM_BASE_CONTEXT_URL = "https://dataflow.stellio.io/jsonld-contexts"
 
-@Suppress("unused")
 class V0_29__JsonLd_migration : BaseJavaMigration() {
 
     // not so nice since it is specific to deployments

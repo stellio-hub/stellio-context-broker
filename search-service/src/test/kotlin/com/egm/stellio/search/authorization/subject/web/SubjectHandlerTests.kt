@@ -71,7 +71,7 @@ class SubjectHandlerTests {
     @Test
     fun `get groups memberships should return 200 and the number of results if requested limit is 0`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any())
         } returns Pair(3, emptyList<ExpandedEntity>()).right()
 
         webClient.get()
@@ -85,7 +85,7 @@ class SubjectHandlerTests {
     @Test
     fun `get groups memberships should return groups I am member of`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any())
         } returns Pair(
             1,
             listOf(
@@ -124,7 +124,7 @@ class SubjectHandlerTests {
     @Test
     fun `get groups memberships should return groups I am member of with authorization context`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any())
         } returns Pair(
             1,
             listOf(
@@ -169,7 +169,7 @@ class SubjectHandlerTests {
     @Test
     fun `get groups memberships should return 204 if authentication is not enabled`() {
         coEvery {
-            authorizationService.getGroupsMemberships(any(), any(), any())
+            authorizationService.getGroupsMemberships(any(), any())
         } returns Pair(-1, emptyList<ExpandedEntity>()).right()
 
         webClient.get()

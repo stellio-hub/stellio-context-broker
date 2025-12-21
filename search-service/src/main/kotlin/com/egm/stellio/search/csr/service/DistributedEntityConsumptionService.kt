@@ -218,7 +218,7 @@ class DistributedEntityConsumptionService(
                     }
 
                     else -> {
-                        logger.warn("Error contacting CSR at $uri: $response")
+                        logger.warn("CSR returned an error at $uri: $response")
                         MiscellaneousPersistentWarning(
                             "$uri returned an error $statusCode with response: $response",
                             csr
@@ -227,7 +227,7 @@ class DistributedEntityConsumptionService(
                 }
             },
             { e ->
-                logger.warn("Error contacting CSR at $uri: ${e.message}")
+                logger.warn("Error connecting to CSR at $uri: ${e.message}")
                 logger.warn(e.stackTraceToString())
                 MiscellaneousWarning(
                     "Error connecting to CSR at $uri: \"${e.cause}:${e.message}\"",

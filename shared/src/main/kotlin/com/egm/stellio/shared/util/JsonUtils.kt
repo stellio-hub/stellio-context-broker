@@ -78,12 +78,12 @@ object JsonUtils {
                 val valueKeys = when (entry.value) {
                     is Map<*, *> -> (entry.value as Map<String, Any>).getAllKeys()
                     is List<*> ->
-                        (entry.value as List<Any>).map {
+                        (entry.value as List<Any>).flatMap {
                             // type value can be a list, not interested in it here
                             if (it is Map<*, *>)
                                 (it as Map<String, Any>).getAllKeys()
                             else emptySet()
-                        }.flatten().toSet()
+                        }.toSet()
                     // if it is not a list or an object, it is a value (and thus not a key)
                     else -> emptySet()
                 }
@@ -96,10 +96,10 @@ object JsonUtils {
             val values = when (entry.value) {
                 is Map<*, *> if entry.key in listOf(NGSILD_VALUE_TERM, NGSILD_JSON_TERM) -> setOf(entry.value)
                 is Map<*, *> -> (entry.value as Map<String, Any>).getAllValues()
-                is List<*> -> (entry.value as List<Any>).map {
+                is List<*> -> (entry.value as List<Any>).flatMap {
                     if (it is Map<*, *>) (it as Map<String, Any>).getAllValues()
                     else setOf(it)
-                }.flatten().toSet()
+                }.toSet()
 
                 else -> setOf(entry.value)
             }

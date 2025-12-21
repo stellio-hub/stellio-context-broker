@@ -48,6 +48,7 @@ import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.reactive.awaitFirst
 import org.locationtech.jts.geom.Geometry
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
 import org.springframework.data.relational.core.query.Update
@@ -267,7 +268,7 @@ class SubscriptionService(
     }
 
     suspend fun delete(subscriptionId: URI): Either<APIException, Unit> =
-        r2dbcEntityTemplate.delete(Subscription::class.java)
+        r2dbcEntityTemplate.delete<Subscription>()
             .matching(query(where("id").`is`(subscriptionId)))
             .execute()
 

@@ -387,11 +387,11 @@ class PermissionHandlerTests {
         coVerify {
             permissionService.getPermissions(
                 match {
-                    it.ids == listOf(id)
-                    it.action == Action.OWN
-                    it.assignee == "assigneeId"
-                    it.assigner == "assignerId"
-                    it.targetTypeSelection == BEEHIVE_IRI
+                    it.ids == setOf(id) &&
+                        it.action == Action.OWN &&
+                        it.assignee == "assigneeId" &&
+                        it.assigner == "assignerId" &&
+                        it.targetTypeSelection == BEEHIVE_IRI
                 },
                 any()
             )

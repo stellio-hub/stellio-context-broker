@@ -51,11 +51,11 @@ import jakarta.json.JsonArray
 import jakarta.json.JsonObject
 import jakarta.json.JsonString
 import jakarta.json.JsonStructure
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
@@ -77,7 +77,7 @@ object JsonLdUtils {
     }
     private val loader = HttpLoader(DefaultHttpClient.defaultInstance())
 
-    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
+    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private fun buildContextDocument(contexts: List<String>): JsonStructure {
         val contextsArray = Json.createArrayBuilder()
@@ -199,21 +199,19 @@ object JsonLdUtils {
                 fragment.plus(JSONLD_CONTEXT_KW to contexts)
 
         return try {
-            withContext(dispatcher) {
-                val expansionProcess = this.async {
-                    JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))
-                        .options(jsonLdOptions)
-                        .get()
-                }
-                val expandedFragment = expansionProcess.await()
-                if (expandedFragment.isEmpty())
-                    throw BadRequestDataException("Unable to expand input payload")
-
-                val outputStream = ByteArrayOutputStream()
-                val jsonWriter = Json.createWriter(outputStream)
-                jsonWriter.write(expandedFragment.getJsonObject(0))
-                deserializeObject(outputStream.toString())
+            val expansionProcess = coroutineScope.async {
+                JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))
+                    .options(jsonLdOptions)
+                    .get()
             }
+            val expandedFragment = expansionProcess.await()
+            if (expandedFragment.isEmpty())
+                throw BadRequestDataException("Unable to expand input payload")
+
+            val outputStream = ByteArrayOutputStream()
+            val jsonWriter = Json.createWriter(outputStream)
+            jsonWriter.write(expandedFragment.getJsonObject(0))
+            deserializeObject(outputStream.toString())
         } catch (e: JsonLdError) {
             logger.error("Unable to expand fragment with context $contexts: ${e.message}")
             throw e.toAPIException(e.cause?.cause?.message)

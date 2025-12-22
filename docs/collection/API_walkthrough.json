@@ -1409,7 +1409,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"id\":\"urn:ngsi-ld:Subscription:01\",\n  \"type\":\"Subscription\",\n  \"entities\": [\n    {\n      \"type\": \"BeeHive\"\n    }\n  ],\n  \"q\": \"temperature>40\",\n  \"notification\": {\n    \"attributes\": [\"temperature\"],\n    \"format\": \"normalized\",\n    \"endpoint\": {\n      \"uri\": \"http://my-domain-name\",\n      \"accept\": \"application/json\",\n      \"notifierInfo\": [\n          {\n            \"key\": \"Authorization-token\",\n            \"value\": \"Authorization-token-value\"\n          }\n      ]\n    }\n  }\n}",
+							"raw": "{\n  \"id\":\"urn:ngsi-ld:Subscription:01\",\n  \"type\":\"Subscription\",\n  \"entities\": [\n    {\n      \"type\": \"BeeHive\"\n    }\n  ],\n  \"q\": \"temperature>40\",\n  \"notification\": {\n    \"attributes\": [\"temperature\"],\n    \"format\": \"normalized\",\n    \"endpoint\": {\n      \"uri\": \"http://ptsv3.com/api-walkthrough-stellio\",\n      \"accept\": \"application/json\",\n      \"notifierInfo\": [\n          {\n            \"key\": \"Authorization-token\",\n            \"value\": \"Authorization-token-value\"\n          }\n      ]\n    }\n  }\n}",
 							"options": {
 								"raw": {
 									"language": "json"

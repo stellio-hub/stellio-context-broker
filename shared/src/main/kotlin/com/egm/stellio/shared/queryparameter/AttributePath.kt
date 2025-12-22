@@ -3,6 +3,9 @@ package com.egm.stellio.shared.queryparameter
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -24,8 +27,9 @@ data class AttributePath(val term: String, val contexts: List<String>) {
         return when {
             term == "id" -> """$."$JSONLD_ID_KW""""
             term == "type" -> """$."@type""""
-            mainPath.size > 1 ->
-                """$.$mainPathString.**{0 to 2}."$JSONLD_VALUE_KW""""
+            mainPath.last() == NGSILD_MODIFIED_AT_IRI ||
+                mainPath.last() == NGSILD_CREATED_AT_IRI ||
+                mainPath.last() == NGSILD_DELETED_AT_IRI -> """$.$mainPathString."$JSONLD_VALUE_KW""""
             trailingPath.isEmpty() ->
                 """$."${mainPath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW""""
             else ->

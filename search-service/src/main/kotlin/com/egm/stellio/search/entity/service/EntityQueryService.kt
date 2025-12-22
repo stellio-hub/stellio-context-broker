@@ -23,6 +23,7 @@ import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.toSqlArray
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import java.net.URI
@@ -251,6 +252,7 @@ class EntityQueryService(
             """
             SELECT * from entity_payload
             WHERE entity_id IN (:entities_ids)
+            ORDER BY array_position(${entitiesIds.toSqlArray()}, entity_id)
             """.trimIndent()
         )
             .bind("entities_ids", entitiesIds)

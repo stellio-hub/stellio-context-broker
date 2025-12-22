@@ -1,10 +1,10 @@
 # Stellio context broker
 
-[![FIWARE Core Context Management](https://nexus.lab.fiware.org/repository/raw/public/badges/chapters/core.svg)](https://www.fiware.org/developers/catalogue/)
+[![FIWARE Core Context Management](docs/style/core-badge.svg)](https://www.fiware.org/developers/catalogue/)
 [![License: Apache-2.0](https://img.shields.io/github/license/stellio-hub/stellio-context-broker.svg)](https://spdx.org/licenses/Apache-2.0.html)
 ![Status](https://nexus.lab.fiware.org/static/badges/statuses/full.svg)
 [![NGSI-LD badge](https://img.shields.io/badge/NGSI-LD-red.svg)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf)
-[![SOF support badge](https://nexus.lab.fiware.org/repository/raw/public/badges/stackoverflow/fiware.svg)](http://stackoverflow.com/questions/tagged/fiware)
+[![SOF support badge](docs/style/stackoverflow-badge.svg))](http://stackoverflow.com/questions/tagged/fiware)
 <br>
 [![Quay badge](https://img.shields.io/badge/quay.io-fiware%2Fstellio--*-grey?logo=red%20hat&labelColor=EE0000)](https://quay.io/search?q=stellio-)
 [![Docker badge](https://img.shields.io/badge/docker-stellio%2Fstellio--*-blue?logo=docker)](https://hub.docker.com/u/stellio)

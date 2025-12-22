@@ -429,8 +429,6 @@ This endpoint updates only the attributes present in the payload.
 ```shell
 http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Content-Type:application/ld+json <<< '
 {
-   "id": "urn:ngsi-ld:BeeHive:01",
-   "type": "BeeHive",
    "managedBy": {
        "type": "Relationship",
        "object": "urn:ngsi-ld:Beekeeper:01",

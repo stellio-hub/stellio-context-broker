@@ -93,14 +93,16 @@ object JsonUtils {
 
     fun Map<String, Any>.getAllValues(): Set<Any?> =
         this.entries.fold(emptySet()) { acc, entry ->
-            val values = when (entry.value) {
-                is Map<*, *> if entry.key in listOf(NGSILD_VALUE_TERM, NGSILD_JSON_TERM) -> setOf(entry.value)
-                is Map<*, *> -> (entry.value as Map<String, Any>).getAllValues()
-                is List<*> -> (entry.value as List<Any>).flatMap {
-                    if (it is Map<*, *>) (it as Map<String, Any>).getAllValues()
-                    else setOf(it)
-                }.toSet()
-
+            val values = when {
+                entry.value is Map<*, *> && entry.key in listOf(NGSILD_VALUE_TERM, NGSILD_JSON_TERM) ->
+                    setOf(entry.value)
+                entry.value is Map<*, *> ->
+                    (entry.value as Map<String, Any>).getAllValues()
+                entry.value is List<*> ->
+                    (entry.value as List<Any>).flatMap {
+                        if (it is Map<*, *>) (it as Map<String, Any>).getAllValues()
+                        else setOf(it)
+                    }.toSet()
                 else -> setOf(entry.value)
             }
             acc.plus(values)

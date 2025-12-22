@@ -8,16 +8,18 @@ edit_uri: edit/master/docs
 markdown_extensions: [toc,fenced_code]
 use_directory_urls: false
 theme: readthedocs
-extra_css: ["https://www.fiware.org/style/fiware_readthedocs.css", "https://www.fiware.org/style/fiware_readthedocs_core.css"]
+extra_css: ["style/fiware_readthedocs.css"]
+extra_javascript:
+  - style/no-nav-autoscroll.js
+  - style/better-autoscroll.js
 nav:
   - Home: index.md
   - Getting Started: 'quick_start_guide.md'
-  - API Walkthrough: 'API_walkthrough.md'
-  - Troubleshoot: 'TROUBLESHOOT.md'
   - User & Programmers Manual:
+      - Information model : 'user/information_model.md'
+      - API Walkthrough: 'user/API_walkthrough.md'
       - Authentication and authorization: 'user/authentication_and_authorization.md'
       - Multitenancy: 'user/multitenancy.md'
-      - Internal event model: 'user/internal_event_model.md'
   - Installation & Administration Manual:
       - Architecture: 'admin/architecture.md'
       - Production deployment: 'admin/production_deployment.md'

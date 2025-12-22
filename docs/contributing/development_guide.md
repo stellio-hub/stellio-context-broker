@@ -6,13 +6,13 @@ Requirements:
 
 To develop on a specific service, you can use the provided `docker-compose.yml` to launch the dependencies:
 
-```shell script
+```shell
 docker compose -f docker-compose-dependencies.yml up -d
 ```
 
 Then, from the root directory, launch the service:
 
-```shell script
+```shell
 ./gradlew search-service:bootRun
 ```
 
@@ -23,7 +23,7 @@ to Spring Boot embedded test support and to the great [TestContainers](https://w
 
 For instance, you can launch the test suite for entity service with the following command:
  
-```shell script
+```shell
 ./gradlew search-service:test
 ```
 
@@ -31,7 +31,7 @@ For instance, you can launch the test suite for entity service with the followin
 
 To build all the services, you can launch:
 
-```shell script
+```shell
 ./gradlew build
 ```
 
@@ -42,7 +42,7 @@ For each service, a self-executable jar is produced in the `build/libs` director
 
 If you want to build only one of the services, you can launch:
 
-```shell script
+```shell
 ./gradlew search-service:build
 ```
 
@@ -58,7 +58,7 @@ If you want to build only one of the services, you can launch:
 
 Code formatting and standard code quality checks are performed by [Detekt](https://detekt.github.io/detekt/index.html).
 Detekt as an autocorrect command to help on easily fixable formatting:
-```shell script
+```shell
 ./gradlew detekt --auto-correct
 ``` 
 

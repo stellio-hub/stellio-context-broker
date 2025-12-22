@@ -50,7 +50,7 @@ You can call it in a cron job like this:
 
 ## Set some environment variables
 
-WARNING : backup date has to be set up manually in other places below, review them carefully!
+WARNING: backup date has to be set up manually in other places below, review them carefully!
 
 ```shell
 backup_date=2023-01-27

@@ -128,9 +128,9 @@ The basic consumptions endpoints are not impacted by the temporal data compressi
 Compression has a really low impact on temporal data consumption.
 We have noticed a 12-20 ms increased time for temporal consumption requests when enabling temporal data compression.
 
-Example of request impact :
- - get 100 entities with lastN=1 :  130ms → 147ms (13%)
- - get 200 entities with lastN=1 :  201ms → 214ms (6%)
+Example of request impact:
+ - get 100 entities with lastN=1:  130ms → 147ms (13%)
+ - get 200 entities with lastN=1:  201ms → 214ms (6%)
  - get 100 entities with all data:  1030ms → 1051ms (2%)
 
 #### Provision of recent data

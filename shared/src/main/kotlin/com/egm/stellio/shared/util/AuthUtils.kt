@@ -15,6 +15,7 @@ import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContextImpl
+import org.springframework.security.oauth2.jwt.Jwt
 import reactor.core.publisher.Mono
 import java.net.URI
 
@@ -74,6 +75,14 @@ suspend fun getSubFromSecurityContext(): Sub {
             context.authentication?.name.toOption()
         }
         .awaitFirst().getOrElse { PUBLIC_SUBJECT }
+}
+
+suspend fun getTokenFromSecurityContext(): Jwt? {
+    return ReactiveSecurityContextHolder.getContext()
+        .switchIfEmpty(Mono.just(SecurityContextImpl()))
+        .mapNotNull { context ->
+            context.authentication?.credentials as? Jwt
+        }.awaitFirst()
 }
 
 fun URI.extractSub(): Sub =

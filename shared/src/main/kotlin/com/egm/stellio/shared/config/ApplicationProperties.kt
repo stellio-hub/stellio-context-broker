@@ -10,7 +10,9 @@ data class ApplicationProperties(
     val contexts: Contexts
 ) {
     data class Authentication(
-        val enabled: Boolean
+        val enabled: Boolean,
+        // todo is permission-used-claims a better name?
+        val claims: List<String>
     )
 
     data class Pagination(

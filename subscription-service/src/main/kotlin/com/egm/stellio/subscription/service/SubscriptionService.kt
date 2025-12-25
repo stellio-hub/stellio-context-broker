@@ -76,12 +76,12 @@ class SubscriptionService(
                 watched_attributes, notification_trigger, time_interval, q, scope_q, notif_attributes,
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info,
                 times_sent, is_active, expires_at, sub, contexts, throttling, sys_attrs, lang, datasetId,
-                jsonld_context, join_type, join_level, show_changes, pick, omit)
+                jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout)
             VALUES(:id, :type, :subscription_name, :created_at, :modified_at, :description,
                 :watched_attributes, :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes,
                 :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info,
                 :times_sent, :is_active, :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId,
-                :jsonld_context, :join_type, :join_level, :show_changes, :pick, :omit)
+                :jsonld_context, :join_type, :join_level, :show_changes, :pick, :omit, :cooldown, :timeout)
             ON CONFLICT (id)
                 DO UPDATE SET subscription_name = :subscription_name, modified_at = :modified_at, 
                     description = :description, watched_attributes = :watched_attributes, 
@@ -92,7 +92,7 @@ class SubscriptionService(
                     expires_at = :expires_at, sub = :sub, contexts = :contexts, throttling = :throttling,
                     sys_attrs = :sys_attrs, lang = :lang, datasetId = :datasetId, jsonld_context = :jsonld_context,
                     join_type = :join_type, join_level = :join_level, show_changes = :show_changes,
-                    pick = :pick, omit = :omit
+                    pick = :pick, omit = :omit, cooldown = :cooldown, timeout = :timeout
             """.trimIndent()
 
         databaseClient.sql(insertStatement)
@@ -128,6 +128,8 @@ class SubscriptionService(
             .bind("show_changes", subscription.notification.showChanges)
             .bind("pick", subscription.notification.pick?.toTypedArray())
             .bind("omit", subscription.notification.omit?.toTypedArray())
+            .bind("cooldown", subscription.notification.endpoint.cooldown)
+            .bind("timeout", subscription.notification.endpoint.timeout)
             .execute().bind()
 
         subscription.geoQ?.let { geoQ ->
@@ -210,7 +212,7 @@ class SubscriptionService(
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id, 
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
                 pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit
+                datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -291,7 +293,7 @@ class SubscriptionService(
                 times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
                 id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
                 pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit
+                datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout
             FROM subscription 
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -334,7 +336,7 @@ class SubscriptionService(
                    entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
                    geoproperty, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, 
                    endpoint_receiver_info, endpoint_notifier_info, contexts, throttling, sys_attrs, lang, 
-                   datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit
+                   datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout,
             FROM subscription 
             LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
             LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
@@ -472,8 +474,10 @@ class SubscriptionService(
                 endpoint = Endpoint(
                     uri = toUri(row["endpoint_uri"]),
                     accept = toEnum(row["endpoint_accept"]!!),
+                    cooldown = toNullableInt(row["cooldown"]),
                     receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
-                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"]))
+                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"])),
+                    timeout = toNullableInt(row["timeout"])
                 ),
                 status = toOptionalEnum<NotificationParams.StatusType>(row["status"]),
                 timesSent = row["times_sent"] as Int,
@@ -512,8 +516,10 @@ class SubscriptionService(
                 endpoint = Endpoint(
                     uri = toUri(row["endpoint_uri"]),
                     accept = toEnum(row["endpoint_accept"]!!),
+                    cooldown = toNullableInt(row["cooldown"]),
                     receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
-                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"]))
+                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"])),
+                    timeout = toNullableInt(row["timeout"])
                 ),
                 status = null,
                 timesSent = row["times_sent"] as Int,
@@ -564,7 +570,7 @@ class SubscriptionService(
                 endpoint_notifier_info, status, times_sent, last_notification, last_failure, last_success, is_active, 
                 entity_selector.id as entity_id, id_pattern, entity_selector.type_selection as type_selection, georel,
                 geometry, coordinates, pgis_geometry, geoproperty, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit
+                datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout
             FROM subscription
             LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id

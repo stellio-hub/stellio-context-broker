@@ -71,7 +71,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 import kotlin.time.Duration
 
 @SpringBootTest
@@ -197,7 +197,10 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     it.notification.endpoint == Endpoint(
                         URI("http://localhost:8084"),
                         Endpoint.AcceptType.JSON,
-                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
+                        1000,
+                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value")),
+                        null,
+                        10000
                     ) &&
                     it.notification.sysAttrs &&
                     it.notification.join == JoinType.FLAT &&
@@ -266,9 +269,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         // add a delay to ensure subscription has expired
-        runBlocking {
-            delay(Duration.parse("2s"))
-        }
+        delay(Duration.parse("2s"))
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(

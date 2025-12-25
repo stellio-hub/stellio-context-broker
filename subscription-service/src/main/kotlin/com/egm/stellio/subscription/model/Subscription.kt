@@ -91,6 +91,8 @@ data class Subscription(
         checkEndpointUriIsValid().bind()
         checkShowChangesIsValid().bind()
         checkPickAndOmit().bind()
+        checkCooldownGreaterThanZero().bind()
+        checkTimeoutGreaterThanZero().bind()
 
         this@Subscription
     }
@@ -212,6 +214,16 @@ data class Subscription(
             ).left()
         else
             Unit.right()
+
+    private fun checkCooldownGreaterThanZero(): Either<APIException, Unit> =
+        if (notification.endpoint.cooldown != null && notification.endpoint.cooldown < 1)
+            BadRequestDataException("The value of 'cooldown' must be greater than zero (int)").left()
+        else Unit.right()
+
+    private fun checkTimeoutGreaterThanZero(): Either<APIException, Unit> =
+        if (notification.endpoint.timeout != null && notification.endpoint.timeout < 1)
+            BadRequestDataException("The value of 'timeout' must be greater than zero (int)").left()
+        else Unit.right()
 
     fun expand(contexts: List<String>): Subscription =
         this.copy(

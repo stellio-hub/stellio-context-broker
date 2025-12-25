@@ -503,6 +503,50 @@ class SubscriptionTests {
     }
 
     @Test
+    fun `it should not validate a subscription with a negative cooldown`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(INCOMING_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf(
+                    "uri" to "http://my.endpoint/notifiy",
+                    "cooldown" to -10
+                )
+            )
+        )
+
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "The value of 'cooldown' must be greater than zero (int)"
+            }
+    }
+
+    @Test
+    fun `it should not validate a subscription with a negative timeout`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(INCOMING_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf(
+                    "uri" to "http://my.endpoint/notifiy",
+                    "timeout" to -10
+                )
+            )
+        )
+
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFailWith {
+                it is BadRequestDataException &&
+                    it.message == "The value of 'timeout' must be greater than zero (int)"
+            }
+    }
+
+    @Test
     fun `it should expand a subscription`() {
         val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 

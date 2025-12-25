@@ -3,6 +3,7 @@ package com.egm.stellio.search.jsonldContexts.web
 import arrow.core.raise.either
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpStatus
@@ -28,7 +29,9 @@ class JsonldContextsHandler : BaseHandler() {
         @AllowedParameters(notImplemented = [QP.RELOAD])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        JsonLdUtils.deleteAndReload(contextId).bind()
+        val reload = queryParams.getFirst(QueryParameter.RELOAD.key)?.toBoolean() ?: false
+
+        JsonLdUtils.deleteAndReload(contextId, reload).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(

@@ -25,6 +25,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntitySafe
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.test.runTest
@@ -412,7 +413,7 @@ class JsonLdUtilsTests {
     @Test
     fun `it should return a ResourceNotFound exception if a context is not found into the cache`() = runTest {
         val contextUrl = "http://localhost:8094/jsonld-contexts/never-encountered-context.jsonld"
-        deleteAndReload(contextUrl.toUri()).shouldFail {
+        deleteAndReload(contextUrl.toUri(), false).shouldFail {
             assertInstanceOf(ResourceNotFoundException::class.java, it)
             assertEquals(
                 "Context with id $contextUrl was not found in the cache",
@@ -422,26 +423,36 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should delete a context from the cache`() = runTest {
+    fun `it should delete and reload a context from the cache`() = runTest {
         val contextUrl = "http://localhost:8094/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
-        // expand an entity to populate the cache
-        val entity =
-            """
-            {
-                "id": "urn:ngsi-ld:Device:01234",
-                "type": "Device"
-            }
-            """.trimIndent()
-        expandJsonLdEntity(entity, listOf(contextUrl))
+
+        // expand a term to populate the cache
+        expandJsonLdTerm(INCOMING_TERM, listOf(contextUrl))
 
         jsonLdContextServerExtension.checkGetOnUrlPath("/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld")
-
-        deleteAndReload(contextUrl.toUri()).shouldSucceed()
-
-        // reset the request log, expand again and check the context has been loaded again
         jsonLdContextServerExtension.resetAllRequests()
-        expandJsonLdEntity(entity, listOf(contextUrl))
+
+        deleteAndReload(contextUrl.toUri(), true).shouldSucceed()
+
         jsonLdContextServerExtension.checkGetOnUrlPath("/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld")
+    }
+
+    @Test
+    fun `it should delete a context from the cache and use the refreshed one`() = runTest {
+        val contextUrl = "http://localhost:8094/jsonld-contexts/apic.jsonld"
+
+        assertEquals(
+            INCOMING_IRI,
+            expandJsonLdTerm(INCOMING_TERM, listOf(contextUrl))
+        )
+
+        deleteAndReload(contextUrl.toUri(), false).shouldSucceed()
+
+        val otherNamespaceContextUrl = "http://localhost:8094/jsonld-contexts/apic-other-namespace.jsonld"
+        assertEquals(
+            "https://vocab.egm.io/incoming",
+            expandJsonLdTerm(INCOMING_TERM, listOf(otherNamespaceContextUrl))
+        )
     }
 
     companion object {

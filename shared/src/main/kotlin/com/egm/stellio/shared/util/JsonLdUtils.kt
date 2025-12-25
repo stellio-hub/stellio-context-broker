@@ -38,6 +38,7 @@ import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
+import com.egm.stellio.shared.model.NGSILD_UNIT_CODE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toAPIException
@@ -86,10 +87,14 @@ object JsonLdUtils {
         return contextsArray.build()
     }
 
-    fun deleteAndReload(context: URI): Either<APIException, Unit> {
+    fun deleteAndReload(context: URI, reload: Boolean): Either<APIException, Unit> {
         val documentCache = jsonLdOptions.documentCache as RemovableLruCache
         return if (documentCache.containsKey(context.toString())) {
             documentCache.remove(context.toString())
+            if (reload) {
+                // force a reload by expanding a random term from the core context
+                expandJsonLdTerm(NGSILD_UNIT_CODE_TERM, context.toString())
+            }
             Unit.right()
         } else ResourceNotFoundException("Context with id $context was not found in the cache").left()
     }

@@ -26,11 +26,11 @@ data class OrderBy(
     }
 
     enum class Direction(val value: String) {
-
         ASC("asc"),
         DESC("desc"),
         DIST_ASC("dist-asc"),
         DIST_DESC("dist-desc");
+
         companion object {
             fun fromString(key: String): Either<APIException, Direction> = either {
                 Direction.entries.find { it.value == key }

@@ -525,8 +525,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                 null
             )
 
-        expectedOrder.forEachIndexed { index, expectedID ->
-            assertEquals(entitiesIds[index], expectedID)
+        expectedOrder.forEachIndexed { index, expectedId ->
+            assertEquals(entitiesIds[index], expectedId)
         }
     }
 

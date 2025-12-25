@@ -150,7 +150,7 @@ private fun transformQQueryToSqlJsonPath(
     attributePath.mainPath.size > 1 && value.isURI() -> {
         """
         jsonb_path_exists(#{TARGET}#,
-            '${attributePath.buildJsonBRelationShipPath()} ? (@ $operator ${'$'}value)',
+            '${attributePath.buildJsonBRelationshipPath()} ? (@ $operator ${'$'}value)',
             '{ "value": ${value.quote()} }')
         """.trimIndent()
     }
@@ -182,7 +182,7 @@ private fun transformQQueryToSqlJsonPath(
         """
         (
             jsonb_path_exists(#{TARGET}#,
-                '${attributePath.buildJsonBRelationShipPath()} ? (@ $operator ${'$'}value)',
+                '${attributePath.buildJsonBRelationshipPath()} ? (@ $operator ${'$'}value)',
                 '{ "value": $preparedValue }') OR
             jsonb_path_exists(#{TARGET}#,
                 '${attributePath.buildJsonBPropertyPath()} ? (@ $operator ${'$'}value)',

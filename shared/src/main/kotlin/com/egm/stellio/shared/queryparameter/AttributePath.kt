@@ -41,25 +41,23 @@ data class AttributePath(val term: String, val contexts: List<String>) {
         }
     }
 
-    fun buildJsonBRelationShipPath(): String {
+    fun buildJsonBRelationshipPath(): String {
         val mainPathString = mainPath.joinToString(".") { "\"$it\"" }
         val trailingPathString = mainPath.joinToString(".") { "\"$it\"" }
         return when {
             mainPath.size > 1 ->
                 """$.$mainPathString.**{0 to 2}."$JSONLD_ID_KW""""
-
             trailingPath.isEmpty() ->
                 """$."${mainPath[0]}"."$NGSILD_RELATIONSHIP_OBJECT"."$JSONLD_ID_KW""""
-
             else ->
                 """$."${mainPath[0]}"."$NGSILD_RELATIONSHIP_OBJECT".$trailingPathString.**{0 to 1}."$JSONLD_ID_KW""""
         }
     }
 
     fun buildSqlOrderClause() = """
-            jsonb_path_query_array(
+        jsonb_path_query_array(
             entity_payload.payload,
             '${buildJsonBPropertyPath()}'
-            )
+        )
     """.trimIndent()
 }

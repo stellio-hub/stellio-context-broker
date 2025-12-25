@@ -259,7 +259,7 @@ class EntitiesQueryUtilsTests {
                 "join": "flat",
                 "joinLevel": "2",
                 "containedBy": ["urn:ngsi-ld:BeeHive:TESTA", "urn:ngsi-ld:BeeHive:TESTB"],
-                "ordering":{
+                "ordering": {
                     "orderBy": "id"
                 }
             }
@@ -545,8 +545,8 @@ class EntitiesQueryUtilsTests {
         val query = """
             {
                 "type": "Query",
-                "ordering":{
-                    "orderBy": ["id","name;desc","name[surname]"]
+                "ordering": {
+                    "orderBy": ["id", "name;desc", "name[surname]"]
                 }
             }
         """.trimIndent()

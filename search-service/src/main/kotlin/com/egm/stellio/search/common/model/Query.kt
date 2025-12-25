@@ -73,7 +73,7 @@ data class UnparsedGeoQuery(
 )
 
 data class UnparsedOrderingParams(
-    @JsonFormat(with = [JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY, ])
+    @JsonFormat(with = [JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY])
     val orderBy: List<String>?,
     val collation: String?,
     val geometry: String?,

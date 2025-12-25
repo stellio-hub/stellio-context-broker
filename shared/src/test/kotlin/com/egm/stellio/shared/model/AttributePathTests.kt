@@ -22,7 +22,11 @@ class AttributePathTests {
         @JvmStatic
         fun attributePathProvider(): Stream<Arguments> {
             return Stream.of(
-                Arguments.of(INCOMING_TERM, listOf(INCOMING_IRI), emptyList<ExpandedTerm>()),
+                Arguments.of(
+                    INCOMING_TERM,
+                    listOf(INCOMING_IRI),
+                    emptyList<ExpandedTerm>()
+                ),
                 Arguments.of(
                     "$INCOMING_TERM.$NGSILD_MODIFIED_AT_TERM",
                     listOf(INCOMING_IRI, NGSILD_MODIFIED_AT_IRI),

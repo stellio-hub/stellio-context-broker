@@ -15,5 +15,7 @@ data class OrderingParams(
         unparsedOrderBy?.map { OrderBy(it, contexts) } ?: emptyList()
     )
 
-    fun toSQL() = if (orderBy.isNotEmpty()) orderBy.joinToString(", ") { it.buildSql() } else "entity_payload.entity_id"
+    fun toSQL() = if (orderBy.isNotEmpty())
+        orderBy.joinToString(", ") { it.buildSql() }
+    else "entity_payload.entity_id"
 }

@@ -33,9 +33,9 @@ class ExceptionHandler {
             is JacksonException, is CodecException ->
                 JsonParseApiException(cause.message ?: "There has been a problem during JSON parsing").toErrorResponse()
             is UnsupportedMediaTypeStatusException ->
-                UnsupportedMediaTypeStatusApiException(cause.message).toErrorResponse()
+                UnsupportedMediaTypeStatusApiException(cause.message ?: "Unsupported media type").toErrorResponse()
             is NotAcceptableStatusException ->
-                NotAcceptableException(cause.message).toErrorResponse()
+                NotAcceptableException(cause.message ?: "Not acceptable").toErrorResponse()
             is MethodNotAllowedException ->
                 ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(cause.body)
             is ConstraintViolationException -> {

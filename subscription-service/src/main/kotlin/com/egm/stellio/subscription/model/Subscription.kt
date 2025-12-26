@@ -221,7 +221,7 @@ data class Subscription(
         else Unit.right()
 
     private fun checkTimeoutGreaterThanZero(): Either<APIException, Unit> =
-        if (notification.endpoint.timeout != null && notification.endpoint.timeout < 1)
+        if (notification.endpoint.timeout < 1)
             BadRequestDataException("The value of 'timeout' must be greater than zero (int)").left()
         else Unit.right()
 

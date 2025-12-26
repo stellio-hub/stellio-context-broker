@@ -336,7 +336,7 @@ class SubscriptionService(
                    entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
                    geoproperty, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, 
                    endpoint_receiver_info, endpoint_notifier_info, contexts, throttling, sys_attrs, lang, 
-                   datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout,
+                   datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout
             FROM subscription 
             LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
             LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
@@ -477,7 +477,7 @@ class SubscriptionService(
                     cooldown = toNullableInt(row["cooldown"]),
                     receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
                     notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"])),
-                    timeout = toNullableInt(row["timeout"])
+                    timeout = toInt(row["timeout"])
                 ),
                 status = toOptionalEnum<NotificationParams.StatusType>(row["status"]),
                 timesSent = row["times_sent"] as Int,
@@ -519,7 +519,7 @@ class SubscriptionService(
                     cooldown = toNullableInt(row["cooldown"]),
                     receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
                     notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"])),
-                    timeout = toNullableInt(row["timeout"])
+                    timeout = toInt(row["timeout"])
                 ),
                 status = null,
                 timesSent = row["times_sent"] as Int,

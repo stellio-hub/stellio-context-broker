@@ -485,6 +485,42 @@ class NotificationServiceTests {
     }
 
     @Test
+    fun `it should fail if it cannot contact the subscriber after the configured timeout`() = runTest {
+        val subscription = gimmeRawSubscription()
+            .copy(
+                notification = NotificationParams(
+                    attributes = emptyList(),
+                    endpoint = Endpoint(
+                        accept = Endpoint.AcceptType.JSONLD,
+                        uri = "http://localhost:8089/notification".toUri(),
+                        timeout = 1000
+                    )
+                )
+            )
+        val expandedEntity = expandJsonLdEntity(rawEntity)
+
+        coEvery {
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
+        } returns listOf(subscription).right()
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok().withFixedDelay(2000))
+        )
+
+        notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
+            ATTRIBUTE_CREATED
+        ).shouldSucceed()
+
+        coVerify(exactly = 1) { subscriptionService.updateSubscriptionNotification(any(), any(), false) }
+    }
+
+    @Test
     fun `it should add a Link header containing the context of the subscription`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(

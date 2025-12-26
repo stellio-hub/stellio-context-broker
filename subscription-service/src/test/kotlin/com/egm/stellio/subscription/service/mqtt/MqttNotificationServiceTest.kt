@@ -4,6 +4,7 @@ import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.Endpoint.Companion.DEFAULT_TIMEOUT
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
@@ -111,7 +112,7 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
 
     @Test
     fun `notify should process endpoint uri to get connection information`() = runTest {
-        coEvery { mqttNotificationService.callMqttV3(any()) } returns Unit
+        coEvery { mqttNotificationService.callMqttV3(any(), DEFAULT_TIMEOUT) } returns Unit
         assertTrue(
             mqttNotificationService.notify(
                 mqttSubscriptionV3,
@@ -127,15 +128,16 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
                         it.connection.password == validMqttNotificationData.connection.password &&
                         it.topic == validMqttNotificationData.topic &&
                         it.connection.brokerUrl == validMqttNotificationData.connection.brokerUrl
-                }
+                },
+                DEFAULT_TIMEOUT
             )
         }
     }
 
     @Test
     fun `notify should use notifier info to choose the mqtt version`() = runTest {
-        coEvery { mqttNotificationService.callMqttV3(any()) } returns Unit
-        coEvery { mqttNotificationService.callMqttV5(any()) } returns Unit
+        coEvery { mqttNotificationService.callMqttV3(any(), DEFAULT_TIMEOUT) } returns Unit
+        coEvery { mqttNotificationService.callMqttV5(any(), DEFAULT_TIMEOUT) } returns Unit
 
         mqttNotificationService.notify(
             mqttSubscriptionV3,
@@ -144,12 +146,14 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
         )
         coVerify(exactly = 1) {
             mqttNotificationService.callMqttV3(
-                any()
+                any(),
+                DEFAULT_TIMEOUT
             )
         }
         coVerify(exactly = 0) {
             mqttNotificationService.callMqttV5(
-                any()
+                any(),
+                DEFAULT_TIMEOUT
             )
         }
 
@@ -160,12 +164,14 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
         )
         coVerify(exactly = 1) {
             mqttNotificationService.callMqttV5(
-                any()
+                any(),
+                DEFAULT_TIMEOUT
             )
         }
         coVerify(exactly = 1) {
             mqttNotificationService.callMqttV3(
-                any()
+                any(),
+                DEFAULT_TIMEOUT
             )
         }
     }
@@ -179,7 +185,12 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
         mqttClient.setCallback(messageReceiver)
         mqttClient.subscribe(validMqttNotificationData.topic)
 
-        assertDoesNotThrow { mqttNotificationService.callMqttV3(validMqttNotificationData) }
+        assertDoesNotThrow {
+            mqttNotificationService.callMqttV3(
+                validMqttNotificationData,
+                DEFAULT_TIMEOUT
+            )
+        }
         Thread.sleep(20) // wait to receive notification in message receiver
         assertEquals(
             serializeObject(validMqttNotificationData.message),
@@ -191,18 +202,25 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
 
     @Test
     fun `sending mqttV3 notification with bad uri should throw an exception`() = runTest {
-        assertThrows<MqttException> { mqttNotificationService.callMqttV3(invalidUriMqttNotificationData) }
+        assertThrows<MqttException> {
+            mqttNotificationService.callMqttV3(
+                invalidUriMqttNotificationData,
+                DEFAULT_TIMEOUT
+            )
+        }
     }
 
     @Test
     fun `sending mqttV5 notification with good uri should succeed`() = runTest {
         val testConnectionData = validMqttNotificationData.connection.copy(clientId = "test-broker")
-        val mqttClient = mqttNotificationService.connectMqttv5(testConnectionData)
+        val mqttClient = mqttNotificationService.connectMqttv5(testConnectionData, DEFAULT_TIMEOUT)
         val messageReceiver = MqttV5MessageReceiver()
         mqttClient.setCallback(messageReceiver)
         mqttClient.subscribe(MqttSubscription(validMqttNotificationData.topic))
 
-        assertDoesNotThrow { mqttNotificationService.callMqttV5(validMqttNotificationData) }
+        assertDoesNotThrow {
+            mqttNotificationService.callMqttV5(validMqttNotificationData, DEFAULT_TIMEOUT)
+        }
 
         assertEquals(
             serializeObject(validMqttNotificationData.message),
@@ -216,7 +234,8 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
     fun `sending mqttV5 notification with bad uri should throw an exception`() = runTest {
         assertThrows<org.eclipse.paho.mqttv5.common.MqttException> {
             mqttNotificationService.callMqttV5(
-                invalidUriMqttNotificationData
+                invalidUriMqttNotificationData,
+                DEFAULT_TIMEOUT
             )
         }
     }

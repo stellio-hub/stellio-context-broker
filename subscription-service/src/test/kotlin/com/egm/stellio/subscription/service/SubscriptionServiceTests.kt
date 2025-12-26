@@ -198,8 +198,8 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                         URI("http://localhost:8084"),
                         Endpoint.AcceptType.JSON,
                         1000,
-                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value")),
                         null,
+                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value")),
                         10000
                     ) &&
                     it.notification.sysAttrs &&
@@ -269,7 +269,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
         // add a delay to ensure subscription has expired
-        delay(Duration.parse("2s"))
+        runBlocking {
+            delay(Duration.parse("2s"))
+        }
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(

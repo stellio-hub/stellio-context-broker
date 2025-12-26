@@ -1147,6 +1147,113 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
     }
 
+    @Test
+    fun `it should not return a subscription if cooldown has not elapsed after a failure`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf(
+                    "uri" to "http://my.endpoint/notifiy",
+                    "cooldown" to 5000
+                )
+            )
+        )
+
+        val subscription = deserialize(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.updateSubscriptionNotification(
+            subscription,
+            Notification(subscriptionId = subscription.id, data = emptyList()),
+            false
+        )
+
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(0, it.size)
+        }
+    }
+
+    @Test
+    fun `it should return a subscription if cooldown has elapsed`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf(
+                    "uri" to "http://my.endpoint/notifiy",
+                    "cooldown" to 1000
+                )
+            )
+        )
+
+        val subscription = deserialize(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.updateSubscriptionNotification(
+            subscription,
+            Notification(subscriptionId = subscription.id, data = emptyList()),
+            false
+        )
+
+        // add a delay for throttling period to be elapsed
+        runBlocking {
+            delay(2000)
+        }
+
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+        }
+    }
+
+    @Test
+    fun `it should return a subscription if cooldown is not null and last notification was not failed`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf(
+                    "uri" to "http://my.endpoint/notifiy",
+                    "cooldown" to 1000
+                )
+            )
+        )
+
+        val subscription = deserialize(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.updateSubscriptionNotification(
+            subscription,
+            Notification(subscriptionId = subscription.id, data = emptyList()),
+            true
+        )
+
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+        }
+    }
+
     @ParameterizedTest
     @CsvSource(
         "near;minDistance==1000, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', 0",

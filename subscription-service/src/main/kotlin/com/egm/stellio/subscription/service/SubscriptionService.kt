@@ -346,6 +346,9 @@ class SubscriptionService(
             AND ( throttling IS NULL 
                 OR (last_notification + throttling * INTERVAL '1 second') < :date
                 OR last_notification IS NULL)
+            AND (cooldown is NULL
+                OR (status = 'FAILED' AND (last_failure + cooldown * INTERVAL '1 millisecond') < :date)
+                OR status = 'OK')
             ${
                 if (updatedAttribute != null)
                     "AND (string_to_array(watched_attributes, ',') && '{ ${updatedAttribute.first} }'" +

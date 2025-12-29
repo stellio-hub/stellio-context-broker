@@ -2,6 +2,7 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.right
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
+import com.egm.stellio.shared.model.AttributeProjection.Companion.parsePickOmitParameters
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery
@@ -561,6 +562,138 @@ class LinkedEntityServiceTests {
                         }
                     }
                 }]
+            """.trimIndent(),
+            serializeObject(inlinedEntities)
+        )
+    }
+
+    private fun prepareMockedAnswersForJoinLevelWithPickOnEntity() {
+        coEvery {
+            entityQueryService.queryEntities(any())
+        } coAnswers {
+            Pair(
+                listOf(
+                    loadAndExpandMinimalLinkedEntity(
+                        id = "urn:ngsi-ld:LinkedEntity:01",
+                        attributes = """
+                            "title": {
+                                "type": "Property",
+                                "value": "Title of linked entity 01"
+                            },
+                            "description": {
+                                "type": "Property",
+                                "value": "Description of linked entity 01"
+                            }                            
+                        """.trimIndent()
+                    ),
+                    loadAndExpandMinimalLinkedEntity(
+                        id = "urn:ngsi-ld:LinkedEntity:02",
+                        attributes = """
+                            "title": {
+                                "type": "Property",
+                                "value": "Title of linked entity 02"
+                            }
+                        """.trimIndent()
+                    )
+                ),
+                2
+            ).right()
+        }
+    }
+
+    @Test
+    fun `it should flatten an entity and apply pick on relationships`() = runTest {
+        prepareMockedAnswersForJoinLevelWithPickOnEntity()
+
+        val flattenedEntities =
+            linkedEntityService.processLinkedEntities(
+                linkingEntityWithTwoRelationships,
+                EntitiesQueryFromGet(
+                    linkedEntityQuery = LinkedEntityQuery(JoinType.FLAT, 2.toUInt()),
+                    paginationQuery = PaginationQuery(0, 100),
+                    pick = parsePickOmitParameters("rel1{id,title},rel2{id,type}", null)
+                        .shouldSucceedAndResult().first,
+                    contexts = NGSILD_TEST_CORE_CONTEXTS
+                )
+            ).shouldSucceedAndResult()
+
+        assertJsonPayloadsAreEqual(
+            """
+                [
+                    {
+                        "id": "urn:ngsi-ld:LinkingEntity:01",
+                        "type": "LinkingEntity",
+                        "rel1": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:LinkedEntity:01"
+                        },
+                        "rel2": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:LinkedEntity:02"
+                        }
+                    },
+                    {
+                        "id": "urn:ngsi-ld:LinkedEntity:01",
+                        "title": {
+                            "type": "Property",
+                            "value": "Title of linked entity 01"
+                        },
+                        "@context": "$NGSILD_TEST_CORE_CONTEXT"
+                    },
+                    {
+                        "id": "urn:ngsi-ld:LinkedEntity:02",
+                        "type": "LinkedEntity",
+                        "@context": "$NGSILD_TEST_CORE_CONTEXT"
+                    }
+                ]
+            """.trimIndent(),
+            serializeObject(flattenedEntities)
+        )
+    }
+
+    @Test
+    fun `it should inline an entity and apply pick on relationships`() = runTest {
+        prepareMockedAnswersForJoinLevelWithPickOnEntity()
+
+        val inlinedEntities =
+            linkedEntityService.processLinkedEntities(
+                linkingEntityWithTwoRelationships,
+                EntitiesQueryFromGet(
+                    linkedEntityQuery = LinkedEntityQuery(JoinType.INLINE, 2.toUInt()),
+                    paginationQuery = PaginationQuery(0, 100),
+                    pick = parsePickOmitParameters("rel1{id,title},rel2{id,type}", null)
+                        .shouldSucceedAndResult().first,
+                    contexts = NGSILD_TEST_CORE_CONTEXTS
+                )
+            ).shouldSucceedAndResult()
+
+        assertJsonPayloadsAreEqual(
+            """
+            [
+                {
+                    "id": "urn:ngsi-ld:LinkingEntity:01",
+                    "type": "LinkingEntity",
+                    "rel1": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:01",
+                        "entity": {
+                            "id": "urn:ngsi-ld:LinkedEntity:01",
+                            "title": {
+                                "type": "Property",
+                                "value": "Title of linked entity 01"
+                            }
+                        }
+                    },
+                    "rel2": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:02",
+                        "entity": {
+                            "id": "urn:ngsi-ld:LinkedEntity:02",
+                            "type": "LinkedEntity"
+                        }
+                    }
+                }
+            ]
             """.trimIndent(),
             serializeObject(inlinedEntities)
         )

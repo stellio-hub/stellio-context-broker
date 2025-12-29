@@ -18,6 +18,7 @@ import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
+import com.egm.stellio.shared.model.getRootAttributes
 import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.queryparameter.AllowedParameters
@@ -161,7 +162,10 @@ class TemporalEntityHandler(
         ).bind()
 
         val compactedEntities = compactEntities(temporalEntities, contexts)
-            .filterPickAndOmit(temporalEntitiesQuery.entitiesQuery.pick, temporalEntitiesQuery.entitiesQuery.omit)
+            .filterPickAndOmit(
+                temporalEntitiesQuery.entitiesQuery.pick.getRootAttributes(),
+                temporalEntitiesQuery.entitiesQuery.omit.getRootAttributes()
+            )
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
         buildEntitiesTemporalResponse(
@@ -208,8 +212,8 @@ class TemporalEntityHandler(
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
             .filterPickAndOmit(
-                temporalEntitiesQuery.entitiesQuery.pick,
-                temporalEntitiesQuery.entitiesQuery.omit
+                temporalEntitiesQuery.entitiesQuery.pick.getRootAttributes(),
+                temporalEntitiesQuery.entitiesQuery.omit.getRootAttributes()
             ).bind()
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 

@@ -21,6 +21,7 @@ import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.AttributeProjection
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.PaginationQuery
@@ -212,8 +213,8 @@ class TemporalQueryServiceTests {
                 expandedPickOmitAttributes = Pair(setOf(INCOMING_IRI), setOf(OUTGOING_IRI)),
                 entitiesQuery = EntitiesQueryFromGet(
                     paginationQuery = PaginationQuery(limit = 0, offset = 50),
-                    pick = setOf(INCOMING_IRI),
-                    omit = setOf(OUTGOING_IRI),
+                    pick = listOf(AttributeProjection(INCOMING_IRI)),
+                    omit = listOf(AttributeProjection(OUTGOING_IRI)),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 temporalRepresentation = TemporalRepresentation.NORMALIZED,
@@ -402,8 +403,8 @@ class TemporalQueryServiceTests {
                 EntitiesQueryFromGet(
                     typeSelection = "$BEEHIVE_IRI,$APIARY_IRI",
                     paginationQuery = PaginationQuery(limit = 2, offset = 2),
-                    pick = setOf(INCOMING_IRI),
-                    omit = setOf(OUTGOING_IRI),
+                    pick = listOf(AttributeProjection(INCOMING_IRI)),
+                    omit = listOf(AttributeProjection(OUTGOING_IRI)),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 Pair(setOf(INCOMING_IRI), setOf(OUTGOING_IRI)),

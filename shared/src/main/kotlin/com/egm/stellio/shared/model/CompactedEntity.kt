@@ -2,6 +2,7 @@ package com.egm.stellio.shared.model
 
 import arrow.core.Either
 import arrow.core.left
+import arrow.core.mapValuesNotNull
 import arrow.core.right
 import com.egm.stellio.shared.model.AttributeCompactedType.GEOPROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.JSONPROPERTY
@@ -38,29 +39,32 @@ val JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS =
         NGSILD_OBSERVED_AT_TERM
     )
 
-fun CompactedEntity.getRelationshipsObjects(): Set<URI> =
+fun CompactedEntity.getRelationshipsNamesAndObjects(): Map<String, Set<URI>> =
     this.mapValues { entry ->
         applyAttributeTransformation(
             entry,
             { value ->
                 if (value[NGSILD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM)
-                    setOf(value[NGSILD_OBJECT_TERM] as String)
+                    setOf((value[NGSILD_OBJECT_TERM] as String).toUri())
                 else emptySet()
             },
             { values ->
                 values.mapNotNull {
                     if (it[NGSILD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM)
-                        it[NGSILD_OBJECT_TERM] as String
+                        (it[NGSILD_OBJECT_TERM] as String).toUri()
                     else null
                 }.toSet()
             }
         )
-    }.values
-        .mapNotNull { it as? Set<String> }
-        .fold(emptySet()) { acc, value -> acc.plus(value.map { it.toUri() }) }
+    }.mapValuesNotNull { it.value as? Set<URI> }
+        .filter { it.value.isNotEmpty() }
 
-fun List<CompactedEntity>.getRelationshipsObjects(): Set<URI> =
-    this.map { it.getRelationshipsObjects() }.fold(emptySet()) { acc, value -> acc.plus(value) }
+fun List<CompactedEntity>.getRelationshipsNamesAndObjects(): Map<String, Set<URI>> =
+    this.map { it.getRelationshipsNamesAndObjects() }.fold(emptyMap()) { acc, value ->
+        (acc.keys + value.keys).associateWith {
+            (acc[it] ?: emptySet()).plus(value[it]!!)
+        }
+    }
 
 private fun CompactedAttributeInstance.applyInlineLinkedEntity(
     linkedEntities: Map<String, CompactedEntity>

@@ -20,6 +20,7 @@ import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepr
 import com.egm.stellio.shared.model.applyDatasetView
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.filterPickAndOmit
+import com.egm.stellio.shared.model.getRootAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.queryparameter.AllowedParameters
@@ -273,7 +274,7 @@ class EntityOperationHandler(
             .applyDatasetView(entitiesQuery.datasetId)
 
         val compactedEntities = compactEntities(filteredEntities, contexts)
-            .filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
+            .filterPickAndOmit(entitiesQuery.pick.getRootAttributes(), entitiesQuery.omit.getRootAttributes())
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,

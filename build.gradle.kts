@@ -24,9 +24,9 @@ plugins {
     id("org.graalvm.buildtools.native") version "0.11.3"
     kotlin("jvm") version "2.1.20" apply false
     kotlin("plugin.spring") version "2.1.20" apply false
-    id("com.google.cloud.tools.jib") version "3.5.1" apply false
+    id("com.google.cloud.tools.jib") version "3.5.2" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
-    id("org.sonarqube") version "7.2.0.6526"
+    id("org.sonarqube") version "7.2.2.6593"
     jacoco
 }
 
@@ -90,7 +90,7 @@ subprojects {
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("com.ninja-squad:springmockk:4.0.2")
-        testImplementation("io.mockk:mockk:1.14.6")
+        testImplementation("io.mockk:mockk:1.14.7")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }

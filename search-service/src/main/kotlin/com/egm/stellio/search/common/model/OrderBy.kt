@@ -8,11 +8,9 @@ import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.queryparameter.AttributePath
 
 data class OrderBy(
-    val param: String,
-    val contexts: List<String>
+    val direction: Direction,
+    val attributePath: AttributePath
 ) {
-    val direction: Direction = Direction.fromString(param.substringAfter(';')).fold({ Direction.ASC }, { it })
-    val attributePath: AttributePath = AttributePath(param.substringBefore(';', param), contexts)
 
     fun buildSql(): String {
         val attributeSql = attributePath.buildSqlOrderClause()
@@ -24,6 +22,17 @@ data class OrderBy(
         }
         return "$attributeSql $directionSql"
     }
+    companion object {
+        fun fromParam(
+            param: String,
+            contexts: List<String>
+        ): Either<APIException, OrderBy> = either {
+            OrderBy(
+                Direction.fromString(param.substringAfter(';', "asc")).bind(),
+                AttributePath(param.substringBefore(';', param), contexts)
+            )
+        }
+    }
 
     enum class Direction(val value: String) {
         ASC("asc"),
@@ -34,7 +43,7 @@ data class OrderBy(
         companion object {
             fun fromString(key: String): Either<APIException, Direction> = either {
                 Direction.entries.find { it.value == key }
-                    ?: return InvalidRequestException("'$key' is not a valid ordering direction query parameter").left()
+                    ?: return InvalidRequestException("'$key' is not a valid ordering direction parameter").left()
             }
         }
     }

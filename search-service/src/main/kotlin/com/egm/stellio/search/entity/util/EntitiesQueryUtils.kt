@@ -62,10 +62,10 @@ fun composeEntitiesQueryFromGet(
     ).bind()
     val local = queryParams.getFirst(QueryParameter.LOCAL.key)?.toBoolean() ?: false
 
-    val ordering = OrderingParams(
+    val ordering = OrderingParams.fromUnparsedOrderBy(
         queryParams.getFirst(QueryParameter.ORDER_BY.key)?.split(','),
         contexts
-    )
+    ).bind()
     EntitiesQueryFromGet(
         ids = ids,
         typeSelection = typeSelection,
@@ -142,10 +142,10 @@ fun composeEntitiesQueryFromPost(
         defaultPagination.limitMax
     ).bind()
 
-    val ordering = OrderingParams(
+    val ordering = OrderingParams.fromUnparsedOrderBy(
         query.ordering?.orderBy,
         contexts
-    )
+    ).bind()
 
     EntitiesQueryFromPost(
         entitySelectors = entitySelectors,

@@ -507,18 +507,18 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "jsonObject[aNumber];desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
         "jsonObject[aString];desc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "jsonObject[anObject.name];desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+        "propertyWithMetadata.license,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'"
     )
     fun `queryEntities should apply order by`(orderBy: String, expectedOrderString: String) = runTest {
-        //        val firstRawEntity = loadSampleData("entity_with_all_attributes_1.jsonld")
-        //        val secondRawEntity = loadSampleData("entity_with_all_attributes_2.jsonld")
-        //        val thirdRawEntity = loadSampleData("entity_with_multi_types.jsonld")
-        //        val fourthRawEntity = loadSampleData("beekeeper.jsonld")
-        //        val fifthRawEntity = loadSampleData("apiary.jsonld")
         val expectedOrder = expectedOrderString.split(",").map { it.toUri() }
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
-                    ordering = OrderingParams(listOf(OrderBy(orderBy, APIC_COMPOUND_CONTEXTS))),
+                    ordering = OrderingParams(
+                        listOf<OrderBy>(
+                            OrderBy.fromParam(orderBy, APIC_COMPOUND_CONTEXTS).getOrNull()!!
+                        )
+                    ),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -526,7 +526,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             )
 
         expectedOrder.forEachIndexed { index, expectedId ->
-            assertEquals(entitiesIds[index], expectedId)
+            assertEquals(expectedId, entitiesIds[index])
         }
     }
 

@@ -18,12 +18,12 @@ annotation class AllowedParameters(
     val payload: Array<KClass<*>> = [],
 ) {
     class ParamValidator : ConstraintValidator<AllowedParameters, MultiValueMap<String, String>> {
-        private var implemented: List<String> = listOf()
-        private var notImplemented: List<String> = listOf()
+        private var implemented: Set<String> = setOf()
+        private var notImplemented: Set<String> = setOf()
 
         override fun initialize(allowedParameters: AllowedParameters) {
-            this.implemented = allowedParameters.implemented.map(QueryParameter::key)
-            this.notImplemented = allowedParameters.notImplemented.map(QueryParameter::key)
+            this.implemented = allowedParameters.implemented.map(QueryParameter::key).toSet()
+            this.notImplemented = allowedParameters.notImplemented.map(QueryParameter::key).toSet()
         }
 
         override fun isValid(params: MultiValueMap<String, String>, context: ConstraintValidatorContext): Boolean {

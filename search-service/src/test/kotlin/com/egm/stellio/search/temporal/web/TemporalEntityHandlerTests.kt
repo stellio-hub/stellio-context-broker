@@ -32,10 +32,9 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.confirmVerified
 import kotlinx.coroutines.test.runTest
-import org.hamcrest.core.Is
 import org.junit.jupiter.api.Test
 import org.springframework.boot.context.properties.EnableConfigurationProperties
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
@@ -67,7 +66,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isCreated
-            .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/temporal/entities/$entityUri"))
+            .expectHeader().valueEquals("Location", "/ngsi-ld/v1/temporal/entities/$entityUri")
 
         coVerify {
             temporalService.createOrUpdateTemporalEntity(
@@ -499,7 +498,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri?pick=name")
             .exchange()
-            .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+            .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT)
             .expectBody().json(
                 """
                 {

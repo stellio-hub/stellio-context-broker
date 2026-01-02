@@ -24,7 +24,7 @@ import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.ninjasquad.springmockk.MockkBean
-import com.ninjasquad.springmockk.SpykBean
+import com.ninjasquad.springmockk.MockkSpyBean
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -39,7 +39,7 @@ import java.util.concurrent.CompletableFuture
 @ActiveProfiles("test")
 class EntityEventServiceTests {
 
-    @SpykBean
+    @MockkSpyBean
     private lateinit var entityEventService: EntityEventService
 
     @MockkBean(relaxed = true)

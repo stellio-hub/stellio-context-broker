@@ -36,6 +36,7 @@ import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
 import java.util.UUID
 
@@ -51,7 +52,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @AfterEach
     fun clearSubjectReferentialTable() {
-        r2dbcEntityTemplate.delete(SubjectReferential::class.java)
+        r2dbcEntityTemplate.delete<SubjectReferential>()
             .all()
             .block()
     }

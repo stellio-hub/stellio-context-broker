@@ -67,7 +67,7 @@ class EntitiesQueryUtilsTests {
             entitiesQuery.linkedEntityQuery?.containedBy
         )
         assertEquals(JoinType.INLINE, entitiesQuery.linkedEntityQuery?.join)
-        assertEquals(1.toUInt(), entitiesQuery.linkedEntityQuery?.joinLevel)
+        assertEquals(1, entitiesQuery.linkedEntityQuery?.joinLevel?.toInt())
     }
 
     @Test

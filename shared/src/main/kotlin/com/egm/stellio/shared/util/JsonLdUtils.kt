@@ -51,6 +51,10 @@ import jakarta.json.JsonArray
 import jakarta.json.JsonObject
 import jakarta.json.JsonString
 import jakarta.json.JsonStructure
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -72,6 +76,8 @@ object JsonLdUtils {
         documentCache = LruCache(DOCUMENT_CACHE_CAPACITY)
     }
     private val loader = HttpLoader(DefaultHttpClient.defaultInstance())
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private fun buildContextDocument(contexts: List<String>): JsonStructure {
         val contextsArray = Json.createArrayBuilder()
@@ -192,18 +198,20 @@ object JsonLdUtils {
             else
                 fragment.plus(JSONLD_CONTEXT_KW to contexts)
 
-        try {
-            val expandedFragment = JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))
-                .options(jsonLdOptions)
-                .get()
-
+        return try {
+            val expansionProcess = coroutineScope.async {
+                JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))
+                    .options(jsonLdOptions)
+                    .get()
+            }
+            val expandedFragment = expansionProcess.await()
             if (expandedFragment.isEmpty())
                 throw BadRequestDataException("Unable to expand input payload")
 
             val outputStream = ByteArrayOutputStream()
             val jsonWriter = Json.createWriter(outputStream)
             jsonWriter.write(expandedFragment.getJsonObject(0))
-            return deserializeObject(outputStream.toString())
+            deserializeObject(outputStream.toString())
         } catch (e: JsonLdError) {
             logger.error("Unable to expand fragment with context $contexts: ${e.message}")
             throw e.toAPIException(e.cause?.cause?.message)

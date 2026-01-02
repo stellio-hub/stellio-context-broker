@@ -66,6 +66,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
@@ -91,7 +92,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @AfterEach
     fun deleteSubscriptions() {
-        r2dbcEntityTemplate.delete(Subscription::class.java)
+        r2dbcEntityTemplate.delete<Subscription>()
             .all()
             .block()
     }

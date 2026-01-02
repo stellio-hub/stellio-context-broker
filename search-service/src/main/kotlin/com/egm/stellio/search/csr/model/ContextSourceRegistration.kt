@@ -148,7 +148,7 @@ data class ContextSourceRegistration(
                     .expand(contexts)
             }.fold(
                 { it.right() },
-                { it.toAPIException("Failed to parse CSourceRegistration caused by :\n ${it.message}").left() }
+                { it.toAPIException("Failed to parse CSourceRegistration caused by: ${it.message}").left() }
             )
 
         fun notFoundMessage(id: URI) = "Could not find a CSourceRegistration with id $id"

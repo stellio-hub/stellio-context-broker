@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 
@@ -46,7 +47,7 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
 
     @AfterEach
     fun deleteContextSourceRegistrations() {
-        r2dbcEntityTemplate.delete(ContextSourceRegistration::class.java)
+        r2dbcEntityTemplate.delete<ContextSourceRegistration>()
             .all()
             .block()
     }

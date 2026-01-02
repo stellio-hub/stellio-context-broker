@@ -18,7 +18,7 @@ import com.egm.stellio.shared.util.ENTITIY_CREATION_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import com.ninjasquad.springmockk.SpykBean
+import com.ninjasquad.springmockk.MockkSpyBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -42,7 +42,7 @@ class EntityOperationServiceTests {
     @MockkBean
     private lateinit var entityQueryService: EntityQueryService
 
-    @SpykBean
+    @MockkSpyBean
     private lateinit var entityOperationService: EntityOperationService
 
     val firstEntityURI = "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()

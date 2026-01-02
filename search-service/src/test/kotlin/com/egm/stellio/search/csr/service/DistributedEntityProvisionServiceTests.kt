@@ -27,7 +27,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.stubFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
-import com.ninjasquad.springmockk.SpykBean
+import com.ninjasquad.springmockk.MockkSpyBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -52,7 +52,7 @@ import java.net.URI
 @ActiveProfiles("test")
 class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
-    @SpykBean
+    @MockkSpyBean
     private lateinit var distributedEntityProvisionService: DistributedEntityProvisionService
 
     @MockkBean

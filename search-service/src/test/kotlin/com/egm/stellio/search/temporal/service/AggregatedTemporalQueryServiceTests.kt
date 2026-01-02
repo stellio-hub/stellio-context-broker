@@ -71,7 +71,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
 
     @AfterEach
     fun clearAttributesInstances() {
-        r2dbcEntityTemplate.delete(AttributeInstance::class.java)
+        r2dbcEntityTemplate.delete<AttributeInstance>()
             .all()
             .block()
 

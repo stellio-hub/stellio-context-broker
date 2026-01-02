@@ -135,8 +135,7 @@ class EnabledAuthorizationService(
 
     override suspend fun getGroupsMemberships(
         offset: Int,
-        limit: Int,
-        contexts: List<String>
+        limit: Int
     ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = either {
         val groups =
             when (userIsAdmin()) {

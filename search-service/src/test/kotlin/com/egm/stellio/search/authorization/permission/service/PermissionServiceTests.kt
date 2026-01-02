@@ -96,7 +96,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @AfterEach
     fun deletePermissions() {
-        r2dbcEntityTemplate.delete(Permission::class.java).all().block()
+        r2dbcEntityTemplate.delete<Permission>().all().block()
         r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
     }
 

@@ -45,7 +45,7 @@ fun Any.checkScopesNamesAreNgsiLdSupported(): Either<APIException, Unit> {
     return either {
         when (rawScope) {
             is String -> rawScope.checkScopeNameIsNgsiLdSupported().bind()
-            is List<*> -> (rawScope as List<String>).map { it.checkScopeNameIsNgsiLdSupported().bind() }
+            is List<*> -> (rawScope as List<String>).forEach { it.checkScopeNameIsNgsiLdSupported().bind() }
             else -> Unit.right().bind()
         }
     }

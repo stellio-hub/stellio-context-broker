@@ -25,11 +25,7 @@ class AuthorizationServiceTests {
 
     @Test
     fun `get groups memberships should return a count of -1 if authentication is not enabled`() = runTest {
-        authorizationService.getGroupsMemberships(
-            0,
-            0,
-            AUTHZ_TEST_COMPOUND_CONTEXTS
-        ).shouldSucceedWith {
+        authorizationService.getGroupsMemberships(0, 0).shouldSucceedWith {
             assertEquals(-1, it.first)
             assertEquals(0, it.second.size)
         }

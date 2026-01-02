@@ -11,7 +11,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2025.0.0"
+extra["springCloudVersion"] = "2025.1.0"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
@@ -19,11 +19,11 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "3.5.7" apply false
+    id("org.springframework.boot") version "4.0.1" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("org.graalvm.buildtools.native") version "0.11.3"
-    kotlin("jvm") version "2.1.20" apply false
-    kotlin("plugin.spring") version "2.1.20" apply false
+    kotlin("jvm") version "2.2.21" apply false
+    kotlin("plugin.spring") version "2.2.21" apply false
     id("com.google.cloud.tools.jib") version "3.5.2" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
     id("org.sonarqube") version "7.2.2.6593"
@@ -51,25 +51,23 @@ subprojects {
     }
 
     dependencies {
+        implementation("org.jetbrains.kotlin:kotlin-reflect")
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
         implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 
         implementation("org.springframework.boot:spring-boot-starter-actuator")
         implementation("org.springframework.boot:spring-boot-starter-webflux")
-        implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-        implementation("org.springframework.boot:spring-boot-starter-security")
+        implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
         implementation("org.springframework.boot:spring-boot-starter-validation")
-        // it provides support for JWT decoding and verification
-        implementation("org.springframework.security:spring-security-oauth2-jose")
 
-        implementation("org.springframework.kafka:spring-kafka")
+        implementation("org.springframework.boot:spring-boot-starter-kafka")
 
-        implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+        implementation("tools.jackson.module:jackson-module-kotlin")
 
         implementation("com.apicatalog:titanium-json-ld:1.7.0")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:2.1.2")
+        implementation("io.arrow-kt:arrow-fx-coroutines:2.2.1.1")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.20.0")
 
@@ -78,28 +76,26 @@ subprojects {
         runtimeOnly("de.siegmar:logback-gelf:6.1.2")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
-        testImplementation("org.springframework.boot:spring-boot-starter-test")
-        // Starting from version 29, Docker requires at least API version 1.44,
-        // which is only supported from Testcontainers version 2.0.2.
-        // See testcontainers/testcontainers-java#11212 for more details
-        testImplementation("org.testcontainers:testcontainers") {
-            version {
-                strictly("2.0.2")
-            }
-        }
+        testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
+        testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
-        testImplementation("io.projectreactor:reactor-test")
-        testImplementation("com.ninja-squad:springmockk:4.0.2")
+        testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+        testImplementation("com.ninja-squad:springmockk:5.0.1")
         testImplementation("io.mockk:mockk:1.14.7")
-        testImplementation("org.springframework.security:spring-security-test")
+        testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
 
     kotlin {
         compilerOptions {
             // https://kotlinlang.org/docs/whatsnew2020.html#data-class-copy-function-to-have-the-same-visibility-as-constructor
-            freeCompilerArgs.addAll("-Xjsr305=strict", "-Xconsistent-data-class-copy-visibility")
-            apiVersion.set(KotlinVersion.KOTLIN_2_1)
+            // https://youtrack.jetbrains.com/issue/KT-73255
+            freeCompilerArgs.addAll(
+                "-Xjsr305=strict",
+                "-Xconsistent-data-class-copy-visibility",
+                "-Xannotation-default-target=param-property"
+            )
+            apiVersion.set(KotlinVersion.KOTLIN_2_2)
             jvmTarget.set(JvmTarget.JVM_21)
         }
         jvmToolchain(21)
@@ -117,7 +113,7 @@ subprojects {
     configurations.matching { it.name == "detekt" }.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
-                useVersion("2.0.21")
+                useVersion(io.gitlab.arturbosch.detekt.getSupportedKotlinVersion())
             }
         }
     }

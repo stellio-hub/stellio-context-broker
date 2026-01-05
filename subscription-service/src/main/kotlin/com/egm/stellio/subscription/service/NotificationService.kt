@@ -261,7 +261,7 @@ class NotificationService(
                         .httpRequest {
                             val clientRequest = it.getNativeRequest<HttpClientRequest>()
                             clientRequest.responseTimeout(
-                                Duration.ofMillis(subscription.notification.endpoint.timeout.toLong())
+                                Duration.ofMillis(subscription.notification.endpoint.computeTimeout())
                             )
                         }
                         .headers { it.setAll(headerMap) }

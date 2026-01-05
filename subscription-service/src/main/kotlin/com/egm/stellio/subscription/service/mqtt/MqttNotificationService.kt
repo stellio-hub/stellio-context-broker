@@ -59,7 +59,7 @@ class MqttNotificationService(
 
         try {
             val mqttVersion = notifierInfo[Mqtt.Version.KEY]
-            val timeout = subscription.notification.endpoint.timeout
+            val timeout = subscription.notification.endpoint.computeTimeout()
             when (mqttVersion) {
                 Mqtt.Version.V3 -> callMqttV3(data, timeout)
                 Mqtt.Version.V5 -> callMqttV5(data, timeout)
@@ -76,13 +76,13 @@ class MqttNotificationService(
         }
     }
 
-    internal suspend fun callMqttV3(data: MqttNotificationData, timeout: Int) {
+    internal suspend fun callMqttV3(data: MqttNotificationData, timeout: Long) {
         val mqttClient = connectMqttv3(data.connection)
         val message = MqttMessage(
             serializeObject(data.message).toByteArray()
         )
         message.qos = data.qos
-        mqttClient.timeToWait = timeout.toLong()
+        mqttClient.timeToWait = timeout
         mqttClient.publish(data.topic, message)
         mqttClient.disconnect()
     }
@@ -104,7 +104,7 @@ class MqttNotificationService(
         return mqttClient
     }
 
-    internal suspend fun callMqttV5(data: MqttNotificationData, timeout: Int) {
+    internal suspend fun callMqttV5(data: MqttNotificationData, timeout: Long) {
         val mqttClient = connectMqttv5(data.connection, timeout)
         val message = org.eclipse.paho.mqttv5.common.MqttMessage(serializeObject(data.message).toByteArray())
         message.qos = data.qos
@@ -114,7 +114,7 @@ class MqttNotificationService(
         mqttClient.close()
     }
 
-    internal suspend fun connectMqttv5(data: MqttConnectionData, timeout: Int): MqttAsyncClient {
+    internal suspend fun connectMqttv5(data: MqttConnectionData, timeout: Long): MqttAsyncClient {
         val persistence = org.eclipse.paho.mqttv5.client.persist.MemoryPersistence()
         val mqttClient = MqttAsyncClient(data.brokerUrl, data.clientId, persistence)
         val connOpts = MqttConnectionOptions().apply {
@@ -125,7 +125,7 @@ class MqttNotificationService(
             if (!data.password.isNullOrBlank()) {
                 password = data.password.toByteArray()
             }
-            connectionTimeout = Duration.ofMillis(timeout.toLong()).toSeconds().toInt()
+            connectionTimeout = Duration.ofMillis(timeout).toSeconds().toInt()
         }
 
         val token: IMqttToken = mqttClient.connect(connOpts)

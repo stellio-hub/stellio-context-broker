@@ -78,10 +78,4 @@ data class UnparsedOrderingParams(
     val collation: String?,
     val geometry: String?,
     val coordinates: List<Any>?
-) {
-    init {
-        if (!coordinates.isNullOrEmpty() || !collation.isNullOrEmpty() || !geometry.isNullOrEmpty()) {
-            throw NotImplementedError("coordinates, collation and geometry ordering are not implemented.")
-        }
-    }
-}
+)

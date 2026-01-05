@@ -90,7 +90,7 @@ class EntityQueryService(
                 ${if (excludeDeleted) " AND tea.deleted_at is null " else ""}
             WHERE $filterQuery
             ${if (excludeDeleted) " AND entity_payload.deleted_at is null " else ""}
-            GROUP BY entity_payload.entity_id, entity_payload.payload
+            GROUP BY entity_payload.entity_id
             ORDER BY $orderBy
             LIMIT :limit
             OFFSET :offset   

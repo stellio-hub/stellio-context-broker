@@ -493,9 +493,6 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         assertThat(entitiesIds).contains(entity02Uri)
     }
 
-    // possible ids :
-    // urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02
-    // urn:ngsi-ld:MultiTypes:03,urn:ngsi-ld:Beekeeper:04,
     @ParameterizedTest
     @CsvSource(
         "id;asc,'urn:ngsi-ld:Apiary:05,urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
@@ -507,7 +504,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "jsonObject[aNumber];desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
         "jsonObject[aString];desc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "jsonObject[anObject.name];desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
-        "propertyWithMetadata.license,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'"
+        "propertyWithMetadata.license;desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'"
     )
     fun `queryEntities should apply order by`(orderBy: String, expectedOrderString: String) = runTest {
         val expectedOrder = expectedOrderString.split(",").map { it.toUri() }

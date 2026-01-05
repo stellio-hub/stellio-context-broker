@@ -21,5 +21,5 @@ data class OrderingParams(
 
     fun toSQL() = if (orderBy.isNotEmpty())
         orderBy.joinToString(", ") { it.buildSql() }
-    else "entity_payload.entity_id"
+    else "entity_payload.created_at"
 }

@@ -43,7 +43,7 @@ data class AttributePath(val term: String, val contexts: List<String>) {
 
     fun buildJsonBRelationshipPath(): String {
         val mainPathString = mainPath.joinToString(".") { "\"$it\"" }
-        val trailingPathString = mainPath.joinToString(".") { "\"$it\"" }
+        val trailingPathString = trailingPath.joinToString(".") { "\"$it\"" }
         return when {
             mainPath.size > 1 ->
                 """$.$mainPathString.**{0 to 2}."$JSONLD_ID_KW""""

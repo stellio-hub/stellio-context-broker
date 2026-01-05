@@ -480,7 +480,7 @@ class SubscriptionService(
                     cooldown = toNullableInt(row["cooldown"]),
                     receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
                     notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"])),
-                    timeout = toInt(row["timeout"])
+                    timeout = toNullableInt(row["timeout"])
                 ),
                 status = toOptionalEnum<NotificationParams.StatusType>(row["status"]),
                 timesSent = row["times_sent"] as Int,
@@ -522,7 +522,7 @@ class SubscriptionService(
                     cooldown = toNullableInt(row["cooldown"]),
                     receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
                     notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"])),
-                    timeout = toInt(row["timeout"])
+                    timeout = toNullableInt(row["timeout"])
                 ),
                 status = null,
                 timesSent = row["times_sent"] as Int,

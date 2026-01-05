@@ -1,7 +1,4 @@
-import com.google.cloud.tools.jib.gradle.PlatformParameters
-
 plugins {
-    id("com.google.cloud.tools.jib")
     id("org.springframework.boot")
 }
 
@@ -23,9 +20,14 @@ springBoot {
     }
 }
 
-jib.from.image = project.ext["jibFromImage"].toString()
-jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParameters>)
-jib.to.image = "stellio/stellio-api-gateway:${project.version}"
-jib.container.ports = listOf("8080")
-jib.container.creationTime.set(project.ext["jibContainerCreationTime"].toString())
-jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)
+tasks.bootBuildImage {
+    imageName = "stellio/stellio-api-gateway:${project.version}"
+    imagePlatform = "linux/amd64,linux/arm64"
+
+    val buildpackEnvironment = project.ext["buildpackEnvironment"] as? Map<String, String> ?: emptyMap()
+    val buildpackRuntimeEnvironment = project.ext["buildpackRuntimeEnvironment"] as? Map<String, String> ?: emptyMap()
+    val buildpackOciLabels = project.ext["buildpackOciLabels"] as? Map<String, String> ?: emptyMap()
+    environment = buildpackEnvironment
+        .plus(buildpackRuntimeEnvironment)
+        .plus(buildpackOciLabels)
+}

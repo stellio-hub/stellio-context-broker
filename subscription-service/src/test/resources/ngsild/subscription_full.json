@@ -30,9 +30,11 @@
     "endpoint": {
       "uri": "http://localhost:8084",
       "accept": "application/json",
+      "cooldown": 1000,
       "receiverInfo": [
         { "key": "Authorization-token", "value": "Authorization-token-value" }
-      ]
+      ],
+      "timeout": 10000
     },
     "sysAttrs": true,
     "join": "flat",

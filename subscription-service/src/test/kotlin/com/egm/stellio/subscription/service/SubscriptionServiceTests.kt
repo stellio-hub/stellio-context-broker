@@ -71,7 +71,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 import kotlin.time.Duration
 
 @SpringBootTest
@@ -197,7 +197,10 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     it.notification.endpoint == Endpoint(
                         URI("http://localhost:8084"),
                         Endpoint.AcceptType.JSON,
-                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
+                        1000,
+                        null,
+                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value")),
+                        10000
                     ) &&
                     it.notification.sysAttrs &&
                     it.notification.join == JoinType.FLAT &&
@@ -1135,6 +1138,113 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val subscription = deserialize(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
 
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+        }
+    }
+
+    @Test
+    fun `it should not return a subscription if cooldown has not elapsed after a failure`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf(
+                    "uri" to "http://my.endpoint/notifiy",
+                    "cooldown" to 5000
+                )
+            )
+        )
+
+        val subscription = deserialize(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.updateSubscriptionNotification(
+            subscription,
+            Notification(subscriptionId = subscription.id, data = emptyList()),
+            false
+        )
+
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(0, it.size)
+        }
+    }
+
+    @Test
+    fun `it should return a subscription if cooldown has elapsed`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf(
+                    "uri" to "http://my.endpoint/notifiy",
+                    "cooldown" to 1000
+                )
+            )
+        )
+
+        val subscription = deserialize(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.updateSubscriptionNotification(
+            subscription,
+            Notification(subscriptionId = subscription.id, data = emptyList()),
+            false
+        )
+
+        // add a delay for throttling period to be elapsed
+        runBlocking {
+            delay(2000)
+        }
+
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(1, it.size)
+        }
+    }
+
+    @Test
+    fun `it should return a subscription if cooldown is not null and last notification was not failed`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Subscription:01".toUri(),
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+            "notification" to mapOf(
+                "endpoint" to mapOf(
+                    "uri" to "http://my.endpoint/notifiy",
+                    "cooldown" to 1000
+                )
+            )
+        )
+
+        val subscription = deserialize(payload, APIC_COMPOUND_CONTEXTS).shouldSucceedAndResult()
+
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+        subscriptionService.updateSubscriptionNotification(
+            subscription,
+            Notification(subscriptionId = subscription.id, data = emptyList()),
+            true
+        )
+
         subscriptionService.getMatchingSubscriptions(
             expandedEntity,
             Pair(NGSILD_LOCATION_IRI, null),

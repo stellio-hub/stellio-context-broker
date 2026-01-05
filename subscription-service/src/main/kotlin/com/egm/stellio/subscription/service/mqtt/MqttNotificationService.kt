@@ -13,6 +13,7 @@ import org.eclipse.paho.mqttv5.client.MqttConnectionOptions
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import java.time.Duration
 import java.util.UUID
 import org.eclipse.paho.client.mqttv3.MqttException as MqttExceptionV3
 import org.eclipse.paho.mqttv5.common.MqttException as MqttExceptionV5
@@ -58,10 +59,11 @@ class MqttNotificationService(
 
         try {
             val mqttVersion = notifierInfo[Mqtt.Version.KEY]
+            val timeout = subscription.notification.endpoint.timeout
             when (mqttVersion) {
-                Mqtt.Version.V3 -> callMqttV3(data)
-                Mqtt.Version.V5 -> callMqttV5(data)
-                else -> callMqttV5(data)
+                Mqtt.Version.V3 -> callMqttV3(data, timeout)
+                Mqtt.Version.V5 -> callMqttV5(data, timeout)
+                else -> callMqttV5(data, timeout)
             }
             logger.info("successfull mqtt notification for uri : $uri version: $mqttVersion")
             return true
@@ -74,12 +76,13 @@ class MqttNotificationService(
         }
     }
 
-    internal suspend fun callMqttV3(data: MqttNotificationData) {
+    internal suspend fun callMqttV3(data: MqttNotificationData, timeout: Int) {
         val mqttClient = connectMqttv3(data.connection)
         val message = MqttMessage(
             serializeObject(data.message).toByteArray()
         )
         message.qos = data.qos
+        mqttClient.timeToWait = timeout.toLong()
         mqttClient.publish(data.topic, message)
         mqttClient.disconnect()
     }
@@ -101,8 +104,8 @@ class MqttNotificationService(
         return mqttClient
     }
 
-    internal suspend fun callMqttV5(data: MqttNotificationData) {
-        val mqttClient = connectMqttv5(data.connection)
+    internal suspend fun callMqttV5(data: MqttNotificationData, timeout: Int) {
+        val mqttClient = connectMqttv5(data.connection, timeout)
         val message = org.eclipse.paho.mqttv5.common.MqttMessage(serializeObject(data.message).toByteArray())
         message.qos = data.qos
         val token = mqttClient.publish(data.topic, message)
@@ -111,7 +114,7 @@ class MqttNotificationService(
         mqttClient.close()
     }
 
-    internal suspend fun connectMqttv5(data: MqttConnectionData): MqttAsyncClient {
+    internal suspend fun connectMqttv5(data: MqttConnectionData, timeout: Int): MqttAsyncClient {
         val persistence = org.eclipse.paho.mqttv5.client.persist.MemoryPersistence()
         val mqttClient = MqttAsyncClient(data.brokerUrl, data.clientId, persistence)
         val connOpts = MqttConnectionOptions().apply {
@@ -122,6 +125,7 @@ class MqttNotificationService(
             if (!data.password.isNullOrBlank()) {
                 password = data.password.toByteArray()
             }
+            connectionTimeout = Duration.ofMillis(timeout.toLong()).toSeconds().toInt()
         }
 
         val token: IMqttToken = mqttClient.connect(connOpts)

@@ -41,7 +41,9 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitExchange
+import reactor.netty.http.client.HttpClientRequest
 import java.net.URI
+import java.time.Duration
 
 @Service
 class NotificationService(
@@ -251,24 +253,24 @@ class NotificationService(
                     Triple(
                         subscription,
                         notification,
-                        mqttNotificationService.notify(
-                            notification = notification,
-                            subscription = subscription,
-                            headers = headerMap
-                        )
+                        mqttNotificationService.notify(subscription, notification, headerMap)
                     )
                 } else {
-                    val request =
-                        WebClient.create(uri).post().headers { it.setAll(headerMap) }
+                    val request = WebClient.create(uri)
+                        .post()
+                        .httpRequest {
+                            val clientRequest = it.getNativeRequest<HttpClientRequest>()
+                            clientRequest.responseTimeout(
+                                Duration.ofMillis(subscription.notification.endpoint.timeout.toLong())
+                            )
+                        }
+                        .headers { it.setAll(headerMap) }
                     request
                         .bodyValue(serializeObject(notification))
                         .awaitExchange { response ->
                             val success = response.statusCode() == HttpStatus.OK
-                            logger.info(
-                                "The notification sent has been received with ${if (success) "success" else "failure"}"
-                            )
                             if (!success) {
-                                logger.error("Failed to send notification to $uri: ${response.statusCode()}")
+                                logger.warn("Failed to send notification to $uri: ${response.statusCode()}")
                             }
                             Triple(subscription, notification, success)
                         }

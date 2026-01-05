@@ -1,5 +1,6 @@
 package com.egm.stellio.apigateway
 
+import com.egm.stellio.apigateway.filter.DuplicateRequestFilter
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
@@ -36,6 +37,15 @@ class ApiGatewayApplication {
                 p.path(
                     "/ngsi-ld/v1/subscriptions/**"
                 ).uri("http://$subscriptionServiceUrl:8084")
+            }
+            .route { p ->
+                p.path(
+                    "/ngsi-ld/v1/jsonldContexts/**"
+                ).filters { f ->
+                    f.filter(
+                        DuplicateRequestFilter("http://$subscriptionServiceUrl:8084")
+                    )
+                }.uri("http://$searchServiceUrl:8083")
             }
             .build()
 }

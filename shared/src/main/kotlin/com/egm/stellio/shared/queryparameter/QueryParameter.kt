@@ -54,6 +54,9 @@ enum class QueryParameter(
 
     DELETE_ALL("deleteAll"),
 
+    // jsonldContexts
+    RELOAD("reload"),
+
     // not implemented yet
     EXPAND_VALUES("expandValues"),
     CSF("csf"),

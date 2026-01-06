@@ -39,7 +39,7 @@ val JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS =
         NGSILD_OBSERVED_AT_TERM
     )
 
-fun CompactedEntity.getRelationshipsNamesAndObjects(): Map<String, Set<URI>> =
+fun CompactedEntity.getRelationshipsNamesWithObjects(): Map<String, Set<URI>> =
     this.mapValues { entry ->
         applyAttributeTransformation(
             entry,
@@ -59,8 +59,8 @@ fun CompactedEntity.getRelationshipsNamesAndObjects(): Map<String, Set<URI>> =
     }.mapValuesNotNull { it.value as? Set<URI> }
         .filter { it.value.isNotEmpty() }
 
-fun List<CompactedEntity>.getRelationshipsNamesAndObjects(): Map<String, Set<URI>> =
-    this.map { it.getRelationshipsNamesAndObjects() }.fold(emptyMap()) { acc, value ->
+fun List<CompactedEntity>.getRelationshipsNamesWithObjects(): Map<String, Set<URI>> =
+    this.map { it.getRelationshipsNamesWithObjects() }.fold(emptyMap()) { acc, value ->
         (acc.keys + value.keys).associateWith {
             (acc[it] ?: emptySet()).plus(value[it]!!)
         }

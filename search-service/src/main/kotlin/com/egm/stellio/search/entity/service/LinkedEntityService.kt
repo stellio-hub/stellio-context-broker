@@ -11,7 +11,7 @@ import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.getAttributesFor
-import com.egm.stellio.shared.model.getRelationshipsNamesAndObjects
+import com.egm.stellio.shared.model.getRelationshipsNamesWithObjects
 import com.egm.stellio.shared.model.inlineLinkedEntities
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinType
 import com.egm.stellio.shared.queryparameter.PaginationQuery
@@ -50,7 +50,7 @@ class LinkedEntityService(
         entitiesQuery: EntitiesQuery,
         currentLevel: UInt
     ): Either<APIException, List<CompactedEntity>> = either {
-        val linkedRelationships = compactedEntities.getRelationshipsNamesAndObjects()
+        val linkedRelationships = compactedEntities.getRelationshipsNamesWithObjects()
         if (currentLevel > entitiesQuery.linkedEntityQuery!!.joinLevel || linkedRelationships.isEmpty())
             return compactedEntities.right()
 
@@ -64,7 +64,8 @@ class LinkedEntityService(
             .let { compactEntities(it, entitiesQuery.contexts) }
             .let {
                 it.map { compactedEntity ->
-                    // Incorrect if there are two relationships with a different name targeting the same entity
+                    // If there are two relationships with a different name targeting the same entity,
+                    // using .first() is incorrect (the 1st wins over the 2nd)
                     // Moreover, this use case is problematic if flatten representation is chosen
                     val parentAttributeName = linkedRelationships.filter { entry ->
                         entry.value.contains((compactedEntity[NGSILD_ID_TERM] as String).toUri())

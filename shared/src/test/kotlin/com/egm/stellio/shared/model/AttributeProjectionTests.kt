@@ -21,7 +21,7 @@ class AttributeProjectionTests {
     fun `it should reject empty pick parameter`() {
         parsePickOmitParameters("", null).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == "Error parsing pick parameter: value cannot be empty"
+                it.detail == "Value cannot be empty"
         }
     }
 
@@ -29,7 +29,7 @@ class AttributeProjectionTests {
     fun `it should reject invalid attribute names`() {
         parsePickOmitParameters("invalid%,temperature", null).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == "Error parsing pick parameter: invalid characters in the value (%)"
+                it.detail == "Invalid characters in the value (%)"
         }
     }
 
@@ -37,7 +37,7 @@ class AttributeProjectionTests {
     fun `it should reject invalid attribute projection expression`() {
         parsePickOmitParameters("servesDataset{title", null).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == "Error parsing pick parameter: expression contains an unclosed brace"
+                it.detail == "Expression contains an unclosed brace"
         }
     }
 
@@ -45,7 +45,7 @@ class AttributeProjectionTests {
     fun `it should reject invalid attribute projection expression missing a sub-parameter`() {
         parsePickOmitParameters("servesDataset{}", null).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == "Error parsing pick parameter: expression contains an empty nested projection"
+                it.detail == "Expression contains an empty nested projection"
         }
     }
 
@@ -214,7 +214,7 @@ class AttributeProjectionTests {
     fun `it should reject multiple consecutive separators`() {
         parsePickOmitParameters("temperature,,humidity", null).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == "Error parsing pick parameter: expression cannot contain consecutive separators"
+                it.detail == "Expression cannot contain consecutive separators"
         }
     }
 
@@ -222,7 +222,7 @@ class AttributeProjectionTests {
     fun `it should reject leading separators`() {
         parsePickOmitParameters(",temperature,humidity", null).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == "Error parsing pick parameter: expression cannot start with a brace, comma or pipe"
+                it.detail == "Expression cannot start with a brace, comma or pipe"
         }
     }
 
@@ -230,7 +230,7 @@ class AttributeProjectionTests {
     fun `it should reject trailing separators`() {
         parsePickOmitParameters("temperature,humidity,", null).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == "Error parsing pick parameter: expression cannot end with a separator"
+                it.detail == "Expression cannot end with a separator"
         }
     }
 
@@ -238,7 +238,7 @@ class AttributeProjectionTests {
     fun `it should reject unclosed nested braces`() {
         parsePickOmitParameters("observation{temperature,observedAt{location}", null).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == "Error parsing pick parameter: expression contains an unclosed brace"
+                it.detail == "Expression contains an unclosed brace"
         }
     }
 
@@ -246,9 +246,7 @@ class AttributeProjectionTests {
     fun `it should reject a separator immediately following an opening brace`() {
         parsePickOmitParameters("observation{,temperature}", null).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == """
-                    Error parsing pick parameter: expression cannot contain a separator after an opening brace
-                """.trimIndent()
+                it.detail == "Expression cannot contain a separator after an opening brace"
         }
     }
 
@@ -256,7 +254,7 @@ class AttributeProjectionTests {
     fun `it should reject empty attribute names in nested projections`() {
         parsePickOmitParameters("observation{temperature,,humidity}", null).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == "Error parsing pick parameter: expression cannot contain consecutive separators"
+                it.detail == "Expression cannot contain consecutive separators"
         }
     }
 

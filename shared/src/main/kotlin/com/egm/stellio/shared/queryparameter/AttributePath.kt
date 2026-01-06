@@ -59,5 +59,10 @@ data class AttributePath(val term: String, val contexts: List<String>) {
             entity_payload.payload,
             '${buildJsonBPropertyPath()}'
         )
+         ||
+        jsonb_path_query_array(
+            entity_payload.payload,
+            '${buildJsonBRelationshipPath()}'
+        )
     """.trimIndent()
 }

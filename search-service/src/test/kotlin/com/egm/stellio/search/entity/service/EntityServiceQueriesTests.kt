@@ -499,6 +499,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "createdAt,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:MultiTypes:03,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:Apiary:05'",
         "name;desc,'urn:ngsi-ld:BeeHive:01'",
         "string,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "relationship,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "string.createdAt,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "integer;desc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "float;desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
@@ -509,6 +510,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "jsonObject[anObject.name];asc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "propertyWithMetadata.license;desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
         "'type,id;desc','urn:ngsi-ld:Apiary:05,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
+        "'relationship;desc,name','urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
     )
     fun `queryEntities should apply order by`(orderBy: String, expectedOrderString: String) = runTest {
         val expectedOrder = expectedOrderString.split(",").map { it.toUri() }

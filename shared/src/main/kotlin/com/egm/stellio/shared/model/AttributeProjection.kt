@@ -9,26 +9,11 @@ import com.egm.stellio.shared.util.isNgsiLdSupportedName
 /**
  * Represents a parsed attribute projection expression following the NGSI-LD Attribute Projection Language (4.21).
  *
- * Examples:
- * - Simple (`pick=temperature`):
- * ```
- *   AttributeProjection("temperature", null)
- * ```
- * - Nested (`pick=observation{temperature,humidity}`):
+ * For example, the following expression: `pick=observation{temperature,humidity}` will be parsed as:
  * ```
  *       AttributeProjection(
  *           "observation",
  *           listOf(AttributeProjection("temperature" to null), AttributeProjection("humidity" to null))
- *       )
- * ```
- * - Deeply nested (`pick=observation{temperature,observedAt{location}}`):
- * ```
- *       AttributeProjection(
- *           "observation",
- *           listOf(
- *               AttributeProjection("temperature" to null),
- *               AttributeProjection("observedAt", listOf(AttributeProjection("location" to null)))
- *           )
  *       )
  * ```
  */

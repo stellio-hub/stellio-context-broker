@@ -15,7 +15,7 @@ class CompactedEntityLinkedTests {
 
     @Test
     fun `it shoud extract a single-instance relationship`() {
-        val relationships = normalizedEntity.getRelationshipsNamesAndObjects()
+        val relationships = normalizedEntity.getRelationshipsNamesWithObjects()
 
         assertThat(relationships)
             .hasSize(1)
@@ -24,7 +24,7 @@ class CompactedEntityLinkedTests {
 
     @Test
     fun `it shoud extract a multi-instance relationship`() {
-        val relationships = normalizedMultiAttributeEntity.getRelationshipsNamesAndObjects()
+        val relationships = normalizedMultiAttributeEntity.getRelationshipsNamesWithObjects()
 
         assertThat(relationships)
             .hasSize(1)
@@ -57,7 +57,7 @@ class CompactedEntityLinkedTests {
             }
         """.trimIndent().deserializeAsMap()
 
-        val relationships = compactedEntity.getRelationshipsNamesAndObjects()
+        val relationships = compactedEntity.getRelationshipsNamesWithObjects()
 
         assertThat(relationships)
             .hasSize(3)
@@ -87,7 +87,7 @@ class CompactedEntityLinkedTests {
             }
         """.trimIndent().deserializeAsMap()
 
-        val relationships = compactedEntity.getRelationshipsNamesAndObjects()
+        val relationships = compactedEntity.getRelationshipsNamesWithObjects()
 
         assertThat(relationships)
             .hasSize(2)
@@ -127,7 +127,7 @@ class CompactedEntityLinkedTests {
             }]
         """.trimIndent().deserializeAsList()
 
-        val relationships = compactedEntities.getRelationshipsNamesAndObjects()
+        val relationships = compactedEntities.getRelationshipsNamesWithObjects()
 
         assertThat(relationships)
             .hasSize(2)

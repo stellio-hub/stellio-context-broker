@@ -20,7 +20,7 @@ data class OrderBy(
             Direction.DIST_ASC -> "ASC"
             Direction.DIST_DESC -> "DESC"
         }
-        return "$attributeSql $directionSql NULLS LAST"
+        return "NULLIF($attributeSql, '[]'::jsonb)  $directionSql NULLS LAST"
     }
     companion object {
         fun fromParam(

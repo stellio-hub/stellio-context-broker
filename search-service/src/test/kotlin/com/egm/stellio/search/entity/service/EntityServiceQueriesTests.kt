@@ -2,7 +2,6 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
-import com.egm.stellio.search.common.model.OrderBy
 import com.egm.stellio.search.common.model.OrderingParams
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
@@ -497,25 +496,29 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     @CsvSource(
         "id;asc,'urn:ngsi-ld:Apiary:05,urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
         "id;desc,'urn:ngsi-ld:MultiTypes:03,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:Apiary:05'",
+        "createdAt,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:MultiTypes:03,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:Apiary:05'",
         "name;desc,'urn:ngsi-ld:BeeHive:01'",
-        "string;desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+        "string,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "string.createdAt,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "integer;desc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "float;desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+        "observedProperty.observedAt,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "jsonObject[aNumber];desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
         "jsonObject[aString];desc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "jsonObject[anObject.name];desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
-        "propertyWithMetadata.license;desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'"
+        "jsonObject[anObject.name];asc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "propertyWithMetadata.license;desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+        "'type,id;desc','urn:ngsi-ld:Apiary:05,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
     )
     fun `queryEntities should apply order by`(orderBy: String, expectedOrderString: String) = runTest {
         val expectedOrder = expectedOrderString.split(",").map { it.toUri() }
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
-                    ordering = OrderingParams(
-                        listOf<OrderBy>(
-                            OrderBy.fromParam(orderBy, APIC_COMPOUND_CONTEXTS).getOrNull()!!
-                        )
-                    ),
+                    ordering = OrderingParams.fromUnparsedOrderBy(
+                        orderBy.split(','),
+                        APIC_COMPOUND_CONTEXTS
+                    ).getOrNull()!!,
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),

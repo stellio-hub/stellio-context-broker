@@ -23,6 +23,8 @@ val ADMIN_ROLES: Set<GlobalRole> = setOf(STELLIO_ADMIN)
 val CREATION_ROLES: Set<GlobalRole> = setOf(STELLIO_CREATOR).plus(ADMIN_ROLES)
 
 object AuthContextModel {
+    const val SUBJECT_FUNCTION_DEPRECATED_MESSAGE =
+        "The authentication now work with token information, the saving of users and group is deprecated"
     const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
 
     const val USER_COMPACT_TYPE = "User"
@@ -66,6 +68,7 @@ object AuthContextModel {
 
 // sub as per https://openid.net/specs/openid-connect-core-1_0.html#IDToken
 typealias Sub = String
+typealias Claims = List<String>
 
 suspend fun getSubFromSecurityContext(): Sub {
     return ReactiveSecurityContextHolder.getContext()

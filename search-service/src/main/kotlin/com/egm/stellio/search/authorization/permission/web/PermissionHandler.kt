@@ -199,11 +199,11 @@ class PermissionHandler(
         )
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
-        val subjects = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+        val claims = subjectReferentialService.getUserClaims().bind()
 
         val permission = permissionService.getById(permissionId).bind()
 
-        if (permission.assignee !in subjects &&
+        if (permission.assignee !in claims &&
             permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN).isLeft()
         ) {
             AccessDeniedException(unauthorizedRetrieveMessage(permissionId)).left().bind<String>()

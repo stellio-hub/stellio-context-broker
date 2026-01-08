@@ -160,7 +160,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.getSubjectAndGroupsUUID()
+        subjectReferentialService.getUserClaims()
             .shouldSucceedWith {
                 assertEquals(6, it.size)
                 assertTrue(it.containsAll(groupsUuids.plus(USER_UUID).plus(GENERIC_SUBJECTS)))
@@ -178,7 +178,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.getSubjectAndGroupsUUID()
+        subjectReferentialService.getUserClaims()
             .shouldSucceedWith {
                 assertEquals(3, it.size)
                 assertTrue(it.containsAll(listOf(USER_UUID).plus(GENERIC_SUBJECTS)))
@@ -196,7 +196,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.getSubjectAndGroupsUUID()
+        subjectReferentialService.getUserClaims()
             .shouldSucceedWith {
                 assertEquals(3, it.size)
                 assertThat(it).containsAll(listOf(SERVICE_ACCOUNT_UUID).plus(GENERIC_SUBJECTS))
@@ -216,7 +216,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.create(subjectReferential)
 
-        subjectReferentialService.getSubjectAndGroupsUUID()
+        subjectReferentialService.getUserClaims()
             .shouldSucceedWith {
                 assertEquals(5, it.size)
                 assertThat(it).containsAll(groupsUuids.plus(SERVICE_ACCOUNT_UUID).plus(GENERIC_SUBJECTS))
@@ -625,7 +625,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
                 globalRoles = listOf(STELLIO_CREATOR, STELLIO_ADMIN)
             )
         )
-        val uuids = subjectReferentialService.getSubjectAndGroupsUUID().shouldSucceedAndResult()
+        val uuids = subjectReferentialService.getUserClaims().shouldSucceedAndResult()
         subjectReferentialService.hasOneOfGlobalRoles(uuids, CREATION_ROLES)
             .shouldSucceedWith { assertTrue(it) }
     }

@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.common.model.OrderingParams
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
@@ -61,6 +62,10 @@ fun composeEntitiesQueryFromGet(
     ).bind()
     val local = queryParams.getFirst(QueryParameter.LOCAL.key)?.toBoolean() ?: false
 
+    val ordering = OrderingParams.fromUnparsedOrderBy(
+        queryParams.getFirst(QueryParameter.ORDER_BY.key)?.split(','),
+        contexts
+    ).bind()
     EntitiesQueryFromGet(
         ids = ids,
         typeSelection = typeSelection,
@@ -75,6 +80,7 @@ fun composeEntitiesQueryFromGet(
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
         local = local,
+        ordering = ordering,
         contexts = contexts
     )
 }
@@ -136,6 +142,11 @@ fun composeEntitiesQueryFromPost(
         defaultPagination.limitMax
     ).bind()
 
+    val ordering = OrderingParams.fromUnparsedOrderBy(
+        query.ordering?.orderBy,
+        contexts
+    ).bind()
+
     EntitiesQueryFromPost(
         entitySelectors = entitySelectors,
         q = query.q?.decode(),
@@ -147,6 +158,7 @@ fun composeEntitiesQueryFromPost(
         datasetId = datasetId,
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
+        ordering = ordering,
         contexts = contexts
     )
 }

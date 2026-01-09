@@ -141,9 +141,12 @@ class TemporalEntityHandler(
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT,
                 QP.ENDTIMEAT, QP.LASTN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.SCOPEQ, QP.DATASET_ID,
-                QP.PICK, QP.OMIT
+                QP.PICK, QP.OMIT, QP.ORDER_BY
             ],
-            notImplemented = [QP.LOCAL, QP.VIA, QP.EXPAND_VALUES, QP.CSF]
+            notImplemented = [
+                QP.LOCAL, QP.VIA, QP.EXPAND_VALUES, QP.CSF,
+                QP.COLLATION, QP.ORDER_FROM, QP.ORDER_GEOMETRY
+            ]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {

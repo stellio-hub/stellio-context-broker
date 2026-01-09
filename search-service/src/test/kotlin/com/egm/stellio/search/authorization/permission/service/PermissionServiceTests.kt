@@ -85,11 +85,11 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @BeforeEach
     fun setDefaultBehaviorOnSubjectReferential() {
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } answers { listOf(userUuid).right() }
         val capturedSub = slot<Sub>()
         coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID(capture(capturedSub)) } answers {
+        coEvery { subjectReferentialService.getUserClaims(capture(capturedSub)) } answers {
             listOfNotNull(capturedSub.captured).right()
         }
     }
@@ -443,7 +443,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         nonExpectedIds: String?
     ) = runTest {
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } answers { listOf(USER_UUID).right() }
 
         createRequestedPermissions()
@@ -484,7 +484,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         nonExpectedIds: String?
     ) = runTest {
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } answers { listOf(USER_UUID).right() }
 
         createRequestedPermissions()
@@ -519,7 +519,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         permissionService.create(permission).shouldSucceed()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(userUuid)
+            subjectReferentialService.getUserClaims(userUuid)
         } returns listOf(userUuid).right()
 
         val count = permissionService.getPermissionsCount(
@@ -528,7 +528,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         assertEquals(1, count.getOrNull())
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID(invalidUser)
+            subjectReferentialService.getUserClaims(invalidUser)
         } returns listOf(invalidUser).right()
 
         val countEmpty = permissionService.getPermissionsCount(
@@ -584,7 +584,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } returns listOf(userUuid).right()
 
         permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
@@ -600,7 +600,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } returns listOf(userUuid).right()
 
         permissionService.create(
@@ -621,7 +621,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } returns listOf(userUuid).right()
 
         permissionService.create(
@@ -642,7 +642,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } returns listOf(groupUuid, userUuid).right()
 
         permissionService.create(
@@ -663,7 +663,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns true.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } returns listOf(userUuid).right()
 
         permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
@@ -684,7 +684,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } returns listOf(userUuid).right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -714,7 +714,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } returns listOf(userUuid).right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -744,7 +744,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } returns listOf(userUuid).right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -774,7 +774,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
 
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getUserClaims()
         } returns listOf(userUuid).right()
 
         val matchingType = BEEHIVE_IRI

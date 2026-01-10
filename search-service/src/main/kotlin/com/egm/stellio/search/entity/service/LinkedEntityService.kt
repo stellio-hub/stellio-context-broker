@@ -10,7 +10,8 @@ import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.filterPickAndOmit
-import com.egm.stellio.shared.model.getAttributesFor
+import com.egm.stellio.shared.model.getAttributesToOmitFor
+import com.egm.stellio.shared.model.getAttributesToPickFor
 import com.egm.stellio.shared.model.getRelationshipsNamesWithObjects
 import com.egm.stellio.shared.model.inlineLinkedEntities
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinType
@@ -71,8 +72,8 @@ class LinkedEntityService(
                         entry.value.contains((compactedEntity[NGSILD_ID_TERM] as String).toUri())
                     }.keys.first()
                     compactedEntity.filterPickAndOmit(
-                        entitiesQuery.pick.getAttributesFor(parentAttributeName, currentLevel),
-                        entitiesQuery.omit.getAttributesFor(parentAttributeName, currentLevel)
+                        entitiesQuery.pick.getAttributesToPickFor(parentAttributeName, currentLevel),
+                        entitiesQuery.omit.getAttributesToOmitFor(parentAttributeName, currentLevel)
                     ).bind()
                 }
             }

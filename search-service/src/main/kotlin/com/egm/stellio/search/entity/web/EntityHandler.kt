@@ -20,7 +20,8 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.applyDatasetView
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.filterPickAndOmit
-import com.egm.stellio.shared.model.getRootAttributes
+import com.egm.stellio.shared.model.getRootAttributesToOmit
+import com.egm.stellio.shared.model.getRootAttributesToPick
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.queryparameter.AllowedParameters
@@ -175,8 +176,7 @@ class EntityHandler(
 
         val (result, remainingEntity) =
             if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
-                distributedEntityProvisionService
-                    .distributeReplaceEntity(expandedEntity, contexts, queryParams)
+                distributedEntityProvisionService.distributeReplaceEntity(expandedEntity, contexts, queryParams)
             } else BatchOperationResult() to expandedEntity
 
         if (remainingEntity != null) {
@@ -261,8 +261,8 @@ class EntityHandler(
             } else Triple(emptyList(), localEntities, localCount)
 
         val finalEntities = entities.filterPickAndOmit(
-            entitiesQuery.pick.getRootAttributes(),
-            entitiesQuery.omit.getRootAttributes()
+            entitiesQuery.pick.getRootAttributesToPick(),
+            entitiesQuery.omit.getRootAttributesToOmit()
         ).let {
             linkedEntityService.processLinkedEntities(it, entitiesQuery).bind()
         }
@@ -337,8 +337,8 @@ class EntityHandler(
         }
 
         val finalEntities = entity.filterPickAndOmit(
-            entitiesQuery.pick.getRootAttributes(),
-            entitiesQuery.omit.getRootAttributes()
+            entitiesQuery.pick.getRootAttributesToPick(),
+            entitiesQuery.omit.getRootAttributesToOmit()
         ).bind()
             .let {
                 linkedEntityService.processLinkedEntities(it, entitiesQuery).bind()

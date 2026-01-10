@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.shared.model.AttributeProjection.Companion.ProjectionType
 import com.egm.stellio.shared.util.isNgsiLdSupportedName
 
 /**
@@ -22,6 +23,10 @@ data class AttributeProjection(
     val nestedProjections: List<AttributeProjection>? = null
 ) {
     companion object {
+
+        enum class ProjectionType {
+            PICK, OMIT
+        }
 
         private val separators = setOf(',', '|')
         private const val OPENING_BRACE = '{'
@@ -196,17 +201,46 @@ data class AttributeProjection(
     }
 }
 
-fun List<AttributeProjection>.getRootAttributes(): Set<String> =
-    map { it.attributeName }.toSet()
+fun List<AttributeProjection>.getRootAttributesToPick(): Set<String> =
+    getRootAttributes(ProjectionType.PICK)
+
+fun List<AttributeProjection>.getRootAttributesToOmit(): Set<String> =
+    getRootAttributes(ProjectionType.OMIT)
+
+private fun List<AttributeProjection>.getRootAttributes(projectionType: ProjectionType): Set<String> =
+    mapNotNull {
+        when (projectionType) {
+            ProjectionType.PICK -> it.attributeName
+            // for omit projection, only consider the leaves
+            ProjectionType.OMIT -> if (it.nestedProjections == null) it.attributeName else null
+        }
+    }.toSet()
 
 fun List<AttributeProjection>.removeAttributes(attributes: Set<String>): List<AttributeProjection> =
     filter { it.attributeName !in attributes }
 
-fun List<AttributeProjection>.getAttributesFor(parentAttributeName: String, level: UInt): Set<String> =
+fun List<AttributeProjection>.getAttributesToPickFor(parentAttributeName: String, level: UInt): Set<String> =
+    getAttributesFor(parentAttributeName, level, ProjectionType.PICK)
+
+fun List<AttributeProjection>.getAttributesToOmitFor(parentAttributeName: String, level: UInt): Set<String> =
+    getAttributesFor(parentAttributeName, level, ProjectionType.OMIT)
+
+fun List<AttributeProjection>.getAttributesFor(
+    parentAttributeName: String,
+    level: UInt,
+    projectionType: ProjectionType
+): Set<String> =
     if (level.toInt() == 1)
         filter { it.attributeName == parentAttributeName }
             .flatMap { it.nestedProjections ?: emptyList() }
-            .map { it.attributeName }
+            .mapNotNull {
+                when (projectionType) {
+                    ProjectionType.PICK -> it.attributeName
+                    // for omit projection, only consider the leaves
+                    ProjectionType.OMIT -> if (it.nestedProjections == null) it.attributeName else null
+                }
+            }
             .toSet()
     else
-        flatMap { it.nestedProjections ?: emptyList() }.getAttributesFor(parentAttributeName, level - 1.toUInt())
+        flatMap { it.nestedProjections ?: emptyList() }
+            .getAttributesFor(parentAttributeName, level - 1.toUInt(), projectionType)

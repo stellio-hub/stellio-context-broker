@@ -79,8 +79,8 @@ class CompactedEntityTests {
             .shouldSucceedAndResult()
 
         val filteredEntity = entity.filterPickAndOmit(
-            pickAndOmitParams.first.getRootAttributes(),
-            pickAndOmitParams.second.getRootAttributes()
+            pickAndOmitParams.first.getRootAttributesToPick(),
+            pickAndOmitParams.second.getRootAttributesToOmit()
         ).shouldSucceedAndResult()
 
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(filteredEntity))
@@ -102,8 +102,8 @@ class CompactedEntityTests {
             .shouldSucceedAndResult()
 
         val filteredEntity = entity.filterPickAndOmit(
-            pickAndOmitParams.first.getRootAttributes(),
-            pickAndOmitParams.second.getRootAttributes()
+            pickAndOmitParams.first.getRootAttributesToPick(),
+            pickAndOmitParams.second.getRootAttributesToOmit()
         ).shouldSucceedAndResult()
 
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(filteredEntity))
@@ -117,8 +117,8 @@ class CompactedEntityTests {
             .shouldSucceedAndResult()
 
         entity.filterPickAndOmit(
-            pickAndOmitParams.first.getRootAttributes(),
-            pickAndOmitParams.second.getRootAttributes()
+            pickAndOmitParams.first.getRootAttributesToPick(),
+            pickAndOmitParams.second.getRootAttributesToOmit()
         ).shouldFailWith {
             it is UnprocessableEntityException &&
                 it.message == "No entity member left after applying pick and omit"

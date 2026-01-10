@@ -140,7 +140,7 @@ class AttributeProjectionTests {
         val (pick, _) = parsePickOmitParameters("temperature,humidity,servesDataset{title}", null)
             .shouldSucceedAndResult()
 
-        val rootAttributes = pick.getRootAttributes()
+        val rootAttributes = pick.getRootAttributesToPick()
 
         assertThat(rootAttributes)
             .hasSize(3)
@@ -297,7 +297,7 @@ class AttributeProjectionTests {
         ).shouldSucceedAndResult()
 
         assertThat(pick).hasSize(5)
-        assertThat(pick.getRootAttributes())
+        assertThat(pick.getRootAttributesToPick())
             .containsExactlyInAnyOrder("temperature", "humidity", "pressure", "servesDataset", "belongsTo")
         assertThat(pick.getAttributesFor("servesDataset", 1.toUInt()))
             .containsExactlyInAnyOrder("title", "description", "publisher", "catalog")

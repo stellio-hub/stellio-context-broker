@@ -225,7 +225,7 @@ fun List<AttributeProjection>.getAttributesToPickFor(parentAttributeName: String
 fun List<AttributeProjection>.getAttributesToOmitFor(parentAttributeName: String, level: UInt): Set<String> =
     getAttributesFor(parentAttributeName, level, ProjectionType.OMIT)
 
-fun List<AttributeProjection>.getAttributesFor(
+private fun List<AttributeProjection>.getAttributesFor(
     parentAttributeName: String,
     level: UInt,
     projectionType: ProjectionType

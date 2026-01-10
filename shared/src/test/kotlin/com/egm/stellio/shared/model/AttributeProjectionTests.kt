@@ -155,17 +155,17 @@ class AttributeProjectionTests {
         ).shouldSucceedAndResult()
 
         assertThat(
-            pick.getAttributesFor("servesDataset", 1.toUInt())
+            pick.getAttributesToPickFor("servesDataset", 1.toUInt())
         ).hasSize(3)
             .containsExactlyInAnyOrder("title", "description", "catalog")
 
         assertThat(
-            pick.getAttributesFor("catalog", 2.toUInt())
+            pick.getAttributesToPickFor("catalog", 2.toUInt())
         ).hasSize(1)
             .containsExactlyInAnyOrder("publisher")
 
         assertThat(
-            pick.getAttributesFor("servesDatatset", 2.toUInt())
+            pick.getAttributesToPickFor("servesDatatset", 2.toUInt())
         ).hasSize(1)
             .containsExactlyInAnyOrder("location")
     }
@@ -299,11 +299,11 @@ class AttributeProjectionTests {
         assertThat(pick).hasSize(5)
         assertThat(pick.getRootAttributesToPick())
             .containsExactlyInAnyOrder("temperature", "humidity", "pressure", "servesDataset", "belongsTo")
-        assertThat(pick.getAttributesFor("servesDataset", 1.toUInt()))
+        assertThat(pick.getAttributesToPickFor("servesDataset", 1.toUInt()))
             .containsExactlyInAnyOrder("title", "description", "publisher", "catalog")
-        assertThat(pick.getAttributesFor("catalog", 2.toUInt()))
+        assertThat(pick.getAttributesToPickFor("catalog", 2.toUInt()))
             .containsExactlyInAnyOrder("name", "version")
-        assertThat(pick.getAttributesFor("belongsTo", 1.toUInt()))
+        assertThat(pick.getAttributesToPickFor("belongsTo", 1.toUInt()))
             .containsExactlyInAnyOrder("name", "owner")
     }
 }

@@ -171,6 +171,43 @@ class AttributeProjectionTests {
     }
 
     @Test
+    fun `it should get root attributes to omit`() {
+        val (_, omit) = parsePickOmitParameters(
+            null,
+            "temperature,humidity,servesDataset{title}"
+        ).shouldSucceedAndResult()
+
+        val rootAttributes = omit.getRootAttributesToOmit()
+
+        assertThat(rootAttributes)
+            .hasSize(2)
+            .containsExactlyInAnyOrder("temperature", "humidity")
+    }
+
+    @Test
+    fun `it should get attributes to omit at any level in the graph`() {
+        val (_, omit) = parsePickOmitParameters(
+            null,
+            "servesDataset{title,description,catalog{publisher}},belongsTo{name,owner,servesDatatset{location}}"
+        ).shouldSucceedAndResult()
+
+        assertThat(
+            omit.getAttributesToOmitFor("servesDataset", 1.toUInt())
+        ).hasSize(2)
+            .containsExactlyInAnyOrder("title", "description")
+
+        assertThat(
+            omit.getAttributesToOmitFor("catalog", 2.toUInt())
+        ).hasSize(1)
+            .containsExactlyInAnyOrder("publisher")
+
+        assertThat(
+            omit.getAttributesToOmitFor("servesDatatset", 2.toUInt())
+        ).hasSize(1)
+            .containsExactlyInAnyOrder("location")
+    }
+
+    @Test
     fun `it should handle pipe separator in addition to comma`() {
         val (pick, _) = parsePickOmitParameters("temperature|humidity|servesDataset{title|description}", null)
             .shouldSucceedAndResult()

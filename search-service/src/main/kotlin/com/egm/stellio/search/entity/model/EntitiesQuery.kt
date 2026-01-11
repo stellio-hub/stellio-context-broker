@@ -1,6 +1,7 @@
 package com.egm.stellio.search.entity.model
 
 import com.egm.stellio.search.common.model.OrderingParams
+import com.egm.stellio.shared.model.AttributeProjection
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.ExpandedTerm
@@ -14,8 +15,8 @@ sealed class EntitiesQuery(
     open val scopeQ: String?,
     open val paginationQuery: PaginationQuery,
     open val attrs: Set<ExpandedTerm>,
-    open val pick: Set<String>,
-    open val omit: Set<String>,
+    open val pick: List<AttributeProjection>,
+    open val omit: List<AttributeProjection>,
     open val datasetId: Set<String>,
     open val geoQuery: GeoQuery?,
     open val linkedEntityQuery: LinkedEntityQuery?,
@@ -32,8 +33,8 @@ data class EntitiesQueryFromGet(
     override val scopeQ: String? = null,
     override val paginationQuery: PaginationQuery,
     override val attrs: Set<ExpandedTerm> = emptySet(),
-    override val pick: Set<String> = emptySet(),
-    override val omit: Set<String> = emptySet(),
+    override val pick: List<AttributeProjection> = emptyList(),
+    override val omit: List<AttributeProjection> = emptyList(),
     override val datasetId: Set<String> = emptySet(),
     override val geoQuery: GeoQuery? = null,
     override val linkedEntityQuery: LinkedEntityQuery? = null,
@@ -61,8 +62,8 @@ data class EntitiesQueryFromPost(
     override val scopeQ: String? = null,
     override val paginationQuery: PaginationQuery,
     override val attrs: Set<ExpandedTerm> = emptySet(),
-    override val pick: Set<String> = emptySet(),
-    override val omit: Set<String> = emptySet(),
+    override val pick: List<AttributeProjection> = emptyList(),
+    override val omit: List<AttributeProjection> = emptyList(),
     override val datasetId: Set<String> = emptySet(),
     override val geoQuery: GeoQuery? = null,
     override val linkedEntityQuery: LinkedEntityQuery? = null,

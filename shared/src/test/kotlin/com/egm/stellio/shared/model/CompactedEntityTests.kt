@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.model
 
+import com.egm.stellio.shared.model.AttributeProjection.Companion.parsePickOmitParameters
 import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedEntity
 import com.egm.stellio.shared.model.CompactedEntityFixtureData.normalizedMultiAttributeEntity
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
@@ -7,7 +8,6 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.parsePickOmitParameters
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import kotlinx.coroutines.test.runTest
@@ -78,8 +78,10 @@ class CompactedEntityTests {
         val pickAndOmitParams = parsePickOmitParameters("id,name", null)
             .shouldSucceedAndResult()
 
-        val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
-            .shouldSucceedAndResult()
+        val filteredEntity = entity.filterPickAndOmit(
+            pickAndOmitParams.first.getRootAttributesToPick(),
+            pickAndOmitParams.second.getRootAttributesToOmit()
+        ).shouldSucceedAndResult()
 
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(filteredEntity))
     }
@@ -99,8 +101,10 @@ class CompactedEntityTests {
         val pickAndOmitParams = parsePickOmitParameters(null, "name,managedBy")
             .shouldSucceedAndResult()
 
-        val filteredEntity = entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
-            .shouldSucceedAndResult()
+        val filteredEntity = entity.filterPickAndOmit(
+            pickAndOmitParams.first.getRootAttributesToPick(),
+            pickAndOmitParams.second.getRootAttributesToOmit()
+        ).shouldSucceedAndResult()
 
         assertJsonPayloadsAreEqual(expectedEntity, serializeObject(filteredEntity))
     }
@@ -112,11 +116,13 @@ class CompactedEntityTests {
         val pickAndOmitParams = parsePickOmitParameters("unknown", null)
             .shouldSucceedAndResult()
 
-        entity.filterPickAndOmit(pickAndOmitParams.first, pickAndOmitParams.second)
-            .shouldFailWith {
-                it is UnprocessableEntityException &&
-                    it.message == "No entity member left after applying pick and omit"
-            }
+        entity.filterPickAndOmit(
+            pickAndOmitParams.first.getRootAttributesToPick(),
+            pickAndOmitParams.second.getRootAttributesToOmit()
+        ).shouldFailWith {
+            it is UnprocessableEntityException &&
+                it.message == "No entity member left after applying pick and omit"
+        }
     }
 
     @Test

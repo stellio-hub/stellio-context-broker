@@ -44,7 +44,7 @@ tasks.bootRun {
 
 tasks.bootBuildImage {
     imageName = "stellio/stellio-subscription-service:${project.version}"
-    imagePlatform = "linux/amd64"
+    builder = project.ext["buildpackBuilder"] as String
 
     val buildpackEnvironment = project.ext["buildpackEnvironment"] as? Map<String, String> ?: emptyMap()
     val buildpackRuntimeEnvironment = project.ext["buildpackRuntimeEnvironment"] as? Map<String, String> ?: emptyMap()

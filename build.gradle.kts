@@ -178,6 +178,9 @@ subprojects {
             "BP_OCI_SOURCE" to "https://github.com/stellio-hub/stellio-context-broker"
         )
     )
+    // Multi-architecture configuration
+    ext.set("buildpackBuilder", "paketobuildpacks/builder-jammy-buildpackless-tiny")
+    // ext.set("buildpackBuilder", "paketobuildpacks/builder-jammy-java-tiny:latest")
 }
 
 allprojects {

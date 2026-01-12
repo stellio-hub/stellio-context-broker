@@ -22,6 +22,8 @@ springBoot {
 
 tasks.bootBuildImage {
     imageName = "stellio/stellio-api-gateway:${project.version}"
+    builder = project.ext["buildpackBuilder"] as String
+    buildpacks = listOf("paketobuildpacks/java")
     imagePlatform = "linux/amd64"
 
     val buildpackEnvironment = project.ext["buildpackEnvironment"] as? Map<String, String> ?: emptyMap()

@@ -24,10 +24,10 @@ import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
 import com.egm.stellio.shared.util.AuthContextModel.SUBJECT_FUNCTION_DEPRECATED_MESSAGE
 import com.egm.stellio.shared.util.Claims
 import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.containStellioAdmin
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.getTokenFromSecurityContext
 import org.springframework.r2dbc.core.DatabaseClient
@@ -67,11 +67,8 @@ class SubjectReferentialService(
         return getCurrentSubjectClaims()
     }
 
-    suspend fun hasStellioAdminRole(claims: Claims): Either<APIException, Boolean> =
-        (STELLIO_ADMIN.key in claims).right()
-
     suspend fun currentSubjectIsAdmin(): Either<APIException, Boolean> = either {
-        STELLIO_ADMIN.key in getCurrentSubjectClaims().bind()
+        getCurrentSubjectClaims().bind().containStellioAdmin()
     }
 
     @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)

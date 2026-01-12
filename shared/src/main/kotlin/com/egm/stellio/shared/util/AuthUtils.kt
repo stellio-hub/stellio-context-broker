@@ -113,6 +113,8 @@ enum class GlobalRole(val key: String) {
     }
 }
 
+fun Claims.containStellioAdmin(): Boolean = STELLIO_ADMIN.key in this
+
 fun getAuthzContextFromRequestOrDefault(
     httpHeaders: HttpHeaders,
     body: Map<String, Any>,

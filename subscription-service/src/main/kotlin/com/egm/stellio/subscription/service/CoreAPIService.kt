@@ -65,7 +65,7 @@ class CoreAPIService(
         val params = StringBuilder()
 
         if (!notificationParams.attributes.isNullOrEmpty()) {
-            val attrsParam = notificationParams.attributes!!.joinToString(",") { it.encode() }
+            val attrsParam = notificationParams.attributes.joinToString(",") { it.encode() }
             params.append("&${QueryParameter.ATTRS.key}=$attrsParam")
         }
         if (!notificationParams.pick.isNullOrEmpty()) {

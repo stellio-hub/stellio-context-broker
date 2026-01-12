@@ -25,6 +25,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.acceptToMediaType
 import com.egm.stellio.shared.util.getTenantFromContext
+import com.egm.stellio.shared.util.wrapToList
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint
@@ -99,7 +100,7 @@ class NotificationService(
                                 it.notification.sysAttrs,
                                 it.lang
                             )
-                        ).let { listOf(it) }
+                        ).wrapToList()
                 }
 
             val compactedEntitiesWithPreviousValues =

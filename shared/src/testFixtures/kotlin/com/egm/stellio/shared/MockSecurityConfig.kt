@@ -9,10 +9,18 @@ import org.springframework.security.test.context.support.WithSecurityContext
 import org.springframework.security.test.context.support.WithSecurityContextFactory
 
 @Retention(AnnotationRetention.RUNTIME)
+@WithMockCustomUser(sub = "703f5572-a6fa-48a5-96dc-a800974869a3", roles = ["stellio-admin"])
+annotation class WithMockAdminUser
+
+@Retention(AnnotationRetention.RUNTIME)
+@WithMockCustomUser(sub = "703f5572-a6fa-48a5-96dc-a800974869a3")
+annotation class WithMockBasicUser
+
+@Retention(AnnotationRetention.RUNTIME)
 @WithSecurityContext(factory = WithMockCustomUserSecurityContextFactory::class)
 annotation class WithMockCustomUser(
     val sub: String,
-    val name: String,
+    val name: String = "Mock User",
     val groups: Array<String> = [],
     val roles: Array<String> = []
 )

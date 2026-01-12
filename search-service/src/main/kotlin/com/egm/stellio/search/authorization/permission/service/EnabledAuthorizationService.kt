@@ -179,7 +179,7 @@ class EnabledAuthorizationService(
 
     override suspend fun getAccessRightWithClauseAndFilter(): WithAndFilter? = either {
         val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
-        if (userIsAdmin().isLeft())
+        if (userIsAdmin().isRight())
             null
         else permissionService.buildCandidatePermissionsWithStatement(Action.READ, claims) to
             permissionService.buildAsRightOnEntityFilter(Action.READ, claims)

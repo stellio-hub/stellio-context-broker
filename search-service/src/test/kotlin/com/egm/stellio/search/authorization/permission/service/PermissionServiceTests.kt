@@ -27,6 +27,7 @@ import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEKEEPER_IRI
+import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
@@ -77,7 +78,6 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @MockkBean
     private lateinit var subjectReferentialService: SubjectReferentialService
 
-    private val userUuid = "55e64faf-4bda-41cc-98b0-195874cefd29"
     private val groupUuid = UUID.randomUUID().toString()
     private val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     val minimalPermission = loadAndDeserializePermission("permission/permission_minimal.json")
@@ -87,9 +87,8 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun setDefaultBehaviorOnSubjectReferential() {
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
-        } answers { listOf(userUuid).right() }
+        } answers { listOf(USER_UUID).right() }
         val capturedSub = slot<Sub>()
-        coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
         coEvery { subjectReferentialService.getCurrentSubjectClaims(capture(capturedSub)) } answers {
             listOfNotNull(capturedSub.captured).right()
         }
@@ -162,10 +161,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         shouldSucceed: Boolean
     ) = runTest {
         val permission = Permission(
-            assignee = userUuid,
+            assignee = USER_UUID,
             target = TargetAsset(scopes = createdScopes?.split(','), types = createdTypes?.split(',')),
             action = Action.READ,
-            assigner = userUuid
+            assigner = USER_UUID
         )
         permissionService.create(permission).shouldSucceed()
 
@@ -212,10 +211,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Test
     fun `get a Permission with types and scopes should return the created Permission`() = runTest {
         val permision = Permission(
-            assignee = userUuid,
+            assignee = USER_UUID,
             target = TargetAsset(scopes = listOf("/1"), types = listOf(BEEHIVE_IRI)),
             action = Action.READ,
-            assigner = userUuid
+            assigner = USER_UUID
         )
         permissionService.create(permision).shouldSucceed()
 
@@ -270,8 +269,8 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         permissionService.create(ownPermission).shouldSucceed()
 
         coEvery {
-            subjectReferentialService.hasStellioAdminRole(any())
-        } returns true.right()
+            subjectReferentialService.getCurrentSubjectClaims()
+        } returns listOf(USER_UUID, STELLIO_ADMIN.key).right()
 
         val readFilterAnswer = permissionService.getPermissions(
             PermissionFilters(action = Action.READ)
@@ -288,11 +287,11 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `query on Permission assignee should filter the result`() = runTest {
-        val permission = minimalPermission.copy(assignee = userUuid)
+        val permission = minimalPermission.copy(assignee = USER_UUID)
         permissionService.create(permission).shouldSucceed()
 
         val matchingPermissions = permissionService.getPermissions(
-            PermissionFilters(assignee = userUuid, kind = PermissionKind.ASSIGNED)
+            PermissionFilters(assignee = USER_UUID, kind = PermissionKind.ASSIGNED)
         )
 
         assertTrue(matchingPermissions.isRight())
@@ -307,11 +306,11 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `query on Permission assigner should filter the result`() = runTest {
-        val permission = minimalPermission.copy(assigner = userUuid)
+        val permission = minimalPermission.copy(assigner = USER_UUID)
         permissionService.create(permission).shouldSucceed()
 
         val matchingPermissions = permissionService.getPermissions(
-            PermissionFilters(assigner = userUuid, kind = PermissionKind.ASSIGNED)
+            PermissionFilters(assigner = USER_UUID, kind = PermissionKind.ASSIGNED)
         )
 
         assertTrue(matchingPermissions.isRight())
@@ -328,11 +327,11 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun `query on Permissions should return nothing if subject is nor assignee nor administrator of the target`() =
         runTest {
             val permission = minimalPermission
-                .copy(assignee = "not-the-subject", assigner = userUuid)
+                .copy(assignee = "not-the-subject", assigner = USER_UUID)
             permissionService.create(permission).shouldSucceed()
 
             val matchingPermissions = permissionService.getPermissions(
-                PermissionFilters(assigner = userUuid)
+                PermissionFilters(assigner = USER_UUID)
             )
 
             assertTrue(matchingPermissions.isRight())
@@ -511,16 +510,16 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `count on Permission should apply the filter`() = runTest {
-        val permission = minimalPermission.copy(assignee = userUuid)
+        val permission = minimalPermission.copy(assignee = USER_UUID)
         val invalidUser = "INVALID"
         permissionService.create(permission).shouldSucceed()
 
         coEvery {
-            subjectReferentialService.getCurrentSubjectClaims(userUuid)
-        } returns listOf(userUuid).right()
+            subjectReferentialService.getCurrentSubjectClaims(USER_UUID)
+        } returns listOf(USER_UUID).right()
 
         val count = permissionService.getPermissionsCount(
-            PermissionFilters(assignee = userUuid, kind = PermissionKind.ASSIGNED),
+            PermissionFilters(assignee = USER_UUID, kind = PermissionKind.ASSIGNED),
         )
         assertEquals(1, count.getOrNull())
 
@@ -561,10 +560,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun `removePermissionsOnEntity should remove all permissions on entity`() = runTest {
         permissionService.create(
             Permission(
-                assignee = userUuid,
+                assignee = USER_UUID,
                 target = TargetAsset(entityId),
                 action = Action.READ,
-                assigner = userUuid
+                assigner = USER_UUID
             )
         )
 
@@ -578,34 +577,30 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `hasPermissionOnEntity should not allow a subject having no permission`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
-
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
-        } returns listOf(userUuid).right()
+        } returns listOf(USER_UUID).right()
 
         permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
             .shouldSucceedWith { assertFalse(it) }
 
         coVerify {
-            subjectReferentialService.hasStellioAdminRole(listOf(userUuid))
+            subjectReferentialService.getCurrentSubjectClaims()
         }
     }
 
     @Test
     fun `hasPermissionOnEntity should allow a subject having a direct permission on a entity`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
-
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
-        } returns listOf(userUuid).right()
+        } returns listOf(USER_UUID).right()
 
         permissionService.create(
             Permission(
-                assignee = userUuid,
+                assignee = USER_UUID,
                 target = TargetAsset(entityId),
                 action = Action.READ,
-                assigner = userUuid
+                assigner = USER_UUID
             )
         )
 
@@ -615,18 +610,16 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `hasPermissionOnEntity should allow a subject to read if it has a write permission`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
-
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
-        } returns listOf(userUuid).right()
+        } returns listOf(USER_UUID).right()
 
         permissionService.create(
             Permission(
-                assignee = userUuid,
+                assignee = USER_UUID,
                 target = TargetAsset(entityId),
                 action = Action.WRITE,
-                assigner = userUuid
+                assigner = USER_UUID
             )
         )
 
@@ -636,18 +629,16 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `hasPermissionOnEntity should allow a subject having permission via a group membership`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
-
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
-        } returns listOf(groupUuid, userUuid).right()
+        } returns listOf(groupUuid, USER_UUID).right()
 
         permissionService.create(
             Permission(
                 assignee = groupUuid,
                 target = TargetAsset(entityId),
                 action = Action.READ,
-                assigner = userUuid
+                assigner = USER_UUID
             )
         ).shouldSucceed()
 
@@ -657,32 +648,25 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `hasPermissionOnEntity should allow a subject having the stellio-admin role`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns true.right()
-
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
-        } returns listOf(userUuid).right()
+        } returns listOf(USER_UUID, STELLIO_ADMIN.key).right()
 
         permissionService.checkHasPermissionOnEntity(entityId, Action.READ)
             .shouldSucceedWith {
                 assertTrue(it)
             }
 
-        coVerify {
-            subjectReferentialService.hasStellioAdminRole(listOf(userUuid))
-        }
         coVerify(exactly = 0) {
-            subjectReferentialService.retrieve(eq(userUuid))
+            subjectReferentialService.retrieve(eq(USER_UUID))
         }
     }
 
     @Test
     fun `hasPermissionOnEntity should allow a subject having a scope-based permission on an entity`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
-
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
-        } returns listOf(userUuid).right()
+        } returns listOf(USER_UUID).right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_with_scope.jsonld").shouldSucceedAndResult()
@@ -695,10 +679,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         permissionService.create(
             Permission(
-                assignee = userUuid,
+                assignee = USER_UUID,
                 target = TargetAsset(scopes = listOf(beehiveScope)),
                 action = Action.READ,
-                assigner = userUuid
+                assigner = USER_UUID
             )
         ).shouldSucceed()
 
@@ -708,11 +692,9 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `hasPermissionOnEntity should allow a subject having a type-based permission on an entity`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
-
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
-        } returns listOf(userUuid).right()
+        } returns listOf(USER_UUID).right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_with_scope.jsonld").shouldSucceedAndResult()
@@ -725,10 +707,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         permissionService.create(
             Permission(
-                assignee = userUuid,
+                assignee = USER_UUID,
                 target = TargetAsset(types = listOf(BEEHIVE_IRI)),
                 action = Action.READ,
-                assigner = userUuid
+                assigner = USER_UUID
             )
         ).shouldSucceed()
 
@@ -738,11 +720,9 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `hasPermissionOnEntity should allow a subject having both type and scope-based permission on an entity`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
-
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
-        } returns listOf(userUuid).right()
+        } returns listOf(USER_UUID).right()
 
         val (expandedEntity, ngsiLdEntity) =
             loadAndPrepareSampleData("beehive_with_scope.jsonld").shouldSucceedAndResult()
@@ -755,10 +735,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         permissionService.create(
             Permission(
-                assignee = userUuid,
+                assignee = USER_UUID,
                 target = TargetAsset(scopes = listOf(beehiveScope), types = listOf(BEEHIVE_IRI)),
                 action = Action.READ,
-                assigner = userUuid
+                assigner = USER_UUID
             )
         ).shouldSucceed()
 
@@ -768,11 +748,9 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `hasPermissionOnEntity should not allow a subject having both type and scope-based permission on an entity with only type matching`() = runTest {
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(userUuid)) } returns false.right()
-
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
-        } returns listOf(userUuid).right()
+        } returns listOf(USER_UUID).right()
 
         val matchingType = BEEHIVE_IRI
         val nonMatchingType = BEEKEEPER_IRI
@@ -790,10 +768,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         permissionService.create(
             Permission(
-                assignee = userUuid,
+                assignee = USER_UUID,
                 target = TargetAsset(scopes = listOf(nonMatchingScope), types = listOf(matchingType)),
                 action = Action.READ,
-                assigner = userUuid
+                assigner = USER_UUID
             )
         ).shouldSucceed()
 
@@ -802,10 +780,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         permissionService.create(
             Permission(
-                assignee = userUuid,
+                assignee = USER_UUID,
                 target = TargetAsset(scopes = listOf(matchingScope), types = listOf(nonMatchingType)),
                 action = Action.READ,
-                assigner = userUuid
+                assigner = USER_UUID
             )
         ).shouldSucceed()
 

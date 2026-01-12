@@ -114,7 +114,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
-        coEvery { subjectReferentialService.getUserClaims() } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(userUuid).right()
 
         webClient.get()
             .uri("$permissionUri/$id")
@@ -133,7 +133,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(any()) } returns permission.right()
-        coEvery { subjectReferentialService.getUserClaims() } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(userUuid).right()
 
         webClient.get()
             .uri("$permissionUri/$id?options=sysAttrs")
@@ -151,7 +151,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
         coEvery { permissionService.getById(any()) } returns ResourceNotFoundException("").left()
-        coEvery { subjectReferentialService.getUserClaims() } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(userUuid).right()
 
         webClient.get()
             .uri("$permissionUri/${permission.id}")
@@ -169,7 +169,7 @@ class PermissionHandlerTests {
             AccessDeniedException("unauthorized message").left()
 
         coEvery { permissionService.getById(any()) } returns permission.right()
-        coEvery { subjectReferentialService.getUserClaims() } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(userUuid).right()
 
         webClient.get()
             .uri("$permissionUri/$id")
@@ -187,7 +187,7 @@ class PermissionHandlerTests {
             coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns
                 AccessDeniedException("unauthorized message").left()
             coEvery { permissionService.getById(any()) } returns permission.right()
-            coEvery { subjectReferentialService.getUserClaims() } returns listOf(userUuid).right()
+            coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(userUuid).right()
 
             webClient.get()
                 .uri("$permissionUri/$id")
@@ -698,7 +698,7 @@ class PermissionHandlerTests {
         coEvery { permissionService.getById(any()) } returns gimmeRawPermission(id = id).right()
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { subjectReferentialService.getUserClaims() } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(userUuid).right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         webClient.patch()
@@ -751,7 +751,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns
             AccessDeniedException("unauthorized message").left()
-        coEvery { subjectReferentialService.getUserClaims() } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(userUuid).right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         coEvery { permissionService.upsert(any()) } returns Unit.right()
@@ -774,7 +774,7 @@ class PermissionHandlerTests {
 
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns
             Unit.right() andThen AccessDeniedException("errorMessage").left()
-        coEvery { subjectReferentialService.getUserClaims() } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(userUuid).right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         coEvery { permissionService.upsert(any()) } returns Unit.right()
@@ -803,7 +803,7 @@ class PermissionHandlerTests {
             assignee = AUTHENTICATED_SUBJECT
         ).right()
         coEvery { permissionService.hasPermissionOnTarget(any(), any()) } returns Unit.right()
-        coEvery { subjectReferentialService.getUserClaims() } returns listOf(userUuid).right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(userUuid).right()
         coEvery { entityQueryService.checkEntityExistence(any(), any()) } returns Unit.right()
 
         coEvery { permissionService.upsert(any()) } returns Unit.right()

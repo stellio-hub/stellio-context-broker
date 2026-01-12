@@ -45,7 +45,7 @@ class EnabledAuthorizationService(
     internal suspend fun userHasOneOfGivenRoles(
         roles: Set<GlobalRole>
     ): Either<APIException, Boolean> = either {
-        subjectReferentialService.getUserClaims().bind().any { it in roles.map { it.key } }
+        subjectReferentialService.getCurrentSubjectClaims().bind().any { it in roles.map { it.key } }
     }
 
     private fun Either<APIException, Boolean>.toAccessDecision(errorMessage: String) =
@@ -178,8 +178,8 @@ class EnabledAuthorizationService(
     }
 
     override suspend fun getAccessRightWithClauseAndFilter(): WithAndFilter? = either {
-        val claims = subjectReferentialService.getUserClaims().bind()
-        if (subjectReferentialService.hasStellioAdminRole(claims).bind())
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
+        if (userIsAdmin().isLeft())
             null
         else permissionService.buildCandidatePermissionsWithStatement(Action.READ, claims) to
             permissionService.buildAsRightOnEntityFilter(Action.READ, claims)

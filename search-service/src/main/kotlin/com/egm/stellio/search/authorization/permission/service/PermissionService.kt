@@ -320,7 +320,7 @@ class PermissionService(
         entityId: URI,
         action: Action
     ): Either<APIException, Boolean> = either {
-        val claims = subjectReferentialService.getUserClaims().bind()
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
 
         subjectReferentialService.hasStellioAdminRole(claims)
             .flatMap {
@@ -398,7 +398,7 @@ class PermissionService(
         if (!applicationProperties.authentication.enabled)
             return Unit.right()
 
-        val claims = subjectReferentialService.getUserClaims().bind()
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
 
         subjectReferentialService.hasStellioAdminRole(claims)
             .flatMap {
@@ -445,7 +445,7 @@ class PermissionService(
     private suspend fun buildPermissionAuthorizationFilter(
         kind: PermissionKind = PermissionKind.ADMIN
     ): Either<APIException, WithAndFilter> = either {
-        val claims = subjectReferentialService.getUserClaims().bind()
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
         when (kind) {
             // you can fetch the permission assigned to you
             PermissionKind.ASSIGNED -> "" to buildIsAssigneeFilter(claims)

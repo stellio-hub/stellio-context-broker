@@ -199,7 +199,7 @@ class PermissionHandler(
         )
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
-        val claims = subjectReferentialService.getUserClaims().bind()
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
 
         val permission = permissionService.getById(permissionId).bind()
 

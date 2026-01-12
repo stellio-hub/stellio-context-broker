@@ -2,6 +2,7 @@ package com.egm.stellio.search.authorization.subject.service
 
 import arrow.core.Either
 import arrow.core.getOrElse
+import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.subject.model.Group
 import com.egm.stellio.search.authorization.subject.model.SubjectReferential
@@ -39,8 +40,10 @@ class SubjectReferentialService(
     private val applicationProperties: ApplicationProperties,
     private val databaseClient: DatabaseClient
 ) {
-
-    suspend fun getUserClaims(): Either<APIException, Claims> {
+    // todo fix group claim matching :
+    // - migrate the permission targeting groups to target name instead of uuid
+    // - or put role uuid in token?
+    suspend fun getCurrentSubjectClaims(): Either<APIException, Claims> {
         val claimsPaths = applicationProperties.authentication.claimsPaths
         val token = getTokenFromSecurityContext()
         if (token == null) { return listOf(PUBLIC_SUBJECT).right() }
@@ -54,18 +57,22 @@ class SubjectReferentialService(
                 claim = claim.getOrDefault(it, emptyMap<String, Any>()) as Map<String, Any>
             }
             claim.getOrDefault(leaf, emptyList<String>()) as List<String>
-        }.plus(listOf(AUTHENTICATED_SUBJECT, PUBLIC_SUBJECT)).right()
+        }.plus(listOf(getSubFromSecurityContext(), AUTHENTICATED_SUBJECT, PUBLIC_SUBJECT)).right()
     }
 
     // todo check usage
-    @Deprecated("It is impossible to fetch claims on non authenticated user use getUserClaims()")
-    suspend fun getUserClaims(sub: Sub): Either<APIException, Claims> {
+    @Deprecated("It is impossible to fetch claims on non authenticated user use getCurrentSubjectClaims()")
+    suspend fun getCurrentSubjectClaims(sub: Sub): Either<APIException, Claims> {
         sub
-        return getUserClaims()
+        return getCurrentSubjectClaims()
     }
 
     suspend fun hasStellioAdminRole(claims: Claims): Either<APIException, Boolean> =
         (STELLIO_ADMIN.key in claims).right()
+
+    suspend fun currentSubjectIsAdmin(): Either<APIException, Boolean> = either {
+        STELLIO_ADMIN.key in getCurrentSubjectClaims().bind()
+    }
 
     @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     @Transactional

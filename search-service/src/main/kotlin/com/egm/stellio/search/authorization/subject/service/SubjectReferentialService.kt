@@ -40,7 +40,8 @@ class SubjectReferentialService(
     private val applicationProperties: ApplicationProperties,
     private val databaseClient: DatabaseClient
 ) {
-    // todo fix group claim matching :
+    // todo fix group claim matching
+    // group claims in keycloak use the group name (not the group subjectId) :
     // - migrate the permission targeting groups to target name instead of uuid
     // - or put role uuid in token?
     suspend fun getCurrentSubjectClaims(): Either<APIException, Claims> {

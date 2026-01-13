@@ -84,8 +84,8 @@ suspend fun getTokenFromSecurityContext(): Jwt? {
     return ReactiveSecurityContextHolder.getContext()
         .switchIfEmpty(Mono.just(SecurityContextImpl()))
         .mapNotNull { context ->
-            context.authentication?.credentials as? Jwt
-        }.awaitFirst()
+            (context.authentication?.credentials as Jwt?).toOption()
+        }.awaitFirst().getOrElse { null }
 }
 
 fun URI.extractSub(): Sub =

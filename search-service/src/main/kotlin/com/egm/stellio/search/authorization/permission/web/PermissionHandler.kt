@@ -293,10 +293,6 @@ class PermissionHandler(
             PUBLIC_WITH_NON_READ_EXCEPTION.left().bind<APIException>()
         }
 
-        if (permission.assignee !in GENERIC_SUBJECTS) {
-            subjectReferentialService.retrieve(permission.assignee).bind()
-        }
-
         permission.target.id?.let {
             entityQueryService.checkEntityExistence(it, excludeDeleted = false).bind()
         }

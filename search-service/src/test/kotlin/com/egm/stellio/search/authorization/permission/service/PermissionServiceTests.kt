@@ -30,7 +30,6 @@ import com.egm.stellio.shared.util.BEEKEEPER_IRI
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.loadAndPrepareSampleData
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -42,7 +41,6 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -88,10 +86,6 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
         } answers { listOf(USER_UUID).right() }
-        val capturedSub = slot<Sub>()
-        coEvery { subjectReferentialService.getCurrentSubjectClaims(capture(capturedSub)) } answers {
-            listOfNotNull(capturedSub.captured).right()
-        }
     }
 
     @AfterEach
@@ -514,18 +508,10 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val invalidUser = "INVALID"
         permissionService.create(permission).shouldSucceed()
 
-        coEvery {
-            subjectReferentialService.getCurrentSubjectClaims(USER_UUID)
-        } returns listOf(USER_UUID).right()
-
         val count = permissionService.getPermissionsCount(
             PermissionFilters(assignee = USER_UUID, kind = PermissionKind.ASSIGNED),
         )
         assertEquals(1, count.getOrNull())
-
-        coEvery {
-            subjectReferentialService.getCurrentSubjectClaims(invalidUser)
-        } returns listOf(invalidUser).right()
 
         val countEmpty = permissionService.getPermissionsCount(
             filters = PermissionFilters(assignee = invalidUser, kind = PermissionKind.ASSIGNED)

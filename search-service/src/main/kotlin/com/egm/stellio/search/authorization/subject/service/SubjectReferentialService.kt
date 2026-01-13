@@ -60,13 +60,6 @@ class SubjectReferentialService(
         }.plus(listOf(getSubFromSecurityContext(), AUTHENTICATED_SUBJECT, PUBLIC_SUBJECT)).right()
     }
 
-    // todo check usage
-    @Deprecated("It is impossible to fetch claims on non authenticated user use getCurrentSubjectClaims()")
-    suspend fun getCurrentSubjectClaims(sub: Sub): Either<APIException, Claims> {
-        sub
-        return getCurrentSubjectClaims()
-    }
-
     suspend fun currentSubjectIsAdmin(): Either<APIException, Boolean> = either {
         getCurrentSubjectClaims().bind().containStellioAdmin()
     }

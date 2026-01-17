@@ -10,6 +10,8 @@ import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AttributeProjection
+import com.egm.stellio.shared.model.AttributeProjection.Companion.parsePickOmitParameters
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
@@ -20,7 +22,6 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.parseAttrsParameter
-import com.egm.stellio.shared.util.parsePickOmitParameters
 import com.egm.stellio.shared.util.parseQueryParameter
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.validateIdPattern
@@ -165,8 +166,8 @@ fun composeEntitiesQueryFromPost(
 
 fun validateMutualAttrsProjectionAttributesExclusion(
     attrs: Set<String>,
-    pick: Set<String>,
-    omit: Set<String>
+    pick: List<AttributeProjection>,
+    omit: List<AttributeProjection>
 ): Either<APIException, Unit> =
     if (attrs.isNotEmpty() && (pick.isNotEmpty() || omit.isNotEmpty()))
         BadRequestDataException(

@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepr
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.AuthContextModel.SUBJECT_FUNCTION_DEPRECATED_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.buildQueryResponse
@@ -34,6 +35,7 @@ class SubjectHandler(
     private val authorizationService: AuthorizationService
 ) : BaseHandler() {
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     @GetMapping("/groups", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getGroupsMemberships(
         @RequestHeader httpHeaders: HttpHeaders,
@@ -76,6 +78,7 @@ class SubjectHandler(
         { it }
     )
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     @GetMapping("/users", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getUsers(
         @RequestHeader httpHeaders: HttpHeaders,

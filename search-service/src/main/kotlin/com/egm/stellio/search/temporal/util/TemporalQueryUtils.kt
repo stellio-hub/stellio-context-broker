@@ -24,6 +24,9 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.model.getRootAttributesToOmit
+import com.egm.stellio.shared.model.getRootAttributesToPick
+import com.egm.stellio.shared.model.removeAttributes
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
@@ -206,13 +209,13 @@ private fun expandAttributesFromPickOmit(
 ): Pair<Set<ExpandedTerm>, Set<ExpandedTerm>> =
     entitiesQueryFromGet.let {
         Pair(
-            it.pick.minus(COMPACTED_ENTITY_CORE_MEMBERS),
-            it.omit.minus(COMPACTED_ENTITY_CORE_MEMBERS)
+            it.pick.removeAttributes(COMPACTED_ENTITY_CORE_MEMBERS),
+            it.omit.removeAttributes(COMPACTED_ENTITY_CORE_MEMBERS)
         )
     }.let {
         Pair(
-            it.first.map { attr -> expandJsonLdTerm(attr, contexts) }.toSet(),
-            it.second.map { attr -> expandJsonLdTerm(attr, contexts) }.toSet()
+            it.first.getRootAttributesToPick().map { attr -> expandJsonLdTerm(attr, contexts) }.toSet(),
+            it.second.getRootAttributesToOmit().map { attr -> expandJsonLdTerm(attr, contexts) }.toSet()
         )
     }
 

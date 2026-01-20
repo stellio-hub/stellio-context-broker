@@ -8,27 +8,31 @@ import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 class CompactedEntityLinkedTests {
 
     @Test
-    fun `it shoud extract the object of a relationship`() {
-        val relationshipsObjects = normalizedEntity.getRelationshipsObjects()
+    fun `it shoud extract a single-instance relationship`() {
+        val relationships = normalizedEntity.getRelationshipsNamesWithObjects()
 
-        assertEquals(setOf("urn:ngsi-ld:OffStreetParking:Downtown1".toUri()), relationshipsObjects)
+        assertThat(relationships)
+            .hasSize(1)
+            .containsEntry("isParked", setOf("urn:ngsi-ld:OffStreetParking:Downtown1".toUri()))
     }
 
     @Test
-    fun `it shoud extract the objects of a multi-instance relationship`() {
-        val relationshipsObjects = normalizedMultiAttributeEntity.getRelationshipsObjects()
+    fun `it shoud extract a multi-instance relationship`() {
+        val relationships = normalizedMultiAttributeEntity.getRelationshipsNamesWithObjects()
 
-        assertEquals(setOf("urn:ngsi-ld:Person:John".toUri(), "urn:ngsi-ld:Person:Jane".toUri()), relationshipsObjects)
+        assertThat(relationships)
+            .hasSize(1)
+            .containsEntry("hasOwner", setOf("urn:ngsi-ld:Person:John".toUri(), "urn:ngsi-ld:Person:Jane".toUri()))
     }
 
     @Test
-    fun `it shoud extract the objects of all relationships`() {
+    fun `it shoud extract single and multi-instances of relationships`() {
         val compactedEntity = """
             {
                 "id": "urn:ngsi-ld:Entity:01",
@@ -53,21 +57,21 @@ class CompactedEntityLinkedTests {
             }
         """.trimIndent().deserializeAsMap()
 
-        val relationshipsObjects = compactedEntity.getRelationshipsObjects()
+        val relationships = compactedEntity.getRelationshipsNamesWithObjects()
 
-        assertEquals(
-            setOf(
-                "urn:ngsi-ld:LinkedEntity:01".toUri(),
-                "urn:ngsi-ld:LinkedEntity:02".toUri(),
-                "urn:ngsi-ld:LinkedEntity:03".toUri(),
-                "urn:ngsi-ld:LinkedEntity:04".toUri()
-            ),
-            relationshipsObjects
-        )
+        assertThat(relationships)
+            .hasSize(3)
+            .containsExactlyEntriesOf(
+                mapOf(
+                    "r1" to setOf("urn:ngsi-ld:LinkedEntity:01".toUri()),
+                    "r2" to setOf("urn:ngsi-ld:LinkedEntity:02".toUri()),
+                    "r3" to setOf("urn:ngsi-ld:LinkedEntity:03".toUri(), "urn:ngsi-ld:LinkedEntity:04".toUri())
+                )
+            )
     }
 
     @Test
-    fun `it shoud extract the objects of all relationships without duplicates`() {
+    fun `it shoud extract all relationships without merging duplicate objects`() {
         val compactedEntity = """
             {
                 "id": "urn:ngsi-ld:Entity:01",
@@ -83,13 +87,20 @@ class CompactedEntityLinkedTests {
             }
         """.trimIndent().deserializeAsMap()
 
-        val relationshipsObjects = compactedEntity.getRelationshipsObjects()
+        val relationships = compactedEntity.getRelationshipsNamesWithObjects()
 
-        assertEquals(setOf("urn:ngsi-ld:LinkedEntity:01".toUri()), relationshipsObjects)
+        assertThat(relationships)
+            .hasSize(2)
+            .containsExactlyEntriesOf(
+                mapOf(
+                    "r1" to setOf("urn:ngsi-ld:LinkedEntity:01".toUri()),
+                    "r2" to setOf("urn:ngsi-ld:LinkedEntity:01".toUri())
+                )
+            )
     }
 
     @Test
-    fun `it shoud extract the objects of the relationships of all entities`() {
+    fun `it shoud extract relationships from multiple entities`() {
         val compactedEntities = """
             [{
                 "id": "urn:ngsi-ld:Entity:01",
@@ -116,17 +127,16 @@ class CompactedEntityLinkedTests {
             }]
         """.trimIndent().deserializeAsList()
 
-        val relationshipsObjects = compactedEntities.getRelationshipsObjects()
+        val relationships = compactedEntities.getRelationshipsNamesWithObjects()
 
-        assertEquals(
-            setOf(
-                "urn:ngsi-ld:LinkedEntity:01".toUri(),
-                "urn:ngsi-ld:LinkedEntity:02".toUri(),
-                "urn:ngsi-ld:LinkedEntity:03".toUri(),
-                "urn:ngsi-ld:LinkedEntity:04".toUri()
-            ),
-            relationshipsObjects
-        )
+        assertThat(relationships)
+            .hasSize(2)
+            .containsExactlyEntriesOf(
+                mapOf(
+                    "r1" to setOf("urn:ngsi-ld:LinkedEntity:01".toUri(), "urn:ngsi-ld:LinkedEntity:03".toUri()),
+                    "r2" to setOf("urn:ngsi-ld:LinkedEntity:02".toUri(), "urn:ngsi-ld:LinkedEntity:04".toUri())
+                )
+            )
     }
 
     @Test

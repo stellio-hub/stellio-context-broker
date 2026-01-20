@@ -9,12 +9,15 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
-import com.egm.stellio.shared.model.getRelationshipsObjects
+import com.egm.stellio.shared.model.filterPickAndOmit
+import com.egm.stellio.shared.model.getAttributesToOmitFor
+import com.egm.stellio.shared.model.getAttributesToPickFor
+import com.egm.stellio.shared.model.getRelationshipsNamesWithObjects
 import com.egm.stellio.shared.model.inlineLinkedEntities
-import com.egm.stellio.shared.queryparameter.LinkedEntityQuery
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinType
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
+import com.egm.stellio.shared.util.toUri
 import org.springframework.stereotype.Service
 
 @Service
@@ -25,16 +28,7 @@ class LinkedEntityService(
         compactedEntity: CompactedEntity,
         entitiesQuery: EntitiesQuery
     ): Either<APIException, List<CompactedEntity>> = either {
-        val linkedEntityQuery = entitiesQuery.linkedEntityQuery
-        if (linkedEntityQuery == null || linkedEntityQuery.join == JoinType.NONE)
-            return listOf(compactedEntity).right()
-
-        enrichWithLinkedEntities(
-            listOf(compactedEntity),
-            linkedEntityQuery,
-            entitiesQuery.contexts,
-            1.toUInt()
-        ).bind()
+        processLinkedEntities(listOf(compactedEntity), entitiesQuery).bind()
     }
 
     suspend fun processLinkedEntities(
@@ -45,36 +39,52 @@ class LinkedEntityService(
         if (linkedEntityQuery == null || linkedEntityQuery.join == JoinType.NONE)
             return compactedEntities.right()
 
-        enrichWithLinkedEntities(compactedEntities, linkedEntityQuery, entitiesQuery.contexts, 1.toUInt()).bind()
+        enrichWithLinkedEntities(
+            compactedEntities,
+            entitiesQuery,
+            1.toUInt()
+        ).bind()
     }
 
     internal suspend fun enrichWithLinkedEntities(
         compactedEntities: List<CompactedEntity>,
-        linkedEntityQuery: LinkedEntityQuery,
-        contexts: List<String>,
+        entitiesQuery: EntitiesQuery,
         currentLevel: UInt
     ): Either<APIException, List<CompactedEntity>> = either {
-        val linkedUris = compactedEntities.getRelationshipsObjects()
-        if (currentLevel > linkedEntityQuery.joinLevel || linkedUris.isEmpty())
+        val linkedRelationships = compactedEntities.getRelationshipsNamesWithObjects()
+        if (currentLevel > entitiesQuery.linkedEntityQuery!!.joinLevel || linkedRelationships.isEmpty())
             return compactedEntities.right()
 
         val relationshipsQuery = EntitiesQueryFromGet(
-            ids = linkedUris,
+            ids = linkedRelationships.values.flatten().toSet(),
             paginationQuery = PaginationQuery(0, Int.MAX_VALUE),
-            contexts = contexts
+            contexts = entitiesQuery.contexts
         )
         val linkedEntities = entityQueryService.queryEntities(relationshipsQuery).bind()
             .first
-            .let { compactEntities(it, contexts) }
+            .let { compactEntities(it, entitiesQuery.contexts) }
+            .let {
+                it.map { compactedEntity ->
+                    // If there are two relationships with a different name targeting the same entity,
+                    // using .first() is incorrect (the 1st wins over the 2nd)
+                    // Moreover, this use case is problematic if flatten representation is chosen
+                    val parentAttributeName = linkedRelationships.filter { entry ->
+                        entry.value.contains((compactedEntity[NGSILD_ID_TERM] as String).toUri())
+                    }.keys.first()
+                    compactedEntity.filterPickAndOmit(
+                        entitiesQuery.pick.getAttributesToPickFor(parentAttributeName, currentLevel),
+                        entitiesQuery.omit.getAttributesToOmitFor(parentAttributeName, currentLevel)
+                    ).bind()
+                }
+            }
 
-        when (linkedEntityQuery.join) {
+        when (entitiesQuery.linkedEntityQuery!!.join) {
             JoinType.FLAT ->
                 flattenLinkedEntities(
                     compactedEntities,
                     enrichWithLinkedEntities(
                         linkedEntities,
-                        linkedEntityQuery,
-                        contexts,
+                        entitiesQuery,
                         currentLevel.inc()
                     ).bind()
                 )
@@ -83,12 +93,11 @@ class LinkedEntityService(
                     compactedEntities,
                     enrichWithLinkedEntities(
                         linkedEntities,
-                        linkedEntityQuery,
-                        contexts,
+                        entitiesQuery,
                         currentLevel.inc()
                     ).bind()
                 )
-            // not possible but it needs to be handled anyway
+            // not possible, but it needs to be handled anyway
             else -> compactedEntities
         }
     }

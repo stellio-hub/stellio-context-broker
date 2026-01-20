@@ -48,10 +48,8 @@ class WebClientConfig {
         applicationProperties: ApplicationProperties
     ): ReactiveClientRegistrationRepository {
         val registrations = applicationProperties.tenants.map { tenant ->
-            // derive token endpoint from issuer (Keycloak default path)
-            val tokenUri = tenant.issuer.trimEnd('/') + "/protocol/openid-connect/token"
             ClientRegistration.withRegistrationId(tenant.name)
-                .tokenUri(tokenUri)
+                .tokenUri(tenant.tokenUri)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .clientId(tenant.clientId ?: error("Missing clientId for tenant ${tenant.name}"))
                 .clientSecret(tenant.clientSecret ?: error("Missing clientSecret for tenant ${tenant.name}"))

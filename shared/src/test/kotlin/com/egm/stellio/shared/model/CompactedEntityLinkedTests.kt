@@ -120,7 +120,7 @@ class CompactedEntityLinkedTests {
                     "type": "Relationship",
                     "object": "urn:ngsi-ld:LinkedEntity:03"
                 },
-                "r2": {
+                "r3": {
                     "type": "Relationship",
                     "object": "urn:ngsi-ld:LinkedEntity:04"
                 }
@@ -130,11 +130,12 @@ class CompactedEntityLinkedTests {
         val relationships = compactedEntities.getRelationshipsNamesWithObjects()
 
         assertThat(relationships)
-            .hasSize(2)
+            .hasSize(3)
             .containsExactlyEntriesOf(
                 mapOf(
                     "r1" to setOf("urn:ngsi-ld:LinkedEntity:01".toUri(), "urn:ngsi-ld:LinkedEntity:03".toUri()),
-                    "r2" to setOf("urn:ngsi-ld:LinkedEntity:02".toUri(), "urn:ngsi-ld:LinkedEntity:04".toUri())
+                    "r2" to setOf("urn:ngsi-ld:LinkedEntity:02".toUri()),
+                    "r3" to setOf("urn:ngsi-ld:LinkedEntity:04".toUri())
                 )
             )
     }

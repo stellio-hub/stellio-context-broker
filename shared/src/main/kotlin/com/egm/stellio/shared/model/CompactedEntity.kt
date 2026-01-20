@@ -62,7 +62,7 @@ fun CompactedEntity.getRelationshipsNamesWithObjects(): Map<String, Set<URI>> =
 fun List<CompactedEntity>.getRelationshipsNamesWithObjects(): Map<String, Set<URI>> =
     this.map { it.getRelationshipsNamesWithObjects() }.fold(emptyMap()) { acc, value ->
         (acc.keys + value.keys).associateWith {
-            (acc[it] ?: emptySet()).plus(value[it]!!)
+            (acc[it] ?: emptySet()).plus(value[it] ?: emptySet())
         }
     }
 

@@ -31,8 +31,8 @@ class WithMockCustomUserSecurityContextFactory : WithSecurityContextFactory<With
         val principal = Jwt.withTokenValue("token").header("alg", "none")
             .subject(customUser.sub)
             .claims {
-                it.put("groups", customUser.groups.toList())
-                it.put("realm_access", mapOf<String, Any>("roles" to customUser.roles.toList()))
+                it["groups"] = customUser.groups.toList()
+                it["realm_access"] = mapOf<String, Any>("roles" to customUser.roles.toList())
             }
             .build()
         val auth: Authentication = JwtAuthenticationToken(principal)

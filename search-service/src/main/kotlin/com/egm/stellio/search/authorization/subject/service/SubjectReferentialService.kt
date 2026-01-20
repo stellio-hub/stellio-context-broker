@@ -46,16 +46,14 @@ class SubjectReferentialService(
     // - or put role uuid in token?
     suspend fun getCurrentSubjectClaims(): Either<APIException, Claims> {
         val claimsPaths = applicationProperties.authentication.claimsPaths
-        val token = getTokenFromSecurityContext()
-        if (token == null) { return listOf(PUBLIC_SUBJECT).right() }
+        val token = getTokenFromSecurityContext() ?: return listOf(PUBLIC_SUBJECT).right()
 
         return claimsPaths.flatMap { path ->
             val paths = path.split(".")
             val nodes = paths.dropLast(1)
             val leaf = paths.last()
-            var claim: Map<String, Any> = token.claims
-            nodes.forEach {
-                claim = claim.getOrDefault(it, emptyMap<String, Any>()) as Map<String, Any>
+            val claim: Map<String, Any> = nodes.fold(token.claims as Map<String, Any>) { currentClaim, node ->
+                currentClaim.getOrDefault(node, emptyMap<String, Any>()) as Map<String, Any>
             }
             claim.getOrDefault(leaf, emptyList<String>()) as List<String>
         }.plus(listOf(getSubFromSecurityContext(), AUTHENTICATED_SUBJECT, PUBLIC_SUBJECT)).right()

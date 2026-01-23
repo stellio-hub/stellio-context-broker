@@ -32,6 +32,7 @@ import com.egm.stellio.shared.util.toSqlArray
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
 import org.springframework.data.relational.core.query.Update
@@ -183,7 +184,7 @@ class ContextSourceRegistrationService(
 
     suspend fun delete(id: URI): Either<APIException, Unit> = either {
         checkExistence(id).bind()
-        r2dbcEntityTemplate.delete(ContextSourceRegistration::class.java)
+        r2dbcEntityTemplate.delete<ContextSourceRegistration>()
             .matching(query(where("id").`is`(id)))
             .execute()
     }

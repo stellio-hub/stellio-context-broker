@@ -1,6 +1,6 @@
 package com.egm.stellio.search.common.config
 
-import org.springframework.boot.autoconfigure.kafka.ConcurrentKafkaListenerContainerFactoryConfigurer
+import org.springframework.boot.kafka.autoconfigure.ConcurrentKafkaListenerContainerFactoryConfigurer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
@@ -13,7 +13,7 @@ class KafkaConfig {
     @Bean
     fun kafkaListenerContainerFactory(
         configurer: ConcurrentKafkaListenerContainerFactoryConfigurer,
-        kafkaConsumerFactory: ConsumerFactory<Any?, Any?>?
+        kafkaConsumerFactory: ConsumerFactory<Any, Any>
     ): ConcurrentKafkaListenerContainerFactory<*, *>? {
         val factory = ConcurrentKafkaListenerContainerFactory<Any, Any>()
         configurer.configure(factory, kafkaConsumerFactory)

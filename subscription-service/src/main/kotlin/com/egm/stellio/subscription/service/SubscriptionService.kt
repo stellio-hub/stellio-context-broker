@@ -48,6 +48,7 @@ import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.reactive.awaitFirst
 import org.locationtech.jts.geom.Geometry
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
 import org.springframework.data.relational.core.query.Update
@@ -66,6 +67,19 @@ class SubscriptionService(
     private val r2dbcEntityTemplate: R2dbcEntityTemplate
 ) {
 
+    private val subscriptionBaseQuery = """
+        SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
+            modified_at, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes,
+            notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
+            times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id, 
+            id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
+            pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
+            datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout
+        FROM subscription 
+        LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
+        LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
+    """.trimIndent()
+
     @Transactional
     suspend fun upsert(subscription: Subscription, sub: Sub): Either<APIException, Unit> = either {
         val endpoint = subscription.notification.endpoint
@@ -75,12 +89,12 @@ class SubscriptionService(
                 watched_attributes, notification_trigger, time_interval, q, scope_q, notif_attributes,
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info,
                 times_sent, is_active, expires_at, sub, contexts, throttling, sys_attrs, lang, datasetId,
-                jsonld_context, join_type, join_level, show_changes, pick, omit)
+                jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout)
             VALUES(:id, :type, :subscription_name, :created_at, :modified_at, :description,
                 :watched_attributes, :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes,
                 :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info,
                 :times_sent, :is_active, :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId,
-                :jsonld_context, :join_type, :join_level, :show_changes, :pick, :omit)
+                :jsonld_context, :join_type, :join_level, :show_changes, :pick, :omit, :cooldown, :timeout)
             ON CONFLICT (id)
                 DO UPDATE SET subscription_name = :subscription_name, modified_at = :modified_at, 
                     description = :description, watched_attributes = :watched_attributes, 
@@ -91,7 +105,7 @@ class SubscriptionService(
                     expires_at = :expires_at, sub = :sub, contexts = :contexts, throttling = :throttling,
                     sys_attrs = :sys_attrs, lang = :lang, datasetId = :datasetId, jsonld_context = :jsonld_context,
                     join_type = :join_type, join_level = :join_level, show_changes = :show_changes,
-                    pick = :pick, omit = :omit
+                    pick = :pick, omit = :omit, cooldown = :cooldown, timeout = :timeout
             """.trimIndent()
 
         databaseClient.sql(insertStatement)
@@ -127,6 +141,8 @@ class SubscriptionService(
             .bind("show_changes", subscription.notification.showChanges)
             .bind("pick", subscription.notification.pick?.toTypedArray())
             .bind("omit", subscription.notification.omit?.toTypedArray())
+            .bind("cooldown", subscription.notification.endpoint.cooldown)
+            .bind("timeout", subscription.notification.endpoint.timeout)
             .execute().bind()
 
         subscription.geoQ?.let { geoQ ->
@@ -203,16 +219,7 @@ class SubscriptionService(
     suspend fun getById(id: URI): Subscription {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
-                modified_at, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes,
-                notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
-                times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id, 
-                id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
-                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit
-            FROM subscription 
-            LEFT JOIN entity_selector ON entity_selector.subscription_id = :id
-            LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
+            $subscriptionBaseQuery
             WHERE subscription.id = :id
             """.trimIndent()
 
@@ -267,7 +274,7 @@ class SubscriptionService(
     }
 
     suspend fun delete(subscriptionId: URI): Either<APIException, Unit> =
-        r2dbcEntityTemplate.delete(Subscription::class.java)
+        r2dbcEntityTemplate.delete<Subscription>()
             .matching(query(where("id").`is`(subscriptionId)))
             .execute()
 
@@ -284,16 +291,7 @@ class SubscriptionService(
     suspend fun getSubscriptions(limit: Int, offset: Int, sub: Sub): List<Subscription> {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at, 
-                modified_At, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes, 
-                notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
-                times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
-                id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
-                pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit
-            FROM subscription 
-            LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
-            LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
+            $subscriptionBaseQuery
             WHERE subscription.id in (
                 SELECT subscription.id as sub_id
                 from subscription
@@ -328,21 +326,16 @@ class SubscriptionService(
     ): List<Subscription> {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, description, q,
-                   entity_selector.id as entity_id, entity_selector.id_pattern as id_pattern, 
-                   entity_selector.type_selection as type_selection, georel, geometry, coordinates, pgis_geometry,
-                   geoproperty, scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, 
-                   endpoint_receiver_info, endpoint_notifier_info, contexts, throttling, sys_attrs, lang, 
-                   datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit
-            FROM subscription 
-            LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
-            LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
+            $subscriptionBaseQuery
             WHERE is_active
             AND ( expires_at is null OR expires_at >= :date )
             AND time_interval IS NULL
             AND ( throttling IS NULL 
                 OR (last_notification + throttling * INTERVAL '1 second') < :date
                 OR last_notification IS NULL)
+            AND (cooldown is NULL
+                OR (status = 'FAILED' AND (last_failure + cooldown * INTERVAL '1 millisecond') < :date)
+                OR status = 'OK')
             ${
                 if (updatedAttribute != null)
                     "AND (string_to_array(watched_attributes, ',') && '{ ${updatedAttribute.first} }'" +
@@ -357,7 +350,7 @@ class SubscriptionService(
             """.trimIndent()
         return databaseClient.sql(selectStatement)
             .bind("date", ngsiLdDateTime())
-            .allToMappedList { rowToMinimalMatchSubscription(it) }
+            .allToMappedList { rowToSubscription(it) }
             .mergeEntitySelectorsOnSubscriptions()
     }
 
@@ -471,8 +464,10 @@ class SubscriptionService(
                 endpoint = Endpoint(
                     uri = toUri(row["endpoint_uri"]),
                     accept = toEnum(row["endpoint_accept"]!!),
+                    cooldown = toNullableInt(row["cooldown"]),
                     receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
-                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"]))
+                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"])),
+                    timeout = toNullableInt(row["timeout"])
                 ),
                 status = toOptionalEnum<NotificationParams.StatusType>(row["status"]),
                 timesSent = row["times_sent"] as Int,
@@ -485,45 +480,6 @@ class SubscriptionService(
                 showChanges = row["show_changes"] as Boolean
             ),
             isActive = toBoolean(row["is_active"]),
-            contexts = toList(row["contexts"]!!),
-            throttling = toNullableInt(row["throttling"]),
-            lang = row["lang"] as? String,
-            datasetId = toNullableList(row["datasetId"]),
-            jsonldContext = toNullableUri(row["jsonld_context"])
-        )
-    }
-
-    private val rowToMinimalMatchSubscription: ((Map<String, Any>) -> Subscription) = { row ->
-        Subscription(
-            id = toUri(row["sub_id"]),
-            type = row["sub_type"] as String,
-            subscriptionName = row["subscription_name"] as? String,
-            description = row["description"] as? String,
-            q = row["q"] as? String,
-            scopeQ = row["scope_q"] as? String,
-            entities = rowToEntityInfo(row)?.let { setOf(it) },
-            geoQ = rowToGeoQ(row),
-            notification = NotificationParams(
-                attributes = (row["notif_attributes"] as? String)?.split(","),
-                pick = toNullableSet(row["pick"]),
-                omit = toNullableSet(row["omit"]),
-                format = toEnum(row["notif_format"]!!),
-                endpoint = Endpoint(
-                    uri = toUri(row["endpoint_uri"]),
-                    accept = toEnum(row["endpoint_accept"]!!),
-                    receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
-                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"]))
-                ),
-                status = null,
-                timesSent = row["times_sent"] as Int,
-                lastNotification = null,
-                lastFailure = null,
-                lastSuccess = null,
-                sysAttrs = row["sys_attrs"] as Boolean,
-                join = toOptionalEnum<JoinType>(row["join_type"]),
-                joinLevel = row["join_level"] as? Int,
-                showChanges = row["show_changes"] as Boolean
-            ),
             contexts = toList(row["contexts"]!!),
             throttling = toNullableInt(row["throttling"]),
             lang = row["lang"] as? String,
@@ -557,16 +513,7 @@ class SubscriptionService(
     suspend fun getRecurringSubscriptionsToNotify(): List<Subscription> {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
-                modified_At, expires_at, description, watched_attributes, notification_trigger, time_interval, q, 
-                scope_q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info,
-                endpoint_notifier_info, status, times_sent, last_notification, last_failure, last_success, is_active, 
-                entity_selector.id as entity_id, id_pattern, entity_selector.type_selection as type_selection, georel,
-                geometry, coordinates, pgis_geometry, geoproperty, contexts, throttling, sys_attrs, lang, 
-                datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit
-            FROM subscription
-            LEFT JOIN entity_selector ON entity_selector.subscription_id = subscription.id
-            LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
+            $subscriptionBaseQuery
             WHERE time_interval IS NOT NULL
             AND (last_notification IS NULL 
                 OR ((EXTRACT(EPOCH FROM last_notification) + time_interval) < EXTRACT(EPOCH FROM :currentDate))

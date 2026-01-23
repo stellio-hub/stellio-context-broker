@@ -630,7 +630,13 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_IRI, null).shouldSucceed()
 
         coVerify {
-            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_IRI, null, false, false)
+            entityAttributeService.checkEntityAndAttributeExistence(
+                beehiveTestCId,
+                INCOMING_IRI,
+                null,
+                anyAttributeInstance = false,
+                excludeDeleted = false
+            )
             entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_IRI, null, false)
             entityAttributeService.getAllForEntity(beehiveTestCId)
         }
@@ -657,7 +663,13 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
 
         coVerify {
-            entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, OUTGOING_IRI, null, false, false)
+            entityAttributeService.checkEntityAndAttributeExistence(
+                beehiveTestCId,
+                OUTGOING_IRI,
+                null,
+                anyAttributeInstance = false,
+                excludeDeleted = false
+            )
         }
         coVerify(exactly = 0) {
             entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_IRI, null, false)

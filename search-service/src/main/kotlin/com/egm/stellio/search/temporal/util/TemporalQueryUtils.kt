@@ -24,6 +24,9 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.model.getRootAttributesToOmit
+import com.egm.stellio.shared.model.getRootAttributesToPick
+import com.egm.stellio.shared.model.removeAttributes
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
@@ -86,13 +89,13 @@ fun composeTemporalEntitiesQueryFromPost(
         OptionsValue.AUDIT
     ).bind()
     val temporalParams = mapOf(
-        QueryParameter.TIMEREL.key to listOf(query.temporalQ?.timerel),
-        QueryParameter.TIMEAT.key to listOf(query.temporalQ?.timeAt),
-        QueryParameter.ENDTIMEAT.key to listOf(query.temporalQ?.endTimeAt),
-        QueryParameter.AGGRPERIODDURATION.key to listOf(query.temporalQ?.aggrPeriodDuration),
-        QueryParameter.AGGRMETHODS.key to query.temporalQ?.aggrMethods,
-        QueryParameter.LASTN.key to listOf(query.temporalQ?.lastN.toString()),
-        QueryParameter.TIMEPROPERTY.key to listOf(query.temporalQ?.timeproperty)
+        QueryParameter.TIMEREL.key to listOfNotNull(query.temporalQ?.timerel),
+        QueryParameter.TIMEAT.key to listOfNotNull(query.temporalQ?.timeAt),
+        QueryParameter.ENDTIMEAT.key to listOfNotNull(query.temporalQ?.endTimeAt),
+        QueryParameter.AGGRPERIODDURATION.key to listOfNotNull(query.temporalQ?.aggrPeriodDuration),
+        QueryParameter.AGGRMETHODS.key to (query.temporalQ?.aggrMethods ?: emptyList()),
+        QueryParameter.LASTN.key to listOfNotNull(query.temporalQ?.lastN.toString()),
+        QueryParameter.TIMEPROPERTY.key to listOfNotNull(query.temporalQ?.timeproperty)
     )
     val temporalQuery = buildTemporalQuery(
         MultiValueMapAdapter(temporalParams),
@@ -206,13 +209,13 @@ private fun expandAttributesFromPickOmit(
 ): Pair<Set<ExpandedTerm>, Set<ExpandedTerm>> =
     entitiesQueryFromGet.let {
         Pair(
-            it.pick.minus(COMPACTED_ENTITY_CORE_MEMBERS),
-            it.omit.minus(COMPACTED_ENTITY_CORE_MEMBERS)
+            it.pick.removeAttributes(COMPACTED_ENTITY_CORE_MEMBERS),
+            it.omit.removeAttributes(COMPACTED_ENTITY_CORE_MEMBERS)
         )
     }.let {
         Pair(
-            it.first.map { attr -> expandJsonLdTerm(attr, contexts) }.toSet(),
-            it.second.map { attr -> expandJsonLdTerm(attr, contexts) }.toSet()
+            it.first.getRootAttributesToPick().map { attr -> expandJsonLdTerm(attr, contexts) }.toSet(),
+            it.second.getRootAttributesToOmit().map { attr -> expandJsonLdTerm(attr, contexts) }.toSet()
         )
     }
 

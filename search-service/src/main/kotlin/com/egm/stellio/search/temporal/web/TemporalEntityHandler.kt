@@ -18,6 +18,8 @@ import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
+import com.egm.stellio.shared.model.getRootAttributesToOmit
+import com.egm.stellio.shared.model.getRootAttributesToPick
 import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.queryparameter.AllowedParameters
@@ -141,9 +143,12 @@ class TemporalEntityHandler(
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT,
                 QP.ENDTIMEAT, QP.LASTN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.SCOPEQ, QP.DATASET_ID,
-                QP.PICK, QP.OMIT
+                QP.PICK, QP.OMIT, QP.ORDER_BY
             ],
-            notImplemented = [QP.LOCAL, QP.VIA, QP.EXPAND_VALUES, QP.CSF]
+            notImplemented = [
+                QP.LOCAL, QP.VIA, QP.EXPAND_VALUES, QP.CSF,
+                QP.COLLATION, QP.ORDER_FROM, QP.ORDER_GEOMETRY
+            ]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -158,7 +163,10 @@ class TemporalEntityHandler(
         ).bind()
 
         val compactedEntities = compactEntities(temporalEntities, contexts)
-            .filterPickAndOmit(temporalEntitiesQuery.entitiesQuery.pick, temporalEntitiesQuery.entitiesQuery.omit)
+            .filterPickAndOmit(
+                temporalEntitiesQuery.entitiesQuery.pick.getRootAttributesToPick(),
+                temporalEntitiesQuery.entitiesQuery.omit.getRootAttributesToOmit()
+            )
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
         buildEntitiesTemporalResponse(
@@ -205,8 +213,8 @@ class TemporalEntityHandler(
 
         val compactedEntity = compactEntity(temporalEntity, contexts)
             .filterPickAndOmit(
-                temporalEntitiesQuery.entitiesQuery.pick,
-                temporalEntitiesQuery.entitiesQuery.omit
+                temporalEntitiesQuery.entitiesQuery.pick.getRootAttributesToPick(),
+                temporalEntitiesQuery.entitiesQuery.omit.getRootAttributesToOmit(),
             ).bind()
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 

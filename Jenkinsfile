@@ -68,7 +68,8 @@ pipeline {
                 }
             }
             steps {
-                sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW'
+                sh 'docker login'
+                sh './gradlew bootBuildImage --publishImage'
             }
         }
         /* Used when we want to publish images for a specific tag (e.g., FIWARE versions) */
@@ -79,9 +80,10 @@ pipeline {
                     if (currentTags.size() > 0 && currentTags[0].trim() != "") {
                         for (int i = 0; i < currentTags.size(); ++i) {
                             env.CURRENT_TAG = currentTags[i]
-                            sh './gradlew jib -Djib.to.image=stellio/stellio-api-gateway:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p api-gateway'
-                            sh './gradlew jib -Djib.to.image=stellio/stellio-search-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p search-service'
-                            sh './gradlew jib -Djib.to.image=stellio/stellio-subscription-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p subscription-service'
+                            sh 'docker login'
+                            sh './gradlew bootBuildImage --publishImage --tags=stellio/stellio-api-gateway:$CURRENT_TAG -p api-gateway'
+                            sh './gradlew bootBuildImage --publishImage --tags=stellio/stellio-search-service:$CURRENT_TAG -p search-service'
+                            sh './gradlew bootBuildImage --publishImage --tags=stellio/stellio-subscription-service:$CURRENT_TAG -p subscription-service'
                         }
                     }
                 }

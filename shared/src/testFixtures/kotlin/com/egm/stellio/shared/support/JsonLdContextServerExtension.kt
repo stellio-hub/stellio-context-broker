@@ -4,9 +4,12 @@ import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.ok
 import com.github.tomakehurst.wiremock.client.WireMock.stubFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
+import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
@@ -15,7 +18,9 @@ import org.slf4j.LoggerFactory
 
 const val MOCK_SERVER_PORT = 8093
 
-class JsonLdContextServerExtension : BeforeAllCallback, AfterAllCallback {
+class JsonLdContextServerExtension(
+    val port: Int = MOCK_SERVER_PORT
+) : BeforeAllCallback, AfterAllCallback {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -24,12 +29,12 @@ class JsonLdContextServerExtension : BeforeAllCallback, AfterAllCallback {
     override fun beforeAll(context: ExtensionContext) {
         wireMockServer = WireMockServer(
             options()
-                .port(MOCK_SERVER_PORT)
+                .port(port)
                 .usingFilesUnderClasspath("wiremock")
                 .globalTemplating(true)
         )
         wireMockServer.start()
-        WireMock.configureFor("localhost", MOCK_SERVER_PORT)
+        WireMock.configureFor("localhost", port)
         stubFor(
             get(urlPathMatching("/jsonld-contexts/.*"))
                 .willReturn(
@@ -44,5 +49,13 @@ class JsonLdContextServerExtension : BeforeAllCallback, AfterAllCallback {
 
     override fun afterAll(context: ExtensionContext) {
         wireMockServer.stop()
+    }
+
+    fun resetAllRequests() {
+        WireMock.resetAllRequests()
+    }
+
+    fun checkGetOnUrlPath(urlPath: String) {
+        verify(1, getRequestedFor(urlPathEqualTo(urlPath)))
     }
 }

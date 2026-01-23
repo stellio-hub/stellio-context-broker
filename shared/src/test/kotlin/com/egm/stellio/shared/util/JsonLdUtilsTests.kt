@@ -12,24 +12,30 @@ import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.NGSILD_OBSERVATION_SPACE_IRI
 import com.egm.stellio.shared.model.NGSILD_PREFIX
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.model.getMemberValueAsString
+import com.egm.stellio.shared.support.JsonLdContextServerExtension
 import com.egm.stellio.shared.util.JsonLdUtils.compactAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
+import com.egm.stellio.shared.util.JsonLdUtils.deleteAndReload
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntitySafe
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.extension.RegisterExtension
 
 class JsonLdUtilsTests {
 
@@ -402,5 +408,57 @@ class JsonLdUtilsTests {
                 )
             )
         )
+    }
+
+    @Test
+    fun `it should return a ResourceNotFound exception if a context is not found into the cache`() = runTest {
+        val contextUrl = "http://localhost:8094/jsonld-contexts/never-encountered-context.jsonld"
+        deleteAndReload(contextUrl.toUri(), false).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+            assertEquals(
+                "Context with id $contextUrl was not found in the cache",
+                it.message
+            )
+        }
+    }
+
+    @Test
+    fun `it should delete and reload a context from the cache`() = runTest {
+        val contextUrl = "http://localhost:8094/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+
+        // expand a term to populate the cache
+        expandJsonLdTerm(INCOMING_TERM, listOf(contextUrl))
+
+        jsonLdContextServerExtension.checkGetOnUrlPath("/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld")
+        jsonLdContextServerExtension.resetAllRequests()
+
+        deleteAndReload(contextUrl.toUri(), true).shouldSucceed()
+
+        jsonLdContextServerExtension.checkGetOnUrlPath("/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld")
+    }
+
+    @Test
+    fun `it should delete a context from the cache and use the refreshed one`() = runTest {
+        val contextUrl = "http://localhost:8094/jsonld-contexts/apic.jsonld"
+
+        assertEquals(
+            INCOMING_IRI,
+            expandJsonLdTerm(INCOMING_TERM, listOf(contextUrl))
+        )
+
+        deleteAndReload(contextUrl.toUri(), false).shouldSucceed()
+
+        val otherNamespaceContextUrl = "http://localhost:8094/jsonld-contexts/apic-other-namespace.jsonld"
+        assertEquals(
+            "https://vocab.egm.io/incoming",
+            expandJsonLdTerm(INCOMING_TERM, listOf(otherNamespaceContextUrl))
+        )
+    }
+
+    companion object {
+        // Create a specific instance of the JSON-LD context server extension to be able to call check methods on it
+        @JvmStatic
+        @RegisterExtension
+        private val jsonLdContextServerExtension = JsonLdContextServerExtension(8094)
     }
 }

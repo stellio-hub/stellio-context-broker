@@ -8,8 +8,10 @@ import java.net.URI
 data class Endpoint(
     val uri: URI,
     val accept: AcceptType = JSON,
+    val cooldown: Int? = null,
+    val notifierInfo: List<EndpointInfo>? = null,
     val receiverInfo: List<EndpointInfo>? = null,
-    val notifierInfo: List<EndpointInfo>? = null
+    val timeout: Int? = null
 ) {
 
     enum class AcceptType(val accept: String) {
@@ -25,6 +27,9 @@ data class Endpoint(
 
     companion object {
 
+        // set a default timeout of 30 seconds when none specified
+        const val DEFAULT_TIMEOUT = 30000L
+
         const val MQTT_SCHEME = "mqtt"
         const val MQTTS_SCHEME = "mqtts"
         const val HTTP_SCHEME = "http"
@@ -36,5 +41,9 @@ data class Endpoint(
                 DataTypes.convertToList(input)
             else null
         }
+    }
+
+    fun computeTimeout(): Long {
+        return timeout?.toLong() ?: DEFAULT_TIMEOUT
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.bodyToMono
 import java.net.URI
 
 @Component
@@ -30,7 +31,7 @@ class CoreAPIService(
             .header(NGSILD_TENANT_HEADER, tenantName)
             .attributes(ServerOAuth2AuthorizedClientExchangeFilterFunction.clientRegistrationId(tenantName))
             .retrieve()
-            .bodyToMono(String::class.java)
+            .bodyToMono<String>()
             .map { deserializeListOfObjects(it) }
             .awaitFirst()
 
@@ -48,7 +49,7 @@ class CoreAPIService(
             .header(NGSILD_TENANT_HEADER, tenantName)
             .attributes(ServerOAuth2AuthorizedClientExchangeFilterFunction.clientRegistrationId(tenantName))
             .retrieve()
-            .bodyToMono(String::class.java)
+            .bodyToMono<String>()
             .map {
                 // flaky way to know if the response is a single entity or a list of entities
                 if (it.startsWith("["))
@@ -64,7 +65,7 @@ class CoreAPIService(
         val params = StringBuilder()
 
         if (!notificationParams.attributes.isNullOrEmpty()) {
-            val attrsParam = notificationParams.attributes!!.joinToString(",") { it.encode() }
+            val attrsParam = notificationParams.attributes.joinToString(",") { it.encode() }
             params.append("&${QueryParameter.ATTRS.key}=$attrsParam")
         }
         if (!notificationParams.pick.isNullOrEmpty()) {

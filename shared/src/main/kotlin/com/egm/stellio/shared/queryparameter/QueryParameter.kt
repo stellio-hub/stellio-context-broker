@@ -22,6 +22,7 @@ enum class QueryParameter(
     OPTIONS("options"),
     FORMAT("format"),
     OBSERVED_AT("observedAt"),
+    ORDER_BY("orderBy"),
 
     // geoQuery
     GEOREL("georel"),
@@ -54,11 +55,18 @@ enum class QueryParameter(
 
     DELETE_ALL("deleteAll"),
 
+    // jsonldContexts
+    RELOAD("reload"),
+
     // not implemented yet
     EXPAND_VALUES("expandValues"),
     CSF("csf"),
     ENTITY_MAP("entityMap"),
     DETAILS("details"),
+    COLLATION("collation"),
+    ORDER_FROM("orderFrom"),
+    ORDER_GEOMETRY("orderGeometry"),
+    JSON_KEYS("jsonKeys"),
 
     // 6.3.18 limiting distributed operations
     LOCAL("local"),

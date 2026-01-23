@@ -36,6 +36,7 @@ import com.egm.stellio.shared.util.toSqlArray
 import com.egm.stellio.shared.util.toSqlList
 import com.egm.stellio.shared.util.toUri
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
 import org.springframework.r2dbc.core.DatabaseClient
@@ -215,12 +216,13 @@ class PermissionService(
 
         return databaseClient.sql(selectStatement)
             .bind("id", id)
-            .oneToResult { rowToPermission(it).bind() }
+            .oneToResult { rowToPermission(it) }
+            .bind()
     }
 
     suspend fun delete(id: URI): Either<APIException, Unit> = either {
         checkExistence(id).bind()
-        r2dbcEntityTemplate.delete(Permission::class.java)
+        r2dbcEntityTemplate.delete<Permission>()
             .matching(query(where("id").`is`(id)))
             .execute()
     }
@@ -260,7 +262,8 @@ class PermissionService(
         databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
-            .allToMappedList { rowToPermission(it).bind() }
+            .allToMappedList { rowToPermission(it) }
+            .bindAll()
     }
 
     suspend fun getPermissionsCount(

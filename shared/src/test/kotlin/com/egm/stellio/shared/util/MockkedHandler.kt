@@ -19,7 +19,7 @@ import com.egm.stellio.shared.web.ExceptionHandler as customExceptionHandler
 class MockkedHandler : customExceptionHandler() {
 
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun post() = ResponseEntity.status(HttpStatus.CREATED).build<String>()
+    fun post(): ResponseEntity<String> = ResponseEntity.status(HttpStatus.CREATED).build<String>()
 
     @PostMapping("/validate-json-ld-fragment")
     suspend fun validateJsonLdFragment(@RequestBody body: Mono<String>): ResponseEntity<*> {

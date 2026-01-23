@@ -35,7 +35,7 @@ fun String.checkNameIsNgsiLdSupported(): Either<APIException, Unit> =
 /**
  * Returns whether the given string is a supported name as defined in 4.6.2
  */
-private fun String.isNgsiLdSupportedName(): Boolean =
+fun String.isNgsiLdSupportedName(): Boolean =
     this.all { char -> char.isLetterOrDigit() || listOf(':', '_', '@').contains(char) }
 
 val scopeNameRegex: Regex = """^/?\p{L}+[\p{L}\w]*(/\p{L}+[\p{L}\w]*)*$""".toRegex()
@@ -45,7 +45,7 @@ fun Any.checkScopesNamesAreNgsiLdSupported(): Either<APIException, Unit> {
     return either {
         when (rawScope) {
             is String -> rawScope.checkScopeNameIsNgsiLdSupported().bind()
-            is List<*> -> (rawScope as List<String>).map { it.checkScopeNameIsNgsiLdSupported().bind() }
+            is List<*> -> (rawScope as List<String>).forEach { it.checkScopeNameIsNgsiLdSupported().bind() }
             else -> Unit.right().bind()
         }
     }

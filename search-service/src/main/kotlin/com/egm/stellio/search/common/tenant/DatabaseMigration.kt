@@ -3,8 +3,8 @@ package com.egm.stellio.search.common.tenant
 import com.egm.stellio.shared.config.ApplicationProperties
 import jakarta.annotation.PostConstruct
 import org.flywaydb.core.Flyway
-import org.springframework.boot.autoconfigure.flyway.FlywayProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.boot.flyway.autoconfigure.FlywayProperties
 import org.springframework.boot.jdbc.DataSourceBuilder
 import org.springframework.context.annotation.Configuration
 import org.springframework.jdbc.datasource.SimpleDriverDataSource
@@ -37,7 +37,7 @@ class DatabaseMigration(
         DataSourceBuilder.create()
             .driverClassName("org.postgresql.Driver")
             .type(SimpleDriverDataSource::class.java)
-            .url(flywayProperties.url)
+            .url(flywayProperties.url as String)
             .username(flywayProperties.user)
             .password(flywayProperties.password)
             .build()

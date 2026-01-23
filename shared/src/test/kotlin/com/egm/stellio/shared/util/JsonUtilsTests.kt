@@ -147,6 +147,6 @@ class JsonUtilsTests {
             rawEntity.deserializeAsMap()
         }
         assertThat(exception.detail)
-            .startsWith("Unexpected character (',' (code 44)): was expecting double-quote to start field name")
+            .startsWith("Unexpected character (',' (code 44)): was expecting double-quote to start property name")
     }
 }

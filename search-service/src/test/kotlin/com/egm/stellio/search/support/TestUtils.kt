@@ -73,8 +73,8 @@ fun buildAttributeInstancePayload(
 )
 
 const val EMPTY_PAYLOAD = "{}"
-val EMPTY_JSON_PAYLOAD = Json.of(EMPTY_PAYLOAD)
-val SAMPLE_JSON_PROPERTY_PAYLOAD = Json.of(
+val EMPTY_JSON_PAYLOAD: Json = Json.of(EMPTY_PAYLOAD)
+val SAMPLE_JSON_PROPERTY_PAYLOAD: Json = Json.of(
     """
     {
       "id": "123",
@@ -83,7 +83,7 @@ val SAMPLE_JSON_PROPERTY_PAYLOAD = Json.of(
     }
     """.trimIndent()
 )
-val SAMPLE_LANGUAGE_PROPERTY_PAYLOAD = Json.of(
+val SAMPLE_LANGUAGE_PROPERTY_PAYLOAD: Json = Json.of(
     """
     {
       "https://uri.etsi.org/ngsi-ld/hasLanguageMap": [
@@ -102,7 +102,7 @@ val SAMPLE_LANGUAGE_PROPERTY_PAYLOAD = Json.of(
     }
     """.trimIndent()
 )
-val SAMPLE_VOCAB_PROPERTY_PAYLOAD = Json.of(
+val SAMPLE_VOCAB_PROPERTY_PAYLOAD: Json = Json.of(
     """
     {
       "https://uri.etsi.org/ngsi-ld/hasVocab": [
@@ -120,7 +120,7 @@ val SAMPLE_VOCAB_PROPERTY_PAYLOAD = Json.of(
     """.trimIndent()
 )
 
-val SAMPLE_LOCATION_PROPERTY_PAYLOAD = Json.of(
+val SAMPLE_LOCATION_PROPERTY_PAYLOAD: Json = Json.of(
     """
     {
       "https://uri.etsi.org/ngsi-ld/location": [

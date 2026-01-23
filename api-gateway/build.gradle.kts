@@ -1,26 +1,15 @@
-import com.google.cloud.tools.jib.gradle.PlatformParameters
-
 plugins {
-    id("com.google.cloud.tools.jib")
     id("org.springframework.boot")
 }
 
 dependencies {
-    // Temporary until a new Spring Cloud release is published
-    // with a fixed version for https://github.com/advisories/GHSA-q2cj-h8fw-q4cc
-    implementation("org.springframework.cloud:spring-cloud-gateway-server-webflux") {
-        version {
-            strictly("4.3.1")
-        }
-    }
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux")
-    implementation("org.zalando:logbook-spring-boot-webflux-autoconfigure:3.12.3")
-
-    // https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#test_framework_implementation_dependencies
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation("org.springframework.boot:spring-boot-starter-webclient")
+    implementation("org.zalando:logbook-spring-boot-webflux-autoconfigure:4.0.0-RC.1")
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")
+
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 springBoot {
@@ -31,9 +20,14 @@ springBoot {
     }
 }
 
-jib.from.image = project.ext["jibFromImage"].toString()
-jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParameters>)
-jib.to.image = "stellio/stellio-api-gateway:${project.version}"
-jib.container.ports = listOf("8080")
-jib.container.creationTime.set(project.ext["jibContainerCreationTime"].toString())
-jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)
+tasks.bootBuildImage {
+    imageName = "stellio/stellio-api-gateway:${project.version}"
+    imagePlatform = "linux/amd64"
+
+    val buildpackEnvironment = project.ext["buildpackEnvironment"] as? Map<String, String> ?: emptyMap()
+    val buildpackRuntimeEnvironment = project.ext["buildpackRuntimeEnvironment"] as? Map<String, String> ?: emptyMap()
+    val buildpackOciLabels = project.ext["buildpackOciLabels"] as? Map<String, String> ?: emptyMap()
+    environment = buildpackEnvironment
+        .plus(buildpackRuntimeEnvironment)
+        .plus(buildpackOciLabels)
+}

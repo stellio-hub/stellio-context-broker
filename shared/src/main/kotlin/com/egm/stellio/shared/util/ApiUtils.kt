@@ -32,8 +32,8 @@ const val JSON_LD_CONTENT_TYPE = "application/ld+json"
 const val GEO_JSON_CONTENT_TYPE = "application/geo+json"
 const val JSON_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
 
-val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
-val GEO_JSON_MEDIA_TYPE = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
+val JSON_LD_MEDIA_TYPE: MediaType = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
+val GEO_JSON_MEDIA_TYPE: MediaType = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
 
 val qPattern: Pattern = Pattern.compile("([^();|]+)")
 val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
@@ -277,39 +277,3 @@ fun parseAttrsParameter(attrsParam: String?, contexts: List<String>): Either<API
     }.map {
         expandJsonLdTerm(it.trim(), contexts)
     }.toSet().right()
-
-/**
- * Parse and expand pick/omit parameters according to NGSI-LD Attribute Projection Language ABNF grammar
- * as defined in section 4.21 of the NGSI-LD specification.
- */
-fun parsePickOmitParameters(
-    pickParam: String?,
-    omitParam: String?
-): Either<APIException, Pair<Set<String>, Set<String>>> = either {
-    val pick = pickParam?.let { pickValue ->
-        parseAttributeProjectionList(pickValue, "pick").bind()
-    } ?: emptySet()
-
-    val omit = omitParam?.let { omitValue ->
-        parseAttributeProjectionList(omitValue, "omit").bind()
-    } ?: emptySet()
-
-    Pair(pick, omit)
-}
-
-private fun parseAttributeProjectionList(
-    paramValue: String,
-    paramName: String
-): Either<APIException, Set<String>> = either {
-    if (paramValue.isBlank()) {
-        BadRequestDataException("The '$paramName' parameter cannot be empty").left().bind<Set<String>>()
-    }
-
-    val entityMembers = paramValue.split(",", "|").map { it.trim() }
-
-    entityMembers.forEach { attrName ->
-        attrName.checkNameIsNgsiLdSupported().bind()
-    }
-
-    entityMembers.toSet()
-}

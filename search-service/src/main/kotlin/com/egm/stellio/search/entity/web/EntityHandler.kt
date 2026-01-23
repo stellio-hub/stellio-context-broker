@@ -20,6 +20,8 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.applyDatasetView
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.filterPickAndOmit
+import com.egm.stellio.shared.model.getRootAttributesToOmit
+import com.egm.stellio.shared.model.getRootAttributesToPick
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.queryparameter.AllowedParameters
@@ -174,8 +176,7 @@ class EntityHandler(
 
         val (result, remainingEntity) =
             if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
-                distributedEntityProvisionService
-                    .distributeReplaceEntity(expandedEntity, contexts, queryParams)
+                distributedEntityProvisionService.distributeReplaceEntity(expandedEntity, contexts, queryParams)
             } else BatchOperationResult() to expandedEntity
 
         if (remainingEntity != null) {
@@ -213,9 +214,13 @@ class EntityHandler(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY,
-                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID, QP.LOCAL, QP.PICK, QP.OMIT
+                QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID, QP.LOCAL, QP.PICK, QP.OMIT,
+                QP.ORDER_BY
             ],
-            notImplemented = [QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.VIA]
+            notImplemented = [
+                QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.VIA,
+                QP.COLLATION, QP.ORDER_FROM, QP.ORDER_GEOMETRY
+            ]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -226,15 +231,15 @@ class EntityHandler(
         val entitiesQuery = composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
             .validateMinimalQueryEntitiesParameters().bind()
 
-        val (expandedEntities, localCount) = entityQueryService.queryEntities(entitiesQuery).bind()
+        val (localEntities, localCount) = either {
+            val (expandedEntities, count) = entityQueryService.queryEntities(entitiesQuery).bind()
 
-        val filteredEntities = expandedEntities.filterAttributes(entitiesQuery.attrs)
-            .applyDatasetView(entitiesQuery.datasetId)
+            val filteredEntities = expandedEntities.filterAttributes(entitiesQuery.attrs)
+                .applyDatasetView(entitiesQuery.datasetId)
+            val compactedEntities = compactEntities(filteredEntities, contexts)
 
-        val localEntities =
-            compactEntities(filteredEntities, contexts).let {
-                linkedEntityService.processLinkedEntities(it, entitiesQuery).bind()
-            }
+            Pair(compactedEntities, count)
+        }.bind()
 
         val (warnings, entities, count) =
             if (!entitiesQuery.local) {
@@ -255,7 +260,12 @@ class EntityHandler(
                 Triple(warnings, mergedEntities, maxCount)
             } else Triple(emptyList(), localEntities, localCount)
 
-        val finalEntities = entities.filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit)
+        val finalEntities = entities.filterPickAndOmit(
+            entitiesQuery.pick.getRootAttributesToPick(),
+            entitiesQuery.omit.getRootAttributesToOmit()
+        ).let {
+            linkedEntityService.processLinkedEntities(it, entitiesQuery).bind()
+        }
 
         buildQueryResponse(
             finalEntities.toFinalRepresentation(ngsiLdDataRepresentation),
@@ -291,11 +301,7 @@ class EntityHandler(
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
 
         val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
-        val entitiesQuery = composeEntitiesQueryFromGet(
-            applicationProperties.pagination,
-            queryParams,
-            contexts
-        ).bind()
+        val entitiesQuery = composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
 
         val localEntity = either {
             val expandedEntity = entityQueryService.queryEntity(entityId).bind()
@@ -308,9 +314,9 @@ class EntityHandler(
         }
 
         val (entity, warnings) =
-            if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
-                val (warnings, remoteEntitiesWithCSR) = distributedEntityConsumptionService
-                    .distributeRetrieveEntityOperation(
+            if (!entitiesQuery.local) {
+                val (warnings, remoteEntitiesWithCSR) =
+                    distributedEntityConsumptionService.distributeRetrieveEntityOperation(
                         entityId,
                         entitiesQuery,
                         httpHeaders,
@@ -330,16 +336,20 @@ class EntityHandler(
             return localError!!.toErrorResponse().addWarnings(warnings)
         }
 
-        val finalEntity = entity.filterPickAndOmit(entitiesQuery.pick, entitiesQuery.omit).bind()
-        val mergedEntityWithLinkedEntities =
-            linkedEntityService.processLinkedEntities(finalEntity, entitiesQuery).bind()
+        val finalEntities = entity.filterPickAndOmit(
+            entitiesQuery.pick.getRootAttributesToPick(),
+            entitiesQuery.omit.getRootAttributesToOmit()
+        ).bind()
+            .let {
+                linkedEntityService.processLinkedEntities(it, entitiesQuery).bind()
+            }
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .let {
-                val body = if (mergedEntityWithLinkedEntities.size == 1)
-                    serializeObject(mergedEntityWithLinkedEntities[0].toFinalRepresentation(ngsiLdDataRepresentation))
+                val body = if (finalEntities.size == 1)
+                    serializeObject(finalEntities[0].toFinalRepresentation(ngsiLdDataRepresentation))
                 else
-                    serializeObject(mergedEntityWithLinkedEntities.toFinalRepresentation(ngsiLdDataRepresentation))
+                    serializeObject(finalEntities.toFinalRepresentation(ngsiLdDataRepresentation))
                 it.body(body)
             }
             .addWarnings(warnings)

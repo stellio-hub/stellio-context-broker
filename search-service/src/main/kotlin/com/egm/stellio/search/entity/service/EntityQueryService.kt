@@ -23,6 +23,7 @@ import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.toSqlArray
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import java.net.URI
@@ -76,19 +77,21 @@ class EntityQueryService(
     ): List<URI> {
         val (adminPermissionWithClause, accessRightFilter) = accessRightWithAndFilter ?: "" to null
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
+        val orderBy = entitiesQuery.ordering.toSQL()
 
         val selectQuery =
             """
             $adminPermissionWithClause
             
-            SELECT DISTINCT(entity_payload.entity_id)
+            SELECT entity_payload.entity_id
             FROM entity_payload
             LEFT JOIN temporal_entity_attribute tea
             ON tea.entity_id = entity_payload.entity_id 
                 ${if (excludeDeleted) " AND tea.deleted_at is null " else ""}
             WHERE $filterQuery
             ${if (excludeDeleted) " AND entity_payload.deleted_at is null " else ""}
-            ORDER BY entity_id
+            GROUP BY entity_payload.entity_id
+            ORDER BY $orderBy
             LIMIT :limit
             OFFSET :offset   
             """.trimIndent()
@@ -249,6 +252,7 @@ class EntityQueryService(
             """
             SELECT * from entity_payload
             WHERE entity_id IN (:entities_ids)
+            ORDER BY array_position(${entitiesIds.toSqlArray()}, entity_id)
             """.trimIndent()
         )
             .bind("entities_ids", entitiesIds)

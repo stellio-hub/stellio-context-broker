@@ -2,6 +2,7 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
+import com.egm.stellio.search.common.model.OrderingParams
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
@@ -270,7 +271,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "integer==213;boolean==true, 1, urn:ngsi-ld:BeeHive:01",
         "(integer>200|integer<100);observedProperty.observedAt<2023-02-25T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "string~=\"(?i)another.*\", 1, urn:ngsi-ld:BeeHive:02",
-        "string!~=\"(?i)another.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:Apiary:05'",
+        "string!~=\"(?i)another.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:MultiTypes:03'",
         "(string!~=\"(?i)another.*\";integer==213), 1, urn:ngsi-ld:BeeHive:01",
         "simpleQuoteString~=\"(?i).*It's a name.*\", 1, urn:ngsi-ld:BeeHive:01",
         "simpleQuoteString~=\"(?i)^it's.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
@@ -489,6 +490,46 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
 
         assertEquals(1, entitiesIds.size)
         assertThat(entitiesIds).contains(entity02Uri)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "id;asc,'urn:ngsi-ld:Apiary:05,urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
+        "id;desc,'urn:ngsi-ld:MultiTypes:03,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:Apiary:05'",
+        "createdAt,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:MultiTypes:03,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:Apiary:05'",
+        "name;desc,'urn:ngsi-ld:BeeHive:01'",
+        "string,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "relationship,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "string.createdAt,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "integer;desc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "float;desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+        "observedProperty.observedAt,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "jsonObject[aNumber];desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+        "jsonObject[aString];desc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "jsonObject[anObject.name];desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+        "jsonObject[anObject.name];asc,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "propertyWithMetadata.license;desc,'urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+        "'type,id;desc','urn:ngsi-ld:Apiary:05,urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:Beekeeper:04,urn:ngsi-ld:MultiTypes:03'",
+        "'relationship;desc,name','urn:ngsi-ld:BeeHive:02,urn:ngsi-ld:BeeHive:01'",
+    )
+    fun `queryEntities should apply order by`(orderBy: String, expectedOrderString: String) = runTest {
+        val expectedOrder = expectedOrderString.split(",").map { it.toUri() }
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromPost(
+                    ordering = OrderingParams.fromUnparsedOrderBy(
+                        orderBy.split(','),
+                        APIC_COMPOUND_CONTEXTS
+                    ).getOrNull()!!,
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                null
+            )
+
+        expectedOrder.forEachIndexed { index, expectedId ->
+            assertEquals(expectedId, entitiesIds[index])
+        }
     }
 
     @Test

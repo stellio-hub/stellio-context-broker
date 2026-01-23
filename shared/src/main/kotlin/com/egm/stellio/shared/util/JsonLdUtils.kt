@@ -7,7 +7,6 @@ import arrow.core.right
 import com.apicatalog.jsonld.JsonLd
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdOptions
-import com.apicatalog.jsonld.context.cache.LruCache
 import com.apicatalog.jsonld.document.JsonDocument
 import com.apicatalog.jsonld.http.DefaultHttpClient
 import com.apicatalog.jsonld.loader.DocumentLoaderOptions
@@ -39,7 +38,9 @@ import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
+import com.egm.stellio.shared.model.NGSILD_UNIT_CODE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
@@ -51,6 +52,10 @@ import jakarta.json.JsonArray
 import jakarta.json.JsonObject
 import jakarta.json.JsonString
 import jakarta.json.JsonStructure
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -64,19 +69,34 @@ object JsonLdUtils {
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    private const val CONTEXT_CACHE_CAPACITY = 128
     private const val DOCUMENT_CACHE_CAPACITY = 256
 
+    // JsonLdOptions provides a context cache that is not populated
+    // and planned for removal in V2 (https://github.com/filip26/titanium-json-ld/pull/304#pullrequestreview-1799564976)
+    // also see https://github.com/filip26/titanium-json-ld/issues/292#issuecomment-3567982362
     private val jsonLdOptions = JsonLdOptions().apply {
-        contextCache = LruCache(CONTEXT_CACHE_CAPACITY)
-        documentCache = LruCache(DOCUMENT_CACHE_CAPACITY)
+        documentCache = RemovableLruCache(DOCUMENT_CACHE_CAPACITY)
     }
     private val loader = HttpLoader(DefaultHttpClient.defaultInstance())
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private fun buildContextDocument(contexts: List<String>): JsonStructure {
         val contextsArray = Json.createArrayBuilder()
         contexts.forEach { contextsArray.add(it) }
         return contextsArray.build()
+    }
+
+    fun deleteAndReload(context: URI, reload: Boolean): Either<APIException, Unit> {
+        val documentCache = jsonLdOptions.documentCache as RemovableLruCache
+        return if (documentCache.containsKey(context.toString())) {
+            documentCache.remove(context.toString())
+            if (reload) {
+                // force a reload by expanding a random term from the core context
+                expandJsonLdTerm(NGSILD_UNIT_CODE_TERM, context.toString())
+            }
+            Unit.right()
+        } else ResourceNotFoundException("Context with id $context was not found in the cache").left()
     }
 
     suspend fun expandDeserializedPayload(
@@ -192,18 +212,20 @@ object JsonLdUtils {
             else
                 fragment.plus(JSONLD_CONTEXT_KW to contexts)
 
-        try {
-            val expandedFragment = JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))
-                .options(jsonLdOptions)
-                .get()
-
+        return try {
+            val expansionProcess = coroutineScope.async {
+                JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))
+                    .options(jsonLdOptions)
+                    .get()
+            }
+            val expandedFragment = expansionProcess.await()
             if (expandedFragment.isEmpty())
                 throw BadRequestDataException("Unable to expand input payload")
 
             val outputStream = ByteArrayOutputStream()
             val jsonWriter = Json.createWriter(outputStream)
             jsonWriter.write(expandedFragment.getJsonObject(0))
-            return deserializeObject(outputStream.toString())
+            deserializeObject(outputStream.toString())
         } catch (e: JsonLdError) {
             logger.error("Unable to expand fragment with context $contexts: ${e.message}")
             throw e.toAPIException(e.cause?.cause?.message)

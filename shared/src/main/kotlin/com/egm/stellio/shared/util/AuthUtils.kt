@@ -38,7 +38,6 @@ object AuthContextModel {
     const val AUTH_PERMISSION_TERM = "Permission"
     const val AUTH_ASSIGNEE_TERM = "assignee"
     const val AUTH_ASSIGNER_TERM = "assigner"
-    const val AUTH_ACTION_TERM = "action"
     const val AUTH_TARGET_TERM = "target"
     const val AUTH_TERM_SUB = "sub"
     const val AUTH_PROP_SUB = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SUB

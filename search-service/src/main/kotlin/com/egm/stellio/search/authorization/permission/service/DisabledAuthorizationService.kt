@@ -45,8 +45,7 @@ class DisabledAuthorizationService : AuthorizationService {
 
     override suspend fun getGroupsMemberships(
         offset: Int,
-        limit: Int,
-        contexts: List<String>
+        limit: Int
     ): Either<APIException, Pair<Int, List<ExpandedEntity>>> = Pair(-1, emptyList<ExpandedEntity>()).right()
 
     override suspend fun getUsers(

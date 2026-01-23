@@ -1,5 +1,3 @@
-import com.google.cloud.tools.jib.gradle.PlatformParameters
-
 configurations {
     compileOnly {
         extendsFrom(configurations.annotationProcessor.get())
@@ -7,16 +5,16 @@ configurations {
 }
 
 plugins {
-    id("com.google.cloud.tools.jib")
     id("org.springframework.boot")
 }
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
     // required for Flyway's direct access to the DB to apply migration scripts
     // (https://github.com/flyway/flyway/issues/2502)
     implementation("org.springframework:spring-jdbc")
-    implementation("org.flywaydb:flyway-core")
     // implementation (and not runtime) because we are using the native jsonb encoding provided by PG
     implementation("org.postgresql:r2dbc-postgresql")
     implementation("com.github.stellio-hub:json-merge:0.1.0")
@@ -32,9 +30,9 @@ dependencies {
     runtimeOnly("io.r2dbc:r2dbc-pool")
 
     testImplementation("org.wiremock:wiremock-standalone:3.13.2")
-    testImplementation("org.testcontainers:postgresql")
-    testImplementation("org.testcontainers:kafka")
-    testImplementation("org.testcontainers:r2dbc")
+    testImplementation("org.testcontainers:testcontainers-postgresql")
+    testImplementation("org.testcontainers:testcontainers-r2dbc")
+    testImplementation("org.testcontainers:testcontainers-kafka")
     testImplementation(testFixtures(project(":shared")))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -45,14 +43,14 @@ tasks.bootRun {
     environment("SPRING_PROFILES_ACTIVE", "dev")
 }
 
-jib.from.image = project.ext["jibFromImage"].toString()
-jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParameters>)
-jib.to.image = "stellio/stellio-search-service:${project.version}"
-jib.pluginExtensions {
-    pluginExtension {
-        implementation = "com.google.cloud.tools.jib.gradle.extension.springboot.JibSpringBootExtension"
-    }
+tasks.bootBuildImage {
+    imageName = "stellio/stellio-search-service:${project.version}"
+    imagePlatform = "linux/amd64"
+
+    val buildpackEnvironment = project.ext["buildpackEnvironment"] as? Map<String, String> ?: emptyMap()
+    val buildpackRuntimeEnvironment = project.ext["buildpackRuntimeEnvironment"] as? Map<String, String> ?: emptyMap()
+    val buildpackOciLabels = project.ext["buildpackOciLabels"] as? Map<String, String> ?: emptyMap()
+    environment = buildpackEnvironment
+        .plus(buildpackRuntimeEnvironment)
+        .plus(buildpackOciLabels)
 }
-jib.container.ports = listOf("8083")
-jib.container.creationTime.set(project.ext["jibContainerCreationTime"].toString())
-jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)

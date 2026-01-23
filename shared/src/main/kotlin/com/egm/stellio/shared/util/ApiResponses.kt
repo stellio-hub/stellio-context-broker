@@ -103,19 +103,10 @@ fun buildQueryResponse(
         paginationQuery.limit
     )
 
-    val responseHeaders = if (prevAndNextLinks.first != null && prevAndNextLinks.second != null)
-        prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .header(HttpHeaders.LINK, prevAndNextLinks.first)
-            .header(HttpHeaders.LINK, prevAndNextLinks.second)
-
-    else if (prevAndNextLinks.first != null)
-        prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .header(HttpHeaders.LINK, prevAndNextLinks.first)
-    else if (prevAndNextLinks.second != null)
-        prepareGetSuccessResponseHeaders(mediaType, contexts)
-            .header(HttpHeaders.LINK, prevAndNextLinks.second)
-    else
-        prepareGetSuccessResponseHeaders(mediaType, contexts)
+    val responseHeaders = prepareGetSuccessResponseHeaders(mediaType, contexts).apply {
+        prevAndNextLinks.first?.let { header(HttpHeaders.LINK, it) }
+        prevAndNextLinks.second?.let { header(HttpHeaders.LINK, it) }
+    }
 
     return if (paginationQuery.count) responseHeaders.header(RESULTS_COUNT_HEADER, count.toString()).body(body)
     else responseHeaders.body(body)

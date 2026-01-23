@@ -4,20 +4,15 @@ import com.egm.stellio.shared.model.COMPACTED_ATTRIBUTES_TERMS
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.NGSILD_JSON_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
-import com.fasterxml.jackson.core.JsonProcessingException
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter
-import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.core.JacksonException
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.databind.ser.std.SimpleBeanPropertyFilter
+import tools.jackson.databind.ser.std.SimpleFilterProvider
+import tools.jackson.module.kotlin.jsonMapper
+import tools.jackson.module.kotlin.kotlinModule
 import kotlin.reflect.KClass
 
-val mapper: ObjectMapper =
-    jacksonObjectMapper()
-        .findAndRegisterModules()
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+val mapper: JsonMapper = jsonMapper { addModule(kotlinModule()) }
 
 object JsonUtils {
 
@@ -31,8 +26,8 @@ object JsonUtils {
                 input,
                 mapper.typeFactory.constructMapLikeType(Map::class.java, String::class.java, Any::class.java)
             )
-        } catch (e: JsonProcessingException) {
-            throw InvalidRequestException("Can't deserialize data into an object", e.message!!)
+        } catch (e: JacksonException) {
+            throw InvalidRequestException("Can't deserialize data into an object", e.message)
         }
 
     fun String.deserializeAsMap(): Map<String, Any> =
@@ -49,8 +44,8 @@ object JsonUtils {
                 input,
                 mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
             )
-        } catch (e: JsonProcessingException) {
-            throw InvalidRequestException("Can't deserialize data into list of objects", e.message!!)
+        } catch (e: JacksonException) {
+            throw InvalidRequestException("Can't deserialize data into list of objects", e.message)
         }
 
     fun String.deserializeAsList(): List<Map<String, Any>> =
@@ -66,8 +61,7 @@ object JsonUtils {
         filterMixinName: String,
         propertiesToExclude: Set<String>
     ): String {
-        val mapperWithMixin = mapper.copy()
-        mapperWithMixin.addMixIn(inputClass.java, filterMixin.java)
+        val mapperWithMixin = mapper.rebuild().addMixIn(inputClass.java, filterMixin.java).build()
         val filterProvider = SimpleFilterProvider().addFilter(
             filterMixinName,
             SimpleBeanPropertyFilter.serializeAllExcept(propertiesToExclude)
@@ -84,12 +78,12 @@ object JsonUtils {
                 val valueKeys = when (entry.value) {
                     is Map<*, *> -> (entry.value as Map<String, Any>).getAllKeys()
                     is List<*> ->
-                        (entry.value as List<Any>).map {
+                        (entry.value as List<Any>).flatMap {
                             // type value can be a list, not interested in it here
                             if (it is Map<*, *>)
                                 (it as Map<String, Any>).getAllKeys()
                             else emptySet()
-                        }.flatten().toSet()
+                        }.toSet()
                     // if it is not a list or an object, it is a value (and thus not a key)
                     else -> emptySet()
                 }
@@ -100,14 +94,15 @@ object JsonUtils {
     fun Map<String, Any>.getAllValues(): Set<Any?> =
         this.entries.fold(emptySet()) { acc, entry ->
             val values = when {
-                entry.value is Map<*, *> &&
-                    entry.key in listOf(NGSILD_VALUE_TERM, NGSILD_JSON_TERM) -> setOf(entry.value)
-                entry.value is Map<*, *> -> (entry.value as Map<String, Any>).getAllValues()
+                entry.value is Map<*, *> && entry.key in listOf(NGSILD_VALUE_TERM, NGSILD_JSON_TERM) ->
+                    setOf(entry.value)
+                entry.value is Map<*, *> ->
+                    (entry.value as Map<String, Any>).getAllValues()
                 entry.value is List<*> ->
-                    (entry.value as List<Any>).map {
+                    (entry.value as List<Any>).flatMap {
                         if (it is Map<*, *>) (it as Map<String, Any>).getAllValues()
                         else setOf(it)
-                    }.flatten().toSet()
+                    }.toSet()
                 else -> setOf(entry.value)
             }
             acc.plus(values)

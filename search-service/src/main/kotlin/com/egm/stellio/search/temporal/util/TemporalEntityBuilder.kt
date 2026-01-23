@@ -217,12 +217,10 @@ object TemporalEntityBuilder {
                 attributeInstance[NGSILD_DATASET_ID_IRI] = buildNonReifiedPropertyValue(datasetId.toString())
             }
 
-            val aggregatedResultsForAttributes = it.value
-                .map { attributeInstanceResult ->
-                    attributeInstanceResult as AggregatedAttributeInstanceResult
-                    attributeInstanceResult.values
-                }
-                .flatten()
+            val aggregatedResultsForAttributes = it.value.flatMap { attributeInstanceResult ->
+                attributeInstanceResult as AggregatedAttributeInstanceResult
+                attributeInstanceResult.values
+            }
 
             aggrMethods.forEach { aggregate ->
                 val resultsForAggregate = aggregatedResultsForAttributes.filter { aggregateResult ->
@@ -256,9 +254,9 @@ object TemporalEntityBuilder {
             }
             .toMap()
             .mapValues {
-                it.value.map { (_, attributeInstancesResults) ->
+                it.value.flatMap { (_, attributeInstancesResults) ->
                     attributeInstancesResults as List<FullAttributeInstanceResult>
-                }.flatten()
+                }
             }
 
     /**

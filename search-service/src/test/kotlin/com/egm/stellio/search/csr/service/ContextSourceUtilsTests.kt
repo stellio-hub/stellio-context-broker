@@ -17,7 +17,6 @@ import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.toUri
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.mockk.every
 import io.mockk.mockkObject
 import io.mockk.verify
@@ -27,6 +26,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
+import tools.jackson.module.kotlin.readValue
 
 @ActiveProfiles("test")
 class ContextSourceUtilsTests {

@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.DataTypes
+import com.fasterxml.jackson.annotation.JsonFormat
 
 /**
  * A Query data type as defined in 5.2.23.
@@ -30,7 +31,8 @@ data class Query private constructor(
     val datasetId: List<String>? = null,
     val join: String? = null,
     val joinLevel: Int? = null,
-    val containedBy: List<String>? = null
+    val containedBy: List<String>? = null,
+    val ordering: UnparsedOrderingParams? = null
 ) {
     companion object {
         operator fun invoke(queryBody: String): Either<APIException, Query> = either {
@@ -68,4 +70,12 @@ data class UnparsedGeoQuery(
     val coordinates: List<Any>,
     val georel: String,
     val geoproperty: String = NGSILD_LOCATION_TERM
+)
+
+data class UnparsedOrderingParams(
+    @JsonFormat(with = [JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY])
+    val orderBy: List<String>?,
+    val collation: String?,
+    val geometry: String?,
+    val coordinates: List<Any>?
 )

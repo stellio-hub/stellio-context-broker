@@ -472,7 +472,7 @@ class AttributeInstanceService(
                 }
                 .execute()
                 .bind()
-        }.map { }
+        }
     }
 
     @Transactional
@@ -498,7 +498,7 @@ class AttributeInstanceService(
                 .bind("attribute_name", attributeName)
                 .execute()
                 .bind()
-        }.map { }
+        }
     }
 
     @Transactional
@@ -517,6 +517,6 @@ class AttributeInstanceService(
                 .bind("uuids", uuids)
                 .execute()
                 .bind()
-        }.map { }
+        }
     }
 }

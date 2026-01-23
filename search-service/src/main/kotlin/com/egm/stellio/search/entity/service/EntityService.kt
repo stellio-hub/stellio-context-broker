@@ -51,6 +51,7 @@ import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.wrapToList
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
 import org.springframework.r2dbc.core.DatabaseClient
@@ -446,7 +447,7 @@ class EntityService(
             entityId,
             expandedAttribute,
             modifiedAt
-        ).bind().let { listOf(it) }
+        ).bind().wrapToList()
 
         handleSuccessOperationActions(entityId, originalEntity, operationResult, modifiedAt).bind()
 
@@ -496,7 +497,7 @@ class EntityService(
             ngsiLdAttribute,
             expandedAttribute,
             replacedAt
-        ).bind().let { listOf(it) }
+        ).bind().wrapToList()
 
         handleSuccessOperationActions(entityId, originalEntity, operationResult, replacedAt).bind()
 

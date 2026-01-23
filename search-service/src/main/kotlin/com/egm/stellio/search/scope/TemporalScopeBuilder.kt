@@ -42,15 +42,12 @@ object TemporalScopeBuilder {
         )
 
         aggrMethods.forEach { aggregate ->
-            val valuesForAggregate = scopeHistory
-                .map { scopeInstanceResult ->
-                    scopeInstanceResult as AggregatedScopeInstanceResult
-                    scopeInstanceResult.values
-                }
-                .flatten()
-                .filter { aggregateResult ->
-                    aggregateResult.aggregate == aggregate
-                }
+            val valuesForAggregate = scopeHistory.flatMap { scopeInstanceResult ->
+                scopeInstanceResult as AggregatedScopeInstanceResult
+                scopeInstanceResult.values
+            }.filter { aggregateResult ->
+                aggregateResult.aggregate == aggregate
+            }
             attributeInstance[NGSILD_PREFIX + aggregate.method] =
                 buildExpandedTemporalValue(valuesForAggregate) { aggregateResult ->
                     listOf(

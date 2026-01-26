@@ -7,8 +7,10 @@ import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
+import com.egm.stellio.search.entity.service.LinkedEntityService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
@@ -53,6 +55,9 @@ class EntityOperationHandlerTests {
 
     @MockkBean
     private lateinit var entityQueryService: EntityQueryService
+
+    @MockkBean
+    private lateinit var linkedEntityService: LinkedEntityService
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -540,6 +545,9 @@ class EntityOperationHandlerTests {
         coEvery {
             entityQueryService.queryEntities(any())
         } returns Pair(emptyList<ExpandedEntity>(), 0).right()
+        coEvery {
+            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any())
+        } returns emptyList<CompactedEntity>().right()
 
         val query = """
             {

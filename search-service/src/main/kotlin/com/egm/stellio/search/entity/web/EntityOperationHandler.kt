@@ -8,6 +8,7 @@ import arrow.core.right
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
+import com.egm.stellio.search.entity.service.LinkedEntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromPost
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
@@ -66,6 +67,7 @@ class EntityOperationHandler(
     private val applicationProperties: ApplicationProperties,
     private val entityOperationService: EntityOperationService,
     private val entityQueryService: EntityQueryService,
+    private val linkedEntityService: LinkedEntityService
 ) {
 
     /**
@@ -278,7 +280,10 @@ class EntityOperationHandler(
             .filterPickAndOmit(
                 entitiesQuery.pick.getRootAttributesToPick(),
                 entitiesQuery.omit.getRootAttributesToOmit()
-            )
+            ).let {
+                linkedEntityService.processLinkedEntities(it, entitiesQuery).bind()
+            }
+
         buildQueryResponse(
             compactedEntities.toFinalRepresentation(ngsiLdDataRepresentation),
             count,

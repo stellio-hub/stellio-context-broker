@@ -83,7 +83,7 @@ private fun Any.checkContentIsNgsiLdSupported(): Either<APIException, Unit> =
  *
  * Original char array was "<>\"'=()".
  */
-private val invalidCharactersForValues = "".toCharArray()
+private val invalidCharactersForValues = "\u0000".toCharArray()
 
 /**
  * Returns whether the given string is a supported content as defined in 4.6.3

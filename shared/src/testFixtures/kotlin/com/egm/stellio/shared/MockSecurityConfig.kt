@@ -10,12 +10,23 @@ import org.springframework.security.test.context.support.WithSecurityContextFact
 
 @Retention(AnnotationRetention.RUNTIME)
 @WithSecurityContext(factory = WithMockCustomUserSecurityContextFactory::class)
-annotation class WithMockCustomUser(val sub: String, val name: String)
+annotation class WithMockCustomUser(
+    val sub: String,
+    val name: String = "Mock User",
+    val groups: Array<String> = [],
+    val roles: Array<String> = []
+)
 
 class WithMockCustomUserSecurityContextFactory : WithSecurityContextFactory<WithMockCustomUser> {
     override fun createSecurityContext(customUser: WithMockCustomUser): SecurityContext {
         val context: SecurityContext = SecurityContextHolder.createEmptyContext()
-        val principal = Jwt.withTokenValue("token").header("alg", "none").subject(customUser.sub).build()
+        val principal = Jwt.withTokenValue("token").header("alg", "none")
+            .subject(customUser.sub)
+            .claims {
+                it["groups"] = customUser.groups.toList()
+                it["realm_access"] = mapOf<String, Any>("roles" to customUser.roles.toList())
+            }
+            .build()
         val auth: Authentication = JwtAuthenticationToken(principal)
         auth.isAuthenticated = true
         context.authentication = auth

@@ -29,9 +29,11 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.model.SeeOtherException
+import com.egm.stellio.shared.util.Claims
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
+import com.egm.stellio.shared.util.containStellioAdmin
 import com.egm.stellio.shared.util.toSqlArray
 import com.egm.stellio.shared.util.toSqlList
 import com.egm.stellio.shared.util.toUri
@@ -319,18 +321,16 @@ class PermissionService(
         entityId: URI,
         action: Action
     ): Either<APIException, Boolean> = either {
-        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
 
-        subjectReferentialService.hasStellioAdminRole(subjectUuids)
-            .flatMap {
-                if (!it)
-                    hasPermissionOnEntity(subjectUuids, entityId, action.getIncludedIn())
-                else true.right()
-            }.bind()
+        if (claims.containStellioAdmin())
+            true
+        else
+            hasPermissionOnEntity(claims, entityId, action.getIncludedIn()).bind()
     }
 
     private suspend fun hasPermissionOnEntity(
-        uuids: List<Sub>,
+        claims: Claims,
         entityId: URI,
         actions: Set<Action>
     ): Either<APIException, Boolean> = databaseClient
@@ -348,7 +348,7 @@ class PermissionService(
                 SELECT COUNT(id) as count
                 FROM permission
                 LEFT JOIN entity ON TRUE
-                WHERE ${buildIsAssigneeFilter(uuids)}
+                WHERE ${buildIsAssigneeFilter(claims)}
                 AND (
                     target_id = '$entityId'
                     OR (
@@ -397,24 +397,23 @@ class PermissionService(
         if (!applicationProperties.authentication.enabled)
             return Unit.right()
 
-        val subjectUuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
 
-        subjectReferentialService.hasStellioAdminRole(subjectUuids)
-            .flatMap {
-                if (!it && !subjectsHavePermissionsOnTarget(subjectUuids, target, action.getIncludedIn()).bind())
-                    AccessDeniedException(unauthorizedTargetMessage(target)).left().bind()
-                else Unit.right()
-            }.bind()
+        if (!claims.containStellioAdmin() &&
+            !subjectsHavePermissionsOnTarget(claims, target, action.getIncludedIn()).bind()
+        )
+            AccessDeniedException(unauthorizedTargetMessage(target)).left().bind()
+        else Unit.right()
     }
 
     private suspend fun subjectsHavePermissionsOnTarget(
-        uuids: List<Sub>,
+        claims: Claims,
         target: TargetAsset,
         actions: Set<Action>
     ): Either<APIException, Boolean> {
         if (target.isTargetingEntity())
             return hasPermissionOnEntity(
-                uuids,
+                claims,
                 target.id!!,
                 actions
             )
@@ -432,7 +431,7 @@ class PermissionService(
                 SELECT COUNT(id) as count
                 FROM permission
                 LEFT JOIN entity_payload ON permission.target_id = entity_payload.entity_id
-                WHERE ${buildIsAssigneeFilter(uuids)}
+                WHERE ${buildIsAssigneeFilter(claims)}
                 AND $scopesAndTypesFilters
                 AND action IN(:actions)
                 """.trimIndent()
@@ -444,30 +443,30 @@ class PermissionService(
     private suspend fun buildPermissionAuthorizationFilter(
         kind: PermissionKind = PermissionKind.ADMIN
     ): Either<APIException, WithAndFilter> = either {
-        val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
         when (kind) {
             // you can fetch the permission assigned to you
-            PermissionKind.ASSIGNED -> "" to buildIsAssigneeFilter(uuids)
+            PermissionKind.ASSIGNED -> "" to buildIsAssigneeFilter(claims)
             // or you can fetch the permission you administrate
-            PermissionKind.ADMIN -> buildAdministratedPermissionFilter(uuids).bind()
+            PermissionKind.ADMIN -> buildAdministratedPermissionFilter(claims).bind()
         }
     }
 
-    private fun buildIsAssigneeFilter(uuids: List<Sub>): String =
-        "(assignee IN ${uuids.toSqlList()})"
+    private fun buildIsAssigneeFilter(claims: Claims): String =
+        "(assignee IN ${claims.toSqlList()})"
 
-    private suspend fun buildAdministratedPermissionFilter(uuids: List<Sub>): Either<APIException, WithAndFilter> =
+    private suspend fun buildAdministratedPermissionFilter(claims: Claims): Either<APIException, WithAndFilter> =
         either {
-            if (subjectReferentialService.hasStellioAdminRole(uuids).bind())
+            if (claims.containStellioAdmin())
                 "" to "true"
             else {
-                val withClause = buildCandidatePermissionsWithStatement(Action.ADMIN, uuids)
+                val withClause = buildCandidatePermissionsWithStatement(Action.ADMIN, claims)
                 val filterClause = """
                 (
                     -- if the permission target an entity, you need to admin this entity
                     (
                         target_id is not null 
-                        AND ${buildAsRightOnEntityFilter(Action.ADMIN, uuids)}
+                        AND ${buildAsRightOnEntityFilter(Action.ADMIN, claims)}
                     )   
                     OR
                     -- if the permission target types and scopes, you need to administrate this types and scopes
@@ -488,14 +487,14 @@ class PermissionService(
 
     fun buildCandidatePermissionsWithStatement(
         action: Action,
-        uuids: List<Sub>
+        claims: Claims
     ): String = """
         WITH candidate_permissions AS (
             SELECT
                 target_types,
                 target_scopes
             FROM permission
-            WHERE ${buildIsAssigneeFilter(uuids)}
+            WHERE ${buildIsAssigneeFilter(claims)}
             AND target_id IS NULL
             AND action IN ${action.includedInToSqlList()}
         )

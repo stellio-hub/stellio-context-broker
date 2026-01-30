@@ -2,6 +2,7 @@ package com.egm.stellio.search.common.support
 
 import com.egm.stellio.search.authorization.subject.model.SubjectReferential
 import com.egm.stellio.search.authorization.subject.service.SubjectReferentialService
+import com.egm.stellio.shared.util.AuthContextModel.SUBJECT_FUNCTION_DEPRECATED_MESSAGE
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.SubjectType
 import io.r2dbc.postgresql.codec.Json
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component
 
 @Profile("api-tests")
 @Component
+@Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
 class ApiTestsBootstrapper(
     private val subjectReferentialService: SubjectReferentialService
 ) : CommandLineRunner {

@@ -16,6 +16,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
+import com.egm.stellio.shared.util.AuthContextModel.SUBJECT_FUNCTION_DEPRECATED_MESSAGE
 import com.egm.stellio.shared.util.CREATION_ROLES
 import com.egm.stellio.shared.util.ENTITIY_READ_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
@@ -43,9 +44,9 @@ class EnabledAuthorizationService(
 
     internal suspend fun userHasOneOfGivenRoles(
         roles: Set<GlobalRole>
-    ): Either<APIException, Boolean> =
-        subjectReferentialService.getSubjectAndGroupsUUID()
-            .flatMap { uuids -> subjectReferentialService.hasOneOfGlobalRoles(uuids, roles) }
+    ): Either<APIException, Boolean> = either {
+        subjectReferentialService.getCurrentSubjectClaims().bind().any { it in roles.map { it.key } }
+    }
 
     private fun Either<APIException, Boolean>.toAccessDecision(errorMessage: String) =
         this.flatMap {
@@ -133,6 +134,7 @@ class EnabledAuthorizationService(
     override suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit> =
         permissionService.removePermissionsOnEntity(entityId)
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     override suspend fun getGroupsMemberships(
         offset: Int,
         limit: Int
@@ -159,6 +161,7 @@ class EnabledAuthorizationService(
         Pair(groups.first, jsonLdEntities)
     }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     override suspend fun getUsers(
         offset: Int,
         limit: Int,
@@ -175,10 +178,10 @@ class EnabledAuthorizationService(
     }
 
     override suspend fun getAccessRightWithClauseAndFilter(): WithAndFilter? = either {
-        val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
-        if (subjectReferentialService.hasStellioAdminRole(uuids).bind())
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
+        if (userIsAdmin().isRight())
             null
-        else permissionService.buildCandidatePermissionsWithStatement(Action.READ, uuids) to
-            permissionService.buildAsRightOnEntityFilter(Action.READ, uuids)
+        else permissionService.buildCandidatePermissionsWithStatement(Action.READ, claims) to
+            permissionService.buildAsRightOnEntityFilter(Action.READ, claims)
     }.fold({ "" to "false" }, { it })
 }

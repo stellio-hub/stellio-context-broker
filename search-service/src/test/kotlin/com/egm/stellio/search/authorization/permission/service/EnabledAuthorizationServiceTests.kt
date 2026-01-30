@@ -17,6 +17,8 @@ import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_ENTITY_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.CREATION_ROLES
+import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
+import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedWith
@@ -58,26 +60,23 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `it should return false if user has no global role`() = runTest {
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(subjectUuid).right()
-        coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns false.right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(subjectUuid).right()
 
         enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES)
             .shouldSucceedWith { assertFalse(it) }
 
-        coVerify { subjectReferentialService.getSubjectAndGroupsUUID() }
-        coVerify { subjectReferentialService.hasOneOfGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
+        coVerify { subjectReferentialService.getCurrentSubjectClaims() }
     }
 
     @Test
     fun `it should return true if user has one of the required roles`() = runTest {
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(subjectUuid).right()
-        coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns true.right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns
+            listOf(subjectUuid, STELLIO_CREATOR.key).right()
 
         enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES)
             .shouldSucceedWith { assertTrue(it) }
 
-        coVerify { subjectReferentialService.getSubjectAndGroupsUUID() }
-        coVerify { subjectReferentialService.hasOneOfGlobalRoles(eq(listOf(subjectUuid)), eq(CREATION_ROLES)) }
+        coVerify { subjectReferentialService.getCurrentSubjectClaims() }
     }
 
     @Test
@@ -242,9 +241,8 @@ class EnabledAuthorizationServiceTests {
     @Test
     fun `it should return a null filter is user has the stellio-admin role`() = runTest {
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
-        } returns listOf(subjectUuid).right()
-        coEvery { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid)) } returns true.right()
+            subjectReferentialService.getCurrentSubjectClaims()
+        } returns listOf(subjectUuid, STELLIO_ADMIN.key).right()
 
         val accessRightFilter = enabledAuthorizationService.getAccessRightWithClauseAndFilter()
 
@@ -254,9 +252,8 @@ class EnabledAuthorizationServiceTests {
     @Test
     fun `it should return a valid entity filter if user does not have the stellio-admin role`() = runTest {
         coEvery {
-            subjectReferentialService.getSubjectAndGroupsUUID()
+            subjectReferentialService.getCurrentSubjectClaims()
         } returns listOf(subjectUuid, groupUuid).right()
-        coEvery { subjectReferentialService.hasStellioAdminRole(any()) } returns false.right()
         coEvery { permissionService.buildAsRightOnEntityFilter(any(), any()) } returns "entity filter"
         coEvery { permissionService.buildCandidatePermissionsWithStatement(any(), any()) } returns "admin clause"
 
@@ -271,13 +268,12 @@ class EnabledAuthorizationServiceTests {
             "admin clause",
             adminPermissionWithClause
         )
-        coVerify { subjectReferentialService.hasStellioAdminRole(listOf(subjectUuid, groupUuid)) }
     }
 
     @Test
     fun `get groups memberships should return data along with a count for an admin`() = runTest {
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(subjectUuid).right()
-        coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns true.right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns
+            listOf(subjectUuid, STELLIO_ADMIN.key).right()
         coEvery {
             subjectReferentialService.getAllGroups(any(), any())
         } returns listOf(
@@ -305,7 +301,7 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     fun `get groups memberships should return data along with a count for an user without any roles`() = runTest {
-        coEvery { subjectReferentialService.getSubjectAndGroupsUUID() } returns listOf(subjectUuid).right()
+        coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(subjectUuid).right()
         coEvery { subjectReferentialService.hasOneOfGlobalRoles(any(), any()) } returns false.right()
         coEvery {
             subjectReferentialService.getGroups(any(), any())

@@ -78,12 +78,11 @@ private fun Any.checkContentIsNgsiLdSupported(): Either<APIException, Unit> =
     } else Unit.right()
 
 /**
- * List of forbidden characters in entity content as defined in 4.6.4. Currently disabled as it prevents
- * from a lot of use-cases.
- *
- * Original char array was "<>\"'=()".
+ * List of forbidden characters in entity content as defined in 4.6.4 would be "<>\"'=()"
+ * We allow them to support more use-cases.
+ * \u0000 is disabled as it is not supported by postgres
  */
-private val invalidCharactersForValues = "".toCharArray()
+private val invalidCharactersForValues = "\u0000".toCharArray()
 
 /**
  * Returns whether the given string is a supported content as defined in 4.6.3

@@ -54,7 +54,7 @@ class ContextSourceRegistrationTests {
         contextSourceRegistration.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
-                    it.message == "The supplied identifier was expected to be an URI but it is not: "
+                    it.message == "Invalid URI: "
             }
     }
 
@@ -74,7 +74,7 @@ class ContextSourceRegistrationTests {
         contextSourceRegistration.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
-                    it.message == "The supplied identifier was expected to be an URI but it is not: invalidId"
+                    it.message == "Invalid URI: invalidId"
             }
     }
 

@@ -17,8 +17,8 @@ import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.BEEHIVE_IRI
-import com.egm.stellio.shared.util.ENTITY_ALREADY_EXISTS_MESSAGE
-import com.egm.stellio.shared.util.ENTITY_DOES_NOT_EXIST_MESSAGE
+import com.egm.stellio.shared.util.EntityErrorMessages.ENTITY_ALREADY_EXISTS_MESSAGE
+import com.egm.stellio.shared.util.EntityErrorMessages.ENTITY_DOES_NOT_EXIST_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.toUri

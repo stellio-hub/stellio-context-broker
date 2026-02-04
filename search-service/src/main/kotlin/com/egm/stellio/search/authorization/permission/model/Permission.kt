@@ -14,8 +14,9 @@ import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.ValidationErrorMessages.invalidTypeMessage
+import com.egm.stellio.shared.util.ValidationErrorMessages.invalidUriMessage
 import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
@@ -53,7 +54,7 @@ data class Permission(
 
     private fun checkTypeIsPermission(): Either<APIException, Unit> =
         if (type != AUTH_PERMISSION_TERM)
-            BadRequestDataException("type attribute must be equal to '$AUTH_PERMISSION_TERM'").left()
+            BadRequestDataException(invalidTypeMessage(AUTH_PERMISSION_TERM)).left()
         else Unit.right()
 
     private fun checkIdIsValid(): Either<APIException, Unit> =
@@ -83,18 +84,18 @@ data class Permission(
                 { it.toAPIException("Failed to parse Permission caused by : ${it.message}").left() }
             )
 
-        fun notFoundMessage(id: URI) = "Could not find a Permission with id $id"
-        fun alreadyExistsMessage(id: URI) = "A Permission with id $id already exists"
-        fun alreadyCoveredMessage(id: URI) = "The Permission '$id' already covers the created permission"
-        fun unauthorizedTargetMessage(target: TargetAsset) = "User is not authorized to admin the target: $target"
-        fun unauthorizedRetrieveMessage(permissionId: URI) = "User is not authorized to read Permission $permissionId"
+        fun notFoundMessage(id: URI) = "Permission $id does not exist"
+        fun alreadyExistsMessage(id: URI) = "Permission $id already exists"
+        fun alreadyCoveredMessage(id: URI) = "Permission $id already covers the created permission"
+        fun unauthorizedTargetMessage(target: TargetAsset) = "User is not authorized to admin target: $target"
+        fun unauthorizedRetrieveMessage(permissionId: URI) = "User is not authorized to read permission $permissionId"
         val CREATE_OR_UPDATE_OWN_EXCEPTION = BadRequestDataException(
-            "Creating or updating an \"own\" permission is prohibited"
+            "Creating or updating an 'own' permission is prohibited"
         )
-        val DELETE_OWN_EXCEPTION = BadRequestDataException("Deleting an \"own\" permission is prohibited")
+        val DELETE_OWN_EXCEPTION = BadRequestDataException("Deleting an 'own' permission is prohibited")
         val AUTHENTICATED_ADMIN_EXCEPTION =
-            BadRequestDataException("Adding administration right for every authenticated user is prohibited")
+            BadRequestDataException("Adding admin right for every authenticated user is prohibited")
         val PUBLIC_WITH_NON_READ_EXCEPTION =
-            BadRequestDataException("Adding non read right for public access is prohibited")
+            BadRequestDataException("Adding non-read right for public access is prohibited")
     }
 }

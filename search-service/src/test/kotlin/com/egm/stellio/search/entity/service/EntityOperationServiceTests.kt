@@ -14,8 +14,8 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.util.ENTITIY_CREATION_FORBIDDEN_MESSAGE
-import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
+import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotAuthorizedToAdminEntityMessage
+import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotAuthorizedToCreateEntityMessage
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.MockkSpyBean
@@ -536,7 +536,7 @@ class EntityOperationServiceTests {
             arrayListOf(
                 BatchEntityError(
                     firstEntity.id,
-                    AccessDeniedException(ENTITIY_CREATION_FORBIDDEN_MESSAGE).toProblemDetail()
+                    AccessDeniedException(userNotAuthorizedToCreateEntityMessage(firstEntity.id)).toProblemDetail()
                 )
             )
         )
@@ -545,7 +545,7 @@ class EntityOperationServiceTests {
             arrayListOf(
                 BatchEntityError(
                     secondEntity.id,
-                    AccessDeniedException(ENTITY_ADMIN_FORBIDDEN_MESSAGE).toProblemDetail()
+                    AccessDeniedException(userNotAuthorizedToAdminEntityMessage(secondEntity.id)).toProblemDetail()
                 )
             )
         )

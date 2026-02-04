@@ -46,6 +46,8 @@ import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.EntityErrorMessages.entityNotFoundMessage
+import com.egm.stellio.shared.util.EntityErrorMessages.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -55,8 +57,6 @@ import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_TERM
 import com.egm.stellio.shared.util.buildContextLinkHeader
-import com.egm.stellio.shared.util.entityNotFoundMessage
-import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
@@ -1763,7 +1763,7 @@ class EntityHandlerTests {
                 """
                     {
                       "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                      "title": "Entity urn:ngsi-ld:BreedingService:0214 was not found"
+                      "title": "Entity urn:ngsi-ld:BreedingService:0214 does not exist"
                     }
                 """.trimIndent()
             )
@@ -2217,7 +2217,7 @@ class EntityHandlerTests {
                 """
                     {
                       "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                      "title": "Entity $beehiveId was not found"
+                      "title": "Entity urn:ngsi-ld:BeeHive:TESTC does not exist"
                     }
                 """.trimIndent()
             )
@@ -2414,7 +2414,7 @@ class EntityHandlerTests {
                 """
                       {
                         "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title": "Entity urn:ngsi-ld:BeeHive:TESTC was not found"
+                        "title": "Entity urn:ngsi-ld:BeeHive:TESTC does not exist"
                       }
                 """.trimIndent()
             )

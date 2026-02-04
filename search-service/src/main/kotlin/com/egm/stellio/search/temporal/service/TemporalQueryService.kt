@@ -23,7 +23,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
+import com.egm.stellio.shared.util.EntityErrorMessages.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
 import java.net.URI

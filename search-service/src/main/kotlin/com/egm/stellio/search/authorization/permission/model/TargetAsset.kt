@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.ValidationErrorMessages.atLeastOneRequiredMessage
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnore
 import java.net.URI
@@ -32,9 +33,9 @@ data class TargetAsset(
 
     fun validate(): Either<APIException, Unit> =
         if (id == null && types == null && scopes == null) {
-            BadRequestDataException("You must specify a target id, types or scopes").left()
+            BadRequestDataException(atLeastOneRequiredMessage("id", "types", "scopes")).left()
         } else if (id != null && (types != null || scopes != null)) {
-            BadRequestDataException("You can't target an id and types or scopes").left()
+            BadRequestDataException("Cannot specify 'id' with 'types' or 'scopes'").left()
         } else { Unit.right() }
 
     @JsonIgnore

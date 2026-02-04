@@ -116,8 +116,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "'unknown' is not a recognized value for 'join' parameter " +
-                    "(only 'flat', 'inline' and '@none' are allowed)",
+                "Invalid join parameter: 'unknown', must be 'flat', 'inline', or '@none'",
                 it.message
             )
         }
@@ -135,7 +134,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "'-1' is not a recognized value for 'joinLevel' parameter (only positive integers are allowed)",
+                "Invalid joinLevel parameter: '-1', must be a positive integer",
                 it.message
             )
         }
@@ -152,7 +151,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "'join' must be specified if 'joinLevel' or 'containedBy' are specified",
+                "Field 'join' is required when 'joinLevel' or 'containedBy' are specified",
                 it.message
             )
         }
@@ -169,7 +168,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "'join' must be specified if 'joinLevel' or 'containedBy' are specified",
+                "Field 'join' is required when 'joinLevel' or 'containedBy' are specified",
                 it.message
             )
         }
@@ -488,7 +487,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "'-1' is not a recognized value for 'joinLevel' parameter (only positive integers are allowed)",
+                "Invalid joinLevel parameter: '-1', must be a positive integer",
                 it.message
             )
         }
@@ -511,9 +510,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                """
-                    'unknown' is not a recognized value for 'join' parameter (only 'flat', 'inline' and '@none' are allowed)
-                """.trimIndent(),
+                "Invalid join parameter: 'unknown', must be 'flat', 'inline', or '@none'",
                 it.message
             )
         }

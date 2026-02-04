@@ -991,7 +991,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         val result = entityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, "speed")
 
         result.fold(
-            { assertEquals("Attribute speed (default datasetId) was not found", it.message) },
+            { assertEquals("Attribute speed (default datasetId) does not exist", it.message) },
             { fail("The referred resource should have not been found") }
         )
     }
@@ -1002,7 +1002,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             "urn:ngsi-ld:Entity:01".toUri(),
             "speed"
         ).fold(
-            { assertEquals("Entity urn:ngsi-ld:Entity:01 was not found", it.message) },
+            { assertEquals("Entity urn:ngsi-ld:Entity:01 does not exist", it.message) },
             { fail("The referred resource should have not been found") }
         )
     }

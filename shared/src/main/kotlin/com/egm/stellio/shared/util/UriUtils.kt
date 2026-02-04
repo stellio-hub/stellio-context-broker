@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.ValidationErrorMessages.invalidUriMessage
 import java.net.URI
 import java.net.URISyntaxException
 

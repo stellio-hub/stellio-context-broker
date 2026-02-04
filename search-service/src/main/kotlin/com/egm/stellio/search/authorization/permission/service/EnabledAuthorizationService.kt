@@ -16,10 +16,10 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
+import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotAuthorizedToAdminEntityMessage
+import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotAuthorizedToReadEntityMessage
+import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotAuthorizedToUpdateEntityMessage
 import com.egm.stellio.shared.util.CREATION_ROLES
-import com.egm.stellio.shared.util.ENTITIY_READ_FORBIDDEN_MESSAGE
-import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
-import com.egm.stellio.shared.util.ENTITY_UPDATE_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -59,19 +59,19 @@ class EnabledAuthorizationService(
         userCanDoActionOnEntity(
             entityId,
             Action.READ
-        ).toAccessDecision(ENTITIY_READ_FORBIDDEN_MESSAGE)
+        ).toAccessDecision(userNotAuthorizedToReadEntityMessage(entityId))
 
     override suspend fun userCanUpdateEntity(entityId: URI): Either<APIException, Unit> =
         userCanDoActionOnEntity(
             entityId,
             Action.WRITE,
-        ).toAccessDecision(ENTITY_UPDATE_FORBIDDEN_MESSAGE)
+        ).toAccessDecision(userNotAuthorizedToUpdateEntityMessage(entityId))
 
     override suspend fun userCanAdminEntity(entityId: URI): Either<APIException, Unit> =
         userCanDoActionOnEntity(
             entityId,
             Action.ADMIN,
-        ).toAccessDecision(ENTITY_ADMIN_FORBIDDEN_MESSAGE)
+        ).toAccessDecision(userNotAuthorizedToAdminEntityMessage(entityId))
 
     private suspend fun userCanDoActionOnEntity(
         entityId: URI,

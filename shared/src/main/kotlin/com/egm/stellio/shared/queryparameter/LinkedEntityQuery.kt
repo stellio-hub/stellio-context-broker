@@ -50,15 +50,15 @@ data class LinkedEntityQuery(
             }?.bind()
 
             ensure(!((joinLevel != null || containedBy.isNotEmpty()) && join == null)) {
-                BadRequestDataException("'join' must be specified if 'joinLevel' or 'containedBy' are specified")
+                BadRequestDataException("Field 'join' is required when 'joinLevel' or 'containedBy' are specified")
             }
             join?.let { LinkedEntityQuery(it, joinLevel ?: DEFAULT_JOIN_LEVEL.toUInt(), containedBy) }
         }
 
         private fun badJoinParameterMessage(param: String) =
-            "'$param' is not a recognized value for 'join' parameter (only 'flat', 'inline' and '@none' are allowed)"
+            "Invalid join parameter: '$param', must be 'flat', 'inline', or '@none'"
 
         private fun badJoinLevelParameterMessage(param: String) =
-            "'$param' is not a recognized value for 'joinLevel' parameter (only positive integers are allowed)"
+            "Invalid joinLevel parameter: '$param', must be a positive integer"
     }
 }

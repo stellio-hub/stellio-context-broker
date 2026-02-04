@@ -17,7 +17,7 @@ import com.egm.stellio.shared.util.DataTypes.toFinalRepresentation
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.invalidUriMessage
+import com.egm.stellio.shared.util.ValidationErrorMessages.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -151,8 +151,8 @@ data class ContextSourceRegistration(
                 { it.toAPIException("Failed to parse CSourceRegistration caused by: ${it.message}").left() }
             )
 
-        fun notFoundMessage(id: URI) = "Could not find a CSourceRegistration with id $id"
-        fun alreadyExistsMessage(id: URI) = "A CSourceRegistration with id $id already exists"
+        fun notFoundMessage(id: URI) = "Context source registration $id does not exist"
+        fun alreadyExistsMessage(id: URI) = "Context source registration $id already exists"
     }
 
     enum class StatusType(val status: String) {

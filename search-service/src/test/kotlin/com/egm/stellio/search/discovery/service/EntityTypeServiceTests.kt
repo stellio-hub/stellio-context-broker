@@ -25,6 +25,7 @@ import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.CATEGORY_IRI
 import com.egm.stellio.shared.util.CATEGORY_TERM
+import com.egm.stellio.shared.util.EntityErrorMessages.typeNotFoundMessage
 import com.egm.stellio.shared.util.FRIENDLYNAME_IRI
 import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
 import com.egm.stellio.shared.util.INCOMING_IRI
@@ -42,7 +43,6 @@ import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.shared.util.typeNotFoundMessage
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat

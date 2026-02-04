@@ -21,9 +21,18 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.SubscriptionErrorMessages.invalidEndpointUriMessage
+import com.egm.stellio.shared.util.SubscriptionErrorMessages.unknownNotificationTriggerMessage
+import com.egm.stellio.shared.util.ValidationErrorMessages.atLeastOneRequiredMessage
+import com.egm.stellio.shared.util.ValidationErrorMessages.cannotSpecifyBothMessage
+import com.egm.stellio.shared.util.ValidationErrorMessages.fieldIsInvalidMessage
+import com.egm.stellio.shared.util.ValidationErrorMessages.fieldMustBeFutureMessage
+import com.egm.stellio.shared.util.ValidationErrorMessages.fieldMustBePositiveMessage
+import com.egm.stellio.shared.util.ValidationErrorMessages.invalidPatternMessage
+import com.egm.stellio.shared.util.ValidationErrorMessages.invalidTypeMessage
+import com.egm.stellio.shared.util.ValidationErrorMessages.invalidUriMessage
 import com.egm.stellio.shared.util.compactTypeSelection
 import com.egm.stellio.shared.util.expandTypeSelection
-import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toFinalRepresentation
 import com.egm.stellio.shared.util.toUri
@@ -99,7 +108,7 @@ data class Subscription(
 
     private fun checkTypeIsSubscription(): Either<APIException, Unit> =
         if (type != NGSILD_SUBSCRIPTION_TERM)
-            BadRequestDataException("type attribute must be equal to 'Subscription'").left()
+            BadRequestDataException(invalidTypeMessage("Subscription")).left()
         else Unit.right()
 
     private fun checkIdIsValid(): Either<APIException, Unit> =
@@ -109,20 +118,20 @@ data class Subscription(
 
     private fun checkEntitiesOrWatchedAttributes(): Either<APIException, Unit> =
         if (watchedAttributes == null && entities == null)
-            BadRequestDataException("At least one of entities or watchedAttributes shall be present").left()
+            BadRequestDataException(atLeastOneRequiredMessage("entities", "watchedAttributes")).left()
         else Unit.right()
 
     private fun checkSubscriptionValidity(): Either<APIException, Unit> =
         when {
             watchedAttributes != null && timeInterval != null -> {
                 BadRequestDataException(
-                    "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
+                    cannotSpecifyBothMessage("timeInterval", "watchedAttributes")
                 ).left()
             }
 
             timeInterval != null && throttling != null -> {
                 BadRequestDataException(
-                    "You can't use 'timeInterval' in conjunction with 'throttling'"
+                    cannotSpecifyBothMessage("timeInterval", "throttling")
                 ).left()
             }
 
@@ -132,17 +141,17 @@ data class Subscription(
 
     private fun checkTimeIntervalGreaterThanZero(): Either<APIException, Unit> =
         if (timeInterval != null && timeInterval < 1)
-            BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
+            BadRequestDataException(fieldMustBePositiveMessage("timeInterval")).left()
         else Unit.right()
 
     private fun checkThrottlingGreaterThanZero(): Either<APIException, Unit> =
         if (throttling != null && throttling < 1)
-            BadRequestDataException("The value of 'throttling' must be greater than zero (int)").left()
+            BadRequestDataException(fieldMustBePositiveMessage("throttling")).left()
         else Unit.right()
 
     private fun checkExpiresAtInTheFuture(): Either<BadRequestDataException, Unit> =
         if (expiresAt != null && expiresAt.isBefore(ngsiLdDateTime()))
-            BadRequestDataException("'expiresAt' must be in the future").left()
+            BadRequestDataException(fieldMustBeFutureMessage("expiresAt")).left()
         else Unit.right()
 
     private fun checkIdPatternIsValid(): Either<BadRequestDataException, Unit> {
@@ -155,7 +164,7 @@ data class Subscription(
 
         return if (result == null || result)
             Unit.right()
-        else BadRequestDataException("Invalid idPattern found in subscription").left()
+        else BadRequestDataException(invalidPatternMessage("idPattern")).left()
     }
 
     private fun checkNotificationTriggersAreValid(): Either<BadRequestDataException, Unit> =
@@ -163,7 +172,7 @@ data class Subscription(
             NotificationTrigger.isValid(it)
         }.let {
             if (it) Unit.right()
-            else BadRequestDataException("Unknown notification trigger in $notificationTrigger").left()
+            else BadRequestDataException(unknownNotificationTriggerMessage(notificationTrigger.toString())).left()
         }
 
     private fun checkJsonLdContextIsValid(): Either<APIException, Unit> = either {
@@ -177,7 +186,7 @@ data class Subscription(
             notification.joinLevel?.let {
                 if (it < 1)
                     return BadRequestDataException(
-                        "The value of 'joinLevel' must be greater than zero (int) if 'join' is asked"
+                        fieldMustBePositiveMessage("joinLevel")
                     ).left()
             }
         }
@@ -187,14 +196,14 @@ data class Subscription(
 
     private fun checkEndpointUriIsValid(): Either<BadRequestDataException, Unit> {
         if (notification.endpoint.uri.scheme !in Endpoint.allowedSchemes)
-            return BadRequestDataException("Invalid URI for endpoint: ${notification.endpoint.uri}").left()
+            return BadRequestDataException(invalidEndpointUriMessage(notification.endpoint.uri.toString())).left()
         return Unit.right()
     }
 
     private fun checkShowChangesIsValid(): Either<BadRequestDataException, Unit> =
         if (notification.showChanges && notification.format in setOf(FormatType.KEY_VALUES, FormatType.SIMPLIFIED))
             BadRequestDataException(
-                "'showChanges' and 'simplified' / 'keyValues' format cannot be used at the same time"
+                "Cannot use 'showChanges' with 'simplified' or 'keyValues' format"
             ).left()
         else
             Unit.right()
@@ -202,7 +211,7 @@ data class Subscription(
     private fun checkPickAndOmit(): Either<BadRequestDataException, Unit> =
         if (notification.attributes != null && (notification.pick != null || notification.omit != null))
             BadRequestDataException(
-                "'attributes' and 'pick' or 'omit' cannot be used at the same time"
+                "Cannot use 'attributes' with 'pick' or 'omit'"
             ).left()
         else if (
             notification.pick != null &&
@@ -210,19 +219,19 @@ data class Subscription(
             notification.pick.intersect(notification.omit).isNotEmpty()
         )
             BadRequestDataException(
-                "An entity member cannot be present in both 'pick' and 'omit'"
+                "Entity member cannot be present in both 'pick' and 'omit'"
             ).left()
         else
             Unit.right()
 
     private fun checkCooldownGreaterThanZero(): Either<APIException, Unit> =
         if (notification.endpoint.cooldown != null && notification.endpoint.cooldown < 1)
-            BadRequestDataException("The value of 'cooldown' must be greater than zero (int)").left()
+            BadRequestDataException(fieldMustBePositiveMessage("cooldown")).left()
         else Unit.right()
 
     private fun checkTimeoutGreaterThanZero(): Either<APIException, Unit> =
         if (notification.endpoint.timeout != null && notification.endpoint.timeout < 1)
-            BadRequestDataException("The value of 'timeout' must be greater than zero (int)").left()
+            BadRequestDataException(fieldMustBePositiveMessage("timeout")).left()
         else Unit.right()
 
     fun expand(contexts: List<String>): Subscription =
@@ -312,10 +321,10 @@ data class Subscription(
                     if (it is UnrecognizedPropertyException) {
                         if (it.propertyName in notImplementedAttributes)
                             NotImplementedException(
-                                "Attribute ${it.propertyName} is not yet implemented in subscriptions"
+                                "Attribute '${it.propertyName}' is not yet implemented in subscriptions"
                             ).left()
                         else
-                            BadRequestDataException("Invalid attribute ${it.propertyName} in subscription").left()
+                            BadRequestDataException(fieldIsInvalidMessage(it.propertyName)).left()
                     } else it.toAPIException("Failed to parse subscription: ${it.message}").left()
                 }
             )

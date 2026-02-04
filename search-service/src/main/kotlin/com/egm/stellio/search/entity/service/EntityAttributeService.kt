@@ -66,12 +66,12 @@ import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.isAttributeOfType
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.EntityErrorMessages.attributeNotFoundMessage
+import com.egm.stellio.shared.util.EntityErrorMessages.entityNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.attributeNotFoundMessage
-import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json

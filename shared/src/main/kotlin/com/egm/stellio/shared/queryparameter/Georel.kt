@@ -5,6 +5,8 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidGeorelParameterMessage
+import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidNearGeorelExpressionMessage
 
 enum class Georel(val key: String) {
     NEAR("near"),
@@ -24,11 +26,11 @@ enum class Georel(val key: String) {
         fun verify(georel: String): Either<APIException, Unit> {
             if (georel.startsWith(NEAR.key)) {
                 if (!georel.matches(nearRegex))
-                    return BadRequestDataException("Invalid expression for 'near' georel: $georel").left()
+                    return BadRequestDataException(invalidNearGeorelExpressionMessage(georel)).left()
                 return Unit.right()
             } else if (ALL.any { georel == it })
                 return Unit.right()
-            else return BadRequestDataException("Invalid 'georel' parameter provided: $georel").left()
+            else return BadRequestDataException(invalidGeorelParameterMessage(georel)).left()
         }
 
         fun prepareQuery(georel: String): Triple<String, String?, String?> =

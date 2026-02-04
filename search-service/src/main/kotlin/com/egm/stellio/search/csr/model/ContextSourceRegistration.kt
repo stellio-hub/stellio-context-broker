@@ -11,13 +11,15 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_CSR_TERM
 import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.util.CsrErrorMessages.csrFailedToParseMessage
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.DataTypes.toFinalRepresentation
+import com.egm.stellio.shared.util.GenericValidationErrorMessages.invalidTypeMessage
+import com.egm.stellio.shared.util.GenericValidationErrorMessages.invalidUriMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.invalidUriMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -93,7 +95,7 @@ data class ContextSourceRegistration(
 
     private fun checkTypeIsContextSourceRegistration(): Either<APIException, Unit> =
         if (type != NGSILD_CSR_TERM)
-            BadRequestDataException("type attribute must be equal to 'ContextSourceRegistration'").left()
+            BadRequestDataException(invalidTypeMessage(NGSILD_CSR_TERM)).left()
         else Unit.right()
 
     private fun checkIdIsValid(): Either<APIException, Unit> =
@@ -148,11 +150,8 @@ data class ContextSourceRegistration(
                     .expand(contexts)
             }.fold(
                 { it.right() },
-                { it.toAPIException("Failed to parse CSourceRegistration caused by: ${it.message}").left() }
+                { it.toAPIException(csrFailedToParseMessage(it.message)).left() }
             )
-
-        fun notFoundMessage(id: URI) = "Could not find a CSourceRegistration with id $id"
-        fun alreadyExistsMessage(id: URI) = "A CSourceRegistration with id $id already exists"
     }
 
     enum class StatusType(val status: String) {

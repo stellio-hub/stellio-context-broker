@@ -2,6 +2,10 @@ package com.egm.stellio.shared.model
 
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
+import com.egm.stellio.shared.util.CsrErrorMessages.CONTEXT_SOURCE_BADLY_FORMED_ERROR_MESSAGE
+import com.egm.stellio.shared.util.CsrErrorMessages.CONTEXT_SOURCE_DEFAULT_ERROR_MESSAGE
+import com.egm.stellio.shared.util.JsonLdErrorMessages.UNABLE_TO_LOAD_REMOTE_CONTEXT_MESSAGE
+import com.egm.stellio.shared.util.JsonLdErrorMessages.UNEXPECTED_ERROR_PARSING_PAYLOAD_MESSAGE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.toUri
 import org.slf4j.Logger
@@ -71,13 +75,13 @@ data class ContextSourceException(
                     type = type,
                     status = status ?: HttpStatus.BAD_GATEWAY,
                     title = title,
-                    detail = detail ?: "The context source provided no additional detail about the error"
+                    detail = detail ?: CONTEXT_SOURCE_DEFAULT_ERROR_MESSAGE
                 )
             }.fold({ it }, {
                 ContextSourceException(
                     ErrorType.BAD_GATEWAY.type,
                     HttpStatus.BAD_GATEWAY,
-                    "The context source sent a badly formed error",
+                    CONTEXT_SOURCE_BADLY_FORMED_ERROR_MESSAGE,
                     response
                 )
             })
@@ -250,8 +254,11 @@ fun Throwable.toAPIException(specificMessage: String? = null): APIException =
             if (this.code == JsonLdErrorCode.LOADING_REMOTE_CONTEXT_FAILED ||
                 this.code == JsonLdErrorCode.LOADING_DOCUMENT_FAILED
             )
-                LdContextNotAvailableException(specificMessage ?: "Unable to load remote context", "caused by: $this")
-            else BadRequestDataException("Unexpected error while parsing payload", "caused by: $this")
+                LdContextNotAvailableException(
+                    specificMessage ?: UNABLE_TO_LOAD_REMOTE_CONTEXT_MESSAGE,
+                    "Caused by: $this"
+                )
+            else BadRequestDataException(UNEXPECTED_ERROR_PARSING_PAYLOAD_MESSAGE, "Caused by: $this")
         else -> BadRequestDataException(specificMessage ?: this.localizedMessage)
     }
 

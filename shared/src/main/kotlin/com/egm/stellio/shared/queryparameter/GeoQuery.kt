@@ -14,6 +14,8 @@ import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.QueryParameterErrorMessages.INVALID_GEOQUERY_MESSAGE
+import com.egm.stellio.shared.util.QueryParameterErrorMessages.unrecognizedGeometryValueMessage
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.parseGeometryToWKT
 import com.egm.stellio.shared.util.stringifyCoordinates
@@ -87,7 +89,7 @@ data class GeoQuery(
                 if (GeometryType.isSupportedType(it))
                     GeometryType.forType(it).right()
                 else
-                    BadRequestDataException("$it is not a recognized value for 'geometry' parameter").left()
+                    BadRequestDataException(unrecognizedGeometryValueMessage(it)).left()
             }?.bind()
             val coordinates = requestParams[QueryParameter.COORDINATES.key]?.decode()?.let {
                 stringifyCoordinates(it)
@@ -101,10 +103,7 @@ data class GeoQuery(
             if (notNullGeoParameters.isEmpty())
                 null
             else if (georel == null || geometry == null || coordinates == null)
-                BadRequestDataException(
-                    "Missing at least one geo parameter between 'geometry', 'georel' and 'coordinates'"
-                )
-                    .left().bind<GeoQuery>()
+                BadRequestDataException(INVALID_GEOQUERY_MESSAGE).left().bind<GeoQuery>()
             else
                 GeoQuery(
                     georel = georel,

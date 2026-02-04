@@ -55,7 +55,7 @@ import com.egm.stellio.shared.util.LUMINOSITY_IRI
 import com.egm.stellio.shared.util.LUMINOSITY_TERM
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.OUTGOING_TERM
-import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
+import com.egm.stellio.shared.util.TemporalErrorMessages.attributeOrInstanceNotFoundMessage
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.ngsiLdDateTime

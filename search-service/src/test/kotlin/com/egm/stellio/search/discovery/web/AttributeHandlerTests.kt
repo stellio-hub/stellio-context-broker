@@ -14,6 +14,7 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.EntityErrorMessages.attributeWithDatasetIdNotFoundMessage
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.MOCK_USER_SUB
@@ -21,7 +22,6 @@ import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.OUTGOING_TERM
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_TERM
-import com.egm.stellio.shared.util.attributeNotFoundMessage
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -247,7 +247,7 @@ class AttributeHandlerTests {
     fun `get attribute type information should return a 404 if no attribute of that id exists`() {
         coEvery {
             attributeService.getAttributeTypeInfoByAttribute(any(), listOf(applicationProperties.contexts.core))
-        } returns ResourceNotFoundException(attributeNotFoundMessage(OUTGOING_IRI)).left()
+        } returns ResourceNotFoundException(attributeWithDatasetIdNotFoundMessage(OUTGOING_IRI)).left()
 
         webClient.get()
             .uri("/ngsi-ld/v1/attributes/$OUTGOING_TERM")
@@ -258,7 +258,7 @@ class AttributeHandlerTests {
                 """
                     {
                       "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                      "title":"${attributeNotFoundMessage(OUTGOING_IRI)}"
+                      "title":"${attributeWithDatasetIdNotFoundMessage(OUTGOING_IRI)}"
                     }
                 """
             )

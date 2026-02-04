@@ -10,7 +10,6 @@ import com.egm.stellio.search.authorization.permission.model.Permission.Companio
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.DELETE_OWN_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.PUBLIC_WITH_NON_READ_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedRetrieveMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
 import com.egm.stellio.search.authorization.permission.service.PermissionService
@@ -38,6 +37,7 @@ import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.PermissionErrorMessages.unauthorizedRetrieveMessage
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getAuthzContextFromLinkHeaderOrDefault

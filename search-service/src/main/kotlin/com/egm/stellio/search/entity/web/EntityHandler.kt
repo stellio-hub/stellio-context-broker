@@ -28,6 +28,8 @@ import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.EntityErrorMessages.ENTITY_ID_MISMATCH_MESSAGE
+import com.egm.stellio.shared.util.EntityErrorMessages.attributeNotFoundMessage
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
@@ -171,8 +173,7 @@ class EntityHandler(
         val expandedEntity = expandJsonLdEntity(body, contexts)
 
         if (expandedEntity.id != entityId)
-            BadRequestDataException("The id contained in the body is not the same as the one provided in the URL")
-                .left().bind<ResponseEntity<*>>()
+            BadRequestDataException(ENTITY_ID_MISMATCH_MESSAGE).left().bind<ResponseEntity<*>>()
 
         val (result, remainingEntity) =
             if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
@@ -476,7 +477,7 @@ class EntityHandler(
         entityService.partialUpdateAttribute(entityId, expandedAttribute).bind()
             .let {
                 if (it.updated.isEmpty())
-                    ResourceNotFoundException("Unknown attribute in entity $entityId").left()
+                    ResourceNotFoundException(attributeNotFoundMessage(attrId, entityId)).left()
                 else
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
             }.bind()

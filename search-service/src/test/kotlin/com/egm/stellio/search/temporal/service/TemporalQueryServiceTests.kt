@@ -30,10 +30,10 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.AUTHZ_TEST_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AUTHZ_TEST_CONTEXT
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.EntityErrorMessages.entityNotFoundMessage
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.OUTGOING_IRI
-import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
@@ -115,7 +115,7 @@ class TemporalQueryServiceTests {
             )
         ).fold({
             assertInstanceOf(ResourceNotFoundException::class.java, it)
-            assertEquals("Entity $entityUri was not found", it.message)
+            assertEquals("Entity $entityUri does not exist", it.message)
         }, {
             fail("it should have returned an API exception if the entity does not exist")
         })

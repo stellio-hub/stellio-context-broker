@@ -23,6 +23,8 @@ import com.egm.stellio.search.csr.model.RegistrationInfoDBWriter
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.CsrErrorMessages.csrAlreadyExistsMessage
+import com.egm.stellio.shared.util.CsrErrorMessages.csrNotFoundMessage
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildTypeQuery
@@ -136,9 +138,9 @@ class ContextSourceRegistrationService(
                 else if (!it && inverse)
                     Unit.right()
                 else if (it)
-                    AlreadyExistsException(ContextSourceRegistration.alreadyExistsMessage(id)).left()
+                    AlreadyExistsException(csrAlreadyExistsMessage(id)).left()
                 else
-                    ResourceNotFoundException(ContextSourceRegistration.notFoundMessage(id)).left()
+                    ResourceNotFoundException(csrNotFoundMessage(id)).left()
             }
 
     suspend fun getById(id: URI): Either<APIException, ContextSourceRegistration> = either {

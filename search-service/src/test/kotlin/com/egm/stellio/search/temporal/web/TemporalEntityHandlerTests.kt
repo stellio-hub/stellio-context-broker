@@ -18,13 +18,13 @@ import com.egm.stellio.shared.model.TooManyResultsException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.EntityErrorMessages.entityNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_TERM
-import com.egm.stellio.shared.util.attributeOrInstanceNotFoundMessage
-import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.TemporalErrorMessages.attributeOrInstanceNotFoundMessage
 import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
@@ -212,7 +212,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Unable to expand input payload"
+                    "title": "JSON-LD payload could not be expanded"
                 }
                 """
             )
@@ -419,7 +419,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "Found different temporal representations in options query parameter, only one can be provided"
+                    "title": "Found different temporal representations in 'options' query parameter, only one can be provided"
                 } 
                 """
             )
@@ -439,7 +439,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/InvalidRequest",
-                    "title": "'invalid' is not a valid temporal representation"
+                    "title": "Invalid value for temporal representation: 'invalid'"
                 } 
                 """
             )
@@ -469,7 +469,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `it should return a 404 if temporal entity attribute does not exist`() {
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
-        } returns ResourceNotFoundException("Entity urn:ngsi-ld:BeeHive:TESTC was not found").left()
+        } returns ResourceNotFoundException("Entity urn:ngsi-ld:BeeHive:TESTC does not exist").left()
 
         webClient.get()
             .uri(
@@ -1005,7 +1005,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "Entity urn:ngsi-ld:BeeHive:TESTC was not found"
+                    "title": "Entity urn:ngsi-ld:BeeHive:TESTC does not exist"
                 }
                 """.trimIndent()
             )
@@ -1085,7 +1085,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "The supplied identifier was expected to be an URI but it is not: beehive"
+                    "title": "Invalid URI: beehive"
                 }
                 """.trimIndent()
             )
@@ -1230,7 +1230,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title": "Entity urn:ngsi-ld:BeeHive:TESTC was not found"
+                    "title": "Entity urn:ngsi-ld:BeeHive:TESTC does not exist"
                 }
                 """.trimIndent()
             )
@@ -1290,7 +1290,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "The supplied identifier was expected to be an URI but it is not: beehive"
+                    "title": "Invalid URI: beehive"
                 }
                 """.trimIndent()
             )

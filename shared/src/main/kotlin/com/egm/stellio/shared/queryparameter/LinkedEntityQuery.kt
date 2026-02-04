@@ -7,6 +7,9 @@ import arrow.core.raise.ensure
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.QueryParameterErrorMessages.JOIN_REQUIRED_WITH_JOIN_LEVEL_OR_CONTAINED_BY_MESSAGE
+import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidJoinLevelParameterMessage
+import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidJoinParameterMessage
 import com.egm.stellio.shared.util.toListOfUri
 import java.net.URI
 
@@ -36,7 +39,7 @@ data class LinkedEntityQuery(
         ): Either<APIException, LinkedEntityQuery?> = either {
             val containedBy = containedBy?.split(",").orEmpty().toListOfUri().toSet()
             val join = join?.let {
-                JoinType.forType(it)?.right() ?: BadRequestDataException(badJoinParameterMessage(it)).left()
+                JoinType.forType(it)?.right() ?: BadRequestDataException(invalidJoinParameterMessage(it)).left()
             }?.bind()
             val joinLevel = joinLevel?.let { param ->
                 runCatching {
@@ -44,21 +47,15 @@ data class LinkedEntityQuery(
                 }.fold(
                     { it.right() },
                     {
-                        BadRequestDataException(badJoinLevelParameterMessage(param)).left()
+                        BadRequestDataException(invalidJoinLevelParameterMessage(param)).left()
                     }
                 )
             }?.bind()
 
             ensure(!((joinLevel != null || containedBy.isNotEmpty()) && join == null)) {
-                BadRequestDataException("'join' must be specified if 'joinLevel' or 'containedBy' are specified")
+                BadRequestDataException(JOIN_REQUIRED_WITH_JOIN_LEVEL_OR_CONTAINED_BY_MESSAGE)
             }
             join?.let { LinkedEntityQuery(it, joinLevel ?: DEFAULT_JOIN_LEVEL.toUInt(), containedBy) }
         }
-
-        private fun badJoinParameterMessage(param: String) =
-            "'$param' is not a recognized value for 'join' parameter (only 'flat', 'inline' and '@none' are allowed)"
-
-        private fun badJoinLevelParameterMessage(param: String) =
-            "'$param' is not a recognized value for 'joinLevel' parameter (only positive integers are allowed)"
     }
 }

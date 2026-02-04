@@ -30,6 +30,7 @@ import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.getRelationshipId
+import com.egm.stellio.shared.util.EntityErrorMessages.attributeCannotGetValueMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -92,7 +93,7 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
     }
     if (attributeValue == Triple(null, null, null)) {
         JsonLdUtils.logger.warn("Unable to get a value from attribute: $this")
-        return BadRequestDataException("Unable to get a value from attribute: $this").left()
+        return BadRequestDataException(attributeCannotGetValueMessage(this.toString())).left()
     }
 
     return AttributeMetadata(

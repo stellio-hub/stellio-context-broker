@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertInstanceOf
 import org.junit.jupiter.api.fail
 import org.springframework.http.MediaType
 
@@ -105,9 +106,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "The supplied identifier was expected to be an URI but it is not: "
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Invalid URI: ", it.message)
             }
     }
 
@@ -122,9 +123,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "The supplied identifier was expected to be an URI but it is not: invalidId"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Invalid URI: invalidId", it.message)
             }
     }
 
@@ -139,9 +140,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "Invalid idPattern found in subscription"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Invalid pattern in field 'idPattern'", it.message)
             }
     }
 
@@ -155,9 +156,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "At least one of entities or watchedAttributes shall be present"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("At least one of 'entities' or 'watchedAttributes' is required", it.message)
             }
     }
 
@@ -173,9 +174,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Cannot specify both 'timeInterval' and 'watchedAttributes'", it.message)
             }
     }
 
@@ -192,9 +193,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "You can't use 'timeInterval' in conjunction with 'throttling'"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Cannot specify both 'timeInterval' and 'throttling'", it.message)
             }
     }
 
@@ -210,9 +211,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "The value of 'throttling' must be greater than zero (int)"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Field 'throttling' must be greater than zero", it.message)
             }
     }
 
@@ -228,9 +229,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "The value of 'timeInterval' must be greater than zero (int)"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Field 'timeInterval' must be greater than zero", it.message)
             }
     }
 
@@ -246,9 +247,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "'expiresAt' must be in the future"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Field 'expiresAt' must be in the future", it.message)
             }
     }
 
@@ -264,9 +265,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "Unknown notification trigger in [unknownNotificationTrigger]"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Unknown notification trigger: [unknownNotificationTrigger]", it.message)
             }
     }
 
@@ -301,11 +302,11 @@ class SubscriptionTests {
         result.fold({
             assertTrue(it is LdContextNotAvailableException)
             assertEquals(
-                "Unable to load remote context",
+                "Remote context could not be loaded",
                 it.message
             )
             assertEquals(
-                "caused by: JsonLdError[code=There was a problem encountered " +
+                "Caused by: JsonLdError[code=There was a problem encountered " +
                     "loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., message=There was a problem " +
                     "encountered loading a remote context " +
                     "[https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-non-existing.jsonld]]",
@@ -403,9 +404,9 @@ class SubscriptionTests {
         val subscription = deserialize(rawSubscription.deserializeAsMap(), emptyList())
             .shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "The value of 'joinLevel' must be greater than zero (int) if 'join' is asked"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Field 'joinLevel' must be greater than zero", it.message)
             }
     }
 
@@ -434,9 +435,9 @@ class SubscriptionTests {
         val subscription = deserialize(rawSubscription.deserializeAsMap(), emptyList())
             .shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "'showChanges' and 'simplified' / 'keyValues' format cannot be used at the same time"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Cannot use 'showChanges' with 'simplified' or 'keyValues' format", it.message)
             }
     }
 
@@ -465,9 +466,9 @@ class SubscriptionTests {
         val subscription = deserialize(rawSubscription.deserializeAsMap(), emptyList())
             .shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "'attributes' and 'pick' or 'omit' cannot be used at the same time"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Cannot use 'attrs' with 'pick' or 'omit'", it.message)
             }
     }
 
@@ -496,9 +497,9 @@ class SubscriptionTests {
         val subscription = deserialize(rawSubscription.deserializeAsMap(), emptyList())
             .shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "An entity member cannot be present in both 'pick' and 'omit'"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Entity member cannot be present in both 'pick' and 'omit'", it.message)
             }
     }
 
@@ -518,9 +519,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "The value of 'cooldown' must be greater than zero (int)"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Field 'cooldown' must be greater than zero", it.message)
             }
     }
 
@@ -540,9 +541,9 @@ class SubscriptionTests {
 
         val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
         subscription.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "The value of 'timeout' must be greater than zero (int)"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Field 'timeout' must be greater than zero", it.message)
             }
     }
 

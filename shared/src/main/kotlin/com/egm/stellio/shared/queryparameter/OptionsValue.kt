@@ -5,6 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidOptionsValueMessage
 
 enum class OptionsValue(val value: String) {
     SYS_ATTRS("sysAttrs"),
@@ -20,7 +21,7 @@ enum class OptionsValue(val value: String) {
     companion object {
         fun fromString(key: String): Either<APIException, OptionsValue> = either {
             OptionsValue.entries.find { it.value == key }
-                ?: return InvalidRequestException("'$key' is not a valid value for the options query parameter").left()
+                ?: return InvalidRequestException(invalidOptionsValueMessage(key)).left()
         }
     }
 }

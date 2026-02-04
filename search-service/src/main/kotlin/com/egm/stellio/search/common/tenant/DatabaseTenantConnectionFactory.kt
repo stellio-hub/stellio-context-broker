@@ -2,6 +2,7 @@ package com.egm.stellio.search.common.tenant
 
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NonexistentTenantException
+import com.egm.stellio.shared.util.TenantErrorMessages.tenantNotFoundMessage
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import org.springframework.r2dbc.connection.lookup.AbstractRoutingConnectionFactory
@@ -17,7 +18,7 @@ class DatabaseTenantConnectionFactory(
         Mono.deferContextual { contextView ->
             val tenantName = contextView.getOrDefault(NGSILD_TENANT_HEADER, DEFAULT_TENANT_NAME)!!
             if (!applicationProperties.tenants.map { it.name }.contains(tenantName))
-                Mono.error(NonexistentTenantException("Tenant $tenantName does not exist"))
+                Mono.error(NonexistentTenantException(tenantNotFoundMessage(tenantName)))
             else
                 Mono.just(tenantName)
         }

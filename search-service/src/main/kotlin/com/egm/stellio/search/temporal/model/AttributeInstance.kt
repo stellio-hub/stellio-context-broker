@@ -13,6 +13,7 @@ import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
+import com.egm.stellio.shared.util.TemporalErrorMessages.invalidTimePropertyMessage
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
@@ -93,7 +94,7 @@ data class AttributeInstance private constructor(
         companion object {
             fun fromTimeProperty(timeProperty: String): Either<APIException, TemporalProperty> =
                 entries.find { it.propertyName == timeProperty }.let {
-                    it?.right() ?: BadRequestDataException("Unknown value for 'timeproperty': $timeProperty").left()
+                    it?.right() ?: BadRequestDataException(invalidTimePropertyMessage(timeProperty)).left()
                 }
         }
     }

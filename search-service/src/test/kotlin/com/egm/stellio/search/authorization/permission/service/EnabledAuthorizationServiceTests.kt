@@ -87,7 +87,7 @@ class EnabledAuthorizationServiceTests {
         enabledAuthorizationService.userCanReadEntity(entityId01)
             .shouldFail {
                 assertInstanceOf(AccessDeniedException::class.java, it)
-                assertEquals("User forbidden to read entity", it.message)
+                assertEquals("User is not authorized to read entity urn:ngsi-ld:Beehive:01", it.message)
             }
 
         coVerify {
@@ -120,7 +120,7 @@ class EnabledAuthorizationServiceTests {
         enabledAuthorizationService.userCanUpdateEntity(entityId01)
             .shouldFail {
                 assertInstanceOf(AccessDeniedException::class.java, it)
-                assertEquals("User forbidden to modify entity", it.message)
+                assertEquals("User is not authorized to modify entity urn:ngsi-ld:Beehive:01", it.message)
             }
 
         coVerify {
@@ -153,7 +153,7 @@ class EnabledAuthorizationServiceTests {
         enabledAuthorizationService.userCanAdminEntity(entityId01)
             .shouldFail {
                 assertInstanceOf(AccessDeniedException::class.java, it)
-                assertEquals("User forbidden to admin entity", it.message)
+                assertEquals("User is not authorized to admin entity urn:ngsi-ld:Beehive:01", it.message)
             }
 
         coVerify {

@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.FEATURE_COLLECTION_TYPE
 import com.egm.stellio.shared.util.FEATURE_TYPE
 import com.egm.stellio.shared.util.GEOMETRY_PROPERTY_TERM
 import com.egm.stellio.shared.util.PROPERTIES_PROPERTY_TERM
+import com.egm.stellio.shared.util.QueryParameterErrorMessages.NO_ENTITY_MEMBER_AFTER_PROJECTION_MESSAGE
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.util.Locale
@@ -95,7 +96,7 @@ fun CompactedEntity.filterPickAndOmit(pick: Set<String>, omit: Set<String>): Eit
         !omit.contains(it)
     }.let {
         if (it.all { entry -> COMPACTED_ENTITY_MINIMAL_MEMBERS.contains(entry.key) })
-            UnprocessableEntityException("No entity member left after applying pick and omit").left()
+            UnprocessableEntityException(NO_ENTITY_MEMBER_AFTER_PROJECTION_MESSAGE).left()
         else it.right()
     }
 

@@ -66,12 +66,13 @@ import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.isAttributeOfType
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.EntityErrorMessages.ATTRIBUTE_TYPE_MISMATCH_MESSAGE
+import com.egm.stellio.shared.util.EntityErrorMessages.attributeWithDatasetIdNotFoundMessage
+import com.egm.stellio.shared.util.EntityErrorMessages.entityNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.attributeNotFoundMessage
-import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
@@ -608,7 +609,9 @@ class EntityAttributeService(
                 if (it.first)
                     if (it.second)
                         Unit.right()
-                    else ResourceNotFoundException(attributeNotFoundMessage(attributeName, datasetId)).left()
+                    else ResourceNotFoundException(
+                        attributeWithDatasetIdNotFoundMessage(attributeName, datasetId)
+                    ).left()
                 else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
             }
     }
@@ -739,7 +742,7 @@ class EntityAttributeService(
         // first update payload in temporal entity attribute
         attributeValues[JSONLD_TYPE_KW]?.let {
             ensure(isAttributeOfType(attributeValues, AttributeType(NGSILD_PREFIX + attribute.attributeType))) {
-                BadRequestDataException("The type of the attribute has to be the same as the existing one")
+                BadRequestDataException(ATTRIBUTE_TYPE_MISMATCH_MESSAGE)
             }
         }
         val (jsonTargetObject, updatedAttributeInstance) =

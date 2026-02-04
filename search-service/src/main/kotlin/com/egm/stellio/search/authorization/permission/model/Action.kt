@@ -9,6 +9,10 @@ import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.BatchOperationErrorMessages.PAYLOAD_MUST_BE_PROPERTY_MESSAGE
+import com.egm.stellio.shared.util.BatchOperationErrorMessages.PAYLOAD_SINGLE_INSTANCE_MESSAGE
+import com.egm.stellio.shared.util.PermissionErrorMessages.GLOBAL_POLICY_RESTRICTION_MESSAGE
+import com.egm.stellio.shared.util.PermissionErrorMessages.invalidActionMessage
 import com.egm.stellio.shared.util.toSqlList
 import com.fasterxml.jackson.annotation.JsonProperty
 
@@ -33,9 +37,7 @@ enum class Action(val value: String, private val includedIn: Set<Action> = empty
     companion object {
         fun fromString(action: String): Either<APIException, Action> =
             Action.entries.find { it.value == action }?.right()
-                ?: BadRequestDataException(
-                    """Invalid action provided: "$action", must be "own", "admin","write" or "read"."""
-                ).left()
+                ?: BadRequestDataException(invalidActionMessage(action)).left()
     }
 }
 
@@ -45,10 +47,10 @@ fun NgsiLdEntity.getSpecificAccessPolicy(): Either<APIException, Action>? =
 fun NgsiLdAttribute.getSpecificAccessPolicy(): Either<APIException, Action> {
     val ngsiLdAttributeInstances = this.getAttributeInstances()
     if (ngsiLdAttributeInstances.size > 1)
-        return BadRequestDataException("Payload must contain a single attribute instance").left()
+        return BadRequestDataException(PAYLOAD_SINGLE_INSTANCE_MESSAGE).left()
     val ngsiLdAttributeInstance = ngsiLdAttributeInstances[0]
     if (ngsiLdAttributeInstance !is NgsiLdPropertyInstance)
-        return BadRequestDataException("Payload must be a property").left()
+        return BadRequestDataException(PAYLOAD_MUST_BE_PROPERTY_MESSAGE).left()
 
     return when (ngsiLdAttributeInstance.value.toString()) {
         "AUTH_READ" -> Action.READ.right()
@@ -56,7 +58,7 @@ fun NgsiLdAttribute.getSpecificAccessPolicy(): Either<APIException, Action> {
         else -> Action.fromString(ngsiLdAttributeInstance.value.toString())
             .onRight {
                 if (it !in setOf(Action.READ, Action.WRITE))
-                    BadRequestDataException("Only read and write are accepted as global policy").left()
+                    BadRequestDataException(GLOBAL_POLICY_RESTRICTION_MESSAGE).left()
                 else it.right()
             }
     }

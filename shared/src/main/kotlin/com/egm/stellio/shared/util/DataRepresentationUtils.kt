@@ -10,6 +10,10 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
+import com.egm.stellio.shared.util.DataRepresentationErrorMessages.NULL_VALUE_IN_CONTENT_MESSAGE
+import com.egm.stellio.shared.util.DataRepresentationErrorMessages.invalidCharacterInContentMessage
+import com.egm.stellio.shared.util.DataRepresentationErrorMessages.invalidCharacterInNameMessage
+import com.egm.stellio.shared.util.DataRepresentationErrorMessages.invalidCharacterInScopeMessage
 import com.egm.stellio.shared.util.JsonUtils.getAllKeys
 import com.egm.stellio.shared.util.JsonUtils.getAllValues
 
@@ -30,7 +34,7 @@ suspend fun Map<String, Any>.checkNamesAreNgsiLdSupported(): Either<APIException
 
 fun String.checkNameIsNgsiLdSupported(): Either<APIException, Unit> =
     if (this.isNgsiLdSupportedName()) Unit.right()
-    else BadRequestDataException(invalidCharacterInName(this)).left()
+    else BadRequestDataException(invalidCharacterInNameMessage(this)).left()
 
 /**
  * Returns whether the given string is a supported name as defined in 4.6.2
@@ -53,7 +57,7 @@ fun Any.checkScopesNamesAreNgsiLdSupported(): Either<APIException, Unit> {
 
 fun String.checkScopeNameIsNgsiLdSupported(): Either<APIException, Unit> =
     if (this.isNgsiLdSupportedScopeName()) Unit.right()
-    else BadRequestDataException(invalidCharacterInScope(this)).left()
+    else BadRequestDataException(invalidCharacterInScopeMessage(this)).left()
 
 fun String.isNgsiLdSupportedScopeName(): Boolean = this.matches(scopeNameRegex)
 
@@ -65,7 +69,7 @@ suspend fun Map<String, Any>.checkContentIsNgsiLdSupported(): Either<APIExceptio
         it.key != JSONLD_CONTEXT_KW && it.key != NGSILD_SCOPE_TERM
     }.getAllValues()
     values.parMap { value ->
-        (value?.checkContentIsNgsiLdSupported() ?: BadRequestDataException(NULL_VALUE_IN_CONTENT).left()).bind()
+        (value?.checkContentIsNgsiLdSupported() ?: BadRequestDataException(NULL_VALUE_IN_CONTENT_MESSAGE).left()).bind()
     }
     get(NGSILD_SCOPE_TERM)?.checkScopesNamesAreNgsiLdSupported()?.bind()
     this@checkContentIsNgsiLdSupported
@@ -74,7 +78,7 @@ suspend fun Map<String, Any>.checkContentIsNgsiLdSupported(): Either<APIExceptio
 private fun Any.checkContentIsNgsiLdSupported(): Either<APIException, Unit> =
     if (this is String) {
         if (this.isNgsiLdSupportedContent()) Unit.right()
-        else BadRequestDataException(invalidCharacterInContent(this)).left()
+        else BadRequestDataException(invalidCharacterInContentMessage(this)).left()
     } else Unit.right()
 
 /**

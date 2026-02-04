@@ -5,6 +5,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.DbQueryErrorMessages.OPERATION_NO_RESULT_MESSAGE
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -23,7 +24,7 @@ suspend fun <R> DatabaseClient.GenericExecuteSpec.allToMappedList(f: (value: Map
     this.allToFlow().map { f(it) }.toList()
 
 suspend fun <R> DatabaseClient.GenericExecuteSpec.oneToResult(
-    ifEmpty: APIException = ResourceNotFoundException("Operation did not return any result"),
+    ifEmpty: APIException = ResourceNotFoundException(OPERATION_NO_RESULT_MESSAGE),
     f: (value: Map<String, Any>) -> R
 ): Either<APIException, R> =
     this.fetch()

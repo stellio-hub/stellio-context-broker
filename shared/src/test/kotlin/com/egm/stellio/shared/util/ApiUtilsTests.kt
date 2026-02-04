@@ -10,6 +10,7 @@ import com.egm.stellio.shared.web.CustomWebFilter
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -238,7 +239,7 @@ class ApiUtilsTests {
         getContextFromLinkHeader(APIC_COMPOUND_CONTEXTS).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Badly formed Link header: $APIC_COMPOUND_CONTEXT",
+                "Link header is badly formed: $APIC_COMPOUND_CONTEXT",
                 it.message
             )
         }
@@ -418,7 +419,9 @@ class ApiUtilsTests {
     fun `it should not validate an incorrect idPattern`() {
         val validationResult = validateIdPattern("(?x)urn:ngsi-ld:Entity:{*}2")
         validationResult.fold(
-            { assertTrue(it.message.startsWith("Invalid value for idPattern: (?x)urn:ngsi-ld:Entity:{*}2")) },
+            {
+                assertThat(it.message).startsWith("Invalid pattern in field 'idPattern':")
+            },
             { fail("it should not have validated the idPattern") }
         )
     }

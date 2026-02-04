@@ -30,6 +30,11 @@ import com.egm.stellio.shared.model.removeAttributes
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.TemporalErrorMessages.AGGR_METHODS_MANDATORY_MESSAGE
+import com.egm.stellio.shared.util.TemporalErrorMessages.DIFFERENT_TEMPORAL_REPRESENTATIONS_MESSAGE
+import com.egm.stellio.shared.util.TemporalErrorMessages.END_TIME_AT_MANDATORY_FOR_BETWEEN_MESSAGE
+import com.egm.stellio.shared.util.TemporalErrorMessages.invalidTemporalRepresentationMessage
+import com.egm.stellio.shared.util.TemporalErrorMessages.unrecognizedAggregationMethodMessage
 import com.egm.stellio.shared.util.hasValueInOptionsParam
 import com.egm.stellio.shared.util.parseTimeParameter
 import org.springframework.util.MultiValueMap
@@ -147,18 +152,16 @@ fun buildTemporalQuery(
     }
 
     if (timerel == Timerel.BETWEEN && endTimeAtParam == null)
-        return BadRequestDataException("'endTimeAt' request parameter is mandatory if 'timerel' is 'between'").left()
+        return BadRequestDataException(END_TIME_AT_MANDATORY_FOR_BETWEEN_MESSAGE).left()
 
     if (withAggregatedValues && aggrMethodsParam == null)
-        return BadRequestDataException("'aggrMethods' is mandatory if 'aggregatedValues' option is specified").left()
+        return BadRequestDataException(AGGR_METHODS_MANDATORY_MESSAGE).left()
 
     val aggregate = aggrMethodsParam?.split(",")?.map {
         if (Aggregate.isSupportedAggregate(it))
             Aggregate.forMethod(it)!!
         else
-            return BadRequestDataException(
-                "'$it' is not a recognized aggregation method for 'aggrMethods' parameter"
-            ).left()
+            return BadRequestDataException(unrecognizedAggregationMethodMessage(it)).left()
     }
 
     val lastN = lastNParam?.toIntOrNull()?.let {
@@ -232,10 +235,7 @@ private fun extractTemporalRepresentation(
             val hasAggregated = hasValueInOptionsParam(optionsParam, OptionsValue.AGGREGATED_VALUES).bind()
             when {
                 hasTemporal && hasAggregated ->
-                    BadRequestDataException(
-                        "Found different temporal representations in options query parameter," +
-                            " only one can be provided"
-                    ).left()
+                    BadRequestDataException(DIFFERENT_TEMPORAL_REPRESENTATIONS_MESSAGE).left()
                 hasTemporal -> TemporalRepresentation.TEMPORAL_VALUES.right()
                 hasAggregated -> TemporalRepresentation.AGGREGATED_VALUES.right()
                 else -> TemporalRepresentation.NORMALIZED.right()
@@ -252,7 +252,7 @@ enum class TemporalRepresentation(val key: String) {
     companion object {
         fun fromString(key: String): Either<APIException, TemporalRepresentation> = either {
             TemporalRepresentation.entries.find { it.key == key }
-                ?: return InvalidRequestException("'$key' is not a valid temporal representation").left()
+                ?: return InvalidRequestException(invalidTemporalRepresentationMessage(key)).left()
         }
     }
 }

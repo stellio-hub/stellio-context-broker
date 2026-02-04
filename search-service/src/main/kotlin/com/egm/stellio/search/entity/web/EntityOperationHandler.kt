@@ -28,6 +28,8 @@ import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.BatchOperationErrorMessages.BATCH_PAYLOAD_EMPTY_MESSAGE
+import com.egm.stellio.shared.util.BatchOperationErrorMessages.CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -300,7 +302,7 @@ class EntityOperationHandler(
 
     private fun checkBatchRequestBody(body: List<Any>): Either<APIException, Unit> =
         if (body.isEmpty())
-            BadRequestDataException("Batch request payload shall not be empty").left()
+            BadRequestDataException(BATCH_PAYLOAD_EMPTY_MESSAGE).left()
         else Unit.right()
 
     private suspend fun checkAndExpandBatchOfEntities(
@@ -347,10 +349,8 @@ class EntityOperationHandler(
         }.fold(
             { it },
             { e ->
-                InvalidRequestException(
-                    "Can't deserialize into a list of object. Make sure the provided payload is a list",
-                    e.localizedMessage
-                ).left().bind()
+                InvalidRequestException(CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE, e.localizedMessage)
+                    .left().bind()
             }
         )
 

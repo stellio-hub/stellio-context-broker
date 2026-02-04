@@ -3,6 +3,7 @@ package com.egm.stellio.shared.web
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NonexistentTenantException
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.TenantErrorMessages.tenantNotFoundMessage
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.core.Ordered
@@ -47,7 +48,7 @@ class TenantWebFilter(
             exchange.response.statusCode = HttpStatus.NOT_FOUND
             exchange.response.headers[CONTENT_TYPE] = MediaType.APPLICATION_JSON_VALUE
             val errorResponse =
-                serializeObject(NonexistentTenantException("Tenant $tenantName does not exist").toProblemDetail())
+                serializeObject(NonexistentTenantException(tenantNotFoundMessage(tenantName)).toProblemDetail())
             return exchange.response.writeWith(
                 Flux.just(DefaultDataBufferFactory().wrap(errorResponse.toByteArray()))
             )

@@ -150,7 +150,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User", groupsUUIDs = ["group-uuid-1", "group-uuid-2"])
     fun `it should retrieve UUID from subject and groups memberships`() = runTest {
-        val groups = listOf("group1", "group2")
+        val groups = listOf("group-uuid-1", "group-uuid-2")
 
         subjectReferentialService.getCurrentSubjectClaims()
             .shouldSucceedWith {

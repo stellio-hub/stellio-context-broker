@@ -21,6 +21,7 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
+import com.egm.stellio.shared.util.AuthContextModel.SUBJECT_FUNCTION_DEPRECATED_MESSAGE
 import com.egm.stellio.shared.util.Claims
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -112,6 +113,7 @@ class SubjectReferentialService(
                 rowToSubjectReferential(it)
             }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getGroups(offset: Int, limit: Int): List<Group> =
         databaseClient
             .sql(
@@ -140,6 +142,7 @@ class SubjectReferentialService(
                 )
             }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getCountGroups(): Either<APIException, Int> =
         databaseClient
             .sql(
@@ -153,6 +156,7 @@ class SubjectReferentialService(
             .bind("subject_id", getSubFromSecurityContext())
             .oneToResult { toInt(it["count"]) }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getAllGroups(offset: Int, limit: Int): List<Group> =
         databaseClient
             .sql(
@@ -182,6 +186,7 @@ class SubjectReferentialService(
                 )
             }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getCountAllGroups(): Either<APIException, Int> =
         databaseClient
             .sql(
@@ -193,6 +198,7 @@ class SubjectReferentialService(
             )
             .oneToResult { toInt(it["count"]) }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getUsers(offset: Int, limit: Int): List<User> =
         databaseClient
             .sql(
@@ -221,6 +227,7 @@ class SubjectReferentialService(
                 )
             }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getUsersCount(): Either<APIException, Int> =
         databaseClient
             .sql(

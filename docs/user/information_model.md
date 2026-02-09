@@ -8,6 +8,10 @@ If you do not provide one, Stellio uses the [NGSI-LD default context](https://ur
 
 Using an `@context` enables semantic interoperability. You can find out more in this [tutorial](https://ngsi-ld-tutorials.readthedocs.io/en/latest/working-with-%40context.html).
 
+The different ways to specify the @context are described in [§6.3.5](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.3.5)
+
+You can also request a specific data format (JSON or JSON-LD) has described in [§6.3.6](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.3.6)
+
 ## Model
 ### Entity
 Data is stored as entities. An entity is identified by an `id` and a `type`.

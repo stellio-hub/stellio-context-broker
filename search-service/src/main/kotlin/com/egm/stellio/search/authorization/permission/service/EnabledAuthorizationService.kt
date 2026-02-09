@@ -16,6 +16,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
+import com.egm.stellio.shared.util.AuthContextModel.SUBJECT_FUNCTION_DEPRECATED_MESSAGE
 import com.egm.stellio.shared.util.CREATION_ROLES
 import com.egm.stellio.shared.util.ENTITIY_READ_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
@@ -133,6 +134,7 @@ class EnabledAuthorizationService(
     override suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit> =
         permissionService.removePermissionsOnEntity(entityId)
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     override suspend fun getGroupsMemberships(
         offset: Int,
         limit: Int
@@ -159,6 +161,7 @@ class EnabledAuthorizationService(
         Pair(groups.first, jsonLdEntities)
     }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     override suspend fun getUsers(
         offset: Int,
         limit: Int,

@@ -34,7 +34,6 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-
 @Service
 class SubjectReferentialService(
     private val applicationProperties: ApplicationProperties,

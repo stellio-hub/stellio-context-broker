@@ -15,7 +15,7 @@ It will start all the services composing the Stellio context broker platform and
 -   Search service: 8083
 -   Subscription service: 8084
 
-Docker images are available on [Docker Hub](https://hub.docker.com/orgs/stellio/repositories).)
+Docker images are available on [Docker Hub](https://hub.docker.com/orgs/stellio/repositories).
 
 
 # Usage

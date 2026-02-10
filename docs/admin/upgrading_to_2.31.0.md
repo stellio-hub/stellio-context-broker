@@ -55,6 +55,7 @@ Once you have upgraded the keycloak image, you can configure the token mapper to
 #### Verify that the groups uuids are present in the token. (in Clients > your-client > Clients scopes > evaluate > Generated access token)
 ![](images/group-uuid-mapper-configuration/step-3.png)
 
+When you have configured the groups_uuids claim in all your realms used by stellio. You are ready to migrate to stellio:2.31.0.
 
 ## Upgrade to TimescaleDB 2.25.2
 

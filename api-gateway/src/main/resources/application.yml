@@ -35,6 +35,17 @@ management:
       access: none
     health:
       access: read_only
+  # Default values for sending observation data to an OpenTelemetry-capable backend
+  # Log data is sent only if the 'otel' Spring profile is active
+  opentelemetry:
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+  otlp:
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
 
 logbook:
   format.style: http
@@ -43,9 +54,3 @@ logbook:
   predicate:
     include:
       - path: /ngsi-ld/v1/**
-
-# Default values for sending log data to a Gelf compatible endpoint
-# Log data is sent only if the 'gelflogs' Spring profile is active
-# application.graylog.host: localhost
-# application.graylog.port: 12201
-# application.graylog.source: stellio-int

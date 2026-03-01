@@ -2,35 +2,48 @@
 
 ## Monitoring
 
-The [Prometheus](https://prometheus.io/) platform is typically used to monitor Stellio in production, together with [Grafana]("https://grafana.com/") for the visualisation of the different metrics gathered from the platform.
+Stellio services export telemetry data using the [OpenTelemetry](https://opentelemetry.io/) protocol (OTLP).
+The recommended backend is an **OpenTelemetry Collector** feeding into the
+[Grafana LGTM stack](https://grafana.com/docs/opentelemetry/docker-lgtm/) (Loki for logs,
+Tempo for traces, Mimir or Prometheus for metrics), with [Grafana](https://grafana.com/) for visualization.
 
-Setting up of Prometheus is of course beyond the scope of this documentation, there is good documentation on the Prometheus site.
+It is also recommended to monitor the VMs with [node_exporter](https://github.com/prometheus/node_exporter)
+and the Docker containers with [cAdvisor](https://github.com/google/cadvisor).
 
-However, it is recommended to monitor the VMs with [node_exporter]("https://github.com/prometheus/node_exporter") and the Docker containers with [cAdvisor]("https://github.com/google/cadvisor").
+### Enabling OpenTelemetry export
 
-The Stellio services can also be configured to expose an [health endpoint]("https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-health") and [Prometheus metrics]("https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-metrics-export-prometheus") (in parenthesis, the name of the environement variable to use when injecting the values into a Docker container):
-
-- `management.endpoint.prometheus.enabled` (`MANAGEMENT_ENDPOINT_PROMETHEUS_ENABLED`): `true`
-- `management.endpoints.web.exposure.include` (`MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE`): `health,prometheus`
-- `management.metrics.pf.tag` (`MANAGEMENT_METRICS_PF_TAG`): used to compose a specific `application` tag that is used for easier querying in Prometheus
-
-In a docker-compose or Docker Swarm based deployment, the environement variables can be declared by adding the following in the `environment` section:
-
-```
-  search-service:
-    container_name: search-service
-    image: stellio/stellio-search-service:latest-dev
-    environment:
-      - MANAGEMENT_ENDPOINT_PROMETHEUS_ENABLED=${MANAGEMENT_ENDPOINT_PROMETHEUS_ENABLED}
-      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE}
-      - MANAGEMENT_METRICS_TAGS_APPLICATION=Search Service - ${MANAGEMENT_METRICS_PF_TAG}
-```
-
-### Example Prometheus configurations
-
-An example Prometheus configuration to get health information from Stellio services (using [Blackbox exporter]("https://github.com/prometheus/blackbox_exporter")):
+OTel export is controlled by the `otel` Spring profile. It must be included in `SPRING_PROFILES_ACTIVE` for 
+the services to emit telemetry data:
 
 ```
+SPRING_PROFILES_ACTIVE=otel
+```
+
+Without this profile, the services start normally but do not send any metrics or logs to the OTel backend.
+
+When using the provided docker-compose setup, this is controlled via the `ENVIRONMENT` variable in the `.env` file:
+
+```
+ENVIRONMENT=docker,otel
+```
+
+### Metrics
+
+JVM and application metrics are exported via OTLP using Micrometer. The relevant configuration property is
+(env var name in parentheses):
+
+- `management.otlp.metrics.export.url` (`MANAGEMENT_OTLP_METRICS_EXPORT_URL`): URL of the OTLP metrics endpoint 
+(default: `http://localhost:4318/v1/metrics`)
+
+### Health endpoint
+
+The Stellio services expose a [health endpoint](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-health)
+at `/actuator/health`. It is enabled by default and does not require the `otel` profile.
+
+An example Prometheus configuration to probe the health of Stellio services
+(using [Blackbox exporter](https://github.com/prometheus/blackbox_exporter)):
+
+```yaml
   - job_name: 'Stellio services - health'
     metrics_path: /probe
     scrape_interval: 1m
@@ -57,7 +70,7 @@ An example Prometheus configuration to get health information from Stellio servi
 
 Where `http_200_stellio` is configured in this way:
 
-```
+```yaml
   http_200_stellio:
     prober: http
     timeout: 5s
@@ -70,82 +83,58 @@ Where `http_200_stellio` is configured in this way:
         - "UP"
 ```
 
-Health information can for instance be then monitored with the following community Grafana dashboard: [https://grafana.com/grafana/dashboards/12275](https://grafana.com/grafana/dashboards/12275).
+Health information can, for instance, be monitored with the following community Grafana dashboard:
+[https://grafana.com/grafana/dashboards/12275](https://grafana.com/grafana/dashboards/12275).
 
-An example Prometheus configuration to get metrics information from Stellio services:
-
-```
-  - job_name: 'Stellio services - metrics'
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 30s
-    static_configs:
-      - targets: ['stellio-host:8083'] # 8083 : Search service
-      - targets: ['stellio-host:8084'] # 8084 : Subscription service
-```
-
-Metrics can for instance be then viewed with the following community Grafana dashboard: [https://grafana.com/grafana/dashboards/4701](https://grafana.com/grafana/dashboards/4701).
-
-### Alerting
-
-The Prometheus alert manager can be used to monitor the activity and send alerts in case something is going wrong.
-
-A good place to find some example alerts is the [Awesome Prometheus alerts]("https://awesome-prometheus-alerts.grep.to/") site.
-
-Some classic alerts that are generally recommended:
-
-- Alert when a service is down
-
-```
-- name: service
-  rules:
-  - alert: service_down
-    expr: probe_success == 0
-    for: 2m
-    labels:
-      severity: critical
-    annotations:
-      summary: "Service {{ $labels.name }} is down"
-      description: "Service {{ $labels.name }} is down ({{ $labels.instance }})"
-```
-
-- Alert when a container is down
-
-```
-  - alert: container_down_stellio
-    expr: |
-          absent(container_memory_usage_bytes{name="api-gateway",job="Stellio Docker"}) or
-          absent(container_memory_usage_bytes{name="postgres",job="Stellio Docker"}) or
-          absent(container_memory_usage_bytes{name="kafka",job="Stellio Docker"}) or
-          absent(container_memory_usage_bytes{name="subscription-service",job="Stellio Docker"}) or
-          absent(container_memory_usage_bytes{name="search-service",job="Stellio Docker"})
-    for: 30s
-    labels:
-      severity: critical
-    annotations:
-      summary: "Container {{ $labels.name }} is down on Stellio Dev"
-      description: "Container {{ $labels.name }} is down for more than 30 seconds on Stellio Dev"
-```
+It is then easy to create alerts based on the health of the services.
 
 ## Logging
 
-The logs produced by the Stellio services can be sent to [Graylog]("https://www.graylog.org/") or any other GELF compatible logging platform.
+The logs produced by the Stellio services are exported via OpenTelemetry (OTLP) and can be ingested by any compatible
+backend, such as [Grafana Loki](https://grafana.com/oss/loki/).
 
-Setting up of Graylog is of course beyond the scope of this documentation, there is good documentation on the Graylog site.
+Logs are only exported when the `otel` Spring profile is active (see [Enabling OpenTelemetry export](#enabling-opentelemetry-export)).
 
-In order to send Stellio services logs to the logging platform, the following three variables have to configured (in parenthesis, the name of the environement variable to use when injecting the values into a Docker container):
+The following property configures where logs are sent (env var name in parentheses):
 
-- `application.graylog.host` (`APPLICATION_GRAYLOG_HOST`): host where Graylog is installed (e.g., localhost)
-- `application.graylog.port` (`APPLICATION_GRAYLOG_PORT`): port where Graylog is listening (e.g.g, 12201)
-- `application.graylog.source` (`APPLICATION_GRAYLOG_SOURCE`): sent as `platform` key to Graylog (it can later be used to create streams specific to the originating platform)
+- `management.opentelemetry.logging.export.otlp.endpoint` (`MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT`):
+URL of the OTLP logs endpoint (default: `http://localhost:4318/v1/logs`)
 
-In a docker-compose or Docker Swarm based deployment, the environement variables can be declared by adding the following in the `environment` section:
+### Service identification
+
+Each service sends resource attributes that identify it in the OTel backend. These are pre-configured per service:
+
+- `management.opentelemetry.resource-attributes.service.name`: identifies the service (named as the service, 
+e.g., `search-service`)
+- `management.opentelemetry.resource-attributes.service.namespace`: identifies the service namespace (always `stellio`)
+- `management.opentelemetry.resource-attributes.deployment.environment.name`: identifies the deployment environment;
+defaults to `local`, override via the `DEPLOYMENT_ENVIRONMENT_NAME` environment variable
+
+These labels align with the attributes defined by [OpenTemetry](https://opentelemetry.io/docs/specs/semconv/),
+making it straightforward to filter logs per service in a Grafana dashboard.
+
+### Docker Compose configuration
+
+In a docker-compose or Docker Swarm based deployment, the environment variables can be declared by adding the following
+in the `environment` section of each service:
+
+```yaml
+  search-service:
+    container_name: search-service
+    image: stellio/stellio-search-service:latest-dev
+    environment:
+      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+      - MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT=${MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT}
+      - MANAGEMENT_OPENTELEMETRY_RESOURCE_ATTRIBUTES_DEPLOYMENT_ENVIRONMENT_NAME=${DEPLOYMENT_ENVIRONMENT_NAME}
+      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${MANAGEMENT_OTLP_METRICS_EXPORT_URL}
+```
+
+And in the `.env` file:
 
 ```
-  entity-service:
-    container_name: entity-service
-    image: stellio/stellio-entity-service:latest
-    environment:
-      - APPLICATION_GRAYLOG_HOST=${APPLICATION_GRAYLOG_HOST}
-      - APPLICATION_GRAYLOG_PORT=${APPLICATION_GRAYLOG_PORT}
-      - APPLICATION_GRAYLOG_SOURCE=${APPLICATION_GRAYLOG_SOURCE}
+ENVIRONMENT=docker,otel
+DEPLOYMENT_ENVIRONMENT_NAME=production
+
+MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT=http://otel-collector:4318/v1/logs
+MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://otel-collector:4318/v1/metrics
 ```

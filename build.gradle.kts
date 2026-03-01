@@ -60,6 +60,9 @@ subprojects {
         implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
         implementation("org.springframework.boot:spring-boot-starter-validation")
 
+        implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
+        implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.25.0-alpha")
+
         implementation("org.springframework.boot:spring-boot-starter-kafka")
 
         implementation("tools.jackson.module:jackson-module-kotlin")
@@ -76,8 +79,7 @@ subprojects {
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
-        runtimeOnly("de.siegmar:logback-gelf:6.1.2")
-        runtimeOnly("io.micrometer:micrometer-registry-prometheus")
+        runtimeOnly("io.micrometer:micrometer-registry-otlp")
 
         testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
         testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
@@ -195,7 +197,7 @@ subprojects {
 
 allprojects {
     group = "com.egm.stellio"
-    version = "latest-dev"
+    version = "otel"
 
     repositories {
         mavenCentral()

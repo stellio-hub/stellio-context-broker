@@ -24,9 +24,9 @@ APPLICATION_SUBSCRIPTION_SERVICE_URL=http://my-hostname:8084
 
 If you don't use one of these variables, the change will not impact you.
 
-## Upgrade to TimescaleDB 2.25.1
+## Upgrade to TimescaleDB 2.25.2
 
-The Timescale extension has been upgraded to 2.25.1. A new [Docker image](https://hub.docker.com/repository/docker/stellio/stellio-timescale-postgis/tags/16-2.25.1-3.6/sha256:4016ce82c97d95330906487e4378b872f5910effc48863eace6a72931c38cc14) is available on DockerHub.
+The Timescale extension has been upgraded to 2.25.2. A new [Docker image](https://hub.docker.com/repository/docker/stellio/stellio-timescale-postgis/tags/16-2.25.2-3.6/sha256:9b81d52c29542df84eb1dbfeec1f79dd778041466379cb05f63b8ab9a966196c) is available on DockerHub.
 
 The general upgrade procedure is described in the [Timescale documentation](https://docs.timescale.com/self-hosted/latest/upgrades/minor-upgrade/) and more specifically in the [Docker upgrade section](https://docs.timescale.com/self-hosted/latest/upgrades/upgrade-docker/).
 

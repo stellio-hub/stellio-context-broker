@@ -15,7 +15,7 @@ interface WithTimescaleContainer {
         private const val DB_PASSWORD = "stellio_subscription_db_password"
 
         private val timescaleImage: DockerImageName =
-            DockerImageName.parse("stellio/stellio-timescale-postgis:16-2.25.1-3.6")
+            DockerImageName.parse("stellio/stellio-timescale-postgis:16-2.25.2-3.6")
                 .asCompatibleSubstituteFor("postgres")
 
         private val timescaleContainer = GenericContainer<Nothing>(timescaleImage).apply {

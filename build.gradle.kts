@@ -21,7 +21,7 @@ plugins {
     kotlin("plugin.spring") version "2.2.21" apply false
 
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
-    id("org.sonarqube") version "7.2.2.6593"
+    id("org.sonarqube") version "7.2.3.7755"
     jacoco
 }
 

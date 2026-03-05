@@ -78,9 +78,11 @@ The following properties are used:
         - if null, the permission is considered to be for every scope
         - you can specify `@none` to target the entities with no scope
         - can only be specified if `id` is null
-- `assignee`: id of the subject (group or user) getting the permission
-    - if set to `urn:ngsi-ld:Subject:authenticated`, the permission applies to any authenticated subject
-    - if the option `application.authentication.allow-public-permission` is set to true, you can set assignee to `urn:ngsi-ld:Subject:public` to allow public access on the specified target
+- `assignee`: a string representing what the permission is applied to. It can be:
+    - the id of the subject
+    - a claim from the subject jwt token (ex: `my-role`)
+    - `urn:ngsi-ld:Subject:authenticated` meaning the permission applies to any authenticated subject
+    - `urn:ngsi-ld:Subject:public` meaning the permission give public access to the target. (only allowed if `application.authentication.allow-public-permission` is set to true)
 - `assigner`: id of the creator
 - `action`: can be "read", "write", "admin" and "own"
 

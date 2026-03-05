@@ -15,6 +15,7 @@ import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContextImpl
+import org.springframework.security.oauth2.jwt.Jwt
 import reactor.core.publisher.Mono
 import java.net.URI
 
@@ -65,6 +66,7 @@ object AuthContextModel {
 
 // sub as per https://openid.net/specs/openid-connect-core-1_0.html#IDToken
 typealias Sub = String
+typealias Claims = List<String>
 
 suspend fun getSubFromSecurityContext(): Sub {
     return ReactiveSecurityContextHolder.getContext()
@@ -74,6 +76,14 @@ suspend fun getSubFromSecurityContext(): Sub {
             context.authentication?.name.toOption()
         }
         .awaitFirst().getOrElse { PUBLIC_SUBJECT }
+}
+
+suspend fun getTokenFromSecurityContext(): Jwt? {
+    return ReactiveSecurityContextHolder.getContext()
+        .switchIfEmpty(Mono.just(SecurityContextImpl()))
+        .mapNotNull { context ->
+            (context.authentication?.credentials as Jwt?).toOption()
+        }.awaitFirst().getOrElse { null }
 }
 
 fun URI.extractSub(): Sub =
@@ -100,6 +110,8 @@ enum class GlobalRole(val key: String) {
             entries.find { it.key == key }.toOption()
     }
 }
+
+fun Claims.containStellioAdmin(): Boolean = STELLIO_ADMIN.key in this
 
 fun getAuthzContextFromRequestOrDefault(
     httpHeaders: HttpHeaders,

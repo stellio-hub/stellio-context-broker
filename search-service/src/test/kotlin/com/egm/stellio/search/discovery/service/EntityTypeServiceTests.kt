@@ -105,6 +105,12 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         Attribute.AttributeType.JsonProperty,
         Attribute.AttributeValueType.JSON
     )
+    private val luminosityProperty = newAttribute(
+        "urn:ngsi-ld:BeeHive:TESTA",
+        LUMINOSITY_IRI,
+        Attribute.AttributeType.Property,
+        Attribute.AttributeValueType.NUMBER
+    )
     private val friendlyNameLanguageProperty = newAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         FRIENDLYNAME_IRI,
@@ -136,6 +142,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         createAttribute(luminosityJsonProperty)
         createAttribute(friendlyNameLanguageProperty)
         createAttribute(categoryVocabProperty)
+        createAttribute(luminosityProperty)
     }
 
     @Test
@@ -225,7 +232,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                         AttributeInfo(
                             id = toUri(LUMINOSITY_IRI),
                             attributeName = LUMINOSITY_TERM,
-                            attributeTypes = listOf(AttributeType.JsonProperty)
+                            attributeTypes = listOf(AttributeType.Property, AttributeType.JsonProperty)
                         ),
                         AttributeInfo(
                             id = toUri(MANAGED_BY_IRI),

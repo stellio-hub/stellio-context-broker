@@ -16,12 +16,12 @@ plugins {
     // and the shared lib is obviously not one
     id("org.springframework.boot") version "4.0.3" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
-    id("org.graalvm.buildtools.native") version "0.11.4"
+    id("org.graalvm.buildtools.native") version "0.11.5"
     kotlin("jvm") version "2.2.21" apply false
     kotlin("plugin.spring") version "2.2.21" apply false
 
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
-    id("org.sonarqube") version "7.2.2.6593"
+    id("org.sonarqube") version "7.2.3.7755"
     jacoco
 }
 
@@ -62,7 +62,7 @@ subprojects {
         implementation("com.apicatalog:titanium-json-ld:1.7.0")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:2.2.1.1")
+        implementation("io.arrow-kt:arrow-fx-coroutines:2.2.2")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.20.0")
 

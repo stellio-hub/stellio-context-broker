@@ -54,6 +54,8 @@ The provided Docker image extends the official Keycloak Docker image to bundle i
 
 To start with, you can use this sample Docker compose file (do not forget to create a `.env` file with the environment variables used in the docker compose file):
 
+**Note:** By default, Keycloak uses a local `dev-file` database. Even when running with the `start-dev` command, it is highly recommended to set `KC_DB=postgres` as shown below to ensure your data is properly persisted to the external PostgreSQL database.
+
 ```yaml
 services:
   keycloak:
@@ -63,6 +65,7 @@ services:
     environment:
       - KC_BOOTSTRAP_ADMIN_USERNAME=${KEYCLOAK_ADMIN}
       - KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KC_DB=postgres
       - KC_DB_URL_HOST=postgres
       - KC_DB_URL_DATABASE=${KEYCLOAK_DB_DATABASE}
       - KC_DB_USERNAME=${KEYCLOAK_DB_USERNAME}

@@ -21,6 +21,7 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
+import com.egm.stellio.shared.util.AuthContextModel.SUBJECT_FUNCTION_DEPRECATED_MESSAGE
 import com.egm.stellio.shared.util.Claims
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -59,6 +60,7 @@ class SubjectReferentialService(
         getCurrentSubjectClaims().bind().containStellioAdmin()
     }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     @Transactional
     suspend fun create(subjectReferential: SubjectReferential): Either<APIException, Unit> =
         databaseClient
@@ -79,6 +81,7 @@ class SubjectReferentialService(
             .bind("groups_memberships", subjectReferential.groupsMemberships?.toTypedArray())
             .execute()
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     @Transactional
     suspend fun upsertClient(subjectReferential: SubjectReferential): Either<APIException, Unit> =
         databaseClient
@@ -96,6 +99,7 @@ class SubjectReferentialService(
             .bind("subject_info", subjectReferential.subjectInfo)
             .execute()
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun retrieve(sub: Sub): Either<APIException, SubjectReferential> =
         databaseClient
             .sql(
@@ -110,6 +114,7 @@ class SubjectReferentialService(
                 rowToSubjectReferential(it)
             }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getGroups(offset: Int, limit: Int): List<Group> =
         databaseClient
             .sql(
@@ -138,6 +143,7 @@ class SubjectReferentialService(
                 )
             }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getCountGroups(): Either<APIException, Int> =
         databaseClient
             .sql(
@@ -151,6 +157,7 @@ class SubjectReferentialService(
             .bind("subject_id", getSubFromSecurityContext())
             .oneToResult { toInt(it["count"]) }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getAllGroups(offset: Int, limit: Int): List<Group> =
         databaseClient
             .sql(
@@ -180,6 +187,7 @@ class SubjectReferentialService(
                 )
             }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getCountAllGroups(): Either<APIException, Int> =
         databaseClient
             .sql(
@@ -191,6 +199,7 @@ class SubjectReferentialService(
             )
             .oneToResult { toInt(it["count"]) }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getUsers(offset: Int, limit: Int): List<User> =
         databaseClient
             .sql(
@@ -219,6 +228,7 @@ class SubjectReferentialService(
                 )
             }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun getUsersCount(): Either<APIException, Int> =
         databaseClient
             .sql(
@@ -230,6 +240,7 @@ class SubjectReferentialService(
             )
             .oneToResult { toInt(it["count"]) }
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun hasOneOfGlobalRoles(uuids: List<Sub>, roles: Set<GlobalRole>): Either<APIException, Boolean> =
         databaseClient
             .sql(
@@ -245,6 +256,7 @@ class SubjectReferentialService(
             .oneToResult { it["count"] as Long >= 1L }
 
     @Transactional
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun setGlobalRoles(sub: Sub, newRoles: List<GlobalRole>): Either<APIException, Unit> =
         databaseClient
             .sql(
@@ -259,6 +271,7 @@ class SubjectReferentialService(
             .execute()
 
     @Transactional
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun resetGlobalRoles(sub: Sub): Either<APIException, Unit> =
         databaseClient
             .sql(
@@ -272,6 +285,7 @@ class SubjectReferentialService(
             .execute()
 
     @Transactional
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun addGroupMembershipToUser(sub: Sub, groupId: Sub): Either<APIException, Unit> =
         databaseClient
             .sql(
@@ -286,6 +300,7 @@ class SubjectReferentialService(
             .execute()
 
     @Transactional
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun removeGroupMembershipToUser(sub: Sub, groupId: Sub): Either<APIException, Unit> =
         databaseClient
             .sql(
@@ -300,6 +315,7 @@ class SubjectReferentialService(
             .execute()
 
     @Transactional
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun updateSubjectInfo(subjectId: Sub, newSubjectInfo: Pair<String, String>): Either<APIException, Unit> =
         databaseClient
             .sql(
@@ -318,6 +334,7 @@ class SubjectReferentialService(
             .execute()
 
     @Transactional
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     suspend fun delete(sub: Sub): Either<APIException, Unit> =
         databaseClient
             .sql(
@@ -330,6 +347,7 @@ class SubjectReferentialService(
             .bind("subject_id", sub)
             .execute()
 
+    @Deprecated(SUBJECT_FUNCTION_DEPRECATED_MESSAGE)
     private fun rowToSubjectReferential(row: Map<String, Any>) =
         SubjectReferential(
             subjectId = row["subject_id"] as Sub,

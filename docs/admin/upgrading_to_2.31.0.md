@@ -34,8 +34,8 @@ Stellio checks all the configured claims in the user token (+ the user sub).
 And use all permissions assigned to one of the user claims to evaluate the user rights.
 
 ## Migrating the current authorization setup
-Out of the box, this will let you assign permission to Keycloak roles instead.
-I also mean that the desynchronization of Stellio user information will only impact subject endpoints and never touch the NGSI-LD endpoints.
+Out of the box, this will let you assign permission to Keycloak roles instead of groups.
+It also means that the desynchronization of Stellio user information will only impact subject endpoints and never touch the NGSI-LD endpoints.
 
 ### Migrate groups permission
 > **Warning:** You should follow this migration if you have permissions targeting groups.
@@ -43,7 +43,7 @@ I also mean that the desynchronization of Stellio user information will only imp
 Existing permission targeting groups id need to access the user groups ids in the token.
 For this we have developed a new token mapper which is present in the new keycloak image (easyglobalmarket/keycloak:26.5.2).
 
-Once you have upgraded the keycloak image, you can configure the token mapper to add the groups uuids in the token.
+Once the keycloak image is upgraded, you can configure the token mapper to add the groups uuids in the token.
 
 #### Select the Groups UUID Mapper in Clients scopes > my-client-scope > Mappers > Add Mapper > by configuration 
 (You can use an existing client scope or create your own, make sure it is used when generating the token)
@@ -55,7 +55,7 @@ Once you have upgraded the keycloak image, you can configure the token mapper to
 #### Verify that the groups uuids are present in the token. (in Clients > your-client > Clients scopes > evaluate > Generated access token)
 ![](images/group-uuid-mapper-configuration/step-3.png)
 
-When you have configured the groups_uuids claim in all your realms used by stellio. You are ready to migrate to stellio:2.31.0.
+When all the realms used by stellio have the `groups_uuids` claim configured. You are ready to upgrade to stellio:2.31.0.
 
 ## Upgrade to TimescaleDB 2.25.2
 

@@ -182,6 +182,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                         attributeNames = listOf(
                             FRIENDLYNAME_TERM,
                             INCOMING_TERM,
+                            LUMINOSITY_TERM,
                             MANAGED_BY_TERM
                         )
                     ),

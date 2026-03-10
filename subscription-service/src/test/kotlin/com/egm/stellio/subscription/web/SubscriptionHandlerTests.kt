@@ -8,12 +8,12 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotAuthorizedToAccessSubscriptionMessage
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotAuthorizedToAccessSubscriptionMessage
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.subscriptionAlreadyExistsMessage
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.subscriptionNotFoundMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
-import com.egm.stellio.shared.util.SubscriptionErrorMessages.subscriptionAlreadyExistsMessage
-import com.egm.stellio.shared.util.SubscriptionErrorMessages.subscriptionNotFoundMessage
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.support.gimmeRawSubscription

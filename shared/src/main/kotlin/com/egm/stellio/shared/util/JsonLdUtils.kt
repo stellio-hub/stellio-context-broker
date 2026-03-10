@@ -42,9 +42,9 @@ import com.egm.stellio.shared.model.NGSILD_UNIT_CODE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toAPIException
-import com.egm.stellio.shared.util.JsonLdContextServerErrorMessages.contextInvalidMessage
-import com.egm.stellio.shared.util.JsonLdContextServerErrorMessages.contextNotFoundInCacheMessage
-import com.egm.stellio.shared.util.JsonLdErrorMessages.UNABLE_TO_EXPAND_PAYLOAD_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.JsonLd.UNABLE_TO_EXPAND_PAYLOAD_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.JsonLdContextServer.contextInvalidMessage
+import com.egm.stellio.shared.util.ErrorMessages.JsonLdContextServer.contextNotFoundInCacheMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap

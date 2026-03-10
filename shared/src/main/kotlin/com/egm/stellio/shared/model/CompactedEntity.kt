@@ -11,12 +11,12 @@ import com.egm.stellio.shared.model.AttributeCompactedType.PROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.RELATIONSHIP
 import com.egm.stellio.shared.model.AttributeCompactedType.VOCABPROPERTY
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.NO_ENTITY_MEMBER_AFTER_PROJECTION_MESSAGE
 import com.egm.stellio.shared.util.FEATURES_PROPERTY_TERM
 import com.egm.stellio.shared.util.FEATURE_COLLECTION_TYPE
 import com.egm.stellio.shared.util.FEATURE_TYPE
 import com.egm.stellio.shared.util.GEOMETRY_PROPERTY_TERM
 import com.egm.stellio.shared.util.PROPERTIES_PROPERTY_TERM
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.NO_ENTITY_MEMBER_AFTER_PROJECTION_MESSAGE
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.util.Locale

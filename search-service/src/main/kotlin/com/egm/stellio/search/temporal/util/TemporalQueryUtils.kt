@@ -29,12 +29,12 @@ import com.egm.stellio.shared.model.getRootAttributesToPick
 import com.egm.stellio.shared.model.removeAttributes
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.AGGR_METHODS_MANDATORY_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.DIFFERENT_TEMPORAL_REPRESENTATIONS_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.END_TIME_AT_MANDATORY_FOR_BETWEEN_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.invalidTemporalRepresentationMessage
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.unrecognizedAggregationMethodMessage
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
-import com.egm.stellio.shared.util.TemporalErrorMessages.AGGR_METHODS_MANDATORY_MESSAGE
-import com.egm.stellio.shared.util.TemporalErrorMessages.DIFFERENT_TEMPORAL_REPRESENTATIONS_MESSAGE
-import com.egm.stellio.shared.util.TemporalErrorMessages.END_TIME_AT_MANDATORY_FOR_BETWEEN_MESSAGE
-import com.egm.stellio.shared.util.TemporalErrorMessages.invalidTemporalRepresentationMessage
-import com.egm.stellio.shared.util.TemporalErrorMessages.unrecognizedAggregationMethodMessage
 import com.egm.stellio.shared.util.hasValueInOptionsParam
 import com.egm.stellio.shared.util.parseTimeParameter
 import org.springframework.util.MultiValueMap

@@ -14,8 +14,8 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotAuthorizedToAdminEntityMessage
-import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotAuthorizedToCreateEntityMessage
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotAuthorizedToAdminEntityMessage
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotAuthorizedToCreateEntityMessage
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.MockkSpyBean

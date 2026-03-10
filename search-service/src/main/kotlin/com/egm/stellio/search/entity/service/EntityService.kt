@@ -47,7 +47,7 @@ import com.egm.stellio.shared.model.addSysAttrs
 import com.egm.stellio.shared.model.flattenOnAttributeAndDatasetId
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.model.toNgsiLdAttributes
-import com.egm.stellio.shared.util.EntityErrorMessages.entityAlreadyExistsMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime

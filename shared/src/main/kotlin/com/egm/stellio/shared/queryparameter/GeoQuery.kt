@@ -12,10 +12,10 @@ import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.INVALID_GEOQUERY_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.unrecognizedGeometryValueMessage
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.INVALID_GEOQUERY_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.unrecognizedGeometryValueMessage
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.parseGeometryToWKT
 import com.egm.stellio.shared.util.stringifyCoordinates

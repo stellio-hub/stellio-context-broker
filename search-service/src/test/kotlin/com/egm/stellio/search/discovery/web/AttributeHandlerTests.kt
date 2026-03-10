@@ -14,7 +14,7 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.BEEHIVE_TERM
-import com.egm.stellio.shared.util.EntityErrorMessages.attributeWithDatasetIdNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeWithDatasetIdNotFoundMessage
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.MOCK_USER_SUB

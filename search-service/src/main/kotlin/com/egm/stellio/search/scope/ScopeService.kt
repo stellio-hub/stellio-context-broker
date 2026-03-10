@@ -36,10 +36,10 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.model.getScopes
+import com.egm.stellio.shared.util.ErrorMessages.Scope.SCOPE_DOES_NOT_EXIST_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Scope.unrecognizedOperationTypeMessage
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.ScopeErrorMessages.SCOPE_DOES_NOT_EXIST_MESSAGE
-import com.egm.stellio.shared.util.ScopeErrorMessages.unrecognizedOperationTypeMessage
-import com.egm.stellio.shared.util.TemporalErrorMessages.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json

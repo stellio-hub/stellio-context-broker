@@ -18,10 +18,10 @@ import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryPar
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ATTRIBUTES_WITH_PICK_OR_OMIT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ENTITY_MEMBER_IN_PICK_AND_OMIT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.MISSING_REQUIRED_QUERY_PARAMETER_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.ATTRIBUTES_WITH_PICK_OR_OMIT_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.ENTITY_MEMBER_IN_PICK_AND_OMIT_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.MISSING_REQUIRED_QUERY_PARAMETER_MESSAGE
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.parseAttrsParameter

@@ -151,7 +151,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Field 'join' is required when 'joinLevel' or 'containedBy' are specified",
+                "Parameter 'join' is required when 'joinLevel' or 'containedBy' are specified",
                 it.message
             )
         }
@@ -168,7 +168,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Field 'join' is required when 'joinLevel' or 'containedBy' are specified",
+                "Parameter 'join' is required when 'joinLevel' or 'containedBy' are specified",
                 it.message
             )
         }

@@ -6,9 +6,9 @@ import arrow.core.right
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.areTypesInSelection
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidIdPatternMessage
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidIdPatternMessage
 import com.egm.stellio.shared.util.toTypeSelection
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty

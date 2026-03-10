@@ -28,8 +28,8 @@ import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QP
-import com.egm.stellio.shared.util.BatchOperationErrorMessages.BATCH_PAYLOAD_EMPTY_MESSAGE
-import com.egm.stellio.shared.util.BatchOperationErrorMessages.CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.BatchOperation.BATCH_PAYLOAD_EMPTY_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.BatchOperation.CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE

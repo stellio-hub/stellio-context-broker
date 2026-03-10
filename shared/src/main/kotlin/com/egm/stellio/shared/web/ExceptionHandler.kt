@@ -9,9 +9,9 @@ import com.egm.stellio.shared.model.JsonParseApiException
 import com.egm.stellio.shared.model.NotAcceptableException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.UnsupportedMediaTypeStatusApiException
-import com.egm.stellio.shared.util.HttpRequestErrorMessages.NOT_ACCEPTABLE_MESSAGE
-import com.egm.stellio.shared.util.HttpRequestErrorMessages.UNSUPPORTED_MEDIA_TYPE_MESSAGE
-import com.egm.stellio.shared.util.JsonErrorMessages.JSON_PARSING_ERROR_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.NOT_ACCEPTABLE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.UNSUPPORTED_MEDIA_TYPE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Json.JSON_PARSING_ERROR_MESSAGE
 import jakarta.validation.ConstraintViolationException
 import org.springframework.core.codec.CodecException
 import org.springframework.http.HttpStatus

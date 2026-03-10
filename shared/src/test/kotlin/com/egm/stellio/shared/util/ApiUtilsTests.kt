@@ -420,7 +420,7 @@ class ApiUtilsTests {
         val validationResult = validateIdPattern("(?x)urn:ngsi-ld:Entity:{*}2")
         validationResult.fold(
             {
-                assertThat(it.message).startsWith("Invalid pattern in field 'idPattern':")
+                assertThat(it.message).startsWith("Invalid pattern in parameter 'idPattern':")
             },
             { fail("it should not have validated the idPattern") }
         )

@@ -66,9 +66,9 @@ import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.isAttributeOfType
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
-import com.egm.stellio.shared.util.EntityErrorMessages.ATTRIBUTE_TYPE_MISMATCH_MESSAGE
-import com.egm.stellio.shared.util.EntityErrorMessages.attributeWithDatasetIdNotFoundMessage
-import com.egm.stellio.shared.util.EntityErrorMessages.entityNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.ATTRIBUTE_TYPE_MISMATCH_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeWithDatasetIdNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -83,7 +83,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @Service
 class EntityAttributeService(

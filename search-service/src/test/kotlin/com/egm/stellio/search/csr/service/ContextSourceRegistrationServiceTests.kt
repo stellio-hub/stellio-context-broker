@@ -10,8 +10,8 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
-import com.egm.stellio.shared.util.CsrErrorMessages.csrNotFoundMessage
 import com.egm.stellio.shared.util.DEVICE_IRI
+import com.egm.stellio.shared.util.ErrorMessages.Csr.csrNotFoundMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.LUMINOSITY_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_IRI

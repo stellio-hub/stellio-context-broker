@@ -11,12 +11,12 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_CSR_TERM
 import com.egm.stellio.shared.model.toAPIException
-import com.egm.stellio.shared.util.CsrErrorMessages.csrFailedToParseMessage
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.DataTypes.toFinalRepresentation
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.invalidTypeMessage
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.invalidUriMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.csrFailedToParseMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidUriMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject

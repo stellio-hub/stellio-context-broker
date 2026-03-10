@@ -26,8 +26,8 @@ import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEKEEPER_IRI
+import com.egm.stellio.shared.util.ErrorMessages.Permission.permissionNotFoundMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.PermissionErrorMessages.permissionNotFoundMessage
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.loadAndPrepareSampleData
 import com.egm.stellio.shared.util.loadSampleData

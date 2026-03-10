@@ -6,7 +6,7 @@ import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.queryparameter.AttributePath
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidOrderingDirectionMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidOrderingDirectionMessage
 
 data class OrderBy(
     val direction: Direction,

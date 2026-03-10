@@ -21,11 +21,11 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.queryparameter.QP
-import com.egm.stellio.shared.util.CsrErrorMessages.CONTEXT_SOURCE_MULTISTATUS_MESSAGE
-import com.egm.stellio.shared.util.CsrErrorMessages.contextSourceContactErrorMessage
-import com.egm.stellio.shared.util.CsrErrorMessages.contextSourceNoErrorMessage
-import com.egm.stellio.shared.util.CsrErrorMessages.csrDoesNotSupportCreationMessage
-import com.egm.stellio.shared.util.CsrErrorMessages.csrDoesNotSupportDeletionMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.CONTEXT_SOURCE_MULTISTATUS_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceContactErrorMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceNoErrorMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportCreationMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportDeletionMessage
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.toTypeSelection

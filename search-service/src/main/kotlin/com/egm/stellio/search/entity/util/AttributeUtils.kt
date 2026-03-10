@@ -30,7 +30,7 @@ import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.getRelationshipId
-import com.egm.stellio.shared.util.EntityErrorMessages.attributeCannotGetValueMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeCannotGetValueMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap

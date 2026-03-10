@@ -5,8 +5,8 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidGeorelParameterMessage
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidNearGeorelExpressionMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidGeorelParameterMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidNearGeorelExpressionMessage
 
 enum class Georel(val key: String) {
     NEAR("near"),

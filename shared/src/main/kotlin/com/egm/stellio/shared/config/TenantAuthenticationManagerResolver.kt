@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.config
 
 import com.egm.stellio.shared.model.NonexistentTenantException
-import com.egm.stellio.shared.util.TenantErrorMessages.tenantNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Tenant.tenantNotFoundMessage
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import org.springframework.beans.factory.InitializingBean

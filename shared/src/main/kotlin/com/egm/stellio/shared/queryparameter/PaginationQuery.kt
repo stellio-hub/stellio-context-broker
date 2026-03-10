@@ -6,9 +6,9 @@ import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.TooManyResultsException
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.OFFSET_AND_LIMIT_MUST_BE_POSITIVE_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.OFFSET_AND_LIMIT_MUST_BE_POSITIVE_NO_COUNT_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.tooHighLimitMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.OFFSET_AND_LIMIT_MUST_BE_POSITIVE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.OFFSET_AND_LIMIT_MUST_BE_POSITIVE_NO_COUNT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.tooHighLimitMessage
 import org.springframework.util.MultiValueMap
 
 data class PaginationQuery(

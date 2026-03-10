@@ -8,7 +8,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.invalidGeometryDefinitionMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidGeometryDefinitionMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.locationtech.jts.io.WKTReader

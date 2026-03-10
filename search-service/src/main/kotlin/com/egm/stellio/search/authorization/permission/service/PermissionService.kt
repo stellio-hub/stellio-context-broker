@@ -27,10 +27,10 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.model.SeeOtherException
-import com.egm.stellio.shared.util.PermissionErrorMessages.permissionAlreadyCoveredMessage
-import com.egm.stellio.shared.util.PermissionErrorMessages.permissionAlreadyExistsMessage
-import com.egm.stellio.shared.util.PermissionErrorMessages.permissionNotFoundMessage
-import com.egm.stellio.shared.util.PermissionErrorMessages.unauthorizedTargetMessage
+import com.egm.stellio.shared.util.ErrorMessages.Permission.permissionAlreadyCoveredMessage
+import com.egm.stellio.shared.util.ErrorMessages.Permission.permissionAlreadyExistsMessage
+import com.egm.stellio.shared.util.ErrorMessages.Permission.permissionNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Permission.unauthorizedTargetMessage
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery

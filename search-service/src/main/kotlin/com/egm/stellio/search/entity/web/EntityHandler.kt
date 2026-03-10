@@ -28,8 +28,8 @@ import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.EntityErrorMessages.ENTITY_ID_MISMATCH_MESSAGE
-import com.egm.stellio.shared.util.EntityErrorMessages.attributeNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_ID_MISMATCH_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeNotFoundMessage
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE

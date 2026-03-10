@@ -46,8 +46,8 @@ import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
-import com.egm.stellio.shared.util.EntityErrorMessages.entityNotFoundMessage
-import com.egm.stellio.shared.util.EntityErrorMessages.entityOrAttrsNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE

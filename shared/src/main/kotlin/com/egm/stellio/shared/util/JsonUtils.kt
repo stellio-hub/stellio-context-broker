@@ -4,8 +4,8 @@ import com.egm.stellio.shared.model.COMPACTED_ATTRIBUTES_TERMS
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.NGSILD_JSON_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
-import com.egm.stellio.shared.util.JsonErrorMessages.cannotDeserializeToListMessage
-import com.egm.stellio.shared.util.JsonErrorMessages.cannotDeserializeToObjectMessage
+import com.egm.stellio.shared.util.ErrorMessages.Json.cannotDeserializeToListMessage
+import com.egm.stellio.shared.util.ErrorMessages.Json.cannotDeserializeToObjectMessage
 import tools.jackson.core.JacksonException
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.databind.ser.std.SimpleBeanPropertyFilter

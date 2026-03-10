@@ -24,6 +24,7 @@ import com.egm.stellio.shared.model.toExpandedAttributes
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.INVALID_TEMPORAL_INSTANCE_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
@@ -33,7 +34,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.TemporalErrorMessages.INVALID_TEMPORAL_INSTANCE_MESSAGE
 import com.egm.stellio.shared.util.checkNameIsNgsiLdSupported
 import com.egm.stellio.shared.util.extractPayloadAndContexts
 import com.egm.stellio.shared.util.getApplicableMediaType

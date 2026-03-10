@@ -142,7 +142,7 @@ class SubscriptionTests {
         subscription.validate()
             .shouldFail {
                 assertInstanceOf<BadRequestDataException>(it)
-                assertEquals("Invalid pattern in field 'idPattern'", it.message)
+                assertEquals("Invalid pattern in member 'idPattern'", it.message)
             }
     }
 
@@ -213,7 +213,7 @@ class SubscriptionTests {
         subscription.validate()
             .shouldFail {
                 assertInstanceOf<BadRequestDataException>(it)
-                assertEquals("Field 'throttling' must be greater than zero", it.message)
+                assertEquals("Member 'throttling' must be greater than zero", it.message)
             }
     }
 
@@ -231,7 +231,7 @@ class SubscriptionTests {
         subscription.validate()
             .shouldFail {
                 assertInstanceOf<BadRequestDataException>(it)
-                assertEquals("Field 'timeInterval' must be greater than zero", it.message)
+                assertEquals("Member 'timeInterval' must be greater than zero", it.message)
             }
     }
 
@@ -249,7 +249,7 @@ class SubscriptionTests {
         subscription.validate()
             .shouldFail {
                 assertInstanceOf<BadRequestDataException>(it)
-                assertEquals("Field 'expiresAt' must be in the future", it.message)
+                assertEquals("Member 'expiresAt' must be in the future", it.message)
             }
     }
 
@@ -406,7 +406,7 @@ class SubscriptionTests {
         subscription.validate()
             .shouldFail {
                 assertInstanceOf<BadRequestDataException>(it)
-                assertEquals("Field 'joinLevel' must be greater than zero", it.message)
+                assertEquals("Member 'joinLevel' must be greater than zero", it.message)
             }
     }
 
@@ -521,7 +521,7 @@ class SubscriptionTests {
         subscription.validate()
             .shouldFail {
                 assertInstanceOf<BadRequestDataException>(it)
-                assertEquals("Field 'cooldown' must be greater than zero", it.message)
+                assertEquals("Member 'cooldown' must be greater than zero", it.message)
             }
     }
 
@@ -543,7 +543,7 @@ class SubscriptionTests {
         subscription.validate()
             .shouldFail {
                 assertInstanceOf<BadRequestDataException>(it)
-                assertEquals("Field 'timeout' must be greater than zero", it.message)
+                assertEquals("Member 'timeout' must be greater than zero", it.message)
             }
     }
 

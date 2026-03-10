@@ -2,8 +2,8 @@ package com.egm.stellio.shared.web
 
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NonexistentTenantException
+import com.egm.stellio.shared.util.ErrorMessages.Tenant.tenantNotFoundMessage
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.TenantErrorMessages.tenantNotFoundMessage
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.core.Ordered

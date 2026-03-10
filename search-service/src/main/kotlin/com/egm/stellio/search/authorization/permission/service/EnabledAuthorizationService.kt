@@ -16,11 +16,11 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
-import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotAuthorizedToAdminEntityMessage
-import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotAuthorizedToReadEntityMessage
-import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotAuthorizedToUpdateEntityMessage
-import com.egm.stellio.shared.util.AuthorizationErrorMessages.userNotHavingRequiredRolesMessage
 import com.egm.stellio.shared.util.CREATION_ROLES
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotAuthorizedToAdminEntityMessage
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotAuthorizedToReadEntityMessage
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotAuthorizedToUpdateEntityMessage
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotHavingRequiredRolesMessage
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty

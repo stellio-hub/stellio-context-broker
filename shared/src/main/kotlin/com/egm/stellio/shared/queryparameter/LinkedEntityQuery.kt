@@ -7,9 +7,9 @@ import arrow.core.raise.ensure
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.JOIN_REQUIRED_WITH_JOIN_LEVEL_OR_CONTAINED_BY_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidJoinLevelParameterMessage
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidJoinParameterMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.JOIN_REQUIRED_WITH_JOIN_LEVEL_OR_CONTAINED_BY_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidJoinLevelParameterMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidJoinParameterMessage
 import com.egm.stellio.shared.util.toListOfUri
 import java.net.URI
 

@@ -2,10 +2,10 @@ package com.egm.stellio.shared.model
 
 import com.apicatalog.jsonld.JsonLdError
 import com.apicatalog.jsonld.JsonLdErrorCode
-import com.egm.stellio.shared.util.CsrErrorMessages.CONTEXT_SOURCE_BADLY_FORMED_ERROR_MESSAGE
-import com.egm.stellio.shared.util.CsrErrorMessages.CONTEXT_SOURCE_DEFAULT_ERROR_MESSAGE
-import com.egm.stellio.shared.util.JsonLdErrorMessages.UNABLE_TO_LOAD_REMOTE_CONTEXT_MESSAGE
-import com.egm.stellio.shared.util.JsonLdErrorMessages.UNEXPECTED_ERROR_PARSING_PAYLOAD_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Csr.CONTEXT_SOURCE_BADLY_FORMED_ERROR_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Csr.CONTEXT_SOURCE_DEFAULT_ERROR_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.JsonLd.UNABLE_TO_LOAD_REMOTE_CONTEXT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.JsonLd.UNEXPECTED_ERROR_PARSING_PAYLOAD_MESSAGE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.toUri
 import org.slf4j.Logger

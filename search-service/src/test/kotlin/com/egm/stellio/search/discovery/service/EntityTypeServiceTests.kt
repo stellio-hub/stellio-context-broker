@@ -25,7 +25,7 @@ import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.CATEGORY_IRI
 import com.egm.stellio.shared.util.CATEGORY_TERM
-import com.egm.stellio.shared.util.EntityTypeInfoErrorMessages.typeNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.EntityTypeInfo.typeNotFoundMessage
 import com.egm.stellio.shared.util.FRIENDLYNAME_IRI
 import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
 import com.egm.stellio.shared.util.INCOMING_IRI

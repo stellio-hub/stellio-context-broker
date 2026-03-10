@@ -11,15 +11,11 @@ import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PERMISSION_TERM
 import com.egm.stellio.shared.util.DataTypes.convertTo
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.invalidTypeMessage
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.invalidUriMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidUriMessage
+import com.egm.stellio.shared.util.ErrorMessages.Permission.permissionFailedToParseMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.PermissionErrorMessages.AUTHENTICATED_ADMIN_PROHIBITED_MESSAGE
-import com.egm.stellio.shared.util.PermissionErrorMessages.OWN_PERMISSION_CREATE_UPDATE_PROHIBITED_MESSAGE
-import com.egm.stellio.shared.util.PermissionErrorMessages.OWN_PERMISSION_DELETE_PROHIBITED_MESSAGE
-import com.egm.stellio.shared.util.PermissionErrorMessages.PUBLIC_NON_READ_PROHIBITED_MESSAGE
-import com.egm.stellio.shared.util.PermissionErrorMessages.permissionFailedToParseMessage
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -88,10 +84,5 @@ data class Permission(
                 { it.right() },
                 { it.toAPIException(permissionFailedToParseMessage(it.message)).left() }
             )
-
-        val CREATE_OR_UPDATE_OWN_EXCEPTION = BadRequestDataException(OWN_PERMISSION_CREATE_UPDATE_PROHIBITED_MESSAGE)
-        val DELETE_OWN_EXCEPTION = BadRequestDataException(OWN_PERMISSION_DELETE_PROHIBITED_MESSAGE)
-        val AUTHENTICATED_ADMIN_EXCEPTION = BadRequestDataException(AUTHENTICATED_ADMIN_PROHIBITED_MESSAGE)
-        val PUBLIC_WITH_NON_READ_EXCEPTION = BadRequestDataException(PUBLIC_NON_READ_PROHIBITED_MESSAGE)
     }
 }

@@ -97,7 +97,7 @@ class ContextSourceRegistrationTests {
         contextSourceRegistration.validate()
             .shouldFail {
                 assertInstanceOf<BadRequestDataException>(it)
-                assertEquals("Invalid pattern in field 'idPattern': [", it.message)
+                assertEquals("Invalid pattern in parameter 'idPattern': [", it.message)
             }
     }
 

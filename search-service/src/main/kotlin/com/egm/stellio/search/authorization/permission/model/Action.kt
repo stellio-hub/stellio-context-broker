@@ -9,10 +9,10 @@ import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.AuthContextModel
-import com.egm.stellio.shared.util.BatchOperationErrorMessages.PAYLOAD_MUST_BE_PROPERTY_MESSAGE
-import com.egm.stellio.shared.util.BatchOperationErrorMessages.PAYLOAD_SINGLE_INSTANCE_MESSAGE
-import com.egm.stellio.shared.util.PermissionErrorMessages.GLOBAL_POLICY_RESTRICTION_MESSAGE
-import com.egm.stellio.shared.util.PermissionErrorMessages.invalidActionMessage
+import com.egm.stellio.shared.util.ErrorMessages.BatchOperation.PAYLOAD_MUST_BE_PROPERTY_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.BatchOperation.PAYLOAD_SINGLE_INSTANCE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Permission.GLOBAL_POLICY_RESTRICTION_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Permission.invalidActionMessage
 import com.egm.stellio.shared.util.toSqlList
 import com.fasterxml.jackson.annotation.JsonProperty
 

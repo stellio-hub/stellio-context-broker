@@ -5,18 +5,18 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.AttributeProjection.Companion.ProjectionType
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.PARSING_PICK_OMIT_ERROR_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.PROJECTION_CONSECUTIVE_SEPARATORS_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.PROJECTION_EMPTY_ATTRIBUTE_NAME_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.PROJECTION_EMPTY_ATTRIBUTE_NESTED_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.PROJECTION_EMPTY_NESTED_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.PROJECTION_ENDS_WITH_SEPARATOR_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.PROJECTION_NO_VALID_ATTRIBUTE_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.PROJECTION_SEPARATOR_AFTER_BRACE_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.PROJECTION_STARTS_WITH_BRACE_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.PROJECTION_UNCLOSED_BRACE_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.PROJECTION_VALUE_EMPTY_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.projectionInvalidCharactersMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PARSING_PICK_OMIT_ERROR_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_CONSECUTIVE_SEPARATORS_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_EMPTY_ATTRIBUTE_NAME_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_EMPTY_ATTRIBUTE_NESTED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_EMPTY_NESTED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_ENDS_WITH_SEPARATOR_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_NO_VALID_ATTRIBUTE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_SEPARATOR_AFTER_BRACE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_STARTS_WITH_BRACE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_UNCLOSED_BRACE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_VALUE_EMPTY_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.projectionInvalidCharactersMessage
 import com.egm.stellio.shared.util.isNgsiLdSupportedName
 
 /**

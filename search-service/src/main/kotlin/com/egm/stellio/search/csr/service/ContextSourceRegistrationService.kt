@@ -23,9 +23,9 @@ import com.egm.stellio.search.csr.model.RegistrationInfoDBWriter
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.CsrErrorMessages.csrAlreadyExistsMessage
-import com.egm.stellio.shared.util.CsrErrorMessages.csrNotFoundMessage
 import com.egm.stellio.shared.util.DataTypes
+import com.egm.stellio.shared.util.ErrorMessages.Csr.csrAlreadyExistsMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.csrNotFoundMessage
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.getSubFromSecurityContext

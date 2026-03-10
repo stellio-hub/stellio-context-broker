@@ -5,7 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.InvalidRequestException
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidFormatValueMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidFormatValueMessage
 
 enum class FormatValue(val value: String) {
     KEY_VALUES("keyValues"),

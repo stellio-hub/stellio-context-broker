@@ -5,7 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.InvalidRequestException
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.invalidOptionsValueMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidOptionsValueMessage
 
 enum class OptionsValue(val value: String) {
     SYS_ATTRS("sysAttrs"),

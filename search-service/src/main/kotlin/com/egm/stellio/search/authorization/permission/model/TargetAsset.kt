@@ -7,8 +7,8 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.Scope
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.atLeastOneRequiredMessage
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.cannotSpecifyWhenPresent
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.atLeastOneRequiredMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.cannotSpecifyWhenPresent
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.fasterxml.jackson.annotation.JsonFormat

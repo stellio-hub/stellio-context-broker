@@ -9,8 +9,8 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.DataTypes
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.invalidTypeMessage
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.unparsableQueryMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.unparsableQueryMessage
 import com.fasterxml.jackson.annotation.JsonFormat
 
 /**

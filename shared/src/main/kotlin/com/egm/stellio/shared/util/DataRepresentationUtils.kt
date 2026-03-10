@@ -10,10 +10,10 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
-import com.egm.stellio.shared.util.DataRepresentationErrorMessages.NULL_VALUE_IN_CONTENT_MESSAGE
-import com.egm.stellio.shared.util.DataRepresentationErrorMessages.invalidCharacterInContentMessage
-import com.egm.stellio.shared.util.DataRepresentationErrorMessages.invalidCharacterInNameMessage
-import com.egm.stellio.shared.util.DataRepresentationErrorMessages.invalidCharacterInScopeMessage
+import com.egm.stellio.shared.util.ErrorMessages.DataRepresentation.NULL_VALUE_IN_CONTENT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.DataRepresentation.invalidCharacterInContentMessage
+import com.egm.stellio.shared.util.ErrorMessages.DataRepresentation.invalidCharacterInNameMessage
+import com.egm.stellio.shared.util.ErrorMessages.DataRepresentation.invalidCharacterInScopeMessage
 import com.egm.stellio.shared.util.JsonUtils.getAllKeys
 import com.egm.stellio.shared.util.JsonUtils.getAllValues
 

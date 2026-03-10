@@ -826,7 +826,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscription.mergeWithFragment(fragment, APIC_COMPOUND_CONTEXTS)
             .shouldFail {
                 assertInstanceOf<BadRequestDataException>(it)
-                assertEquals("Field 'unknownAttribute' is invalid", it.message)
+                assertEquals("Member 'unknownAttribute' is invalid", it.message)
             }
     }
 

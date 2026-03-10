@@ -15,27 +15,27 @@ import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.DataTypes.deserializeAs
 import com.egm.stellio.shared.util.DataTypes.serialize
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.atLeastOneRequiredMessage
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.cannotSpecifyBothMessage
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.fieldIsInvalidMessage
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.fieldMustBeFutureMessage
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.fieldMustBePositiveMessage
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.invalidTypeMessage
-import com.egm.stellio.shared.util.GenericValidationErrorMessages.invalidUriMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.atLeastOneRequiredMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.cannotSpecifyBothMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidUriMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.memberIsInvalidMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.memberMustBeFutureMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.memberMustBePositiveMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ATTRIBUTES_WITH_PICK_OR_OMIT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ENTITY_MEMBER_IN_PICK_AND_OMIT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.INVALID_ID_PATTERN_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.SHOW_CHANGES_WITH_SIMPLIFIED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.invalidEndpointUriMessage
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.notImplementedMemberMessage
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.subscriptionFailedToParseMessage
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.unknownNotificationTriggerMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.checkJsonldContext
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.ATTRIBUTES_WITH_PICK_OR_OMIT_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.ENTITY_MEMBER_IN_PICK_AND_OMIT_MESSAGE
-import com.egm.stellio.shared.util.QueryParameterErrorMessages.INVALID_ID_PATTERN_MESSAGE
-import com.egm.stellio.shared.util.SubscriptionErrorMessages.SHOW_CHANGES_WITH_SIMPLIFIED_MESSAGE
-import com.egm.stellio.shared.util.SubscriptionErrorMessages.invalidEndpointUriMessage
-import com.egm.stellio.shared.util.SubscriptionErrorMessages.notImplementedMemberMessage
-import com.egm.stellio.shared.util.SubscriptionErrorMessages.subscriptionFailedToParseMessage
-import com.egm.stellio.shared.util.SubscriptionErrorMessages.unknownNotificationTriggerMessage
 import com.egm.stellio.shared.util.compactTypeSelection
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -146,17 +146,17 @@ data class Subscription(
 
     private fun checkTimeIntervalGreaterThanZero(): Either<APIException, Unit> =
         if (timeInterval != null && timeInterval < 1)
-            BadRequestDataException(fieldMustBePositiveMessage("timeInterval")).left()
+            BadRequestDataException(memberMustBePositiveMessage("timeInterval")).left()
         else Unit.right()
 
     private fun checkThrottlingGreaterThanZero(): Either<APIException, Unit> =
         if (throttling != null && throttling < 1)
-            BadRequestDataException(fieldMustBePositiveMessage("throttling")).left()
+            BadRequestDataException(memberMustBePositiveMessage("throttling")).left()
         else Unit.right()
 
     private fun checkExpiresAtInTheFuture(): Either<BadRequestDataException, Unit> =
         if (expiresAt != null && expiresAt.isBefore(ngsiLdDateTime()))
-            BadRequestDataException(fieldMustBeFutureMessage("expiresAt")).left()
+            BadRequestDataException(memberMustBeFutureMessage("expiresAt")).left()
         else Unit.right()
 
     private fun checkIdPatternIsValid(): Either<BadRequestDataException, Unit> {
@@ -190,7 +190,7 @@ data class Subscription(
         if (notification.join != null && notification.join != JoinType.NONE) {
             notification.joinLevel?.let {
                 if (it < 1)
-                    return BadRequestDataException(fieldMustBePositiveMessage("joinLevel")).left()
+                    return BadRequestDataException(memberMustBePositiveMessage("joinLevel")).left()
             }
         }
 
@@ -223,12 +223,12 @@ data class Subscription(
 
     private fun checkCooldownGreaterThanZero(): Either<APIException, Unit> =
         if (notification.endpoint.cooldown != null && notification.endpoint.cooldown < 1)
-            BadRequestDataException(fieldMustBePositiveMessage("cooldown")).left()
+            BadRequestDataException(memberMustBePositiveMessage("cooldown")).left()
         else Unit.right()
 
     private fun checkTimeoutGreaterThanZero(): Either<APIException, Unit> =
         if (notification.endpoint.timeout != null && notification.endpoint.timeout < 1)
-            BadRequestDataException(fieldMustBePositiveMessage("timeout")).left()
+            BadRequestDataException(memberMustBePositiveMessage("timeout")).left()
         else Unit.right()
 
     fun expand(contexts: List<String>): Subscription =
@@ -319,7 +319,7 @@ data class Subscription(
                         if (it.propertyName in notImplementedAttributes)
                             NotImplementedException(notImplementedMemberMessage(it.propertyName)).left()
                         else
-                            BadRequestDataException(fieldIsInvalidMessage(it.propertyName)).left()
+                            BadRequestDataException(memberIsInvalidMessage(it.propertyName)).left()
                     } else it.toAPIException(subscriptionFailedToParseMessage(it.message)).left()
                 }
             )

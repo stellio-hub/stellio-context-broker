@@ -4,6 +4,12 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
+import com.egm.stellio.shared.util.ErrorMessages.Entity.CANNOT_ADD_SUBATTRIBUTE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.EXPECTED_SINGLE_ENTRY_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipEmptyMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipInvalidObjectIdMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipInvalidObjectTypeMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipMissingObjectMessage
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
@@ -54,13 +60,13 @@ fun ExpandedAttributeInstances.addNonReifiedTemporalProperty(
     subAttributeValue: ZonedDateTime
 ): ExpandedAttributeInstances {
     if (this.isEmpty() || this.size > 1)
-        throw BadRequestDataException("Cannot add a sub-attribute into empty or multi-instance attribute: $this")
+        throw BadRequestDataException(CANNOT_ADD_SUBATTRIBUTE_MESSAGE)
     return listOf(this[0].plus(subAttributeName to buildNonReifiedTemporalValue(subAttributeValue)))
 }
 
 fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
     if (this.isEmpty() || this.size > 1)
-        throw BadRequestDataException("Expected a single entry but got none or more than one: $this")
+        throw BadRequestDataException(EXPECTED_SINGLE_ENTRY_MESSAGE)
     return this[0]
 }
 
@@ -157,22 +163,22 @@ fun ExpandedAttributeInstance.getRelationshipObject(name: String): Either<BadReq
     this.right()
         .flatMap {
             if (!it.containsKey(NGSILD_RELATIONSHIP_OBJECT))
-                BadRequestDataException("Relationship $name does not have an object field").left()
+                BadRequestDataException(relationshipMissingObjectMessage(name)).left()
             else it[NGSILD_RELATIONSHIP_OBJECT]!!.right()
         }
         .flatMap {
             if (it.isEmpty())
-                BadRequestDataException("Relationship $name is empty").left()
+                BadRequestDataException(relationshipEmptyMessage(name)).left()
             else it[0].right()
         }
         .flatMap {
             if (it !is Map<*, *>)
-                BadRequestDataException("Relationship $name has an invalid object type: ${it.javaClass}").left()
+                BadRequestDataException(relationshipInvalidObjectTypeMessage(name, it.javaClass)).left()
             else it[JSONLD_ID_KW].right()
         }
         .flatMap {
             if (it !is String)
-                BadRequestDataException("Relationship $name has an invalid or no object id: $it").left()
+                BadRequestDataException(relationshipInvalidObjectIdMessage(name, it)).left()
             else it.toUri().right()
         }
 

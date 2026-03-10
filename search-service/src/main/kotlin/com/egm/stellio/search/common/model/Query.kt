@@ -9,6 +9,8 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.DataTypes
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.unparsableQueryMessage
 import com.fasterxml.jackson.annotation.JsonFormat
 
 /**
@@ -41,14 +43,12 @@ data class Query private constructor(
             }.fold(
                 {
                     ensure(it.type == "Query") {
-                        BadRequestDataException("The type parameter should be equals to 'Query'")
+                        BadRequestDataException(invalidTypeMessage("Query"))
                     }
                     it
                 },
                 {
-                    BadRequestDataException(
-                        "The supplied query could not be parsed: ${it.message}"
-                    ).left().bind<Query>()
+                    BadRequestDataException(unparsableQueryMessage(it.message)).left().bind<Query>()
                 }
             )
         }

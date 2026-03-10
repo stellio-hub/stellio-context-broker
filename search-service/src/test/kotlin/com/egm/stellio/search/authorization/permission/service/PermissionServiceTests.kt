@@ -3,7 +3,6 @@ package com.egm.stellio.search.authorization.permission.service
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.notFoundMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
@@ -27,6 +26,7 @@ import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEKEEPER_IRI
+import com.egm.stellio.shared.util.ErrorMessages.Permission.permissionNotFoundMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.loadAndPrepareSampleData
@@ -545,7 +545,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         permissionService.getById(minimalPermission.id).shouldFailWith {
             it is ResourceNotFoundException &&
-                it.message == notFoundMessage(minimalPermission.id)
+                it.message == permissionNotFoundMessage(minimalPermission.id)
         }
     }
 
@@ -556,7 +556,7 @@ class PermissionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             id
         ).shouldFailWith {
             it is ResourceNotFoundException &&
-                it.message == notFoundMessage(id)
+                it.message == permissionNotFoundMessage(id)
         }
     }
 

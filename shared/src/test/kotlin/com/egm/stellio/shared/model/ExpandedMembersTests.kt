@@ -166,7 +166,7 @@ class ExpandedMembersTests {
         assertTrue(result.isLeft())
         result.mapLeft {
             assertEquals(
-                "Relationship isARelationship has an invalid object type: class java.lang.String",
+                "Relationship isARelationship has an invalid object type: String",
                 it.message
             )
         }

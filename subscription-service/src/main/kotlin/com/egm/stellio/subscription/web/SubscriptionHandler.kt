@@ -16,6 +16,9 @@ import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotAuthorizedToAccessSubscriptionMessage
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.subscriptionAlreadyExistsMessage
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.subscriptionNotFoundMessage
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -253,7 +256,7 @@ class SubscriptionHandler(
         subscriptionService.isCreatorOf(subscriptionId, sub)
             .flatMap {
                 if (!it)
-                    AccessDeniedException(subscriptionUnauthorizedMessage(subscriptionId)).left()
+                    AccessDeniedException(userNotAuthorizedToAccessSubscriptionMessage(subscriptionId)).left()
                 else
                     Unit.right()
             }

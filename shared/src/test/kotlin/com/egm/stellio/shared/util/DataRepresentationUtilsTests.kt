@@ -25,7 +25,7 @@ class DataRepresentationUtilsTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "The JSON-LD object contains a member with invalid characters (4.6.2): Invalid(Type)",
+                    "JSON-LD object contains a member with invalid characters (4.6.2): Invalid(Type)",
                     it.message
                 )
             }
@@ -45,7 +45,7 @@ class DataRepresentationUtilsTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "The JSON-LD object contains a member with invalid characters (4.6.2): Invalid(Type)",
+                    "JSON-LD object contains a member with invalid characters (4.6.2): Invalid(Type)",
                     it.message
                 )
             }
@@ -126,7 +126,7 @@ class DataRepresentationUtilsTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "The JSON-LD object contains a member with invalid characters (4.6.2): device<State",
+                    "JSON-LD object contains a member with invalid characters (4.6.2): device<State",
                     it.message
                 )
             }
@@ -154,7 +154,7 @@ class DataRepresentationUtilsTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "The JSON-LD object contains a member with invalid characters (4.6.2): device<State",
+                    "JSON-LD object contains a member with invalid characters (4.6.2): device<State",
                     it.message
                 )
             }
@@ -189,7 +189,7 @@ class DataRepresentationUtilsTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "The JSON-LD object contains a member with invalid characters (4.6.2): device<State",
+                    "JSON-LD object contains a member with invalid characters (4.6.2): device<State",
                     it.message
                 )
             }
@@ -205,7 +205,7 @@ class DataRepresentationUtilsTests {
         scope.checkScopesNamesAreNgsiLdSupported().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "The JSON-LD object contains a scope with invalid characters (4.18): $scope",
+                "JSON-LD object contains a scope with invalid characters (4.18): $scope",
                 it.message
             )
         }
@@ -216,7 +216,7 @@ class DataRepresentationUtilsTests {
         listOf("/Scope/#Scope", "/A,/B").checkScopesNamesAreNgsiLdSupported().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "The JSON-LD object contains a scope with invalid characters (4.18): /Scope/#Scope",
+                "JSON-LD object contains a scope with invalid characters (4.18): /Scope/#Scope",
                 it.message
             )
         }
@@ -257,7 +257,7 @@ class DataRepresentationUtilsTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "The JSON-LD object contains a scope with invalid characters (4.18): /3Scope",
+                    "JSON-LD object contains a scope with invalid characters (4.18): /3Scope",
                     it.message
                 )
             }
@@ -278,7 +278,7 @@ class DataRepresentationUtilsTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "The JSON-LD object contains a scope with invalid characters (4.18): /3Scope",
+                    "JSON-LD object contains a scope with invalid characters (4.18): /3Scope",
                     it.message
                 )
             }
@@ -302,7 +302,7 @@ class DataRepresentationUtilsTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(
-                    "The JSON-LD object contains a member with a null value (5.5.4)",
+                    "JSON-LD object contains a member with a null value (5.5.4)",
                     it.message
                 )
             }

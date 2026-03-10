@@ -4,6 +4,8 @@ import com.egm.stellio.shared.model.COMPACTED_ATTRIBUTES_TERMS
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.NGSILD_JSON_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.util.ErrorMessages.Json.cannotDeserializeToListMessage
+import com.egm.stellio.shared.util.ErrorMessages.Json.cannotDeserializeToObjectMessage
 import tools.jackson.core.JacksonException
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.databind.ser.std.SimpleBeanPropertyFilter
@@ -27,7 +29,7 @@ object JsonUtils {
                 mapper.typeFactory.constructMapLikeType(Map::class.java, String::class.java, Any::class.java)
             )
         } catch (e: JacksonException) {
-            throw InvalidRequestException("Can't deserialize data into an object", e.message)
+            throw InvalidRequestException(cannotDeserializeToObjectMessage(e.message), e.message)
         }
 
     fun String.deserializeAsMap(): Map<String, Any> =
@@ -45,7 +47,7 @@ object JsonUtils {
                 mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
             )
         } catch (e: JacksonException) {
-            throw InvalidRequestException("Can't deserialize data into list of objects", e.message)
+            throw InvalidRequestException(cannotDeserializeToListMessage(e.message), e.message)
         }
 
     fun String.deserializeAsList(): List<Map<String, Any>> =

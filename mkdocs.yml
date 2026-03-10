@@ -51,5 +51,6 @@ nav:
         - Upgrading to 2.31.0: 'admin/upgrading_to_2.31.0.md'
   - Contributing :
       - Development: 'contributing/development_guide.md'
+      - Error messages: 'contributing/error_messages_guideline.md'
       - Documentation: 'contributing/documentation.md'
       - Roadmap: 'roadmap.md'

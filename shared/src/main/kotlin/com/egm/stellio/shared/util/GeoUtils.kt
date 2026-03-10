@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidGeometryDefinitionMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.locationtech.jts.io.WKTReader
@@ -43,7 +44,7 @@ fun geoJsonToWkt(geoJsonSerializedPayload: String): Either<APIException, String>
     }.fold({
         it.right()
     }, {
-        BadRequestDataException("Invalid geometry definition: $geoJsonSerializedPayload ($it)").left()
+        BadRequestDataException(invalidGeometryDefinitionMessage(geoJsonSerializedPayload, it.toString())).left()
     })
 
 fun throwingGeoJsonToWkt(geoJsonPayload: Map<String, Any>): String =

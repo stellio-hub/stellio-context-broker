@@ -20,6 +20,7 @@ import com.egm.stellio.shared.util.APIARY_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeWithDatasetIdNotFoundMessage
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.MANAGED_BY_IRI
@@ -29,7 +30,6 @@ import com.egm.stellio.shared.util.OUTGOING_TERM
 import com.egm.stellio.shared.util.SENSOR_IRI
 import com.egm.stellio.shared.util.SENSOR_TERM
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
-import com.egm.stellio.shared.util.attributeNotFoundMessage
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedAndResult
@@ -193,7 +193,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_IRI, APIC_COMPOUND_CONTEXTS)
 
         attributeTypeInfo.shouldFail {
-            assertEquals(ResourceNotFoundException(attributeNotFoundMessage(TEMPERATURE_IRI)), it)
+            assertEquals(ResourceNotFoundException(attributeWithDatasetIdNotFoundMessage(TEMPERATURE_IRI)), it)
         }
     }
 

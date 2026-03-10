@@ -42,6 +42,9 @@ import com.egm.stellio.shared.model.NGSILD_UNIT_CODE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.util.ErrorMessages.JsonLd.UNABLE_TO_EXPAND_PAYLOAD_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.JsonLdContextServer.contextInvalidMessage
+import com.egm.stellio.shared.util.ErrorMessages.JsonLdContextServer.contextNotFoundInCacheMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -96,7 +99,7 @@ object JsonLdUtils {
                 expandJsonLdTerm(NGSILD_UNIT_CODE_TERM, context.toString())
             }
             Unit.right()
-        } else ResourceNotFoundException("Context with id $context was not found in the cache").left()
+        } else ResourceNotFoundException(contextNotFoundInCacheMessage(context.toString())).left()
     }
 
     suspend fun expandDeserializedPayload(
@@ -220,7 +223,7 @@ object JsonLdUtils {
             }
             val expandedFragment = expansionProcess.await()
             if (expandedFragment.isEmpty())
-                throw BadRequestDataException("Unable to expand input payload")
+                throw BadRequestDataException(UNABLE_TO_EXPAND_PAYLOAD_MESSAGE)
 
             val outputStream = ByteArrayOutputStream()
             val jsonWriter = Json.createWriter(outputStream)
@@ -239,7 +242,7 @@ object JsonLdUtils {
         } catch (e: JsonLdError) {
             e.toAPIException(e.cause?.cause?.message).left()
         } catch (e: IllegalArgumentException) {
-            BadRequestDataException(e.cause?.message ?: "Provided context is invalid: $context").left()
+            BadRequestDataException(e.cause?.message ?: contextInvalidMessage(context.toString())).left()
         }
     }
 

@@ -5,6 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.ErrorMessages.Csr.CSR_REGISTRATION_INFO_EMPTY_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -36,7 +37,7 @@ data class RegistrationInfo(
             entities?.forEach { it.validate().bind() }
             Unit.right()
         } else {
-            BadRequestDataException("RegistrationInfo should have at least one element").left()
+            BadRequestDataException(CSR_REGISTRATION_INFO_EMPTY_MESSAGE).left()
         }
     }
 

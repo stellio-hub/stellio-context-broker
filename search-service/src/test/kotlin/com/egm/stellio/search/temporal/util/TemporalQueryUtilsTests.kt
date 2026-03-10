@@ -16,7 +16,6 @@ import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.shouldFail
-import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
@@ -31,6 +30,7 @@ import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertInstanceOf
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.LinkedMultiValueMap
 import java.time.ZonedDateTime
@@ -115,7 +115,7 @@ class TemporalQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Found different temporal representations in options query parameter, only one can be provided",
+                "Found different temporal representations in 'options' query parameter, only one can be provided",
                 it.message
             )
         }
@@ -135,8 +135,8 @@ class TemporalQueryUtilsTests {
             APIC_COMPOUND_CONTEXTS,
             true
         ).shouldFail {
-            assertInstanceOf(InvalidRequestException::class.java, it)
-            assertEquals("'invalid' is not a valid temporal representation", it.message)
+            assertInstanceOf<InvalidRequestException>(it)
+            assertEquals("Invalid value for temporal representation: 'invalid'", it.message)
         }
     }
 
@@ -395,9 +395,9 @@ class TemporalQueryUtilsTests {
             buildDefaultPagination(),
             false,
             TemporalRepresentation.NORMALIZED
-        ).shouldFailWith {
-            it is BadRequestDataException &&
-                it.message == "Unknown value for 'timeproperty': unknown"
+        ).shouldFail {
+            assertInstanceOf<BadRequestDataException>(it)
+            assertEquals("Invalid value for 'timeproperty': unknown", it.message)
         }
     }
 

@@ -7,8 +7,6 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.alreadyCoveredMessage
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedTargetMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
 import com.egm.stellio.search.authorization.permission.model.TargetAsset
@@ -29,6 +27,10 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.model.SeeOtherException
+import com.egm.stellio.shared.util.ErrorMessages.Permission.permissionAlreadyCoveredMessage
+import com.egm.stellio.shared.util.ErrorMessages.Permission.permissionAlreadyExistsMessage
+import com.egm.stellio.shared.util.ErrorMessages.Permission.permissionNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Permission.unauthorizedTargetMessage
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
@@ -153,9 +155,9 @@ class PermissionService(
                 else if (!it && inverse)
                     Unit.right()
                 else if (it)
-                    AlreadyExistsException(Permission.alreadyExistsMessage(id)).left()
+                    AlreadyExistsException(permissionAlreadyExistsMessage(id)).left()
                 else
-                    ResourceNotFoundException(Permission.notFoundMessage(id)).left()
+                    ResourceNotFoundException(permissionNotFoundMessage(id)).left()
             }
 
     suspend fun checkDuplicate(
@@ -188,7 +190,7 @@ class PermissionService(
                 if (it.isNotEmpty()) {
                     val duplicateId = it.first()
                     SeeOtherException(
-                        alreadyCoveredMessage(duplicateId),
+                        permissionAlreadyCoveredMessage(duplicateId),
                         location = URI("/ngsi-ld/v1/auth/permissions/$duplicateId")
                     ).left()
                 } else
@@ -402,7 +404,7 @@ class PermissionService(
         subjectReferentialService.hasStellioAdminRole(subjectUuids)
             .flatMap {
                 if (!it && !subjectsHavePermissionsOnTarget(subjectUuids, target, action.getIncludedIn()).bind())
-                    AccessDeniedException(unauthorizedTargetMessage(target)).left().bind()
+                    AccessDeniedException(unauthorizedTargetMessage(target.toString())).left().bind()
                 else Unit.right()
             }.bind()
     }

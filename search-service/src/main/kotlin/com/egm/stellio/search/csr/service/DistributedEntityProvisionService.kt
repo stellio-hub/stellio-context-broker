@@ -21,6 +21,11 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.ErrorMessages.Csr.CONTEXT_SOURCE_MULTISTATUS_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceContactErrorMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceNoErrorMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportCreationMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportDeletionMessage
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.toTypeSelection
@@ -62,7 +67,7 @@ class DistributedEntityProvisionService(
                     )
                 } else if (csr.mode != Mode.INCLUSIVE) {
                     result.addEither(
-                        ConflictException("csr: ${csr.id} does not support deletion of entities").left(),
+                        ConflictException(csrDoesNotSupportDeletionMessage(csr.id)).left(),
                         entityId,
                         csr.id
                     )
@@ -168,7 +173,7 @@ class DistributedEntityProvisionService(
                         )
                     } else if (csr.mode != Mode.INCLUSIVE) {
                         resultToUpdate.addEither(
-                            ConflictException("The csr: ${csr.id} does not support the creation of entities").left(),
+                            ConflictException(csrDoesNotSupportCreationMessage(csr.id)).left(),
                             entity.id,
                             csr.id
                         )
@@ -214,14 +219,14 @@ class DistributedEntityProvisionService(
                     ContextSourceException(
                         type = ErrorType.MULTI_STATUS.type,
                         status = HttpStatus.MULTI_STATUS,
-                        title = "Context source returned 207",
-                        detail = response ?: "no message"
+                        title = CONTEXT_SOURCE_MULTISTATUS_MESSAGE,
+                        detail = response ?: "No message"
                     ).left()
                 } else if (statusCode.is2xxSuccessful) {
                     logger.info("Successfully post data to CSR ${csr.id} at $uri")
                     Unit.right()
                 } else if (response == null) {
-                    val message = "No error message received from CSR ${csr.id} at $uri"
+                    val message = contextSourceNoErrorMessage(csr.id, uri)
                     logger.warn(message)
                     BadGatewayException(message).left()
                 } else {
@@ -233,8 +238,8 @@ class DistributedEntityProvisionService(
                 logger.warn("Error contacting CSR at $uri: ${e.message}")
                 logger.warn(e.stackTraceToString())
                 GatewayTimeoutException(
-                    "Error connecting to CSR at $uri",
-                    detail = "${e.cause}:${e.message}"
+                    contextSourceContactErrorMessage(csr.id, uri),
+                    detail = "${e.cause}: ${e.message}"
                 ).left()
             }
         )

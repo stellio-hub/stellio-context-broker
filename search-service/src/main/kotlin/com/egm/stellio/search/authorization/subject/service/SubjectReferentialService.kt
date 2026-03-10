@@ -21,6 +21,7 @@ import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.AuthContextModel.GENERIC_SUBJECTS
 import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.subjectNotFoundMessage
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
@@ -83,7 +84,7 @@ class SubjectReferentialService(
                 """.trimIndent()
             )
             .bind("subject_id", sub)
-            .oneToResult(AccessDeniedException("No subject information found for $sub")) {
+            .oneToResult(AccessDeniedException(subjectNotFoundMessage(sub))) {
                 rowToSubjectReferential(it)
             }
 

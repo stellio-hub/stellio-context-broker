@@ -35,7 +35,7 @@ And use all permissions assigned to one of the user claims to evaluate the user 
 
 ## Migrating the current authorization setup
 Out of the box, this will let you assign permission to Keycloak roles instead of groups.
-It also means that the desynchronization of Stellio user information will only impact subject endpoints and never touch the NGSI-LD endpoints.
+It also means that a desynchronization of Stellio subjects information will no longer impact the NGSI-LD endpoints. (only the subject endpoints)
 
 ### Migrate groups permission
 > **Warning:** You should follow this migration if you have permissions targeting groups.

@@ -41,7 +41,7 @@ It also means that the desynchronization of Stellio user information will only i
 > **Warning:** You should follow this migration if you have permissions targeting groups.
 
 Existing permission targeting groups id need to access the user groups ids in the token.
-For this we have developed a new token mapper which is present in the new keycloak image (easyglobalmarket/keycloak:26.5.2).
+For this we have developed a new token mapper which is present in the new keycloak image (easyglobalmarket/keycloak:26.5.5).
 
 Once the keycloak image is upgraded, you can configure the token mapper to add the groups uuids in the token.
 

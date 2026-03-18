@@ -21,8 +21,8 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
-import com.egm.stellio.shared.util.ErrorMessages.Authorization.subjectNotFoundMessage
 import com.egm.stellio.shared.util.Claims
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.subjectNotFoundMessage
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub

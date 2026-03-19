@@ -80,7 +80,7 @@ The following properties are used:
         - can only be specified if `id` is null
 - `assignee`: a string representing what the permission is applied to. It can be:
     - the id of the subject
-    - a claim from the subject jwt token (ex: `my-role`)
+    - a claim from the subject JWT (ex: `my-role`)
     - `urn:ngsi-ld:Subject:authenticated` meaning the permission applies to any authenticated subject
     - `urn:ngsi-ld:Subject:public` meaning the permission give public access to the target. (only allowed if `application.authentication.allow-public-permission` is set to true)
 - `assigner`: id of the creator

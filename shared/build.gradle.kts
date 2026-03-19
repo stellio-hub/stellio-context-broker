@@ -25,7 +25,7 @@ dependencies {
     testFixturesImplementation("org.springframework.security:spring-security-test")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-test")
-    testFixturesImplementation("io.arrow-kt:arrow-fx-coroutines:2.2.2")
+    testFixturesImplementation("io.arrow-kt:arrow-fx-coroutines:2.2.2.1")
     testFixturesImplementation("org.wiremock:wiremock-standalone:3.13.2")
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")

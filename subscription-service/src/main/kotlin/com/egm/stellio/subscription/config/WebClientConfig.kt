@@ -50,9 +50,10 @@ class WebClientConfig {
         val registrations = applicationProperties.tenants.map { tenant ->
             // derive token endpoint from issuer (Keycloak default path)
             val tenantIssuer = tenant.issuer ?: error("Missing issuer for tenant ${tenant.name}")
-            val tokenUri = tenantIssuer.trimEnd('/') + "/protocol/openid-connect/token"
+            val tokenUri = tenantIssuer.trimEnd('/') + "/protocol/openid-connect/token" // todo keycloak specific
             ClientRegistration.withRegistrationId(tenant.name)
                 .tokenUri(tokenUri)
+                // todo check if SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_AUTHORIZATION-GRANT-TYPE is needed
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .clientId(tenant.clientId ?: error("Missing clientId for tenant ${tenant.name}"))
                 .clientSecret(tenant.clientSecret ?: error("Missing clientSecret for tenant ${tenant.name}"))

@@ -1,5 +1,5 @@
 # Authentication and authorization
-> **Warning:** This page is specific to Stellio instances that are configured with authentication (see [Keycloak integration](../admin/keycloak_integration.md)).
+> **Warning:** This page is specific to Stellio instances that are configured with authentication (see [Authentication integration](../admin/authentication_integration.md)).
 
 ## Authenticate
 

@@ -329,13 +329,10 @@ object ErrorMessages {
             "Invalid value for temporal representation: '$representation'"
     }
 
-    object Configuration {
-        fun issuerPropertyName(index: Int) = "application.tenants.$index.issuer"
-        const val ISSUER_MANDATORY_WITH_ENABLED_AUTHENTICATION =
-            "Issuer is mandatory when authentication is enabled"
-    }
-
     object Tenant {
         fun tenantNotFoundMessage(tenant: String) = "Tenant $tenant does not exist"
+        fun issuerPropertyName(index: Int) = "application.tenants.$index.issuer"
+        const val ISSUER_MANDATORY_WHEN_AUTHENTICATION_ENABLED =
+            "Issuer is mandatory when authentication is enabled"
     }
 }

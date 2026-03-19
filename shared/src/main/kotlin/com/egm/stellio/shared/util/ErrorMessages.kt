@@ -331,5 +331,8 @@ object ErrorMessages {
 
     object Tenant {
         fun tenantNotFoundMessage(tenant: String) = "Tenant $tenant does not exist"
+        fun issuerPropertyName(index: Int) = "application.tenants.$index.issuer"
+        const val ISSUER_MANDATORY_WHEN_AUTHENTICATION_ENABLED =
+            "Issuer is mandatory when authentication is enabled"
     }
 }

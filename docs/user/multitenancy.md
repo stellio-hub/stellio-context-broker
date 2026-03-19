@@ -32,7 +32,7 @@ application.tenants[1].dbSchema = egm
 
 Default tenant must always be declared with the `urn:ngsi-ld:tenant:default` value (but, as specified by the NGSI-LD API specification, it does not have to be declared in the HTTP requests and is used if no tenant is specified in a request).
 
-Please also note that, even if authentication is not enabled, you need to specify a value for the OIDC issuer URL property (it will be ignored if authentication is not enabled).
+Note: The issuer property is ignored if the authentication is not enabled.
 
 To add a tenant:
 

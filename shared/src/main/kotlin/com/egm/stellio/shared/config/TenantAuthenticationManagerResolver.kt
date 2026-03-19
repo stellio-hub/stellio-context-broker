@@ -1,11 +1,14 @@
 package com.egm.stellio.shared.config
 
 import com.egm.stellio.shared.model.NonexistentTenantException
+import com.egm.stellio.shared.util.ErrorMessages.Configuration.ISSUER_MANDATORY_WITH_ENABLED_AUTHENTICATION
+import com.egm.stellio.shared.util.ErrorMessages.Configuration.issuerPropertyName
 import com.egm.stellio.shared.util.ErrorMessages.Tenant.tenantNotFoundMessage
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.boot.context.properties.source.InvalidConfigurationPropertyValueException
 import org.springframework.context.annotation.Profile
 import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.authentication.ReactiveAuthenticationManagerResolver
@@ -26,7 +29,14 @@ class TenantAuthenticationManagerResolver(
     private val authenticationManagers = mutableMapOf<String, JwtReactiveAuthenticationManager>()
 
     override fun afterPropertiesSet() {
-        applicationProperties.tenants.forEach { tenantConfiguration ->
+        applicationProperties.tenants.forEachIndexed { i, tenantConfiguration ->
+            if (tenantConfiguration.issuer.isNullOrBlank()) {
+                throw InvalidConfigurationPropertyValueException(
+                    issuerPropertyName(i),
+                    tenantConfiguration.issuer,
+                    ISSUER_MANDATORY_WITH_ENABLED_AUTHENTICATION
+                )
+            }
             val jwtDecoder: ReactiveJwtDecoder = ReactiveJwtDecoders.fromIssuerLocation(tenantConfiguration.issuer)
             val jwtAuthenticationManager = JwtReactiveAuthenticationManager(jwtDecoder)
             authenticationManagers[tenantConfiguration.name] = jwtAuthenticationManager

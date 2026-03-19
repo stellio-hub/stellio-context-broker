@@ -23,7 +23,7 @@ APPLICATION_SUBSCRIPTION_SERVICE_URL=http://my-hostname:8084
 ````
 If you don't use one of these variables, the change will not impact you.
 
-## Authorization based on JWT token
+## Authorization based on JSON Web Token (JWT)
 
 The new authorization system work using only the OIDC token. Meaning you can use Stellio authorization features with any OpenId-Connect provider.
 You can configure what JWT claims are considered with the `application.authentication.claims-paths` environment variable.
@@ -33,7 +33,7 @@ application.authentication.claims-paths = realm_access.roles,groups_uuids
 Stellio checks all the configured claims in the user token (+ the user sub).
 And use all permissions assigned to one of the user claims to evaluate the user rights.
 
-## Migrating the current authorization setup
+## Migrate the current authorization setup
 Out of the box, this will let you assign permission to Keycloak roles instead of groups.
 It also means that a desynchronization of Stellio subjects information will no longer impact the NGSI-LD endpoints. (only the subject endpoints)
 
@@ -45,8 +45,8 @@ For this we have developed a new token mapper which is present in the new keyclo
 
 Once the keycloak image is upgraded, you can configure the token mapper to add the groups uuids in the token.
 
-#### Select the Groups UUID Mapper in Clients scopes > my-client-scope > Mappers > Add Mapper > by configuration 
-(You can use an existing client scope or create your own, make sure it is used when generating the token)
+#### Add the Groups UUID Mapper in Clients scopes > my-scope > Mappers > Add Mapper > by configuration 
+(You can use an existing scope or create your own, make sure it is used when generating the token)
 ![](images/group-uuid-mapper-configuration/step-1.png)
 
 #### Configure the mapper to add the ids behind the `groups_uuids` claim.

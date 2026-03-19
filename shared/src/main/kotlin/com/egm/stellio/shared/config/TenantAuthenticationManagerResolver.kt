@@ -1,8 +1,8 @@
 package com.egm.stellio.shared.config
 
 import com.egm.stellio.shared.model.NonexistentTenantException
-import com.egm.stellio.shared.util.ErrorMessages.Configuration.ISSUER_MANDATORY_WHEN_AUTHENTICATION_ENABLED
-import com.egm.stellio.shared.util.ErrorMessages.Configuration.issuerPropertyName
+import com.egm.stellio.shared.util.ErrorMessages.Tenant.ISSUER_MANDATORY_WHEN_AUTHENTICATION_ENABLED
+import com.egm.stellio.shared.util.ErrorMessages.Tenant.issuerPropertyName
 import com.egm.stellio.shared.util.ErrorMessages.Tenant.tenantNotFoundMessage
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER

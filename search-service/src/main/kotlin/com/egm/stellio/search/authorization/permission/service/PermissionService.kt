@@ -325,10 +325,7 @@ class PermissionService(
     ): Either<APIException, Boolean> = either {
         val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
 
-        if (claims.containStellioAdmin())
-            true
-        else
-            hasPermissionOnEntity(claims, entityId, action.getIncludedIn()).bind()
+        claims.containStellioAdmin() || hasPermissionOnEntity(claims, entityId, action.getIncludedIn()).bind()
     }
 
     private suspend fun hasPermissionOnEntity(

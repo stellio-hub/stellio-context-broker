@@ -155,7 +155,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
         subjectReferentialService.getCurrentSubjectClaims()
             .shouldSucceedWith {
                 assertEquals(5, it.size)
-                assertTrue(it.containsAll(groups.plus(USER_UUID).plus(GENERIC_SUBJECTS)))
+                assertThat(it).containsAll(groups.plus(USER_UUID).plus(GENERIC_SUBJECTS))
             }
     }
 
@@ -177,7 +177,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
         subjectReferentialService.getCurrentSubjectClaims()
             .shouldSucceedWith {
                 assertEquals(5, it.size)
-                assertTrue(it.containsAll(roles.plus(USER_UUID).plus(GENERIC_SUBJECTS)))
+                assertThat(it).containsAll(roles.plus(USER_UUID).plus(GENERIC_SUBJECTS))
             }
     }
 

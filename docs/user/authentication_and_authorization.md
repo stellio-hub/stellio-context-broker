@@ -223,6 +223,18 @@ This endpoint supports the usual pagination parameters (`count`, `limit`, `offse
 
 This endpoint supports the same parameters as the previous endpoint (GET /auth/permissions).
 
+### Specific access policy
+
+Stellio supports providing a specific property, called `specificAccessPolicy`, to allow any authenticated user to read or update an entity.
+
+This property can be set at entity creation time.
+
+It currently supports the following two values:
+
+- `read`: create a "read" permission for any authenticated subject
+- `write`: create a "write" permission for any authenticated subject
+
+## subjects endpoints
 ### Get groups the currently authenticated subject belongs to 
 
 This endpoint allows a subject to get the groups it belongs to.
@@ -271,16 +283,6 @@ The body also contains membership information.
 
 * If authentication is not enabled, a 204 (No content) response is returned. 
 
-### Specific access policy
-
-Stellio supports providing a specific property, called `specificAccessPolicy`, to allow any authenticated user to read or update an entity.
-
-This property can be set at entity creation time.
-
-It currently supports the following two values:
-
-- `read`: create a "read" permission for any authenticated subject
-- `write`: create a "write" permission for any authenticated subject
 
 ### Get users
 

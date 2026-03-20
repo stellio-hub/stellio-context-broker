@@ -1,6 +1,13 @@
 # Authentication integration
-Stellio can be configured to use any OIDC provider.
-If you don't have an existing OIDC provider, you can use the [EGM Keycloak image](#integrate-authentication-with-egm-keycloak-image).
+
+## Choosing an OIDC provider
+Stellio can be configured to use any OIDC provider and works with all ngsi-ld and permissions endpoints.
+
+If you use the [EGM Keycloak image](#integrate-authentication-with-egm-keycloak-image).
+The EGM image gives you access to the [subject endpoints](../user/authentication_and_authorization.md#subjects-endpoints)
+ and allow the [`on-owner-delete-cascade-entities` property](../user/authentication_and_authorization.md#delete-entities-owned-by-stellio-user-if-said-user-is-deleted).
+
+## Common configuration
 ## Configure the search-service
 The following environment variables are needed to configure authentication in the search service:
 - `STELLIO_AUTHENTICATION_ENABLED`: true (a boolean)
@@ -14,17 +21,17 @@ The following environment variables are needed to configure authentication in th
   - default value is : `realm_access.roles,groups_uuids`
 
 ## Configure the subscription-service
-The subscription service uses the same base variables.
+The subscription service uses the same base variables as the search service.
 
 Additionally, the subscription service uses client-credentials to authenticate on the search service.
 You should create a service account with the "stellio-admin" claim in your OIDC provider.
 
 With this service account, the following variables can be defined:
-- `APPLICATION_TENANTS_0_CLIENTID`: `client_credentials`
 - `APPLICATION_TENANTS_0_CLIENTID`: `{my-client_id}`
 - `APPLICATION_TENANTS_0_CLIENTSECRET`: `{my-client-secret}`
-- `SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_TOKEN_URI`: `{my-access-token-url}`
-  - Example for keycloak: `{keycloak_url}/auth/realms/{my-realm}/protocol/openid-connect/token`
+- `APPLICATION_TENANTS_0_ACCESSTOKENURL`: `{my-access-token-url}`
+  - The url of the oidc provider access token url.
+  - By default, it uses the keycloak token url `{issuer}/protocol/openid-connect/token`
 
 ## Validate the configuration
 

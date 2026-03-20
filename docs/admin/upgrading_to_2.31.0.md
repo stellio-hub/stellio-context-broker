@@ -44,8 +44,8 @@ For this we have developed a new token mapper which is present in the Keycloak i
 
 Once the keycloak image is upgraded, you can configure the token mapper to add the groups uuids in the token.
 
-#### Add the Groups UUID Mapper in Clients scopes > my-scope > Mappers > Add Mapper > by configuration 
-(You can use an existing scope or create your own, make sure it is used when generating the token)
+#### Add the Groups UUID Mapper in Clients scopes > roles > Mappers > Add Mapper > by configuration 
+You can use the `roles` scope or create your own scope (make sure it is used when generating the token).
 ![](images/group-uuid-mapper-configuration/step-1.png)
 
 #### Configure the mapper to add the ids behind the `groups_uuids` claim.

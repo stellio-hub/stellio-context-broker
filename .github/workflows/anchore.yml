@@ -73,19 +73,19 @@ jobs:
             JAR_FILE=./build/subscription-service/build/libs/subscription-service-latest-dev.jar
       - name: Security Scan for API Gateway image
         id: scan-api-gateway
-        uses: anchore/scan-action@7037fa011853d5a11690026fb85feee79f4c946c
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2
         with:
           image: "localbuild/api-gateway:latest-scan"
           severity-cutoff: critical
       - name: Security Scan for Search Service image
         id: scan-search-service
-        uses: anchore/scan-action@7037fa011853d5a11690026fb85feee79f4c946c
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2
         with:
           image: "localbuild/search-service:latest-scan"
           severity-cutoff: critical
       - name: Security Scan for Subscription Service image
         id: scan-subscription-service
-        uses: anchore/scan-action@7037fa011853d5a11690026fb85feee79f4c946c
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2
         with:
           image: "localbuild/subscription-service:latest-scan"
           severity-cutoff: critical

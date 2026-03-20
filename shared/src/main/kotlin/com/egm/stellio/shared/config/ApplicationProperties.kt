@@ -10,7 +10,8 @@ data class ApplicationProperties(
     val contexts: Contexts
 ) {
     data class Authentication(
-        val enabled: Boolean
+        val enabled: Boolean,
+        val claimsPaths: List<String>
     )
 
     data class Pagination(
@@ -24,7 +25,9 @@ data class ApplicationProperties(
         val dbSchema: String,
         val issuer: String? = null,
         val clientId: String? = null,
-        val clientSecret: String? = null
+        val clientSecret: String? = null,
+        // use Keycloak path as default path
+        val accessTokenURL: String? = issuer?.trimEnd('/').plus("/protocol/openid-connect/token")
     )
 
     data class Contexts(

@@ -200,11 +200,11 @@ class PermissionHandler(
         )
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
-        val subjects = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
 
         val permission = permissionService.getById(permissionId).bind()
 
-        if (permission.assignee !in subjects &&
+        if (permission.assignee !in claims &&
             permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN).isLeft()
         ) {
             AccessDeniedException(unauthorizedRetrieveMessage(permissionId)).left().bind<String>()
@@ -292,10 +292,6 @@ class PermissionHandler(
 
         if (permission.assignee == PUBLIC_SUBJECT && permission.action != Action.READ) {
             BadRequestDataException(PUBLIC_NON_READ_PROHIBITED_MESSAGE).left().bind<APIException>()
-        }
-
-        if (permission.assignee !in GENERIC_SUBJECTS) {
-            subjectReferentialService.retrieve(permission.assignee).bind()
         }
 
         permission.target.id?.let {

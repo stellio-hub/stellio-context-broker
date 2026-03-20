@@ -1,5 +1,5 @@
 # Authentication and authorization
-> **Warning:** This page is specific to Stellio instances that are configured with authentication (see [Keycloak integration](../admin/keycloak_integration.md)).
+> **Warning:** This page is specific to Stellio instances that are configured with authentication (see [Authentication integration](../admin/authentication_integration.md)).
 
 ## Authenticate
 
@@ -78,9 +78,11 @@ The following properties are used:
         - if null, the permission is considered to be for every scope
         - you can specify `@none` to target the entities with no scope
         - can only be specified if `id` is null
-- `assignee`: id of the subject (group or user) getting the permission
-    - if set to `urn:ngsi-ld:Subject:authenticated`, the permission applies to any authenticated subject
-    - if the option `application.authentication.allow-public-permission` is set to true, you can set assignee to `urn:ngsi-ld:Subject:public` to allow public access on the specified target
+- `assignee`: a string representing what the permission is applied to. It can be:
+    - the id of the subject
+    - a claim from the subject JWT (ex: `my-role`)
+    - `urn:ngsi-ld:Subject:authenticated` meaning the permission applies to any authenticated subject
+    - `urn:ngsi-ld:Subject:public` meaning the permission give public access to the target. (only allowed if `application.authentication.allow-public-permission` is set to true)
 - `assigner`: id of the creator
 - `action`: can be "read", "write", "admin" and "own"
 
@@ -221,6 +223,18 @@ This endpoint supports the usual pagination parameters (`count`, `limit`, `offse
 
 This endpoint supports the same parameters as the previous endpoint (GET /auth/permissions).
 
+### Specific access policy
+
+Stellio supports providing a specific property, called `specificAccessPolicy`, to allow any authenticated user to read or update an entity.
+
+This property can be set at entity creation time.
+
+It currently supports the following two values:
+
+- `read`: create a "read" permission for any authenticated subject
+- `write`: create a "write" permission for any authenticated subject
+
+## subjects endpoints
 ### Get groups the currently authenticated subject belongs to 
 
 This endpoint allows a subject to get the groups it belongs to.
@@ -269,16 +283,6 @@ The body also contains membership information.
 
 * If authentication is not enabled, a 204 (No content) response is returned. 
 
-### Specific access policy
-
-Stellio supports providing a specific property, called `specificAccessPolicy`, to allow any authenticated user to read or update an entity.
-
-This property can be set at entity creation time.
-
-It currently supports the following two values:
-
-- `read`: create a "read" permission for any authenticated subject
-- `write`: create a "write" permission for any authenticated subject
 
 ### Get users
 

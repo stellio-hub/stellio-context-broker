@@ -234,7 +234,7 @@ It currently supports the following two values:
 - `read`: create a "read" permission for any authenticated subject
 - `write`: create a "write" permission for any authenticated subject
 
-## subjects endpoints
+## Subjects endpoints
 ### Get groups the currently authenticated subject belongs to 
 
 This endpoint allows a subject to get the groups it belongs to.

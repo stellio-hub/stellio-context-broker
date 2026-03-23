@@ -30,7 +30,7 @@ You can configure what JWT claims are considered to evaluate access rights with 
 ```
 application.authentication.claims-paths = realm_access.roles,groups_uuids
 ```
-Stellio retrieves all the configured claims in the user token (as well as the user sub) and uses all permissions assigned to one of the claims to evaluate the user rights.
+Stellio retrieves all the configured claims in the user token (as well as the user sub) and uses the permissions assigned to the claims to evaluate the user rights.
 
 ## Migrate the current authorization setup
 Out of the box, this lets you assign permission to Keycloak roles instead of groups.
@@ -40,7 +40,7 @@ It also means that a desynchronization of Stellio subjects information will no l
 > **Warning:** You should follow this migration if you have permissions targeting groups.
 
 Existing permission targeting groups need to access the user groups ids in the token.
-For this we have developed a new token mapper which is present in the Keycloak images provided by us starting from [version 26.5.5)(https://hub.docker.com/repository/docker/easyglobalmarket/keycloak/tags/26.5.5/sha256-9746311b62a0300b5834bbea1d10300c0977caf5da22dcb790d75a58f403a6a7).
+For this we have developed a new token mapper which is present in the Keycloak images provided by us starting from [version 26.5.5](https://hub.docker.com/repository/docker/easyglobalmarket/keycloak/tags/26.5.5/sha256-9746311b62a0300b5834bbea1d10300c0977caf5da22dcb790d75a58f403a6a7).
 
 Once the keycloak image is upgraded, you can configure the token mapper to add the groups uuids in the token.
 
@@ -54,7 +54,7 @@ You can use the `roles` scope or create your own scope (make sure it is used whe
 #### Verify that the groups uuids are present in the token. (in Clients > your-client > Clients scopes > evaluate > Generated access token)
 ![](images/group-uuid-mapper-configuration/step-3.png)
 
-When all the realms used by stellio have the `groups_uuids` claim configured. You are ready to upgrade to version 2.31.0.
+When all the realms used by Stellio have the `groups_uuids` claim configured, you are ready to upgrade to version 2.31.0.
 
 ## Upgrade to TimescaleDB 2.25.2
 

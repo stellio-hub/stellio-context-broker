@@ -234,7 +234,9 @@ It currently supports the following two values:
 - `read`: create a "read" permission for any authenticated subject
 - `write`: create a "write" permission for any authenticated subject
 
-## Subjects endpoints
+## Subjects functionalities
+> **Warning:** These functionalities only work when the [EGM keycloak image](../admin/authentication_integration.md#integrate-authentication-with-egm-keycloak-image) is configured.
+
 ### Get groups the currently authenticated subject belongs to 
 
 This endpoint allows a subject to get the groups it belongs to.

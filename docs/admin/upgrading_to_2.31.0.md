@@ -20,20 +20,12 @@ must now be:
 ```
 APPLICATION_SEARCH_SERVICE_URL=http://my-hostname:8083
 APPLICATION_SUBSCRIPTION_SERVICE_URL=http://my-hostname:8084
-````
+```
 If you don't use one of these variables, the change will not impact you.
 
-## Authorization based on JSON Web Token (JWT)
-
-The new authorization system works using only the OIDC token. Meaning you can use Stellio authorization features with any OIDC provider.
-You can configure what JWT claims are considered to evaluate access rights with the `application.authentication.claims-paths` environment variable.
-```
-application.authentication.claims-paths = realm_access.roles,groups_uuids
-```
-Stellio retrieves all the configured claims in the user token (as well as the user sub) and uses the permissions assigned to the claims to evaluate the user rights.
-
 ## Migrate the current authorization setup
-Out of the box, this lets you assign permission to Keycloak roles instead of groups.
+[The new authorization system](../admin/authentication_integration.md) works using only the OIDC token.
+For existing setup, this now lets you assign permission to Keycloak roles instead of groups.
 It also means that a desynchronization of Stellio subjects information will no longer impact the NGSI-LD endpoints. (only the subject endpoints)
 
 ### Migrate groups permission
@@ -44,14 +36,14 @@ For this we have developed a new token mapper which is present in the Keycloak i
 
 Once the keycloak image is upgraded, you can configure the token mapper to add the groups uuids in the token.
 
-#### Add the Groups UUID Mapper in Clients scopes > roles > Mappers > Add Mapper > by configuration 
+#### 1 - Add the Groups UUID Mapper in Clients scopes > roles > Mappers > Add Mapper > by configuration 
 You can use the `roles` scope or create your own scope (make sure it is used when generating the token).
 ![](images/group-uuid-mapper-configuration/step-1.png)
 
-#### Configure the mapper to add the ids behind the `groups_uuids` claim.
+#### 2 - Configure the mapper to add the ids behind the `groups_uuids` claim.
 ![](images/group-uuid-mapper-configuration/step-2.png)
 
-#### Verify that the groups uuids are present in the token. (in Clients > your-client > Clients scopes > evaluate > Generated access token)
+#### 3 - Verify that the groups uuids are present in the token. (in Clients > your-client > Clients scopes > evaluate > Generated access token)
 ![](images/group-uuid-mapper-configuration/step-3.png)
 
 When all the realms used by Stellio have the `groups_uuids` claim configured, you are ready to upgrade to version 2.31.0.

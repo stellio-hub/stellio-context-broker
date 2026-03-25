@@ -26,7 +26,7 @@ nav:
       - Monitoring and logging: 'admin/monitoring_and_logging.md'
       - Backup and restore: 'admin/backup_and_restore.md'
       - Enabling temporal data compression: 'admin/enabling_timescale_compression.md'
-      - Keycloak integration: 'admin/keycloak_integration.md'
+      - Authentication integration: 'admin/authentication_integration.md'
       - Performance considerations and results: 'admin/performance.md'
       - Misc configuration tips: 'admin/misc_configuration_tips.md'
       - Second instance: 'admin/second_instance.md'

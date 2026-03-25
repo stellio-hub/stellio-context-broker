@@ -6,7 +6,7 @@ In Stellio, each tenant:
 
 * Is defined by a name (which can be any string since 1.7.1)
 * Maps to a specific schema in the database
-* Binds to a specific realm in Keycloak (if authentication is enabled)
+* Binds to a specific OIDC issuer (if authentication is enabled)
 
 Thus, to add a new tenant in Stellio, you need to configure the aforementioned three properties. As creating a new tenant is not something that is done
 every day in a production deployment, and as it implies not easily automatable operations (like creating and configuring a tenant in Keycloak), Stellio

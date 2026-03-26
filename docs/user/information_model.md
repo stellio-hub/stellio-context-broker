@@ -14,7 +14,7 @@ You can also request a specific data format (JSON or JSON-LD) has described in [
 
 ## Tenant
 
-Tenant allows defining isolated instances inside an NGSI-LD broker. (see [§4.14](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.14))
+Tenants allow defining isolated instances inside an NGSI-LD broker (see [§4.14](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.14)).
 
 If your stellio instance has multiple tenants, you can specify the tenant by adding the header `NGSILD-TENANT: urn:ngsi-ld:tenant:{tenant_name}`
 

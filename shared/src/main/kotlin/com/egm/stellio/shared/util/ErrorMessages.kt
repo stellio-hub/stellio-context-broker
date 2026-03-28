@@ -125,6 +125,9 @@ object ErrorMessages {
         fun attributeCannotGetValueMessage(attribute: String) = "Cannot get value from attribute: $attribute"
 
         fun propertyMissingValueMessage(name: String) = "Property $name has an instance without a value"
+        fun attributeMissingValueMessage(memberValue: String, attributeName: String = "") =
+            "Attribute $attributeName has an instance without a $memberValue member"
+
         fun geoPropertyMissingValueMessage(name: String) = "GeoProperty $name has an instance without a value"
         fun jsonPropertyMissingJsonMessage(name: String) = "JsonProperty $name has an instance without a json member"
         fun jsonPropertyInvalidJsonMessage(name: String) =

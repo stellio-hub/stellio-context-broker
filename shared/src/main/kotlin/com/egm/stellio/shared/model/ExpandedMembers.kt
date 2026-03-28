@@ -6,6 +6,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.util.ErrorMessages.Entity.CANNOT_ADD_SUBATTRIBUTE_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.EXPECTED_SINGLE_ENTRY_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeMissingValueMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipEmptyMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipInvalidObjectIdMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipInvalidObjectTypeMessage
@@ -109,12 +110,15 @@ fun ExpandedAttributeInstance.addSysAttrs(
  *
  * @return the actual value, e.g. "kg" if provided #memberName is https://uri.etsi.org/ngsi-ld/unitCode
  */
-fun ExpandedAttributeInstance.getMemberValue(memberName: ExpandedTerm): Any? {
+fun ExpandedAttributeInstance.getMemberValue(
+    memberName: ExpandedTerm,
+    attributeName: String = ""
+): Either<APIException, Any> {
     if (this[memberName] == null)
-        return null
+        return BadRequestDataException(attributeMissingValueMessage(memberName, attributeName)).left()
 
     val intermediateList = this[memberName] as List<Map<String, Any>>
-    return if (intermediateList.size == 1) {
+    val value = if (intermediateList.size == 1) {
         val firstListEntry = intermediateList[0]
         val finalValueType = firstListEntry[JSONLD_TYPE_KW]
         when {
@@ -148,16 +152,20 @@ fun ExpandedAttributeInstance.getMemberValue(memberName: ExpandedTerm): Any? {
             it[JSONLD_VALUE_KW]
         }
     }
+    checkNotNull(value) {
+        BadRequestDataException(attributeMissingValueMessage(memberName, attributeName))
+    }
+    return value.right()
 }
 
-fun ExpandedAttributeInstance.getPropertyValue(): Any? =
-    getMemberValue(NGSILD_PROPERTY_VALUE)
+fun ExpandedAttributeInstance.getPropertyValue(attributeName: String = ""): Either<APIException, Any> =
+    getMemberValue(NGSILD_PROPERTY_VALUE, attributeName)
 
 fun ExpandedAttributeInstance.getMemberValueAsDateTime(memberName: ExpandedTerm): ZonedDateTime? =
-    ZonedDateTime::class.safeCast(this.getMemberValue(memberName))
+    ZonedDateTime::class.safeCast(this.getMemberValue(memberName).getOrNull())
 
 fun ExpandedAttributeInstance.getMemberValueAsString(memberName: ExpandedTerm): String? =
-    String::class.safeCast(this.getMemberValue(memberName))
+    String::class.safeCast(this.getMemberValue(memberName).getOrNull())
 
 fun ExpandedAttributeInstance.getRelationshipObject(name: String): Either<BadRequestDataException, URI> =
     this.right()
@@ -189,7 +197,7 @@ fun ExpandedAttributeInstance.getRelationshipId(): URI? =
     (this[NGSILD_RELATIONSHIP_OBJECT]?.get(0) as? Map<String, String>)?.get(JSONLD_ID_KW)?.toUri()
 
 fun ExpandedAttributeInstance.getScopes(): List<Scope>? =
-    when (val rawScopes = this.getMemberValue(NGSILD_SCOPE_IRI)) {
+    when (val rawScopes = this.getMemberValue(NGSILD_SCOPE_IRI).getOrNull()) {
         is String -> listOf(rawScopes)
         is List<*> -> rawScopes as List<Scope>
         else -> null

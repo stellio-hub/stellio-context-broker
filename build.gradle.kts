@@ -151,6 +151,10 @@ subprojects {
         }
     }
 
+    tasks.withType<com.google.cloud.tools.jib.gradle.BuildImageTask>().configureEach {
+        notCompatibleWithConfigurationCache("Jib does not support configuration cache")
+    }
+
     project.ext.set("jibFromImage", "eclipse-temurin:21-jre")
     project.ext.set(
         "jibFromPlatforms",

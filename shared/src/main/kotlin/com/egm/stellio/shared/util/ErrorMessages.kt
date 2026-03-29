@@ -61,6 +61,8 @@ object ErrorMessages {
             "Context source registration $csrId does not support the deletion of entities"
         fun csrDoesNotSupportCreationMessage(csrId: URI) =
             "Context source registration $csrId does not support the creation of entities"
+        fun csrDoesNotSupportPurgeMessage(csrId: URI) =
+            "Context source registration $csrId does not support the purge of entities"
 
         const val CONTEXT_SOURCE_BADLY_FORMED_ERROR_MESSAGE = "Context source sent a badly formed error"
         const val CONTEXT_SOURCE_DEFAULT_ERROR_MESSAGE = "Context source provided no additional detail about the error"
@@ -244,6 +246,10 @@ object ErrorMessages {
 
         const val MISSING_REQUIRED_QUERY_PARAMETER_MESSAGE =
             "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query unless local is true"
+        const val MISSING_REQUIRED_PURGE_QUERY_PARAMETER_MESSAGE =
+            "One of 'type', 'drop', 'keep', 'q', 'geoQ' must be provided in the query unless local is true"
+        const val KEEP_AND_DROP_BOTH_PROVIDED_MESSAGE =
+            "Parameters 'keep' and 'drop' are mutually exclusive and cannot be used together"
 
         fun invalidJoinParameterMessage(param: String) =
             "Invalid 'join' parameter: '$param', must be 'flat', 'inline', or '@none'"

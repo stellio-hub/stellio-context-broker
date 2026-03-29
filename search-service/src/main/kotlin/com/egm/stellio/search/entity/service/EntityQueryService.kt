@@ -60,6 +60,11 @@ class EntityQueryService(
         Pair(entitiesPayloads, count).right().bind()
     }
 
+    suspend fun queryEntityIdsForPurge(entitiesQuery: EntitiesQuery): List<URI> {
+        val accessRightWithAndFilter = authorizationService.getAccessRightWithClauseAndFilter()
+        return queryEntities(entitiesQuery, true, accessRightWithAndFilter)
+    }
+
     suspend fun queryEntities(
         entitiesQuery: EntitiesQuery,
         accessRightWithAndFilter: WithAndFilter?,

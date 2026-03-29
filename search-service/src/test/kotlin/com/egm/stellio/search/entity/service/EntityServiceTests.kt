@@ -5,9 +5,13 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.subject.USER_UUID
 import com.egm.stellio.search.common.util.deserializeAsMap
+import com.egm.stellio.search.entity.model.Attribute
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
+import com.egm.stellio.search.entity.web.BatchEntityError
+import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.gimmeSucceededAttributeOperationResult
@@ -23,6 +27,7 @@ import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NGSILD_TITLE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
@@ -49,6 +54,8 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -675,5 +682,125 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, OUTGOING_IRI, null, false)
             entityAttributeService.getAllForEntity(beehiveTestCId)
         }
+    }
+
+    private fun buildTypeQuery(typeIri: String) = EntitiesQueryFromGet(
+        typeSelection = typeIri,
+        paginationQuery = PaginationQuery(limit = 100, offset = 0),
+        contexts = APIC_COMPOUND_CONTEXTS
+    )
+
+    @Test
+    fun `purgeEntities should delete each entity matching the query`() = runTest {
+        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.deleteAttributes(any(), any())
+        } returns emptyList<SucceededAttributeOperationResult>().right()
+        coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        val result = entityService.purgeEntities(buildTypeQuery(BEEHIVE_IRI)).shouldSucceedAndResult()
+
+        assertTrue(result.errors.isEmpty())
+        assertThat(result.success).hasSize(1).contains(BatchEntitySuccess(entity01Uri))
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
+    }
+
+    @Test
+    fun `purgeEntities in drop mode should delete only the specified attributes`() = runTest {
+        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
+        } returns Unit.right()
+        coEvery {
+            entityAttributeService.deleteAttribute(any(), any(), any(), any(), any())
+        } returns emptyList<SucceededAttributeOperationResult>().right()
+        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
+
+        loadAndPrepareSampleData("beehive.jsonld")
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        val result = entityService.purgeEntities(
+            buildTypeQuery(BEEHIVE_IRI),
+            drop = setOf(INCOMING_IRI)
+        ).shouldSucceedAndResult()
+
+        assertTrue(result.errors.isEmpty())
+        assertThat(result.success).hasSize(1)
+
+        coVerify {
+            entityAttributeService.checkEntityAndAttributeExistence(
+                beehiveTestCId,
+                INCOMING_IRI,
+                null,
+                anyAttributeInstance = true,
+                excludeDeleted = true
+            )
+            entityAttributeService.deleteAttribute(beehiveTestCId, INCOMING_IRI, null, true, any())
+        }
+    }
+
+    @Test
+    fun `purgeEntities in keep mode should delete all attributes except those in keep`() = runTest {
+        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
+        } returns Unit.right()
+        coEvery {
+            entityAttributeService.deleteAttribute(any(), any(), any(), any(), any())
+        } returns emptyList<SucceededAttributeOperationResult>().right()
+        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
+
+        val mockAttribute = mockk<Attribute> {
+            every { attributeName } returns INCOMING_IRI
+        }
+        coEvery { entityAttributeService.getAllForEntity(any(), excludeDeleted = false) } returns listOf(mockAttribute)
+
+        loadAndPrepareSampleData("beehive.jsonld")
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        // keep = INCOMING_IRI, so OUTGOING_IRI should be deleted (if present); here we verify no delete for INCOMING
+        val result = entityService.purgeEntities(
+            buildTypeQuery(BEEHIVE_IRI),
+            keep = setOf(INCOMING_IRI)
+        ).shouldSucceedAndResult()
+
+        // INCOMING_IRI is in keep, so it must NOT be deleted
+        coVerify(exactly = 0) {
+            entityAttributeService.checkEntityAndAttributeExistence(
+                any(),
+                INCOMING_IRI,
+                any(),
+                any(),
+                any()
+            )
+        }
+
+        assertTrue(result.errors.isEmpty())
+    }
+
+    @Test
+    fun `purgeEntities should collect errors and successes when some operations fail`() = runTest {
+        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
+        coEvery { authorizationService.userCanAdminEntity(any()) } returns
+            AccessDeniedException("User is not allowed to purge entity $entity01Uri").left()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        val result = entityService.purgeEntities(buildTypeQuery(BEEHIVE_IRI)).shouldSucceedAndResult()
+
+        assertTrue(result.success.isEmpty())
+        assertThat(result.errors).hasSize(1)
+            .contains(BatchEntityError(entity01Uri, result.errors.first().error))
     }
 }

@@ -55,6 +55,10 @@ enum class QueryParameter(
 
     DELETE_ALL("deleteAll"),
 
+    // purge entities (6.4.3.3)
+    KEEP("keep"),
+    DROP("drop"),
+
     // jsonldContexts
     RELOAD("reload"),
 

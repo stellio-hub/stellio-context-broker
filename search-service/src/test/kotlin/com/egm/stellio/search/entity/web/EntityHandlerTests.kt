@@ -80,6 +80,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
@@ -153,6 +154,9 @@ class EntityHandlerTests {
             distributedEntityProvisionService
                 .distributeReplaceEntity(capture(capturedExpandedEntity), any(), any())
         } answers { BatchOperationResult() to capturedExpandedEntity.captured }
+        coEvery {
+            distributedEntityProvisionService.distributePurgeEntities(any())
+        } answers { BatchOperationResult() }
     }
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
@@ -2594,5 +2598,123 @@ class EntityHandlerTests {
                     }
                     """
             )
+    }
+
+    @Test
+    fun `purge entities should return 204 when entities are successfully purged`() {
+        coEvery {
+            entityService.purgeEntities(any(), any(), any())
+        } returns BatchOperationResult().right()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities?type=$BEEHIVE_TERM")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        coVerify { entityService.purgeEntities(any(), emptySet(), emptySet()) }
+    }
+
+    @Test
+    fun `purge entities should return 400 when no filter parameter is provided`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "One of 'type', 'drop', 'keep', 'q', 'geoQ' must be provided in the query unless local is true"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `purge entities should return 400 when both keep and drop parameters are provided`() {
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities?type=$BEEHIVE_TERM&keep=$INCOMING_TERM&drop=$TEMPERATURE_TERM")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Parameters 'keep' and 'drop' are mutually exclusive and cannot be used together"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `purge entities with keep parameter should call purgeEntities with expanded keep parameter`() {
+        coEvery {
+            entityService.purgeEntities(any(), any(), any())
+        } returns BatchOperationResult().right()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities?type=$BEEHIVE_TERM&keep=$INCOMING_TERM")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify { entityService.purgeEntities(any(), setOf(INCOMING_IRI), emptySet()) }
+    }
+
+    @Test
+    fun `purge entities with drop parameter should call purgeEntities with expanded drop parameter`() {
+        coEvery {
+            entityService.purgeEntities(any(), any(), any())
+        } returns BatchOperationResult().right()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities?type=$BEEHIVE_TERM&drop=$TEMPERATURE_TERM")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify { entityService.purgeEntities(any(), emptySet(), setOf(TEMPERATURE_IRI)) }
+    }
+
+    @Test
+    fun `purge entities with local=true should skip CSR distribution`() {
+        coEvery {
+            entityService.purgeEntities(any(), any(), any())
+        } returns BatchOperationResult().right()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities?type=$BEEHIVE_TERM&local=true")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify(exactly = 0) { distributedEntityProvisionService.distributePurgeEntities(any()) }
+        coVerify { entityService.purgeEntities(any(), emptySet(), emptySet()) }
+    }
+
+    @Test
+    fun `purge entities should return 207 when some entities could not be purged`() {
+        val partialResult = BatchOperationResult(
+            success = mutableListOf(BatchEntitySuccess(beehiveId)),
+            errors = mutableListOf(
+                BatchEntityError(
+                    "urn:ngsi-ld:BeeHive:OTHER".toUri(),
+                    ProblemDetail.forStatus(HttpStatus.BAD_REQUEST)
+                )
+            )
+        )
+        coEvery {
+            entityService.purgeEntities(any(), any(), any())
+        } returns partialResult.right()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities?type=$BEEHIVE_TERM")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
     }
 }

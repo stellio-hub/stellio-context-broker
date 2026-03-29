@@ -15,6 +15,7 @@ import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeOperationResult
+import com.egm.stellio.search.entity.model.EntitiesQuery
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationStatus
@@ -29,6 +30,9 @@ import com.egm.stellio.search.entity.model.getSucceededAttributesOperations
 import com.egm.stellio.search.entity.model.hasSuccessfulResult
 import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.entity.util.rowToEntity
+import com.egm.stellio.search.entity.web.BatchEntityError
+import com.egm.stellio.search.entity.web.BatchEntitySuccess
+import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.shared.model.APIException
@@ -706,6 +710,51 @@ class EntityService(
             .forEach {
                 entityEventService.publishAttributeDeleteEvent(sub, originalEntity, updatedEntity, it)
             }
+    }
+
+    @Transactional
+    suspend fun purgeEntities(
+        entitiesQuery: EntitiesQuery,
+        keep: Set<ExpandedTerm> = emptySet(),
+        drop: Set<ExpandedTerm> = emptySet()
+    ): Either<APIException, BatchOperationResult> = either {
+        val matchingIds = entityQueryService.queryEntityIdsForPurge(entitiesQuery)
+
+        if (matchingIds.isEmpty())
+            return@either BatchOperationResult().right().bind()
+
+        val result = BatchOperationResult()
+
+        matchingIds.forEach { entityId ->
+            when {
+                keep.isEmpty() && drop.isEmpty() ->
+                    deleteEntity(entityId).fold(
+                        { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
+                        { result.success.add(BatchEntitySuccess(entityId)) }
+                    )
+                keep.isNotEmpty() -> {
+                    val currentAttrNames = entityAttributeService
+                        .getAllForEntity(entityId, excludeDeleted = false)
+                        .map { it.attributeName }
+                        .toSet()
+                    currentAttrNames.minus(keep).forEach { attrName ->
+                        deleteAttribute(entityId, attrName, null, true).fold(
+                            { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
+                            { result.success.add(BatchEntitySuccess(entityId)) }
+                        )
+                    }
+                }
+                else ->
+                    drop.forEach { attrName ->
+                        deleteAttribute(entityId, attrName, null, true).fold(
+                            { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
+                            { result.success.add(BatchEntitySuccess(entityId)) }
+                        )
+                    }
+            }
+        }
+
+        result
     }
 
     @Transactional

@@ -17,29 +17,7 @@ The detailed behavior of tenants is defined in the NGSI-LD specification, sectio
 
 ## Declaration
 
-When in development mode, tenants are defined in the `shared.properties` file in the `shared` module.
-
-```
-# each tenant maps to a different KC realm (if authentication is enabled) and DB schema
-# a tenant declaration is composed of a (tenant) URI, an OIDC issuer URL and a DB schema
-application.tenants[0].name = urn:ngsi-ld:tenant:default
-application.tenants[0].dbSchema = public
-application.tenants[0].issuer = https://sso.stellio.io/auth/realms/stellio
-application.tenants[1].name = urn:ngsi-ld:tenant:stellio-dev
-application.tenants[1].dbSchema = egm
-application.tenants[1].issuer = https://sso.stellio.io/auth/realms/egm
-```
-
-Default tenant must always be declared with the `urn:ngsi-ld:tenant:default` value (but, as specified by the NGSI-LD API specification, it does not have to be declared in the HTTP requests and is used if no tenant is specified in a request).
-
-Note: The issuer property is ignored if the authentication is not enabled.
-
-To add a tenant:
-
-* Declare it in the `shared.properties` file (as shown above)
-* If authentication is enabled, create and configure the realm in Keycloak
-* Restart the context broker
-* The DB schema is automatically created when the context broker restarts
+Default tenant must always be declared with the `urn:ngsi-ld:tenant:default` name (but, as specified by the NGSI-LD API specification, it does not have to be declared in the HTTP requests and is used if no tenant is specified in a request).
 
 When running with the Docker images and using the docker-compose configuration, the tenants are declared in the environment section of the search and subscription services:
 
@@ -69,6 +47,8 @@ APPLICATION_TENANTS_0_DBSCHEMA=public
 APPLICATION_TENANTS_0_ISSUER=https://sso.stellio.io/auth/realms/stellio
 APPLICATION_TENANTS_0_CLIENTSECRET={subscription-service-client-secret-0}
 ```
+
+Note: The issuer, client_id and client secret properties are ignored if the authentication is disabled.
 
 If you want to add a new tenant, simply add the new properties in the `.env` file:
 

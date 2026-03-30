@@ -10,6 +10,7 @@ The [EGM Keycloak image](#integrate-authentication-with-egm-keycloak-image)
 ## Common configuration
 ### Configure the search-service
 The following environment variables are needed to configure authentication in the search service:
+
 - `STELLIO_AUTHENTICATION_ENABLED`: true (a boolean)
 - `APPLICATION_AUTHENTICATION_ALLOW_PUBLIC_PERMISSION`: a boolean
   - allow the creation of permission giving read access to non-connected users.
@@ -30,6 +31,7 @@ Additionally, the subscription service uses client-credentials to authenticate o
 You should create a service account with the "stellio-admin" claim in your OIDC provider.
 
 With this service account, the following additional variables must be defined:
+
 - `APPLICATION_TENANTS_0_CLIENTID`: `{my-client_id}`
 - `APPLICATION_TENANTS_0_CLIENTSECRET`: `{my-client-secret}`
 - `APPLICATION_TENANTS_0_ACCESSTOKENURL`: `{my-access-token-url}`
@@ -167,7 +169,7 @@ volumes:
 where:
 
 - `realm_name` is the name of the realm to be created in the next section
-- `tenant_name` is the name of the tenant in Stellio that the realm will be binded to (see the [multitenancy page](../user/multitenancy.md) for more details on this), set it to `urn:ngsi-ld:tenant:default` to use the default tenant.
+- `tenant_name` is the name of the tenant in Stellio that the realm will be binded to (see the [multitenancy page](multitenancy.md) for more details on this), set it to `urn:ngsi-ld:tenant:default` to use the default tenant.
 - `kafka_ip` is the IP address where the Stellio's Kafka instance is reachable (e.g., your laptop or VM IP)
 
 The `.env` file contains the following environment variables:

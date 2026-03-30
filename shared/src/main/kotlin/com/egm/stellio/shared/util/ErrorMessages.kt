@@ -150,6 +150,8 @@ object ErrorMessages {
 
         const val CANNOT_ADD_SUBATTRIBUTE_MESSAGE = "Cannot add a sub-attribute into empty or multi-instance attribute"
         const val EXPECTED_SINGLE_ENTRY_MESSAGE = "Expected a single entry but got none or more than one"
+        const val NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE =
+            "Partial attribute update currently require the presence of the main subattribute"
     }
 
     object EntityTypeInfo {

@@ -54,6 +54,7 @@ import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.addSysAttrs
@@ -67,6 +68,7 @@ import com.egm.stellio.shared.model.isAttributeOfType
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.ErrorMessages.Entity.ATTRIBUTE_TYPE_MISMATCH_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeWithDatasetIdNotFoundMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -951,7 +953,10 @@ class EntityAttributeService(
                     null
                 )
         }
-    }
+    }.fold(
+        { NotImplementedException(NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE, it.message).left() },
+        { it.right() }
+    )
 
     private suspend fun createContextualAttributeInstance(
         attribute: Attribute,

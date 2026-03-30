@@ -128,6 +128,11 @@ fun ExpandedAttributeInstance.getMemberValue(
             when {
                 finalValueType != null -> {
                     val finalValue = firstListEntry[JSONLD_VALUE_KW]
+                    ensureNotNull(finalValue) {
+                        BadRequestDataException(
+                            attributeMissingValueMessage("$memberName[0].$JSONLD_VALUE_KW", attributeName)
+                        )
+                    }
                     when (finalValueType) {
                         NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue as String)
                         NGSILD_DATE_TYPE -> LocalDate.parse(finalValue as String)
@@ -137,12 +142,12 @@ fun ExpandedAttributeInstance.getMemberValue(
                 }
 
                 firstListEntry[JSONLD_VALUE_KW] != null ->
-                    firstListEntry[JSONLD_VALUE_KW]
+                    firstListEntry[JSONLD_VALUE_KW]!!
 
                 firstListEntry[JSONLD_ID_KW] != null -> {
                     // Used to get the value of datasetId property,
                     // since it is mapped to "@id" key rather than "@value"
-                    firstListEntry[JSONLD_ID_KW]
+                    firstListEntry[JSONLD_ID_KW]!!
                 }
 
                 else -> {
@@ -156,9 +161,7 @@ fun ExpandedAttributeInstance.getMemberValue(
                 it[JSONLD_VALUE_KW]
             }
         }
-        ensureNotNull(value) {
-            BadRequestDataException(attributeMissingValueMessage(memberName, attributeName))
-        }
+
         value
     }
 }

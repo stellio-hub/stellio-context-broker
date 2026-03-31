@@ -110,16 +110,17 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
 fun guessAttributeValueType(
     attributeType: AttributeType,
     expandedAttributeInstance: ExpandedAttributeInstance
-): Attribute.AttributeValueType =
+): Either<APIException, Attribute.AttributeValueType> = either {
     when (attributeType) {
         AttributeType.Property ->
-            guessPropertyValueType(expandedAttributeInstance.getPropertyValue()!!).first
+            guessPropertyValueType(expandedAttributeInstance.getPropertyValue().bind()).first
         AttributeType.Relationship -> Attribute.AttributeValueType.URI
         AttributeType.GeoProperty -> Attribute.AttributeValueType.GEOMETRY
         AttributeType.JsonProperty -> Attribute.AttributeValueType.JSON
         AttributeType.LanguageProperty -> Attribute.AttributeValueType.ARRAY
         AttributeType.VocabProperty -> Attribute.AttributeValueType.ARRAY
     }
+}
 
 fun guessPropertyValueType(
     ngsiLdPropertyInstance: NgsiLdPropertyInstance
@@ -153,7 +154,8 @@ fun hasNgsiLdNullValue(
         val value = expandedAttributeInstance.getRelationshipId()
         value is URI && value.toString() == NGSILD_NULL
     } else {
-        val value = expandedAttributeInstance.getMemberValue(attributeType.toExpandedValueMember())
+        val value = expandedAttributeInstance
+            .getMemberValue(attributeType.toExpandedValueMember()).getOrNull()
         value is String && value == NGSILD_NULL
     }
 

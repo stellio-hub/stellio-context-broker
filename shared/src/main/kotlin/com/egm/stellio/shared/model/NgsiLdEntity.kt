@@ -241,7 +241,7 @@ class NgsiLdPropertyInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdPropertyInstance> = either {
-            val value = values.getPropertyValue()
+            val value = values.getPropertyValue().getOrNull()
             ensureNotNull(value) {
                 BadRequestDataException(propertyMissingValueMessage(name))
             }
@@ -311,7 +311,7 @@ class NgsiLdGeoPropertyInstance(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdGeoPropertyInstance> = either {
-            val wktValue = values.getMemberValue(NGSILD_GEOPROPERTY_VALUE) as? String
+            val wktValue = values.getMemberValue(NGSILD_GEOPROPERTY_VALUE).getOrNull() as? String
             ensureNotNull(wktValue) {
                 BadRequestDataException(geoPropertyMissingValueMessage(name))
             }
@@ -346,7 +346,7 @@ class NgsiLdJsonPropertyInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdJsonPropertyInstance> = either {
-            val json = values.getMemberValue(NGSILD_JSONPROPERTY_JSON)
+            val json = values.getMemberValue(NGSILD_JSONPROPERTY_JSON).getOrNull()
             ensureNotNull(json) {
                 BadRequestDataException(jsonPropertyMissingJsonMessage(name))
             }
@@ -559,7 +559,7 @@ fun checkAttributeHasNoForbiddenMembers(
     forbiddenMembers: Set<ExpandedTerm>
 ): Either<APIException, Unit> = either {
     forbiddenMembers.find {
-        instance.getMemberValue(it) != null
+        instance.getMemberValue(it).isRight()
     }.let {
         if (it != null) BadRequestDataException(attributeForbiddenMemberMessage(name, it)).left()
         else Unit.right()

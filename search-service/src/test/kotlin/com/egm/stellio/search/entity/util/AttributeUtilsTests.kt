@@ -25,7 +25,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.STRING,
-            guessAttributeValueType(AttributeType.Property, expandedStringProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedStringProperty.second[0]).getOrNull()
         )
     }
 
@@ -38,7 +38,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.NUMBER,
-            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).getOrNull()
         )
     }
 
@@ -51,7 +51,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.NUMBER,
-            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).getOrNull()
         )
     }
 
@@ -64,7 +64,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.BOOLEAN,
-            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).getOrNull()
         )
     }
 
@@ -77,7 +77,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.OBJECT,
-            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0]).getOrNull()
         )
     }
 
@@ -90,7 +90,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.ARRAY,
-            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0]).getOrNull()
         )
     }
 
@@ -103,7 +103,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.TIME,
-            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0]).getOrNull()
         )
     }
 
@@ -116,7 +116,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.DATETIME,
-            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0])
+            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0]).getOrNull()
         )
     }
 
@@ -132,7 +132,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.GEOMETRY,
-            guessAttributeValueType(AttributeType.GeoProperty, expandedGeoProperty.second[0])
+            guessAttributeValueType(AttributeType.GeoProperty, expandedGeoProperty.second[0]).getOrNull()
         )
     }
 
@@ -148,7 +148,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.JSON,
-            guessAttributeValueType(AttributeType.JsonProperty, expandedJsonProperty.second[0])
+            guessAttributeValueType(AttributeType.JsonProperty, expandedJsonProperty.second[0]).getOrNull()
         )
     }
 
@@ -164,7 +164,7 @@ class AttributeUtilsTests {
             guessAttributeValueType(
                 AttributeType.Relationship,
                 expandedGeoRelationship.second[0]
-            )
+            ).getOrNull()
         )
     }
 

@@ -113,13 +113,12 @@ fun ExpandedAttributeInstance.addSysAttrs(
  * @return the actual value, e.g. "kg" if provided #memberName is https://uri.etsi.org/ngsi-ld/unitCode
  */
 fun ExpandedAttributeInstance.getMemberValue(
-    memberName: ExpandedTerm,
-    attributeName: String = ""
+    memberName: ExpandedTerm
 ): Either<APIException, Any> {
     val attributeInstance = this
     return either {
         ensureNotNull(attributeInstance[memberName]) {
-            BadRequestDataException(attributeMissingValueMessage(memberName, attributeName))
+            BadRequestDataException(attributeMissingValueMessage(memberName))
         }
         val intermediateList = attributeInstance[memberName] as List<Map<String, Any>>
         val value = if (intermediateList.size == 1) {
@@ -130,7 +129,7 @@ fun ExpandedAttributeInstance.getMemberValue(
                     val finalValue = firstListEntry[JSONLD_VALUE_KW]
                     ensureNotNull(finalValue) {
                         BadRequestDataException(
-                            attributeMissingValueMessage("$memberName[0].$JSONLD_VALUE_KW", attributeName)
+                            attributeMissingValueMessage("$memberName[0].$JSONLD_VALUE_KW")
                         )
                     }
                     when (finalValueType) {

@@ -125,8 +125,8 @@ object ErrorMessages {
         fun attributeCannotGetValueMessage(attribute: String) = "Cannot get value from attribute: $attribute"
 
         fun propertyMissingValueMessage(name: String) = "Property $name has an instance without a value"
-        fun attributeMissingValueMessage(memberValue: String, attributeName: String = "") =
-            "Attribute $attributeName has an instance without a $memberValue member"
+        fun attributeMissingValueMessage(memberValue: String) =
+            "Attribute has an instance without a $memberValue member"
 
         fun geoPropertyMissingValueMessage(name: String) = "GeoProperty $name has an instance without a value"
         fun jsonPropertyMissingJsonMessage(name: String) = "JsonProperty $name has an instance without a json member"
@@ -151,7 +151,8 @@ object ErrorMessages {
         const val CANNOT_ADD_SUBATTRIBUTE_MESSAGE = "Cannot add a sub-attribute into empty or multi-instance attribute"
         const val EXPECTED_SINGLE_ENTRY_MESSAGE = "Expected a single entry but got none or more than one"
         const val NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE =
-            "Partial attribute update currently requires the presence of the main subattribute"
+            "Partial attribute update currently requires providing" +
+                "the value (in case of a Property) or object (in case of a Relationship)..."
     }
 
     object EntityTypeInfo {

@@ -15,7 +15,7 @@ import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeOperationResult
-import com.egm.stellio.search.entity.model.EntitiesQuery
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationStatus
@@ -51,6 +51,7 @@ import com.egm.stellio.shared.model.addSysAttrs
 import com.egm.stellio.shared.model.flattenOnAttributeAndDatasetId
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.model.toNgsiLdAttributes
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
@@ -714,14 +715,22 @@ class EntityService(
 
     @Transactional
     suspend fun purgeEntities(
-        entitiesQuery: EntitiesQuery,
+        entitiesQuery: EntitiesQueryFromGet,
         keep: Set<ExpandedTerm> = emptySet(),
         drop: Set<ExpandedTerm> = emptySet()
     ): Either<APIException, BatchOperationResult> = either {
-        val matchingIds = entityQueryService.queryEntityIdsForPurge(entitiesQuery)
+        val matchingIds = entityQueryService.queryEntities(
+            entitiesQuery.copy(
+                // pass a special value of -1 to say we want all the results
+                // this is later handled in the queryEntities function
+                paginationQuery = PaginationQuery(0, -1)
+            ),
+            excludeDeleted = true,
+            authorizationService.getAccessRightWithClauseAndFilter()
+        )
 
         if (matchingIds.isEmpty())
-            return@either BatchOperationResult().right().bind()
+            return BatchOperationResult().right()
 
         val result = BatchOperationResult()
 
@@ -734,7 +743,7 @@ class EntityService(
                     )
                 keep.isNotEmpty() -> {
                     val currentAttrNames = entityAttributeService
-                        .getAllForEntity(entityId, excludeDeleted = false)
+                        .getAllForEntity(entityId, excludeDeleted = true)
                         .map { it.attributeName }
                         .toSet()
                     currentAttrNames.minus(keep).forEach { attrName ->

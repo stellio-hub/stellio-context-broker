@@ -30,6 +30,10 @@ enum class QueryParameter(
     COORDINATES("coordinates"),
     GEOPROPERTY("geoproperty"),
 
+    // purge entities
+    KEEP("keep"),
+    DROP("drop"),
+
     // temporal
     TIMEREL("timerel"),
     TIMEAT("timeAt"),
@@ -54,10 +58,6 @@ enum class QueryParameter(
     LIMIT("limit"),
 
     DELETE_ALL("deleteAll"),
-
-    // purge entities (6.4.3.3)
-    KEEP("keep"),
-    DROP("drop"),
 
     // jsonldContexts
     RELOAD("reload"),

@@ -762,7 +762,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val mockAttribute = mockk<Attribute> {
             every { attributeName } returns INCOMING_IRI
         }
-        coEvery { entityAttributeService.getAllForEntity(any(), excludeDeleted = false) } returns listOf(mockAttribute)
+        coEvery { entityAttributeService.getAllForEntity(any(), excludeDeleted = true) } returns listOf(mockAttribute)
 
         loadAndPrepareSampleData("beehive.jsonld")
             .map { entityService.createEntityPayload(it.second, it.first, now) }

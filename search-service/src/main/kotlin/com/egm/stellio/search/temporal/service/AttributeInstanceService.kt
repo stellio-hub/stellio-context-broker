@@ -346,7 +346,7 @@ class AttributeInstanceService(
                 attributeUuid = toUuid(row["temporal_entity_attribute"]),
                 // the type of the value of a property may have changed in the history (e.g., from number to string)
                 // in this case, just display an empty value (something happened, but we can't display it)
-                value = castToJson(row["value"]).deserializeTemporalValue(),
+                value = castToJson(row["value"]).deserializeTemporalValue(), // todo fix test
                 time = toZonedDateTime(row["start"])
             )
             else -> FullAttributeInstanceResult(

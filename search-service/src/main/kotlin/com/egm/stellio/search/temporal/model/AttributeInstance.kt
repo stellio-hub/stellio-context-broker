@@ -25,7 +25,7 @@ data class AttributeInstance private constructor(
     val instanceId: URI,
     val timeProperty: TemporalProperty? = TemporalProperty.OBSERVED_AT,
     val time: ZonedDateTime,
-    val value: String? = null,
+    val value: Json? = null,
     val measuredValue: Double? = null,
     val geoValue: WKTCoordinates? = null,
     val payload: Json,
@@ -58,7 +58,7 @@ data class AttributeInstance private constructor(
             attributeUuid: UUID,
             instanceId: URI = generateRandomInstanceId(),
             timeAndProperty: Pair<ZonedDateTime, TemporalProperty>,
-            value: Triple<String?, Double?, WKTCoordinates?>,
+            value: Triple<Json?, Double?, WKTCoordinates?>,
             payload: ExpandedAttributeInstance,
             sub: String?
         ): AttributeInstance = AttributeInstance(

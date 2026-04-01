@@ -1,6 +1,8 @@
 package com.egm.stellio.search.temporal.service
 
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.common.util.deserializeTemporalValue
+import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.service.EntityAttributeService
@@ -336,7 +338,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             val observedAt = ngsiLdDateTime()
             val attributeMetadata = AttributeMetadata(
                 measuredValue = null,
-                value = "some value",
+                value = "some value".toJson(),
                 geoValue = null,
                 valueType = Attribute.AttributeValueType.STRING,
                 datasetId = null,
@@ -684,7 +686,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         )
         val attributeMetadata = AttributeMetadata(
             measuredValue = null,
-            value = false.toString(),
+            value = false.toJson(),
             geoValue = null,
             valueType = Attribute.AttributeValueType.BOOLEAN,
             datasetId = null,
@@ -715,7 +717,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService["create"](
                 match<AttributeInstance> {
                     it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
-                        it.value == "false" &&
+                        it.value?.deserializeTemporalValue() == false &&
                         it.measuredValue == null &&
                         it.payload.asString().matchContent(
                             """
@@ -761,7 +763,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.addDeletedAttributeInstance(
             incomingAttribute.id,
-            NGSILD_NULL,
+            NGSILD_NULL.toJson(),
             deletedAt,
             attributeValues
         )
@@ -770,7 +772,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService["create"](
                 match<AttributeInstance> {
                     it.time.toString() == "2025-01-02T11:20:30.000001Z" &&
-                        it.value == "urn:ngsi-ld:null" &&
+                        it.value?.deserializeTemporalValue() == "urn:ngsi-ld:null" &&
                         it.measuredValue == null &&
                         it.payload.asString().matchContent(
                             """

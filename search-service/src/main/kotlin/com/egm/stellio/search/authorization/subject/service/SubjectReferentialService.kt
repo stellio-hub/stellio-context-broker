@@ -8,11 +8,11 @@ import com.egm.stellio.search.authorization.subject.model.Group
 import com.egm.stellio.search.authorization.subject.model.SubjectReferential
 import com.egm.stellio.search.authorization.subject.model.User
 import com.egm.stellio.search.common.util.allToMappedList
+import com.egm.stellio.search.common.util.castToJson
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toBoolean
 import com.egm.stellio.search.common.util.toInt
-import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.common.util.toJsonString
 import com.egm.stellio.search.common.util.toOptionalList
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -335,7 +335,7 @@ class SubjectReferentialService(
         SubjectReferential(
             subjectId = row["subject_id"] as Sub,
             subjectType = SubjectType.valueOf(row["subject_type"] as String),
-            subjectInfo = toJson(row["subject_info"]),
+            subjectInfo = castToJson(row["subject_info"]),
             globalRoles = toOptionalList<String>(row["global_roles"])
                 ?.mapNotNull { GlobalRole.forKey(it).getOrElse { null } },
             groupsMemberships = toOptionalList(row["groups_memberships"])

@@ -1,5 +1,6 @@
 package com.egm.stellio.search.support
 
+import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
@@ -51,13 +52,13 @@ fun gimmeNumericPropertyAttributeInstance(
     attributeUuid: UUID,
     timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
     measuredValue: Double? = Random.nextDouble(),
-    value: String? = null,
+    value: Any? = null,
     time: ZonedDateTime = ngsiLdDateTime(),
     sub: Sub? = null
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = measuredValue,
-        value = value,
+        value = value?.toJson(),
         geoValue = null,
         valueType = Attribute.AttributeValueType.NUMBER,
         datasetId = null,
@@ -84,7 +85,7 @@ fun gimmeJsonPropertyAttributeInstance(
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = null,
-        value = SAMPLE_JSON_PROPERTY_PAYLOAD.asString(),
+        value = SAMPLE_JSON_PROPERTY_PAYLOAD.asString().toJson(),
         geoValue = null,
         valueType = Attribute.AttributeValueType.JSON,
         datasetId = null,
@@ -110,7 +111,7 @@ fun gimmeLanguagePropertyAttributeInstance(
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = null,
-        value = SAMPLE_LANGUAGE_PROPERTY_PAYLOAD.asString(),
+        value = SAMPLE_LANGUAGE_PROPERTY_PAYLOAD.asString().toJson(),
         geoValue = null,
         valueType = Attribute.AttributeValueType.OBJECT,
         datasetId = null,
@@ -136,7 +137,7 @@ fun gimmeVocabPropertyAttributeInstance(
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = null,
-        value = SAMPLE_VOCAB_PROPERTY_PAYLOAD.asString(),
+        value = SAMPLE_VOCAB_PROPERTY_PAYLOAD.asString().toJson(),
         geoValue = null,
         valueType = Attribute.AttributeValueType.ARRAY,
         datasetId = null,

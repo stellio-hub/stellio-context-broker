@@ -2,6 +2,8 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.right
 import com.egm.stellio.search.authorization.subject.USER_UUID
+import com.egm.stellio.search.common.util.deserializeTemporalValue
+import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.Entity
@@ -174,7 +176,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             )
             attributeInstanceService.create(
                 match {
-                    it.value == "ParisBeehive12" &&
+                    it.value?.deserializeTemporalValue() == "ParisBeehive12" &&
                         it.measuredValue == null &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
                         it.time.isAfter(ngsiLdDateTime().minusMinutes(1))
@@ -182,7 +184,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             )
             attributeInstanceService.create(
                 match {
-                    it.value == "urn:ngsi-ld:Beekeeper:Pascal" &&
+                    it.value?.deserializeTemporalValue() == "urn:ngsi-ld:Beekeeper:Pascal" &&
                         it.measuredValue == null &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
                         it.time.isAfter(ngsiLdDateTime().minusMinutes(1))
@@ -283,7 +285,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             INCOMING_IRI,
             AttributeMetadata(
                 null,
-                "It's a string now",
+                "It's a string now".toJson(),
                 null,
                 Attribute.AttributeValueType.STRING,
                 null,
@@ -328,7 +330,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             attribute,
             AttributeMetadata(
                 null,
-                "It's a string now",
+                "It's a string now".toJson(),
                 null,
                 Attribute.AttributeValueType.STRING,
                 null,
@@ -534,7 +536,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         coVerify(exactly = 1) {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
-                NGSILD_NULL,
+                match { it.deserializeTemporalValue() == NGSILD_NULL },
                 createdAt,
                 expandAttribute(
                     INCOMING_IRI,
@@ -579,7 +581,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         coVerify(exactly = 1) {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
-                NGSILD_NULL,
+                match { it.deserializeTemporalValue() == NGSILD_NULL },
                 createdAt,
                 expandAttribute(
                     INCOMING_IRI,
@@ -659,7 +661,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         coVerify(exactly = 1) {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
-                NGSILD_NULL,
+                match { it.deserializeTemporalValue() == NGSILD_NULL },
                 createdAt,
                 expandAttribute(
                     INCOMING_IRI,
@@ -838,7 +840,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         coVerify {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
-                NGSILD_NULL,
+                match { it.deserializeTemporalValue() == NGSILD_NULL },
                 deletedAt,
                 expandAttribute(
                     INCOMING_IRI,

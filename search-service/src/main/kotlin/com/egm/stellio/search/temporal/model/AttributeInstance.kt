@@ -3,7 +3,7 @@ package com.egm.stellio.search.temporal.model
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.common.util.toJson
+import com.egm.stellio.search.common.util.asJsonB
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -25,7 +25,7 @@ data class AttributeInstance private constructor(
     val instanceId: URI,
     val timeProperty: TemporalProperty? = TemporalProperty.OBSERVED_AT,
     val time: ZonedDateTime,
-    val value: String? = null,
+    val value: Json? = null,
     val measuredValue: Double? = null,
     val geoValue: WKTCoordinates? = null,
     val payload: Json,
@@ -50,7 +50,7 @@ data class AttributeInstance private constructor(
             value = attributeMetadata.value,
             measuredValue = attributeMetadata.measuredValue,
             geoValue = attributeMetadata.geoValue,
-            payload = payload.addInstanceId(instanceId).addModifiedAt(modifiedAt).toJson(),
+            payload = payload.addInstanceId(instanceId).addModifiedAt(modifiedAt).asJsonB(),
             sub = sub
         )
 
@@ -58,7 +58,7 @@ data class AttributeInstance private constructor(
             attributeUuid: UUID,
             instanceId: URI = generateRandomInstanceId(),
             timeAndProperty: Pair<ZonedDateTime, TemporalProperty>,
-            value: Triple<String?, Double?, WKTCoordinates?>,
+            value: Triple<Json?, Double?, WKTCoordinates?>,
             payload: ExpandedAttributeInstance,
             sub: String?
         ): AttributeInstance = AttributeInstance(
@@ -69,7 +69,7 @@ data class AttributeInstance private constructor(
             value = value.first,
             measuredValue = value.second,
             geoValue = value.third,
-            payload = payload.addInstanceId(instanceId).toJson(),
+            payload = payload.addInstanceId(instanceId).asJsonB(),
             sub = sub
         )
 

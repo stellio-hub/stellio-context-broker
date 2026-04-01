@@ -7,10 +7,10 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.common.util.allToMappedList
+import com.egm.stellio.search.common.util.castToJson
 import com.egm.stellio.search.common.util.deserializeExpandedPayload
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
-import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.common.util.toList
 import com.egm.stellio.search.common.util.toOptionalList
 import com.egm.stellio.search.common.util.toOptionalZonedDateTime
@@ -106,7 +106,7 @@ class ScopeService(
             .oneToResult {
                 Pair(
                     toOptionalList(it["scopes"]),
-                    toJson(it["payload"]),
+                    castToJson(it["payload"]),
                 )
             }
 

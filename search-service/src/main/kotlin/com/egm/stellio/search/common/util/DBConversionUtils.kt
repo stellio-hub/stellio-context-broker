@@ -1,6 +1,6 @@
 package com.egm.stellio.search.common.util
 
-import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -22,14 +22,15 @@ fun toOptionalZonedDateTime(entry: Any?): ZonedDateTime? =
     (entry as? OffsetDateTime)?.atZoneSameInstant(ZoneOffset.UTC)
 fun <T> toList(entry: Any?): List<T> = (entry as Array<T>).toList()
 fun <T> toOptionalList(entry: Any?): List<T>? = (entry as? Array<T>)?.toList()
-fun toJson(entry: Any?): Json = entry as Json
+fun castToJson(entry: Any?): Json = entry as Json
 fun toJsonString(entry: Any?): String = (entry as Json).asString()
 fun toInt(entry: Any?): Int = (entry as Long).toInt()
 
 fun Json.deserializeExpandedPayload(): Map<String, List<Any>> = this.asString().deserializeExpandedPayload()
 fun Json.deserializeAsMap(): Map<String, Any> = this.asString().deserializeAsMap()
+fun Json.deserializeTemporalValue(): Any = deserializeAs<Any>(this.asString())
 
-fun ExpandedAttributeInstance.toJson(): Json = Json.of(serializeObject(this))
+fun Any.toJson(): Json = Json.of(serializeObject(this))
 
 fun valueToDoubleOrNull(value: Any): Double? =
     when (value) {

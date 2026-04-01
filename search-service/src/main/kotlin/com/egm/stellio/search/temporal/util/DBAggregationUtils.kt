@@ -23,8 +23,8 @@ fun aggrMethodToSqlAggregate(
 fun sqlAggregationForJsonString(aggregate: TemporalQuery.Aggregate): String = when (aggregate) {
     TemporalQuery.Aggregate.TOTAL_COUNT -> "count(value)"
     TemporalQuery.Aggregate.DISTINCT_COUNT -> "count(distinct(value))"
-    TemporalQuery.Aggregate.MIN -> "min(value)"
-    TemporalQuery.Aggregate.MAX -> "max(value)"
+    TemporalQuery.Aggregate.MIN -> "min(value #>> '{}')"
+    TemporalQuery.Aggregate.MAX -> "max(value #>> '{}')"
     else -> "null"
 }
 
@@ -48,46 +48,46 @@ fun sqlAggregateForJsonObject(aggregate: TemporalQuery.Aggregate): String = when
 fun sqlAggregateForJsonArray(aggregate: TemporalQuery.Aggregate): String = when (aggregate) {
     TemporalQuery.Aggregate.TOTAL_COUNT -> "count(value)"
     TemporalQuery.Aggregate.DISTINCT_COUNT -> "count(distinct(value))"
-    TemporalQuery.Aggregate.SUM -> "sum(jsonb_array_length(value::jsonb))"
-    TemporalQuery.Aggregate.AVG -> "round(avg(jsonb_array_length(value::jsonb)), 5)"
-    TemporalQuery.Aggregate.MIN -> "min(jsonb_array_length(value::jsonb))"
-    TemporalQuery.Aggregate.MAX -> "max(jsonb_array_length(value::jsonb))"
+    TemporalQuery.Aggregate.SUM -> "sum(jsonb_array_length(value))"
+    TemporalQuery.Aggregate.AVG -> "round(avg(jsonb_array_length(value)), 5)"
+    TemporalQuery.Aggregate.MIN -> "min(jsonb_array_length(value))"
+    TemporalQuery.Aggregate.MAX -> "max(jsonb_array_length(value))"
     else -> "null"
 }
 
 fun sqlAggregateForJsonBoolean(aggregate: TemporalQuery.Aggregate): String = when (aggregate) {
     TemporalQuery.Aggregate.TOTAL_COUNT -> "count(value)"
     TemporalQuery.Aggregate.DISTINCT_COUNT -> "count(distinct(value))"
-    TemporalQuery.Aggregate.SUM -> "sum(case when value::boolean then 1 else 0 end)"
-    TemporalQuery.Aggregate.AVG -> "round(avg(case when value::boolean then 1 else 0 end), 5)"
-    TemporalQuery.Aggregate.MIN -> "min(case when value::boolean then 1 else 0 end)"
-    TemporalQuery.Aggregate.MAX -> "max(case when value::boolean then 1 else 0 end)"
-    TemporalQuery.Aggregate.STDDEV -> "stddev_samp(case when value::boolean then 1 else 0 end)"
-    TemporalQuery.Aggregate.SUMSQ -> "sum(power(case when value::boolean then 1 else 0 end,2))"
+    TemporalQuery.Aggregate.SUM -> "sum(case when value::text::boolean then 1 else 0 end)"
+    TemporalQuery.Aggregate.AVG -> "round(avg(case when value::text::boolean then 1 else 0 end), 5)"
+    TemporalQuery.Aggregate.MIN -> "min(case when value::text::boolean then 1 else 0 end)"
+    TemporalQuery.Aggregate.MAX -> "max(case when value::text::boolean then 1 else 0 end)"
+    TemporalQuery.Aggregate.STDDEV -> "stddev_samp(case when value::text::boolean then 1 else 0 end)"
+    TemporalQuery.Aggregate.SUMSQ -> "sum(power(case when value::text::boolean then 1 else 0 end,2))"
 }
 
 fun sqlAggregateForDateTime(aggregate: TemporalQuery.Aggregate): String = when (aggregate) {
     TemporalQuery.Aggregate.TOTAL_COUNT -> "count(value)"
     TemporalQuery.Aggregate.DISTINCT_COUNT -> "count(distinct(value))"
-    TemporalQuery.Aggregate.MIN -> "min(value)"
-    TemporalQuery.Aggregate.MAX -> "max(value)"
+    TemporalQuery.Aggregate.MIN -> "min(value #>> '{}')"
+    TemporalQuery.Aggregate.MAX -> "max(value #>> '{}')"
     else -> "null"
 }
 
 fun sqlAggregateForDate(aggregate: TemporalQuery.Aggregate): String = when (aggregate) {
     TemporalQuery.Aggregate.TOTAL_COUNT -> "count(value)"
     TemporalQuery.Aggregate.DISTINCT_COUNT -> "count(distinct(value))"
-    TemporalQuery.Aggregate.MIN -> "min(value)"
-    TemporalQuery.Aggregate.MAX -> "max(value)"
+    TemporalQuery.Aggregate.MIN -> "min(value #>> '{}')"
+    TemporalQuery.Aggregate.MAX -> "max(value  #>> '{}')"
     else -> "null"
 }
 
 fun sqlAggregateForTime(aggregate: TemporalQuery.Aggregate): String = when (aggregate) {
     TemporalQuery.Aggregate.TOTAL_COUNT -> "count(value)"
     TemporalQuery.Aggregate.DISTINCT_COUNT -> "count(distinct(value))"
-    TemporalQuery.Aggregate.AVG -> "time with time zone '00:00:00Z' + avg(value::time)"
-    TemporalQuery.Aggregate.MIN -> "min(value)"
-    TemporalQuery.Aggregate.MAX -> "max(value)"
+    TemporalQuery.Aggregate.AVG -> "time with time zone '00:00:00Z' + avg((value #>> '{}')::time)"
+    TemporalQuery.Aggregate.MIN -> "min(value #>> '{}')"
+    TemporalQuery.Aggregate.MAX -> "max(value #>> '{}')"
     else -> "null"
 }
 

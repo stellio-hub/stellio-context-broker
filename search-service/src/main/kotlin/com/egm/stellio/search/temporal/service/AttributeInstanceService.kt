@@ -7,6 +7,8 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.common.util.allToMappedList
+import com.egm.stellio.search.common.util.castToJson
+import com.egm.stellio.search.common.util.deserializeTemporalValue
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.executeExpected
 import com.egm.stellio.search.common.util.oneToResult
@@ -41,6 +43,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Temporal.INCONSISTENT_VALUES_IN
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.attributeOrInstanceNotFoundMessage
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -144,7 +147,7 @@ class AttributeInstanceService(
     @Transactional
     suspend fun addDeletedAttributeInstance(
         attributeUuid: UUID,
-        value: String,
+        value: Json,
         deletedAt: ZonedDateTime,
         attributeValues: Map<String, List<Any>>
     ): Either<APIException, Unit> {
@@ -225,7 +228,8 @@ class AttributeInstanceService(
                 { it.right() },
                 {
                     OperationNotSupportedException(
-                        it.cause?.message ?: INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
+                        it.cause?.message ?: INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE,
+                        it.toString()
                     ).left()
                 }
             )
@@ -342,7 +346,7 @@ class AttributeInstanceService(
                 attributeUuid = toUuid(row["temporal_entity_attribute"]),
                 // the type of the value of a property may have changed in the history (e.g., from number to string)
                 // in this case, just display an empty value (something happened, but we can't display it)
-                value = row["value"] ?: "",
+                value = castToJson(row["value"]).deserializeTemporalValue(),
                 time = toZonedDateTime(row["start"])
             )
             else -> FullAttributeInstanceResult(

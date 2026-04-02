@@ -593,7 +593,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             gimmeNumericPropertyAttributeInstance(
                 attributeUuid = incomingAttribute.id,
                 time = now,
-                measuredValue = 100.0
+                measuredValue = 100.1
             )
         )
         assertThat(createResult.isRight())
@@ -611,7 +611,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             assertThat(results)
                 .singleElement()
                 .matches {
-                    (it as SimplifiedAttributeInstanceResult).value == 100.0
+                    (it as SimplifiedAttributeInstanceResult).value == 100.1
                 }
         }
     }

@@ -142,7 +142,7 @@ object TemporalEntityBuilder {
             attributeInstance[valuesKey] =
                 buildExpandedTemporalValue(it.value) { attributeInstanceResult ->
                     attributeInstanceResult as SimplifiedAttributeInstanceResult
-                    when (it.key.attributeType) { // todo check this part
+                    when (it.key.attributeType) {
                         Attribute.AttributeType.JsonProperty -> {
                             // flaky way to know if the serialized value is a JSON object or an array of JSON objects
                             val deserializedJsonValue: Any =

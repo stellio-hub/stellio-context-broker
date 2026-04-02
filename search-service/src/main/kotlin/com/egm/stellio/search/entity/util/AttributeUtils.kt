@@ -62,7 +62,7 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
                 Triple(AttributeType.Property, it.first, it.second)
             }
 
-        is NgsiLdRelationshipInstance -> // todo support list
+        is NgsiLdRelationshipInstance ->
             Triple(
                 AttributeType.Relationship,
                 Attribute.AttributeValueType.URI,

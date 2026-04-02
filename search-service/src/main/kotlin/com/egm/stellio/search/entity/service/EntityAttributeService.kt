@@ -910,9 +910,9 @@ class EntityAttributeService(
         attributePayload: ExpandedAttributeInstance
     ): Either<APIException, Triple<Json?, Double?, WKTCoordinates?>> = either {
         when (attribute.attributeType) {
-            Attribute.AttributeType.Property -> // todo check for lists
+            Attribute.AttributeType.Property ->
                 guessPropertyValueType(attributePayload.getPropertyValue().bind()).second
-            Attribute.AttributeType.Relationship -> // todo check for lists
+            Attribute.AttributeType.Relationship ->
                 Triple(
                     attributePayload.getMemberValue(NGSILD_RELATIONSHIP_OBJECT).bind().toJson(),
                     null,

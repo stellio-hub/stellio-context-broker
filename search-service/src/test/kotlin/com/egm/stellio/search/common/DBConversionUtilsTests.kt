@@ -22,4 +22,10 @@ class DBConversionUtilsTests {
         val jsonBoolean = boolean.toJson()
         assertEquals(jsonBoolean.asString(), "true")
     }
+
+    @Test
+    fun `toJson should work for a double`() = runTest {
+        val jsonBoolean = 12.0.toJson()
+        assertEquals(jsonBoolean.asString(), "12.0")
+    }
 }

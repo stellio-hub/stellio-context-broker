@@ -58,12 +58,12 @@ fun sqlAggregateForJsonArray(aggregate: TemporalQuery.Aggregate): String = when 
 fun sqlAggregateForJsonBoolean(aggregate: TemporalQuery.Aggregate): String = when (aggregate) {
     TemporalQuery.Aggregate.TOTAL_COUNT -> "count(value)"
     TemporalQuery.Aggregate.DISTINCT_COUNT -> "count(distinct(value))"
-    TemporalQuery.Aggregate.SUM -> "sum(case when value::text::boolean then 1 else 0 end)"
-    TemporalQuery.Aggregate.AVG -> "round(avg(case when value::text::boolean then 1 else 0 end), 5)"
-    TemporalQuery.Aggregate.MIN -> "min(case when value::text::boolean then 1 else 0 end)"
-    TemporalQuery.Aggregate.MAX -> "max(case when value::text::boolean then 1 else 0 end)"
-    TemporalQuery.Aggregate.STDDEV -> "stddev_samp(case when value::text::boolean then 1 else 0 end)"
-    TemporalQuery.Aggregate.SUMSQ -> "sum(power(case when value::text::boolean then 1 else 0 end,2))"
+    TemporalQuery.Aggregate.SUM -> "sum(case when value::boolean then 1 else 0 end)"
+    TemporalQuery.Aggregate.AVG -> "round(avg(case when value::boolean then 1 else 0 end), 5)"
+    TemporalQuery.Aggregate.MIN -> "min(case when value::boolean then 1 else 0 end)"
+    TemporalQuery.Aggregate.MAX -> "max(case when value::boolean then 1 else 0 end)"
+    TemporalQuery.Aggregate.STDDEV -> "stddev_samp(case when value::boolean then 1 else 0 end)"
+    TemporalQuery.Aggregate.SUMSQ -> "sum(power(case when value::boolean then 1 else 0 end,2))"
 }
 
 fun sqlAggregateForDateTime(aggregate: TemporalQuery.Aggregate): String = when (aggregate) {

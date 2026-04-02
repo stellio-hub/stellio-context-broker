@@ -276,7 +276,7 @@ class AttributeInstanceService(
         val valueColumn = when {
             // for deletedAt, the NGSI-LD Null representation is always stored as string in value column
             temporalQuery.timeproperty == DELETED_AT -> "value"
-            attributes[0].attributeValueType == AttributeValueType.NUMBER -> "measured_value as value"
+            attributes[0].attributeValueType == AttributeValueType.NUMBER -> "to_jsonb(measured_value) as value"
             attributes[0].attributeValueType == AttributeValueType.GEOMETRY -> "public.ST_AsText(geo_value) as value"
             else -> "value"
         }
@@ -342,13 +342,16 @@ class AttributeInstanceService(
                     values = values
                 )
             }
-            TemporalRepresentation.TEMPORAL_VALUES -> SimplifiedAttributeInstanceResult(
-                attributeUuid = toUuid(row["temporal_entity_attribute"]),
-                // the type of the value of a property may have changed in the history (e.g., from number to string)
-                // in this case, just display an empty value (something happened, but we can't display it)
-                value = castToJson(row["value"]).deserializeTemporalValue(), // todo fix test
-                time = toZonedDateTime(row["start"])
-            )
+            TemporalRepresentation.TEMPORAL_VALUES -> {
+                val value = row["value"]
+                SimplifiedAttributeInstanceResult(
+                    attributeUuid = toUuid(row["temporal_entity_attribute"]),
+                    // the type of the value of a property may have changed in the history (e.g., from number to string)
+                    // in this case, just display an empty value (something happened, but we can't display it)
+                    value = castToJson(value).deserializeTemporalValue(),
+                    time = toZonedDateTime(row["start"])
+                )
+            }
             else -> FullAttributeInstanceResult(
                 attributeUuid = toUuid(row["temporal_entity_attribute"]),
                 payload = toJsonString(row["payload"]),

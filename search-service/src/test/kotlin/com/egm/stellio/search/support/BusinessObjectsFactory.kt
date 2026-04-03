@@ -14,6 +14,7 @@ import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
+import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.queryparameter.PaginationQuery
@@ -145,6 +146,63 @@ fun gimmeVocabPropertyAttributeInstance(
         observedAt = ngsiLdDateTime()
     )
     val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.value!!)
+        .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_IRI, attributeMetadata.observedAt!!)
+        .getSingleEntry()
+
+    return AttributeInstance(
+        attributeUuid = attributeUuid,
+        time = attributeMetadata.observedAt,
+        attributeMetadata = attributeMetadata,
+        timeProperty = timeProperty,
+        payload = payload
+    )
+}
+
+fun gimmePropertyAttributeInstance(
+    attributeUuid: UUID,
+    value: Any,
+    valueType: Attribute.AttributeValueType,
+    time: ZonedDateTime = ngsiLdDateTime(),
+    timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+): AttributeInstance {
+    val attributeMetadata = AttributeMetadata(
+        measuredValue = null,
+        value = value.toJson(),
+        geoValue = null,
+        valueType = valueType,
+        datasetId = null,
+        type = Attribute.AttributeType.Property,
+        observedAt = time
+    )
+    val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.value!!)
+        .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_IRI, attributeMetadata.observedAt!!)
+        .getSingleEntry()
+
+    return AttributeInstance(
+        attributeUuid = attributeUuid,
+        time = attributeMetadata.observedAt,
+        attributeMetadata = attributeMetadata,
+        timeProperty = timeProperty,
+        payload = payload
+    )
+}
+
+fun gimmeGeoPropertyAttributeInstance(
+    attributeUuid: UUID,
+    geoValue: WKTCoordinates,
+    time: ZonedDateTime = ngsiLdDateTime(),
+    timeProperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
+): AttributeInstance {
+    val attributeMetadata = AttributeMetadata(
+        measuredValue = null,
+        value = null,
+        geoValue = geoValue,
+        valueType = Attribute.AttributeValueType.GEOMETRY,
+        datasetId = null,
+        type = Attribute.AttributeType.GeoProperty,
+        observedAt = time
+    )
+    val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.geoValue!!.value.toJson())
         .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_IRI, attributeMetadata.observedAt!!)
         .getSingleEntry()
 

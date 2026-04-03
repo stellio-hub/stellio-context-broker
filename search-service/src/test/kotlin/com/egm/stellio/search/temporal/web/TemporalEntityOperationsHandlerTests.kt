@@ -1,6 +1,7 @@
 package com.egm.stellio.search.temporal.web
 
 import arrow.core.Either
+import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
@@ -18,10 +19,12 @@ import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
+import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.confirmVerified
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -97,8 +100,8 @@ class TemporalEntityOperationsHandlerTests {
                     temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
                         entitiesQueryFromPost.entitySelectors!!.size == 1 &&
-                        entitiesQueryFromPost.entitySelectors!![0].id == null &&
-                        entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_IRI,$APIARY_IRI" &&
+                        entitiesQueryFromPost.entitySelectors[0].id == null &&
+                        entitiesQueryFromPost.entitySelectors[0].typeSelection == "$BEEHIVE_IRI,$APIARY_IRI" &&
                         temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_IRI, OUTGOING_IRI) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES
@@ -149,8 +152,8 @@ class TemporalEntityOperationsHandlerTests {
                     temporalEntitiesQuery.entitiesQuery.paginationQuery.limit == 30 &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.offset == 0 &&
                         entitiesQueryFromPost.entitySelectors!!.size == 1 &&
-                        entitiesQueryFromPost.entitySelectors!![0].id == null &&
-                        entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_IRI,$APIARY_IRI" &&
+                        entitiesQueryFromPost.entitySelectors[0].id == null &&
+                        entitiesQueryFromPost.entitySelectors[0].typeSelection == "$BEEHIVE_IRI,$APIARY_IRI" &&
                         temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_IRI, OUTGOING_IRI) &&
                         temporalEntitiesQuery.entitiesQuery.paginationQuery.count &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
@@ -189,5 +192,99 @@ class TemporalEntityOperationsHandlerTests {
                 }
                 """
             )
+    }
+
+    @Test
+    fun `it should return entities with only the picked attributes`() = runTest {
+        val expandedEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+
+        coEvery {
+            temporalQueryService.queryTemporalEntities(any())
+        } returns Triple(listOf(expandedEntity), 1, null).right()
+
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{"type": "$BEEHIVE_TERM"}],
+                "pick": ["incoming"],
+                "temporalQ": {
+                    "timerel": "between",
+                    "timeAt": "2019-10-17T07:31:39Z",
+                    "endTimeAt": "2019-10-18T07:31:39Z"
+                }
+            }
+        """.trimIndent()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entityOperations/query")
+            .bodyValue(query)
+            .header("Link", APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$[0].incoming").exists()
+            .jsonPath("$[0].outgoing").doesNotExist()
+    }
+
+    @Test
+    fun `it should return entities without the omitted attributes`() = runTest {
+        val expandedEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+
+        coEvery {
+            temporalQueryService.queryTemporalEntities(any())
+        } returns Triple(listOf(expandedEntity), 1, null).right()
+
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{"type": "$BEEHIVE_TERM"}],
+                "omit": ["incoming"],
+                "temporalQ": {
+                    "timerel": "between",
+                    "timeAt": "2019-10-17T07:31:39Z",
+                    "endTimeAt": "2019-10-18T07:31:39Z"
+                }
+            }
+        """.trimIndent()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entityOperations/query")
+            .bodyValue(query)
+            .header("Link", APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$[0].outgoing").exists()
+            .jsonPath("$[0].incoming").doesNotExist()
+    }
+
+    @Test
+    fun `it should return an empty list if no entity member matches pick parameter`() = runTest {
+        val expandedEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+
+        coEvery {
+            temporalQueryService.queryTemporalEntities(any())
+        } returns Triple(listOf(expandedEntity), 1, null).right()
+
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{"type": "$BEEHIVE_TERM"}],
+                "pick": ["nonExistentAttribute"],
+                "temporalQ": {
+                    "timerel": "between",
+                    "timeAt": "2019-10-17T07:31:39Z",
+                    "endTimeAt": "2019-10-18T07:31:39Z"
+                }
+            }
+        """.trimIndent()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entityOperations/query")
+            .bodyValue(query)
+            .header("Link", APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
     }
 }

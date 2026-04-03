@@ -11,7 +11,6 @@ import com.egm.stellio.search.entity.service.EntityAttributeService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.temporal.model.EntityTemporalResult
-import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.service.TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange
 import com.egm.stellio.search.temporal.util.AttributesWithInstances
@@ -24,7 +23,6 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityOrAttrsNotFoundMessage
-import com.egm.stellio.shared.util.wktToGeoJson
 import org.springframework.stereotype.Service
 import java.net.URI
 import java.time.ZonedDateTime
@@ -198,20 +196,6 @@ class TemporalQueryService(
                 it.attributeValueType
             }.mapValues {
                 attributeInstanceService.search(temporalEntitiesQuery, it.value, origin).bind()
-            }
-            .mapValues {
-                // when retrieved from DB, values of geo-properties are encoded in WKT and won't be automatically
-                // transformed during compaction as it is not done for temporal values, so it is done now
-                if (it.key == Attribute.AttributeValueType.GEOMETRY &&
-                    temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES
-                ) {
-                    it.value.map { attributeInstanceResult ->
-                        attributeInstanceResult as SimplifiedAttributeInstanceResult
-                        attributeInstanceResult.copy(
-                            value = wktToGeoJson(attributeInstanceResult.value as String)
-                        )
-                    }
-                } else it.value
             }
             .values
             .flatten()

@@ -7,11 +7,14 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
+import com.egm.stellio.search.csr.model.EntityInfo.Companion.addFilterForEntityInfo
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadGatewayException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ConflictException
 import com.egm.stellio.shared.model.ContextSourceException
@@ -22,6 +25,7 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.ErrorMessages.Csr.CONTEXT_SOURCE_MULTISTATUS_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Csr.PURGE_IDPATTERN_CONFLICT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceContactErrorMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceNoErrorMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportCreationMessage
@@ -30,7 +34,6 @@ import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportPurgeMessa
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.toTypeSelection
-import com.egm.stellio.shared.util.toUri
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -80,18 +83,42 @@ class DistributedEntityProvisionService(
     }
 
     suspend fun distributePurgeEntities(
+        entitiesQuery: EntitiesQueryFromGet,
         queryParams: MultiValueMap<String, String>
-    ): BatchOperationResult {
-        val ids = queryParams.getFirst(QP.ID.key)?.split(",")?.map { it.toUri() }?.toSet() ?: emptySet()
-        val csrFilters = CSRFilters(ids = ids, typeSelection = queryParams.getFirst(QP.TYPE.key))
-        val result = BatchOperationResult()
+    ): Either<APIException, BatchOperationResult> {
+        // TODO use keep and drop to match CSRs??
+        val csrFilters =
+            CSRFilters(
+                ids = entitiesQuery.ids,
+                idPattern = entitiesQuery.idPattern,
+                typeSelection = entitiesQuery.typeSelection,
+                operations = Operation.PURGE_ENTITY.getMatchingOperations().toList()
+            )
+
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(filters = csrFilters)
+            .flatMap { it.toSingleEntityInfoCSRList(csrFilters) }
+
+        if (entitiesQuery.idPattern != null) {
+            // TODO add a BatchError instead of failing the whole result
+            val conflictingCsr = matchingCSR.firstOrNull { csr ->
+                csr.information.first().entities?.any { it.idPattern != null } == true
+            }
+            if (conflictingCsr != null) {
+                return BadRequestDataException(PURGE_IDPATTERN_CONFLICT_MESSAGE).left()
+            }
+        }
+
+        val result = BatchOperationResult()
 
         matchingCSR.filter { it.mode != Mode.AUXILIARY }
             .forEach { csr ->
+                val entityInfo = csr.information.first().entities?.first()
+                val adaptedParams = entityInfo?.let { queryParams.addFilterForEntityInfo(it) } ?: queryParams
+
+                // TODO should be the case since we match on the operation
                 if (csr.isMatchingOperation(Operation.PURGE_ENTITY)) {
                     result.addEither(
-                        sendDistributedInformation(null, csr, entityPath, HttpMethod.DELETE, queryParams),
+                        sendDistributedInformation(null, csr, entityPath, HttpMethod.DELETE, adaptedParams),
                         csr.id,
                         csr.id
                     )
@@ -104,7 +131,7 @@ class DistributedEntityProvisionService(
                 }
             }
 
-        return result
+        return result.right()
     }
 
     suspend fun distributeCreateEntity(

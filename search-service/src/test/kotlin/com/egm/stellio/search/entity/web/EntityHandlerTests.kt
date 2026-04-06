@@ -156,7 +156,7 @@ class EntityHandlerTests {
         } answers { BatchOperationResult() to capturedExpandedEntity.captured }
         coEvery {
             distributedEntityProvisionService.distributePurgeEntities(any())
-        } answers { BatchOperationResult() }
+        } answers { BatchOperationResult().right() }
     }
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()

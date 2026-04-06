@@ -4,16 +4,22 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.CSRFilters
+import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
+import com.egm.stellio.search.csr.model.RegistrationInfo
 import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.ErrorMessages.Csr.PURGE_IDPATTERN_CONFLICT_MESSAGE
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.NAME_IRI
@@ -404,4 +410,93 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         assertTrue(response.isLeft())
         assertInstanceOf(GatewayTimeoutException::class.java, response.leftOrNull())
     }
+
+    @Test
+    fun `distributePurgeEntities should adapt query params with EntityInfo from the CSR`() = runTest {
+        val csrWithEntityInfoId = gimmeRawCSR(
+            information = listOf(
+                RegistrationInfo(listOf(EntityInfo(id = apiaryId.toUri(), types = listOf(APIARY_IRI))))
+            ),
+            operations = listOf(Operation.PURGE_ENTITY)
+        )
+
+        coEvery {
+            contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+        } returns listOf(csrWithEntityInfoId)
+
+        coEvery {
+            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any(), any())
+        } returns Unit.right()
+
+        val queryParams = LinkedMultiValueMap<String, String>()
+        val result = distributedEntityProvisionService.distributePurgeEntities(queryParams)
+
+        assertTrue(result.isRight())
+
+        coVerify(exactly = 1) {
+            distributedEntityProvisionService.sendDistributedInformation(
+                null,
+                csrWithEntityInfoId,
+                any(),
+                HttpMethod.DELETE,
+                match { params ->
+                    params.getFirst(QP.ID.key) == apiaryId &&
+                        params.getFirst(QP.TYPE.key) == APIARY_IRI
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `distributePurgeEntities should return a 400 error when both request and CSR EntityInfo define idPattern`() =
+        runTest {
+            val csrWithIdPattern = gimmeRawCSR(
+                information = listOf(
+                    RegistrationInfo(
+                        listOf(EntityInfo(idPattern = "urn:ngsi-ld:Apiary:.*", types = listOf(APIARY_IRI)))
+                    )
+                ),
+                operations = listOf(Operation.PURGE_ENTITY)
+            )
+
+            coEvery {
+                contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(csrWithIdPattern)
+
+            val queryParams = LinkedMultiValueMap<String, String>()
+            queryParams.add(QP.ID_PATTERN.key, "urn:ngsi-ld:.*")
+
+            val result = distributedEntityProvisionService.distributePurgeEntities(queryParams)
+
+            assertTrue(result.isLeft())
+            assertInstanceOf(BadRequestDataException::class.java, result.leftOrNull())
+            assertEquals(PURGE_IDPATTERN_CONFLICT_MESSAGE, result.leftOrNull()?.message)
+        }
+
+    @Test
+    fun `distributePurgeEntities should succeed when only the request defines idPattern and no CSR has one`() =
+        runTest {
+            val csrWithoutIdPattern = gimmeRawCSR(
+                information = listOf(
+                    RegistrationInfo(listOf(EntityInfo(types = listOf(APIARY_IRI))))
+                ),
+                operations = listOf(Operation.PURGE_ENTITY)
+            )
+
+            coEvery {
+                contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(csrWithoutIdPattern)
+
+            coEvery {
+                distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any(), any())
+            } returns Unit.right()
+
+            val queryParams = LinkedMultiValueMap<String, String>()
+            queryParams.add(QP.ID_PATTERN.key, "urn:ngsi-ld:.*")
+
+            val result = distributedEntityProvisionService.distributePurgeEntities(queryParams)
+
+            assertTrue(result.isRight())
+            assertEquals(1, result.getOrNull()?.success?.size)
+        }
 }

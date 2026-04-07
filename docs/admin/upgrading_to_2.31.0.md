@@ -24,11 +24,24 @@ APPLICATION_SUBSCRIPTION_SERVICE_URL=http://my-hostname:8084
 If you don't use one of these variables, the change will not impact you.
 
 ## Migrate the current authorization setup
+
 [The new authorization system](../admin/authentication_integration.md) works using only the OIDC token.
 For existing setup, this now lets you assign permission to Keycloak roles instead of groups.
-It also means that a desynchronization of Stellio subjects information will no longer impact the NGSI-LD endpoints. (only the subject endpoints)
+It also means that a desynchronization of Stellio subjects information will no longer impact the NGSI-LD endpoints 
+(only the subject endpoints).
+
+### New configuration properties
+
+As a result of this change, two new configuration properties are introduced and described in the [documentation](../admin/authentication_integration.md):
+
+- `APPLICATION_AUTHENTICATION_CLAIMS_PATHS`
+- `APPLICATION_TENANTS_0_ACCESSTOKENURL`
+
+They have default values that will work for existing deployments using Keycloak. Check and configure them if you are 
+using a different setup. 
 
 ### Migrate groups permission
+
 > **Warning:** You should follow this migration if you have permissions targeting groups.
 
 Existing permission targeting groups need to access the user groups ids in the token.

@@ -66,7 +66,7 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
             Triple(
                 AttributeType.Relationship,
                 Attribute.AttributeValueType.URI,
-                Triple(this.objectId.toString().toJson(), null, null)
+                Triple(this.objectId.toJson(), null, null)
             )
         is NgsiLdGeoPropertyInstance ->
             Triple(
@@ -135,10 +135,8 @@ fun guessPropertyValueType(
     when (value) {
         is Double -> Pair(Attribute.AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
         is Int -> Pair(Attribute.AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
-        is Map<*, *> ->
-            Pair(Attribute.AttributeValueType.OBJECT, Triple(value.toJson(), null, null))
-        is List<*> ->
-            Pair(Attribute.AttributeValueType.ARRAY, Triple(value.toJson(), null, null))
+        is Map<*, *> -> Pair(Attribute.AttributeValueType.OBJECT, Triple(value.toJson(), null, null))
+        is List<*> -> Pair(Attribute.AttributeValueType.ARRAY, Triple(value.toJson(), null, null))
         is String -> Pair(Attribute.AttributeValueType.STRING, Triple(value.toJson(), null, null))
         is Boolean -> Pair(Attribute.AttributeValueType.BOOLEAN, Triple(value.toJson(), null, null))
         is LocalDate -> Pair(Attribute.AttributeValueType.DATE, Triple(value.toString().toJson(), null, null))

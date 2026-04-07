@@ -13,3 +13,11 @@ WHERE payload #>> '{@type, 0}' in (
     'https://uri.etsi.org/ngsi-ld/JsonProperty',
     'https://uri.etsi.org/ngsi-ld/VocabProperty'
 );
+
+UPDATE attribute_instance_audit
+SET value = (value::text::jsonb #>> '{}')::jsonb
+WHERE payload #>> '{@type, 0}' in (
+                                   'https://uri.etsi.org/ngsi-ld/LanguageProperty',
+                                   'https://uri.etsi.org/ngsi-ld/JsonProperty',
+                                   'https://uri.etsi.org/ngsi-ld/VocabProperty'
+    );

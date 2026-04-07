@@ -61,11 +61,9 @@ object ErrorMessages {
             "Context source registration $csrId does not support the deletion of entities"
         fun csrDoesNotSupportCreationMessage(csrId: URI) =
             "Context source registration $csrId does not support the creation of entities"
-        fun csrDoesNotSupportPurgeMessage(csrId: URI) =
-            "Context source registration $csrId does not support the purge of entities"
 
-        const val PURGE_IDPATTERN_CONFLICT_MESSAGE =
-            "Cannot purge entities: both the request and the context source registration define an 'idPattern'"
+        const val CSR_IDPATTERN_CONFLICT_MESSAGE =
+            "Operation cannot be performed: both the request and the context source registration define an 'idPattern'"
 
         const val CONTEXT_SOURCE_BADLY_FORMED_ERROR_MESSAGE = "Context source sent a badly formed error"
         const val CONTEXT_SOURCE_DEFAULT_ERROR_MESSAGE = "Context source provided no additional detail about the error"

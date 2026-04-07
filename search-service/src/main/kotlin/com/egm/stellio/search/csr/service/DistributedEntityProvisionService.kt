@@ -14,7 +14,6 @@ import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadGatewayException
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ConflictException
 import com.egm.stellio.shared.model.ContextSourceException
@@ -25,20 +24,21 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.ErrorMessages.Csr.CONTEXT_SOURCE_MULTISTATUS_MESSAGE
-import com.egm.stellio.shared.util.ErrorMessages.Csr.PURGE_IDPATTERN_CONFLICT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Csr.CSR_IDPATTERN_CONFLICT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceContactErrorMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceNoErrorMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportCreationMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportDeletionMessage
-import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportPurgeMessage
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.toTypeSelection
+import com.egm.stellio.shared.util.toUri
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatusCode
 import org.springframework.stereotype.Service
 import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.client.WebClient
@@ -48,7 +48,7 @@ import java.net.URI
 
 @Service
 class DistributedEntityProvisionService(
-    private val contextSourceRegistrationService: ContextSourceRegistrationService,
+    private val contextSourceRegistrationService: ContextSourceRegistrationService
 ) {
     val entityPath = "/ngsi-ld/v1/entities"
 
@@ -83,6 +83,7 @@ class DistributedEntityProvisionService(
     }
 
     suspend fun distributePurgeEntities(
+        httpHeaders: HttpHeaders,
         entitiesQuery: EntitiesQueryFromGet,
         queryParams: MultiValueMap<String, String>
     ): Either<APIException, BatchOperationResult> {
@@ -98,36 +99,33 @@ class DistributedEntityProvisionService(
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(filters = csrFilters)
             .flatMap { it.toSingleEntityInfoCSRList(csrFilters) }
 
-        if (entitiesQuery.idPattern != null) {
-            // TODO add a BatchError instead of failing the whole result
-            val conflictingCsr = matchingCSR.firstOrNull { csr ->
-                csr.information.first().entities?.any { it.idPattern != null } == true
-            }
-            if (conflictingCsr != null) {
-                return BadRequestDataException(PURGE_IDPATTERN_CONFLICT_MESSAGE).left()
-            }
-        }
-
         val result = BatchOperationResult()
 
         matchingCSR.filter { it.mode != Mode.AUXILIARY }
             .forEach { csr ->
-                val entityInfo = csr.information.first().entities?.first()
-                val adaptedParams = entityInfo?.let { queryParams.addFilterForEntityInfo(it) } ?: queryParams
+                val entityInfo = csr.information.first().entities
+                if (entitiesQuery.idPattern != null && entityInfo?.any { it.idPattern != null } == true)
+                    result.addEither(
+                        ConflictException(CSR_IDPATTERN_CONFLICT_MESSAGE).left(),
+                        "urn:ngsi-ld:*".toUri(),
+                        csr.id
+                    )
+                else {
+                    val newParams = entityInfo?.first()?.let { queryParams.addFilterForEntityInfo(it) } ?: queryParams
 
-                // TODO should be the case since we match on the operation
-                if (csr.isMatchingOperation(Operation.PURGE_ENTITY)) {
-                    result.addEither(
-                        sendDistributedInformation(null, csr, entityPath, HttpMethod.DELETE, adaptedParams),
-                        csr.id,
-                        csr.id
-                    )
-                } else if (csr.mode != Mode.INCLUSIVE) {
-                    result.addEither(
-                        ConflictException(csrDoesNotSupportPurgeMessage(csr.id)).left(),
-                        csr.id,
-                        csr.id
-                    )
+                    sendDistributedPurgeOperation(
+                        httpHeaders,
+                        csr,
+                        newParams
+                    ).fold({
+                        result.addEither(it.left(), "urn:ngsi-ld:*".toUri(), csr.id)
+                    }, {
+                        if (it.second == HttpStatus.NO_CONTENT) {
+
+                        } else if (it.second == HttpStatus.MULTI_STATUS) {
+
+                        }
+                    })
                 }
             }
 
@@ -288,6 +286,54 @@ class DistributedEntityProvisionService(
                     BadGatewayException(message).left()
                 } else {
                     logger.warn("Error creating an entity for CSR at $uri: $response")
+                    ContextSourceException.fromResponse(response).left()
+                }
+            },
+            { e ->
+                logger.warn("Error contacting CSR at $uri: ${e.message}")
+                logger.warn(e.stackTraceToString())
+                GatewayTimeoutException(
+                    contextSourceContactErrorMessage(csr.id, uri),
+                    detail = "${e.cause}: ${e.message}"
+                ).left()
+            }
+        )
+    }
+
+    internal suspend fun sendDistributedPurgeOperation(
+        httpHeaders: HttpHeaders,
+        csr: ContextSourceRegistration,
+        queryParams: MultiValueMap<String, String> = MultiValueMap.fromSingleValue(emptyMap())
+    ): Either<APIException, Pair<String?, HttpStatusCode>> = either {
+        val uri = URI("${csr.endpoint}$entityPath")
+
+        val request = WebClient.create()
+            .method(HttpMethod.DELETE)
+            .uri { uriBuilder ->
+                uriBuilder.scheme(uri.scheme)
+                    .host(uri.host)
+                    .port(uri.port)
+                    .path(uri.path)
+                    .queryParams(queryParams)
+                    .build()
+            }.headers { newHeaders ->
+                httpHeaders.getFirst(HttpHeaders.LINK)?.let { link -> newHeaders[HttpHeaders.LINK] = link }
+            }
+
+        return catch(
+            {
+                val (statusCode, response, _) = request.awaitExchange { response ->
+                    Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
+                }
+                if (statusCode.is2xxSuccessful) {
+                    logger.info("Successfully sent data to CSR ${csr.id} at $uri")
+                    (response to statusCode).right()
+                } else if (response == null) {
+                    val message = contextSourceNoErrorMessage(csr.id, uri)
+                    logger.warn(message)
+                    BadGatewayException(message).left()
+                } else {
+                    logger.warn("Error purging entities for CSR at $uri: $response")
                     ContextSourceException.fromResponse(response).left()
                 }
             },

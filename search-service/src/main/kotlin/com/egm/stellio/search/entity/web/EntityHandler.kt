@@ -404,7 +404,7 @@ class EntityHandler(
         entitiesQuery.validateMinimalPurgeEntitiesParameters(keep, drop).bind()
 
         val result = if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
-            distributedEntityProvisionService.distributePurgeEntities(entitiesQuery, queryParams).bind()
+            distributedEntityProvisionService.distributePurgeEntities(httpHeaders, entitiesQuery, queryParams).bind()
         } else BatchOperationResult()
 
         entityService.purgeEntities(entitiesQuery, keep, drop).bind()

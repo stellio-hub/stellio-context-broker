@@ -155,7 +155,7 @@ class EntityHandlerTests {
                 .distributeReplaceEntity(capture(capturedExpandedEntity), any(), any())
         } answers { BatchOperationResult() to capturedExpandedEntity.captured }
         coEvery {
-            distributedEntityProvisionService.distributePurgeEntities(any())
+            distributedEntityProvisionService.distributePurgeEntities(any(), any(), any())
         } answers { BatchOperationResult().right() }
     }
 
@@ -2692,7 +2692,7 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        coVerify(exactly = 0) { distributedEntityProvisionService.distributePurgeEntities(any()) }
+        coVerify(exactly = 0) { distributedEntityProvisionService.distributePurgeEntities(any(), any(), any()) }
         coVerify { entityService.purgeEntities(any(), emptySet(), emptySet()) }
     }
 

@@ -6,6 +6,7 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.getSpecificAccessPolicy
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.common.util.deserializeAsMap
@@ -726,7 +727,7 @@ class EntityService(
                 paginationQuery = PaginationQuery(0, -1)
             ),
             excludeDeleted = true,
-            authorizationService.getAccessRightWithClauseAndFilter()
+            authorizationService.getAccessRightWithClauseAndFilter(Action.ADMIN)
         )
 
         if (matchingIds.isEmpty())

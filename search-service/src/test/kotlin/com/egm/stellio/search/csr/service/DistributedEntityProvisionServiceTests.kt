@@ -8,19 +8,21 @@ import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RegistrationInfo
+import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.search.support.buildDefaultPagination
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.QP
-import com.egm.stellio.shared.util.ErrorMessages.Csr.PURGE_IDPATTERN_CONFLICT_MESSAGE
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.ErrorMessages.Csr.CSR_IDPATTERN_CONFLICT_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
@@ -47,6 +49,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
@@ -429,7 +432,11 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         } returns Unit.right()
 
         val queryParams = LinkedMultiValueMap<String, String>()
-        val result = distributedEntityProvisionService.distributePurgeEntities(queryParams)
+        val result = distributedEntityProvisionService.distributePurgeEntities(
+            HttpHeaders.EMPTY,
+            composeEntitiesQueryFromGet(buildDefaultPagination(30, 100), queryParams, emptyList()).getOrNull()!!,
+            queryParams
+        )
 
         assertTrue(result.isRight())
 
@@ -466,11 +473,15 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             val queryParams = LinkedMultiValueMap<String, String>()
             queryParams.add(QP.ID_PATTERN.key, "urn:ngsi-ld:.*")
 
-            val result = distributedEntityProvisionService.distributePurgeEntities(queryParams)
+            val result = distributedEntityProvisionService.distributePurgeEntities(
+                HttpHeaders.EMPTY,
+                composeEntitiesQueryFromGet(buildDefaultPagination(30, 100), queryParams, emptyList()).getOrNull()!!,
+                queryParams
+            )
 
             assertTrue(result.isLeft())
             assertInstanceOf(BadRequestDataException::class.java, result.leftOrNull())
-            assertEquals(PURGE_IDPATTERN_CONFLICT_MESSAGE, result.leftOrNull()?.message)
+            assertEquals(CSR_IDPATTERN_CONFLICT_MESSAGE, result.leftOrNull()?.message)
         }
 
     @Test
@@ -494,7 +505,11 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             val queryParams = LinkedMultiValueMap<String, String>()
             queryParams.add(QP.ID_PATTERN.key, "urn:ngsi-ld:.*")
 
-            val result = distributedEntityProvisionService.distributePurgeEntities(queryParams)
+            val result = distributedEntityProvisionService.distributePurgeEntities(
+                HttpHeaders.EMPTY,
+                composeEntitiesQueryFromGet(buildDefaultPagination(30, 100), queryParams, emptyList()).getOrNull()!!,
+                queryParams
+            )
 
             assertTrue(result.isRight())
             assertEquals(1, result.getOrNull()?.success?.size)

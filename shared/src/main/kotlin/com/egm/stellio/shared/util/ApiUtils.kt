@@ -42,7 +42,7 @@ const val JSON_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
 val JSON_LD_MEDIA_TYPE: MediaType = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 val GEO_JSON_MEDIA_TYPE: MediaType = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
 
-val qPattern: Pattern = Pattern.compile("([^();|]+)")
+val qPattern: Pattern = Pattern.compile("""([^();|"]+|"[^"]*")+""")
 val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
 val scopeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
 val linkHeaderRegex: Regex =

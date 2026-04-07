@@ -14,6 +14,10 @@
     "type": "Property",
     "value": "It's a name"
   },
+  "parenthesisString": {
+    "type": "Property",
+    "value": "It's (a) name"
+  },
   "integer": {
     "type": "Property",
     "value": 213

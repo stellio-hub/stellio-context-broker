@@ -3,19 +3,6 @@ spring:
     gateway:
       server:
         webflux:
-          routes:
-            - id: search_service_actuator
-              uri: http://search-service:8083
-              predicates:
-                - Path=/search-service/actuator/**
-              filters:
-                - RewritePath=/search-service/actuator, /actuator
-            - id: subscription_service_actuator
-              uri: http://subscription-service:8084
-              predicates:
-                - Path=/subscription-service/actuator/**
-              filters:
-                - RewritePath=/subscription-service/actuator, /actuator
           globalcors:
             cors-configurations:
               '[/ngsi-ld/v1/**]':
@@ -32,9 +19,9 @@ spring:
 
 application:
   search-service:
-    url: localhost
+    url: http://localhost:8083
   subscription-service:
-    url: localhost
+    url: http://localhost:8084
 
 management:
   endpoints:

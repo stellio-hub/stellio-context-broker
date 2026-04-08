@@ -24,20 +24,22 @@ jobs:
           java-version: '21'
           cache: 'gradle'
       - name: Cache SonarCloud packages
-        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e
+        with:
+          cache-provider: basic
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew build
       - name: Publish unit test results
-        uses: EnricoMi/publish-unit-test-result-action@27d65e188ec43221b20d26de30f4892fad91df2f
+        uses: EnricoMi/publish-unit-test-result-action@c950f6fb443cb5af20a377fd0dfaa78838901040
         if: always()
         with:
           junit_files: '**/test-results/**/TEST-*.xml'

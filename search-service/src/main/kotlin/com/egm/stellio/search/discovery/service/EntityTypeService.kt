@@ -14,9 +14,9 @@ import com.egm.stellio.search.discovery.model.EntityTypeList
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.ErrorMessages.EntityTypeInfo.typeNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
-import com.egm.stellio.shared.util.typeNotFoundMessage
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Component
 
@@ -71,11 +71,11 @@ class EntityTypeService(
                 WHERE :type_name = any (types)
                 AND deleted_at IS NULL
             )    
-            SELECT attribute_name, attribute_type, (select count(entity_id) from entities) as entity_count
+            SELECT attribute_name, ARRAY_AGG(attribute_type) as attribute_types, (select count(entity_id) from entities) as entity_count
             FROM temporal_entity_attribute
             WHERE entity_id IN (SELECT entity_id FROM entities)
             AND deleted_at IS NULL
-            GROUP BY attribute_name, attribute_type
+            GROUP BY attribute_name
             """.trimIndent()
         )
             .bind("type_name", typeName)
@@ -92,7 +92,9 @@ class EntityTypeService(
                 AttributeInfo(
                     id = toUri(it["attribute_name"]),
                     attributeName = compactTerm(it["attribute_name"] as ExpandedTerm, contexts),
-                    attributeTypes = listOf(AttributeType.forKey(it["attribute_type"] as String)).sorted()
+                    attributeTypes = (it["attribute_types"] as Array<String>).toList()
+                        .map { key -> AttributeType.forKey(key) }
+                        .sorted()
                 )
             }.sortedBy { it.attributeName }
         ).right()

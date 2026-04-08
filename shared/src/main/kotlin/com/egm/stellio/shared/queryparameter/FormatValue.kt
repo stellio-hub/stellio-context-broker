@@ -5,6 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidFormatValueMessage
 
 enum class FormatValue(val value: String) {
     KEY_VALUES("keyValues"),
@@ -15,7 +16,7 @@ enum class FormatValue(val value: String) {
     companion object {
         fun fromString(key: String): Either<APIException, FormatValue> = either {
             FormatValue.entries.find { it.value == key }
-                ?: return InvalidRequestException("'$key' is not a valid value for the format query parameter").left()
+                ?: return InvalidRequestException(invalidFormatValueMessage(key)).left()
         }
     }
 }

@@ -11,10 +11,10 @@ import org.springframework.context.annotation.Bean
 @SpringBootApplication
 class ApiGatewayApplication {
 
-    @Value($$"${application.search-service.url:search-service}")
+    @Value($$"${application.search-service.url:http://search-service:8083}")
     private val searchServiceUrl: String = ""
 
-    @Value($$"${application.subscription-service.url:subscription-service}")
+    @Value($$"${application.subscription-service.url:http://subscription-service:8084}")
     private val subscriptionServiceUrl: String = ""
 
     @Bean
@@ -31,21 +31,41 @@ class ApiGatewayApplication {
                     "/ngsi-ld/v1/temporal/entities/**",
                     "/ngsi-ld/v1/temporal/entityOperations/**",
                     "/ngsi-ld/v1/csourceRegistrations/**"
-                ).uri("http://$searchServiceUrl:8083")
+                ).uri(searchServiceUrl)
             }
             .route { p ->
                 p.path(
                     "/ngsi-ld/v1/subscriptions/**"
-                ).uri("http://$subscriptionServiceUrl:8084")
+                ).uri(subscriptionServiceUrl)
             }
             .route { p ->
                 p.path(
                     "/ngsi-ld/v1/jsonldContexts/**"
                 ).filters { f ->
                     f.filter(
-                        DuplicateRequestFilter("http://$subscriptionServiceUrl:8084")
+                        DuplicateRequestFilter(subscriptionServiceUrl)
                     )
-                }.uri("http://$searchServiceUrl:8083")
+                }.uri(searchServiceUrl)
+            }
+            .route("search_service_actuator") { p ->
+                p.path("/search-service/actuator/**")
+                    .filters { f ->
+                        f.rewritePath(
+                            "/search-service/actuator/(?<segment>/?.*)",
+                            "/actuator/\${segment}"
+                        )
+                    }
+                    .uri(searchServiceUrl)
+            }
+            .route("subscription_service_actuator") { p ->
+                p.path("/subscription-service/actuator/**")
+                    .filters { f ->
+                        f.rewritePath(
+                            "/subscription-service/actuator/(?<segment>/?.*)",
+                            "/actuator/\${segment}"
+                        )
+                    }
+                    .uri(subscriptionServiceUrl)
             }
             .build()
 }

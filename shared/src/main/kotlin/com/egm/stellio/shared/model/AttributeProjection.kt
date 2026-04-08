@@ -5,6 +5,18 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.AttributeProjection.Companion.ProjectionType
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PARSING_PICK_OMIT_ERROR_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_CONSECUTIVE_SEPARATORS_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_EMPTY_ATTRIBUTE_NAME_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_EMPTY_ATTRIBUTE_NESTED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_EMPTY_NESTED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_ENDS_WITH_SEPARATOR_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_NO_VALID_ATTRIBUTE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_SEPARATOR_AFTER_BRACE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_STARTS_WITH_BRACE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_UNCLOSED_BRACE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.PROJECTION_VALUE_EMPTY_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.projectionInvalidCharactersMessage
 import com.egm.stellio.shared.util.isNgsiLdSupportedName
 
 /**
@@ -33,8 +45,6 @@ data class AttributeProjection(
         private const val CLOSING_BRACE = '}'
         private val allowedSpecialChars = setOf(OPENING_BRACE, CLOSING_BRACE).plus(separators)
 
-        private const val ERROR_TITLE = "Error parsing pick or omit parameter"
-
         /**
          * Parse pick/omit parameters, according to NGSI-LD Attribute Projection Language ABNF grammar
          * as defined in section 4.21 of the NGSI-LD specification.
@@ -58,7 +68,7 @@ data class AttributeProjection(
             paramValue: String
         ): Either<APIException, List<AttributeProjection>> = either {
             if (paramValue.isBlank())
-                toBadRequestDataException("Value cannot be empty").left().bind()
+                toBadRequestDataException(PROJECTION_VALUE_EMPTY_MESSAGE).left().bind()
 
             validateInputCharacters(paramValue).bind()
 
@@ -67,7 +77,7 @@ data class AttributeProjection(
 
             // Check for leading separator
             if (paramValue[currentIndex] in allowedSpecialChars)
-                toBadRequestDataException("Expression cannot start with a brace, comma or pipe").left().bind()
+                toBadRequestDataException(PROJECTION_STARTS_WITH_BRACE_MESSAGE).left().bind()
 
             while (currentIndex < paramValue.length) {
                 checkForConsecutiveSeparators(currentIndex, paramValue).bind()
@@ -79,7 +89,7 @@ data class AttributeProjection(
                 if (currentIndex >= paramValue.length) {
                     // Check for trailing separator
                     if (paramValue[currentIndex - 1] in separators)
-                        toBadRequestDataException("Expression cannot end with a separator").left().bind()
+                        toBadRequestDataException(PROJECTION_ENDS_WITH_SEPARATOR_MESSAGE).left().bind()
                     break
                 }
 
@@ -90,7 +100,7 @@ data class AttributeProjection(
 
                 val attrName = paramValue.substring(attrNameStart, currentIndex)
                 if (attrName.isEmpty())
-                    toBadRequestDataException("Expression contains an empty attribute name").left().bind()
+                    toBadRequestDataException(PROJECTION_EMPTY_ATTRIBUTE_NAME_MESSAGE).left().bind()
 
                 val (projection, newIndex) = createAttributeProjection(paramValue, attrName, currentIndex).bind()
 
@@ -99,7 +109,7 @@ data class AttributeProjection(
             }
 
             if (projections.isEmpty())
-                toBadRequestDataException("Expression must contain at least one valid attribute name").left().bind()
+                toBadRequestDataException(PROJECTION_NO_VALID_ATTRIBUTE_MESSAGE).left().bind()
 
             projections
         }
@@ -131,7 +141,7 @@ data class AttributeProjection(
 
             // Check for leading separator in nested projection
             if (currentIndex < input.length && input[currentIndex] in separators)
-                toBadRequestDataException("Expression cannot contain a separator after an opening brace").left().bind()
+                toBadRequestDataException(PROJECTION_SEPARATOR_AFTER_BRACE_MESSAGE).left().bind()
 
             while (currentIndex < input.length) {
                 checkForConsecutiveSeparators(currentIndex, input).bind()
@@ -153,9 +163,7 @@ data class AttributeProjection(
 
                 val attrName = input.substring(attrNameStart, currentIndex)
                 if (attrName.isEmpty())
-                    toBadRequestDataException(
-                        "Expression contains an empty attribute name in nested projection"
-                    ).left().bind()
+                    toBadRequestDataException(PROJECTION_EMPTY_ATTRIBUTE_NESTED_MESSAGE).left().bind()
 
                 val (projection, newIndex) = createAttributeProjection(input, attrName, currentIndex).bind()
 
@@ -164,10 +172,10 @@ data class AttributeProjection(
             }
 
             if (!foundClosingBrace)
-                toBadRequestDataException("Expression contains an unclosed brace").left().bind()
+                toBadRequestDataException(PROJECTION_UNCLOSED_BRACE_MESSAGE).left().bind()
 
             if (nestedProjections.isEmpty())
-                toBadRequestDataException("Expression contains an empty nested projection").left().bind()
+                toBadRequestDataException(PROJECTION_EMPTY_NESTED_MESSAGE).left().bind()
 
             Pair(nestedProjections, currentIndex)
         }
@@ -178,7 +186,7 @@ data class AttributeProjection(
                 input[currentIndex] in separators &&
                 input[currentIndex + 1] in separators
             )
-                toBadRequestDataException("Expression cannot contain consecutive separators").left()
+                toBadRequestDataException(PROJECTION_CONSECUTIVE_SEPARATORS_MESSAGE).left()
             else Unit.right()
 
         /**
@@ -191,13 +199,13 @@ data class AttributeProjection(
             }
 
             return if (invalidChars.isNotEmpty())
-                toBadRequestDataException("Invalid characters in the value ($invalidChars)").left()
+                toBadRequestDataException(projectionInvalidCharactersMessage(invalidChars)).left()
             else
                 Unit.right()
         }
 
         private fun toBadRequestDataException(detail: String): BadRequestDataException =
-            BadRequestDataException(ERROR_TITLE, detail)
+            BadRequestDataException(PARSING_PICK_OMIT_ERROR_MESSAGE, detail)
     }
 }
 

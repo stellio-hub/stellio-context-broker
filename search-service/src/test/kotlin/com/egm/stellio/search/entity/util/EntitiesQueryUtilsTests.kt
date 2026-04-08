@@ -25,7 +25,6 @@ import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.shouldFail
-import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
@@ -35,6 +34,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertInstanceOf
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
@@ -114,10 +114,9 @@ class EntitiesQueryUtilsTests {
             },
             NGSILD_TEST_CORE_CONTEXTS
         ).shouldFail {
-            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertInstanceOf<BadRequestDataException>(it)
             assertEquals(
-                "'unknown' is not a recognized value for 'join' parameter " +
-                    "(only 'flat', 'inline' and '@none' are allowed)",
+                "Invalid 'join' parameter: 'unknown', must be 'flat', 'inline', or '@none'",
                 it.message
             )
         }
@@ -133,9 +132,9 @@ class EntitiesQueryUtilsTests {
             },
             NGSILD_TEST_CORE_CONTEXTS
         ).shouldFail {
-            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertInstanceOf<BadRequestDataException>(it)
             assertEquals(
-                "'-1' is not a recognized value for 'joinLevel' parameter (only positive integers are allowed)",
+                "Invalid 'joinLevel' parameter: '-1', must be a positive integer",
                 it.message
             )
         }
@@ -152,7 +151,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "'join' must be specified if 'joinLevel' or 'containedBy' are specified",
+                "Parameter 'join' is required when 'joinLevel' or 'containedBy' are specified",
                 it.message
             )
         }
@@ -169,7 +168,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "'join' must be specified if 'joinLevel' or 'containedBy' are specified",
+                "Parameter 'join' is required when 'joinLevel' or 'containedBy' are specified",
                 it.message
             )
         }
@@ -185,9 +184,9 @@ class EntitiesQueryUtilsTests {
             },
             NGSILD_TEST_CORE_CONTEXTS
         ).shouldFail {
-            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertInstanceOf<BadRequestDataException>(it)
             assertEquals(
-                "An entity member cannot be present in both 'pick' and 'omit' parameters",
+                "Entity member cannot be present in both 'pick' and 'omit'",
                 it.message
             )
         }
@@ -203,11 +202,8 @@ class EntitiesQueryUtilsTests {
             },
             NGSILD_TEST_CORE_CONTEXTS
         ).shouldFail {
-            assertInstanceOf(BadRequestDataException::class.java, it)
-            assertEquals(
-                "The 'attrs' parameter cannot be used together with 'pick' or 'omit' parameters",
-                it.message
-            )
+            assertInstanceOf<BadRequestDataException>(it)
+            assertEquals("Cannot use 'attrs' with 'pick' or 'omit'", it.message)
         }
     }
 
@@ -401,9 +397,9 @@ class EntitiesQueryUtilsTests {
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
-        ).shouldFailWith {
-            it is BadRequestDataException &&
-                it.message == "The type parameter should be equals to 'Query'"
+        ).shouldFail {
+            assertInstanceOf<BadRequestDataException>(it)
+            assertEquals("Type must be 'Query'", it.message)
         }
     }
 
@@ -421,9 +417,9 @@ class EntitiesQueryUtilsTests {
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
-        ).shouldFailWith {
-            it is BadRequestDataException &&
-                it.message.startsWith("The supplied query could not be parsed")
+        ).shouldFail {
+            assertInstanceOf<BadRequestDataException>(it)
+            assertThat(it.message).startsWith("Query could not be parsed:")
         }
     }
 
@@ -441,9 +437,9 @@ class EntitiesQueryUtilsTests {
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
-        ).shouldFailWith {
-            it is BadRequestDataException &&
-                it.message.startsWith("The supplied query could not be parsed")
+        ).shouldFail {
+            assertInstanceOf<BadRequestDataException>(it)
+            assertThat(it.message).startsWith("Query could not be parsed:")
         }
     }
 
@@ -465,9 +461,9 @@ class EntitiesQueryUtilsTests {
             query,
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
-        ).shouldFailWith {
-            it is BadRequestDataException &&
-                it.message.startsWith("The supplied query could not be parsed")
+        ).shouldFail {
+            assertInstanceOf<BadRequestDataException>(it)
+            assertThat(it.message).startsWith("Query could not be parsed:")
         }
     }
 
@@ -488,7 +484,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "'-1' is not a recognized value for 'joinLevel' parameter (only positive integers are allowed)",
+                "Invalid 'joinLevel' parameter: '-1', must be a positive integer",
                 it.message
             )
         }
@@ -511,9 +507,7 @@ class EntitiesQueryUtilsTests {
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                """
-                    'unknown' is not a recognized value for 'join' parameter (only 'flat', 'inline' and '@none' are allowed)
-                """.trimIndent(),
+                "Invalid 'join' parameter: 'unknown', must be 'flat', 'inline', or '@none'",
                 it.message
             )
         }
@@ -536,7 +530,7 @@ class EntitiesQueryUtilsTests {
             APIC_COMPOUND_CONTEXTS
         ).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
-            assertEquals("An entity member cannot be present in both 'pick' and 'omit' parameters", it.message)
+            assertEquals("Entity member cannot be present in both 'pick' and 'omit'", it.message)
         }
     }
 

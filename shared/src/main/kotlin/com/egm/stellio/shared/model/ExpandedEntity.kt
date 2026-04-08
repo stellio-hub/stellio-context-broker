@@ -4,8 +4,10 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.mapValuesNotNull
 import arrow.core.right
+import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_MISSING_ID_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_MISSING_TYPE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
@@ -84,12 +86,12 @@ data class ExpandedEntity(
         when (val id = members[JSONLD_ID_KW]) {
             is URI -> id
             is String -> id.toUri()
-            else -> throw BadRequestDataException("Could not extract id from JSON-LD entity")
+            else -> throw BadRequestDataException(ENTITY_MISSING_ID_MESSAGE)
         }
     }
 
     val types by lazy {
-        (members[JSONLD_TYPE_KW] ?: throw BadRequestDataException("Could not extract type from JSON-LD entity"))
+        (members[JSONLD_TYPE_KW] ?: throw BadRequestDataException(ENTITY_MISSING_TYPE_MESSAGE))
             as List<ExpandedTerm>
     }
 

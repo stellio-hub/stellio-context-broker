@@ -7,16 +7,18 @@ import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
+import com.egm.stellio.search.entity.service.LinkedEntityService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.BEEHIVE_IRI
-import com.egm.stellio.shared.util.ENTITY_ALREADY_EXISTS_MESSAGE
-import com.egm.stellio.shared.util.ENTITY_DOES_NOT_EXIST_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.entityAlreadyExistsMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.toUri
@@ -53,6 +55,9 @@ class EntityOperationHandlerTests {
 
     @MockkBean
     private lateinit var entityQueryService: EntityQueryService
+
+    @MockkBean
+    private lateinit var linkedEntityService: LinkedEntityService
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -184,7 +189,7 @@ class EntityOperationHandlerTests {
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX2temperature", 
                             "error": {
                                 "type":"${ErrorType.BAD_REQUEST_DATA.type}",
-                                "title":"Unable to expand input payload"
+                                "title":"JSON-LD payload could not be expanded"
                             }
                         }
                     ], 
@@ -249,7 +254,7 @@ class EntityOperationHandlerTests {
             mutableListOf(
                 BatchEntityError(
                     temperatureSensorUri,
-                    AlreadyExistsException(ENTITY_ALREADY_EXISTS_MESSAGE).toProblemDetail()
+                    AlreadyExistsException(entityAlreadyExistsMessage(temperatureSensorUri)).toProblemDetail()
                 )
             )
         )
@@ -267,7 +272,7 @@ class EntityOperationHandlerTests {
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
                             "error": {
                                 "type":"${ErrorType.ALREADY_EXISTS.type}",
-                                "title":"Entity already exists"
+                                "title":"${entityAlreadyExistsMessage(temperatureSensorUri)}"
                             }
                         }
                     ],
@@ -505,7 +510,7 @@ class EntityOperationHandlerTests {
                 mutableListOf(
                     BatchEntityError(
                         deviceUri,
-                        ResourceNotFoundException(ENTITY_DOES_NOT_EXIST_MESSAGE).toProblemDetail()
+                        ResourceNotFoundException(entityNotFoundMessage(deviceUri)).toProblemDetail()
                     )
                 )
             )
@@ -526,7 +531,7 @@ class EntityOperationHandlerTests {
                             "entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1",
                             "error": {
                                 "type":"${ErrorType.RESOURCE_NOT_FOUND.type}",
-                                "title":"$ENTITY_DOES_NOT_EXIST_MESSAGE"
+                                "title":"${entityNotFoundMessage(deviceUri)}"
                             }
                         }
                     ]
@@ -540,6 +545,9 @@ class EntityOperationHandlerTests {
         coEvery {
             entityQueryService.queryEntities(any())
         } returns Pair(emptyList<ExpandedEntity>(), 0).right()
+        coEvery {
+            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any())
+        } returns emptyList<CompactedEntity>().right()
 
         val query = """
             {
@@ -656,7 +664,7 @@ class EntityOperationHandlerTests {
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX2temperature", 
                             "error": {
                                 "type":"${ErrorType.BAD_REQUEST_DATA.type}",
-                                "title":"Unable to expand input payload"
+                                "title":"JSON-LD payload could not be expanded"
                             }
                         }
                     ], 

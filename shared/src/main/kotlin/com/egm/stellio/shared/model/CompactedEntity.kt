@@ -11,6 +11,7 @@ import com.egm.stellio.shared.model.AttributeCompactedType.PROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.RELATIONSHIP
 import com.egm.stellio.shared.model.AttributeCompactedType.VOCABPROPERTY
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.NO_ENTITY_MEMBER_AFTER_PROJECTION_MESSAGE
 import com.egm.stellio.shared.util.FEATURES_PROPERTY_TERM
 import com.egm.stellio.shared.util.FEATURE_COLLECTION_TYPE
 import com.egm.stellio.shared.util.FEATURE_TYPE
@@ -95,7 +96,7 @@ fun CompactedEntity.filterPickAndOmit(pick: Set<String>, omit: Set<String>): Eit
         !omit.contains(it)
     }.let {
         if (it.all { entry -> COMPACTED_ENTITY_MINIMAL_MEMBERS.contains(entry.key) })
-            UnprocessableEntityException("No entity member left after applying pick and omit").left()
+            UnprocessableEntityException(NO_ENTITY_MEMBER_AFTER_PROJECTION_MESSAGE).left()
         else it.right()
     }
 

@@ -31,6 +31,7 @@ import com.egm.stellio.shared.util.TEMPERATURE_TERM
 import com.egm.stellio.shared.util.loadAndExpandMinimalEntity
 import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
@@ -60,6 +61,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertInstanceOf
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
@@ -822,9 +824,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         val fragment = mapOf("unknownAttribute" to "unknownValue")
         subscription.mergeWithFragment(fragment, APIC_COMPOUND_CONTEXTS)
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "Invalid attribute unknownAttribute in subscription"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Member 'unknownAttribute' is invalid", it.message)
             }
     }
 
@@ -835,9 +837,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         val fragment = mapOf("type" to NGSILD_SUBSCRIPTION_TERM, "csf" to "someValue")
         subscription.mergeWithFragment(fragment, APIC_COMPOUND_CONTEXTS)
-            .shouldFailWith {
-                it is NotImplementedException &&
-                    it.message == "Attribute csf is not yet implemented in subscriptions"
+            .shouldFail {
+                assertInstanceOf<NotImplementedException>(it)
+                assertEquals("Member 'csf' is not yet implemented", it.message)
             }
     }
 

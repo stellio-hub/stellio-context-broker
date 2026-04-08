@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.queryparameter.AttributePath
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidOrderingDirectionMessage
 
 data class OrderBy(
     val direction: Direction,
@@ -43,7 +44,7 @@ data class OrderBy(
         companion object {
             fun fromString(key: String): Either<APIException, Direction> = either {
                 Direction.entries.find { it.value == key }
-                    ?: return BadRequestDataException("'$key' is not a valid ordering direction parameter").left()
+                    ?: return BadRequestDataException(invalidOrderingDirectionMessage(key)).left()
             }
         }
     }

@@ -1,10 +1,15 @@
+import com.google.cloud.tools.jib.gradle.PlatformParameters
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
-
+buildscript {
+    dependencies {
+        classpath("com.google.cloud.tools:jib-layer-filter-extension-gradle:0.3.0")
+    }
+}
 
 extra["springCloudVersion"] = "2025.1.0"
 
@@ -14,14 +19,14 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "4.0.2" apply false
+    id("org.springframework.boot") version "4.0.5" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
-    id("org.graalvm.buildtools.native") version "0.11.4"
-    kotlin("jvm") version "2.2.21" apply false
-    kotlin("plugin.spring") version "2.2.21" apply false
-
+    id("org.graalvm.buildtools.native") version "1.0.0"
+    kotlin("jvm") version "2.3.10" apply false
+    kotlin("plugin.spring") version "2.3.10" apply false
+    id("com.google.cloud.tools.jib") version "3.5.3" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
-    id("org.sonarqube") version "7.2.2.6593"
+    id("org.sonarqube") version "7.2.3.7755"
     jacoco
 }
 
@@ -62,7 +67,7 @@ subprojects {
         implementation("com.apicatalog:titanium-json-ld:1.7.0")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:2.2.1.1")
+        implementation("io.arrow-kt:arrow-fx-coroutines:2.2.2.1")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.20.0")
 
@@ -76,7 +81,7 @@ subprojects {
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
         testImplementation("org.springframework.boot:spring-boot-starter-security-test")
         testImplementation("com.ninja-squad:springmockk:5.0.1")
-        testImplementation("io.mockk:mockk:1.14.7")
+        testImplementation("io.mockk:mockk:1.14.9")
         testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
@@ -146,36 +151,41 @@ subprojects {
         }
     }
 
-    // Docker configuration for the Spring Boot bootBuildImage task
-    ext.set(
-        "buildpackEnvironment",
-        mapOf(
-            "BP_JVM_VERSION" to "21.*",
-            "BP_NATIVE_IMAGE" to "false"
+    tasks.withType<com.google.cloud.tools.jib.gradle.BuildImageTask>().configureEach {
+        notCompatibleWithConfigurationCache("Jib does not support configuration cache")
+    }
+
+    project.ext.set("jibFromImage", "eclipse-temurin:21-jre")
+    project.ext.set(
+        "jibFromPlatforms",
+        listOf(
+            PlatformParameters().apply {
+                os = "linux"
+                architecture = "arm64"
+            },
+            PlatformParameters().apply {
+                os = "linux"
+                architecture = "amd64"
+            }
         )
     )
-    ext.set(
-        "buildpackRuntimeEnvironment",
+    project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
+    project.ext.set(
+        "jibContainerLabels",
         mapOf(
-            "BPE_DELIM_JAVA_TOOL_OPTIONS" to " ",
-            "BPE_APPEND_JAVA_TOOL_OPTIONS" to "-XX:MaxDirectMemorySize=256M "
-        )
-    )
-    // See https://github.com/opencontainers/image-spec/blob/main/annotations.md for predefined keys
-    ext.set(
-        "buildpackOciLabels",
-        mapOf(
-            "BP_OCI_AUTHORS" to "https://stellio.io",
-            "BP_OCI_DOCUMENTATION" to "https://stellio.readthedocs.io/",
-            "BP_OCI_VENDOR" to "EGM",
-            "BP_OCI_LICENSES" to "Apache-2.0",
-            "BP_OCI_TITLE" to "Stellio context broker",
-            "BP_OCI_DESCRIPTION" to
+            "maintainer" to "EGM",
+            "org.opencontainers.image.authors" to "EGM",
+            "org.opencontainers.image.documentation" to "https://stellio.readthedocs.io/",
+            "org.opencontainers.image.vendor" to "EGM",
+            "org.opencontainers.image.licenses" to "Apache-2.0",
+            "org.opencontainers.image.title" to "Stellio context broker",
+            "org.opencontainers.image.description" to
                 """
                     Stellio is an NGSI-LD compliant context broker developed by EGM. 
                     NGSI-LD is an Open API and data model specification for context management published by ETSI.
                 """.trimIndent(),
-            "BP_OCI_SOURCE" to "https://github.com/stellio-hub/stellio-context-broker"
+            "org.opencontainers.image.source" to "https://github.com/stellio-hub/stellio-context-broker",
+            "com.java.version" to "${JavaVersion.VERSION_21}"
         )
     )
 }

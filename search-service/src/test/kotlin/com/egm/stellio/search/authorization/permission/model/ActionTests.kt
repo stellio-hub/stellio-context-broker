@@ -101,8 +101,7 @@ class ActionTests {
                 .toNgsiLdAttribute()
                 .shouldSucceedAndResult()
 
-        val expectedMessage =
-            """Invalid action provided: "someValue", must be "own", "admin","write" or "read"."""
+        val expectedMessage = "Invalid action: 'someValue', must be 'own', 'admin', 'write', or 'read'"
 
         ngsiLdAttribute.getSpecificAccessPolicy()
             .shouldFail {

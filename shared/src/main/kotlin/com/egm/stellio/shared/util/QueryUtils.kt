@@ -4,7 +4,6 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.queryparameter.AttributePath
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import java.util.regex.Pattern
 
 /**
  * Parse a query term to return a triple consisting of (attribute path, operator, value)
@@ -60,24 +59,6 @@ fun String.isValueList(): Boolean =
 fun String.listOfValues(): Set<String> =
     this.split(",").toSet()
 
-private val innerRegexPattern: Pattern = Pattern.compile(""".*(~="\(\?i\)).*""")
-
-// Quick hack to allow inline options for regex expressions
-// (see https://keith.github.io/xcode-man-pages/re_format.7.html for more details)
-// When matched, parenthesis are replaced by special characters that are later restored after the main
-// qPattern regex has been processed
-fun String.escapeRegexpPattern(): String =
-    if (this.matches(innerRegexPattern.toRegex())) {
-        this.replace(innerRegexPattern.toRegex()) { matchResult ->
-            matchResult.value
-                .replace("(?i)", "##?i§§")
-        }
-    } else this
-
-fun String.unescapeRegexPattern(): String =
-    this.replace("##", "(")
-        .replace("§§", ")")
-
 fun Iterable<String>.toTypeSelection() = this.joinToString(",")
 
 // Work for String and URI
@@ -104,14 +85,9 @@ fun buildTypeQuery(rawQuery: String, columnName: String = "types", target: List<
         }
 
 // Transforms an NGSI-LD Query Language parameter as per clause 4.9 to a query supported by JsonPath.
-fun buildQQuery(rawQuery: String, contexts: List<String>, target: ExpandedEntity? = null): String {
-    val rawQueryWithPatternEscaped = rawQuery.escapeRegexpPattern()
-
-    return rawQueryWithPatternEscaped.replace(qPattern.toRegex()) { matchResult ->
-        // restoring the eventual inline options for regex expressions (replaced above)
-        val fixedValue = matchResult.value.unescapeRegexPattern()
-
-        val query = extractComparisonParametersFromQuery(fixedValue)
+fun buildQQuery(rawQuery: String, contexts: List<String>, target: ExpandedEntity? = null): String =
+    rawQuery.replace(qPattern.toRegex()) { matchResult ->
+        val query = extractComparisonParametersFromQuery(matchResult.value)
 
         val attributePath = AttributePath(query.first, contexts)
         val operator = query.second
@@ -133,7 +109,6 @@ fun buildQQuery(rawQuery: String, contexts: List<String>, target: ExpandedEntity
                 // escape single quotes in the serialized entity to not crash the SQL query
                 it.replace("#{TARGET}#", "'" + serializeObject(target.members).escapeSingleQuotes() + "'")
         }
-}
 
 private fun transformQQueryToSqlJsonPath(
     attributePath: AttributePath,

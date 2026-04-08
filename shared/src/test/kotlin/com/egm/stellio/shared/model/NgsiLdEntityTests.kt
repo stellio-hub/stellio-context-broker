@@ -85,7 +85,7 @@ class NgsiLdEntityTests {
         expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState has an unknown type: " +
+                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState has an invalid or not implemented type: " +
                     "https://uri.etsi.org/ngsi-ld/default-context/UnknownProperty",
                 it.message
             )
@@ -259,7 +259,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawProperty, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState can't have instances with different types",
+                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState cannot have instances with different types",
                 it.message
             )
         }
@@ -298,7 +298,7 @@ class NgsiLdEntityTests {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState " +
-                    "can't have more than one instance with the same datasetId",
+                    "cannot have more than one instance with the same datasetId",
                 it.message
             )
         }
@@ -330,7 +330,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawProperty, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState can't have more than one default instance",
+                "Attribute ${NGSILD_DEFAULT_VOCAB}deviceState cannot have more than one default instance",
                 it.message
             )
         }
@@ -464,7 +464,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawRelationship, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel can't have more " +
+                "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel cannot have more " +
                     "than one default instance",
                 it.message
             )
@@ -495,7 +495,7 @@ class NgsiLdEntityTests {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
                 "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel " +
-                    "can't have more than one instance with the same datasetId",
+                    "cannot have more than one instance with the same datasetId",
                 it.message
             )
         }
@@ -528,7 +528,7 @@ class NgsiLdEntityTests {
         expandAttributes(rawRelationship, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdAttributes().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
-                "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel can't have instances with different types",
+                "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel cannot have instances with different types",
                 it.message
             )
         }

@@ -30,6 +30,7 @@ import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.getRelationshipId
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeCannotGetValueMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -92,7 +93,7 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
     }
     if (attributeValue == Triple(null, null, null)) {
         JsonLdUtils.logger.warn("Unable to get a value from attribute: $this")
-        return BadRequestDataException("Unable to get a value from attribute: $this").left()
+        return BadRequestDataException(attributeCannotGetValueMessage(this.toString())).left()
     }
 
     return AttributeMetadata(
@@ -109,16 +110,17 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
 fun guessAttributeValueType(
     attributeType: AttributeType,
     expandedAttributeInstance: ExpandedAttributeInstance
-): Attribute.AttributeValueType =
+): Either<APIException, Attribute.AttributeValueType> = either {
     when (attributeType) {
         AttributeType.Property ->
-            guessPropertyValueType(expandedAttributeInstance.getPropertyValue()!!).first
+            guessPropertyValueType(expandedAttributeInstance.getPropertyValue().bind()).first
         AttributeType.Relationship -> Attribute.AttributeValueType.URI
         AttributeType.GeoProperty -> Attribute.AttributeValueType.GEOMETRY
         AttributeType.JsonProperty -> Attribute.AttributeValueType.JSON
         AttributeType.LanguageProperty -> Attribute.AttributeValueType.ARRAY
         AttributeType.VocabProperty -> Attribute.AttributeValueType.ARRAY
     }
+}
 
 fun guessPropertyValueType(
     ngsiLdPropertyInstance: NgsiLdPropertyInstance
@@ -152,7 +154,8 @@ fun hasNgsiLdNullValue(
         val value = expandedAttributeInstance.getRelationshipId()
         value is URI && value.toString() == NGSILD_NULL
     } else {
-        val value = expandedAttributeInstance.getMemberValue(attributeType.toExpandedValueMember())
+        val value = expandedAttributeInstance
+            .getMemberValue(attributeType.toExpandedValueMember()).getOrNull()
         value is String && value == NGSILD_NULL
     }
 

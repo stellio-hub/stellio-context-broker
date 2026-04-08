@@ -17,11 +17,13 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e
+        with:
+          cache-provider: basic
       - name: Assemble project
         run: ./gradlew assemble
       - name: Upload jars artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: jars
           path: |
@@ -35,14 +37,14 @@ jobs:
       - name: Checkout project
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
       - name: Download jars artifacts
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: jars
           path: build
       - name: Build API Gateway local container
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294
         with:
           context: .
           file: ./api-gateway/Dockerfile
@@ -52,7 +54,7 @@ jobs:
           build-args: |
             JAR_FILE=./build/api-gateway/build/libs/api-gateway-latest-dev.jar
       - name: Build Search Service local container
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294
         with:
           context: .
           file: ./search-service/Dockerfile
@@ -62,7 +64,7 @@ jobs:
           build-args: |
             JAR_FILE=./build/search-service/build/libs/search-service-latest-dev.jar
       - name: Build Subscription Service local container
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294
         with:
           context: .
           file: ./subscription-service/Dockerfile
@@ -73,36 +75,36 @@ jobs:
             JAR_FILE=./build/subscription-service/build/libs/subscription-service-latest-dev.jar
       - name: Security Scan for API Gateway image
         id: scan-api-gateway
-        uses: anchore/scan-action@0d444ed77d83ee2ba7f5ced0d90d640a1281d762
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2
         with:
           image: "localbuild/api-gateway:latest-scan"
           severity-cutoff: critical
       - name: Security Scan for Search Service image
         id: scan-search-service
-        uses: anchore/scan-action@0d444ed77d83ee2ba7f5ced0d90d640a1281d762
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2
         with:
           image: "localbuild/search-service:latest-scan"
           severity-cutoff: critical
       - name: Security Scan for Subscription Service image
         id: scan-subscription-service
-        uses: anchore/scan-action@0d444ed77d83ee2ba7f5ced0d90d640a1281d762
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2
         with:
           image: "localbuild/subscription-service:latest-scan"
           severity-cutoff: critical
       - name: Upload Anchore scan SARIF report for API Gateway
-        uses: github/codeql-action/upload-sarif@cdefb33c0f6224e58673d9004f47f7cb3e328b89
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13
         if: always()
         with:
           sarif_file: ${{ steps.scan-api-gateway.outputs.sarif }}
           category: anchore-api-gateway
       - name: Upload Anchore scan SARIF report for Search Service
-        uses: github/codeql-action/upload-sarif@cdefb33c0f6224e58673d9004f47f7cb3e328b89
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13
         if: always()
         with:
           sarif_file: ${{ steps.scan-search-service.outputs.sarif }}
           category: anchore-search-service
       - name: Upload Anchore scan SARIF report for Subscription Service
-        uses: github/codeql-action/upload-sarif@cdefb33c0f6224e58673d9004f47f7cb3e328b89
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13
         if: always()
         with:
           sarif_file: ${{ steps.scan-subscription-service.outputs.sarif }}

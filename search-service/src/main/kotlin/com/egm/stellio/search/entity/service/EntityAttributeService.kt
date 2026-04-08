@@ -54,6 +54,7 @@ import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.addSysAttrs
@@ -66,12 +67,14 @@ import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.isAttributeOfType
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.ErrorMessages.Entity.ATTRIBUTE_TYPE_MISMATCH_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeWithDatasetIdNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.attributeNotFoundMessage
-import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
@@ -82,7 +85,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @Service
 class EntityAttributeService(
@@ -279,7 +282,7 @@ class EntityAttributeService(
         )
         val (jsonTargetObject, updatedAttributeInstance) =
             mergePatch(attribute.payload.toExpandedAttributeInstance(), processedAttributePayload)
-        val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance)
+        val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance).bind()
         update(attribute.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject).bind()
 
         val attributeInstance =
@@ -608,7 +611,9 @@ class EntityAttributeService(
                 if (it.first)
                     if (it.second)
                         Unit.right()
-                    else ResourceNotFoundException(attributeNotFoundMessage(attributeName, datasetId)).left()
+                    else ResourceNotFoundException(
+                        attributeWithDatasetIdNotFoundMessage(attributeName, datasetId)
+                    ).left()
                 else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
             }
     }
@@ -739,13 +744,13 @@ class EntityAttributeService(
         // first update payload in temporal entity attribute
         attributeValues[JSONLD_TYPE_KW]?.let {
             ensure(isAttributeOfType(attributeValues, AttributeType(NGSILD_PREFIX + attribute.attributeType))) {
-                BadRequestDataException("The type of the attribute has to be the same as the existing one")
+                BadRequestDataException(ATTRIBUTE_TYPE_MISMATCH_MESSAGE)
             }
         }
         val (jsonTargetObject, updatedAttributeInstance) =
             partialUpdatePatch(attribute.payload.toExpandedAttributeInstance(), attributeValues)
-        val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance)
-        val attributeValueType = guessAttributeValueType(attribute.attributeType, attributeValues)
+        val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance).bind()
+        val attributeValueType = guessAttributeValueType(attribute.attributeType, attributeValues).bind()
         update(attribute.id, attributeValueType, modifiedAt, jsonTargetObject).bind()
 
         // then update attribute instance
@@ -903,17 +908,17 @@ class EntityAttributeService(
     suspend fun getValueFromPartialAttributePayload(
         attribute: Attribute,
         attributePayload: ExpandedAttributeInstance
-    ): Triple<String?, Double?, WKTCoordinates?> =
+    ): Either<APIException, Triple<String?, Double?, WKTCoordinates?>> = either {
         when (attribute.attributeType) {
             Attribute.AttributeType.Property ->
                 Triple(
-                    valueToStringOrNull(attributePayload.getPropertyValue()!!),
-                    valueToDoubleOrNull(attributePayload.getPropertyValue()!!),
+                    valueToStringOrNull(attributePayload.getPropertyValue().bind()),
+                    valueToDoubleOrNull(attributePayload.getPropertyValue().bind()),
                     null
                 )
             Attribute.AttributeType.Relationship ->
                 Triple(
-                    attributePayload.getMemberValue(NGSILD_RELATIONSHIP_OBJECT)!! as String,
+                    attributePayload.getMemberValue(NGSILD_RELATIONSHIP_OBJECT).bind() as String,
                     null,
                     null
                 )
@@ -921,27 +926,37 @@ class EntityAttributeService(
                 Triple(
                     null,
                     null,
-                    WKTCoordinates(attributePayload.getPropertyValue()!! as String)
+                    WKTCoordinates(attributePayload.getPropertyValue().bind() as String)
                 )
             Attribute.AttributeType.JsonProperty ->
                 Triple(
-                    serializeObject(attributePayload.getMemberValue(NGSILD_JSONPROPERTY_JSON)!!),
+                    serializeObject(
+                        attributePayload.getMemberValue(NGSILD_JSONPROPERTY_JSON).bind()
+                    ),
                     null,
                     null
                 )
             Attribute.AttributeType.LanguageProperty ->
                 Triple(
-                    serializeObject(attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP)!!),
+                    serializeObject(
+                        attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).bind()
+                    ),
                     null,
                     null
                 )
             Attribute.AttributeType.VocabProperty ->
                 Triple(
-                    serializeObject(attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VOCAB)!!),
+                    serializeObject(
+                        attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VOCAB).bind()
+                    ),
                     null,
                     null
                 )
         }
+    }.fold(
+        { NotImplementedException(NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE, it.message).left() },
+        { it.right() }
+    )
 
     private suspend fun createContextualAttributeInstance(
         attribute: Attribute,

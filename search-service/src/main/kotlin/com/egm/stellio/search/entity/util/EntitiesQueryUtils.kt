@@ -18,6 +18,9 @@ import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryPar
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ATTRIBUTES_WITH_PICK_OR_OMIT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ENTITY_MEMBER_IN_PICK_AND_OMIT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.MISSING_REQUIRED_QUERY_PARAMETER_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
@@ -94,9 +97,8 @@ fun EntitiesQueryFromGet.validateMinimalQueryEntitiesParameters(): Either<APIExc
         attrs.isEmpty() &&
         !local
     )
-        return@either BadRequestDataException(
-            "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query unless local is true"
-        ).left().bind<EntitiesQueryFromGet>()
+        return@either BadRequestDataException(MISSING_REQUIRED_QUERY_PARAMETER_MESSAGE)
+            .left().bind<EntitiesQueryFromGet>()
 
     this@validateMinimalQueryEntitiesParameters
 }
@@ -170,11 +172,7 @@ fun validateMutualAttrsProjectionAttributesExclusion(
     omit: List<AttributeProjection>
 ): Either<APIException, Unit> =
     if (attrs.isNotEmpty() && (pick.isNotEmpty() || omit.isNotEmpty()))
-        BadRequestDataException(
-            "The 'attrs' parameter cannot be used together with 'pick' or 'omit' parameters"
-        ).left()
+        BadRequestDataException(ATTRIBUTES_WITH_PICK_OR_OMIT_MESSAGE).left()
     else if (pick.intersect(omit).isNotEmpty())
-        BadRequestDataException(
-            "An entity member cannot be present in both 'pick' and 'omit' parameters"
-        ).left()
+        BadRequestDataException(ENTITY_MEMBER_IN_PICK_AND_OMIT_MESSAGE).left()
     else Unit.right()

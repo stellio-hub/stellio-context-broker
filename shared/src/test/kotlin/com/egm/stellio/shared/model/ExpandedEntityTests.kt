@@ -45,7 +45,7 @@ class ExpandedEntityTests {
 
         checkResult.fold({
             assertEquals(
-                "Entity urn:ngsi-ld:Entity:01 does not exist or it has none of the requested attributes : " +
+                "Entity urn:ngsi-ld:Entity:01 does not exist or has none of the requested attributes: " +
                     "[https://ontology.eglobalmark.com/apic#temperature, https://schema.org/name]",
                 it.message
             )

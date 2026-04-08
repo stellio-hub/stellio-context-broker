@@ -8,13 +8,16 @@ import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.MANAGED_BY_IRI
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.expandJsonLdEntity
+import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertInstanceOf
 import java.net.URI
 
 class ContextSourceRegistrationTests {
@@ -54,7 +57,7 @@ class ContextSourceRegistrationTests {
         contextSourceRegistration.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
-                    it.message == "The supplied identifier was expected to be an URI but it is not: "
+                    it.message == "Invalid URI: "
             }
     }
 
@@ -74,7 +77,7 @@ class ContextSourceRegistrationTests {
         contextSourceRegistration.validate()
             .shouldFailWith {
                 it is BadRequestDataException &&
-                    it.message == "The supplied identifier was expected to be an URI but it is not: invalidId"
+                    it.message == "Invalid URI: invalidId"
             }
     }
 
@@ -92,9 +95,9 @@ class ContextSourceRegistrationTests {
             emptyList()
         ).shouldSucceedAndResult()
         contextSourceRegistration.validate()
-            .shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message == "Invalid idPattern found in contextSourceRegistration"
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Invalid pattern in parameter 'idPattern': [", it.message)
             }
     }
 

@@ -15,6 +15,13 @@ import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NotAcceptableException
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.queryparameter.OptionsValue
+import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.INVALID_AT_CONTEXT_JSON_CONTENT_TYPE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.INVALID_CONTEXT_LINK_JSON_LD_CONTENT_TYPE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.MISSING_AT_CONTEXT_JSON_LD_CONTENT_TYPE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.badlyFormedLinkHeaderMessage
+import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.unsupportedAcceptHeaderMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ENTITY_CORE_MEMBERS_IN_ATTRS_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidIdPatternMessage
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import kotlinx.coroutines.reactive.awaitFirst
@@ -35,7 +42,7 @@ const val JSON_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
 val JSON_LD_MEDIA_TYPE: MediaType = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 val GEO_JSON_MEDIA_TYPE: MediaType = MediaType.valueOf(GEO_JSON_CONTENT_TYPE)
 
-val qPattern: Pattern = Pattern.compile("([^();|]+)")
+val qPattern: Pattern = Pattern.compile("""([^();|"]+|"[^"]*")+""")
 val typeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
 val scopeSelectionRegex: Regex = """([^(),;|]+)""".toRegex()
 val linkHeaderRegex: Regex =
@@ -60,9 +67,9 @@ fun getContextFromLinkHeader(linkHeader: List<String>): Either<APIException, Str
     if (linkHeader.isNotEmpty())
         linkHeaderRegex.find(linkHeader[0].replace(" ", ""))?.groupValues?.let {
             if (it.isEmpty() || it[1].isEmpty())
-                BadRequestDataException("Badly formed Link header: ${linkHeader[0]}").left()
+                BadRequestDataException(badlyFormedLinkHeaderMessage(linkHeader[0])).left()
             else it[1].right()
-        } ?: BadRequestDataException("Badly formed Link header: ${linkHeader[0]}").left()
+        } ?: BadRequestDataException(badlyFormedLinkHeaderMessage(linkHeader[0])).left()
     else
         Either.Right(null)
 
@@ -83,9 +90,7 @@ fun checkAndGetContext(
         val contexts = body.extractContexts()
         // kind of duplicate what is checked in checkContext but a bit more sure
         ensure(contexts.isNotEmpty()) {
-            BadRequestDataException(
-                "Request payload must contain @context term for a request having an application/ld+json content type"
-            )
+            BadRequestDataException(MISSING_AT_CONTEXT_JSON_LD_CONTENT_TYPE_MESSAGE)
         }
         addCoreContextIfMissing(contexts, coreContext)
     }
@@ -100,20 +105,14 @@ fun checkContentType(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<A
         httpHeaders.contentType == MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
     ) {
         if (body.contains(JSONLD_CONTEXT_KW))
-            return BadRequestDataException(
-                "Request payload must not contain @context term for a request having an application/json content type"
-            ).left()
+            return BadRequestDataException(INVALID_AT_CONTEXT_JSON_CONTENT_TYPE_MESSAGE).left()
     } else {
         getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).map {
             if (it != null)
-                return BadRequestDataException(
-                    "JSON-LD Link header must not be provided for a request having an application/ld+json content type"
-                ).left()
+                return BadRequestDataException(INVALID_CONTEXT_LINK_JSON_LD_CONTENT_TYPE_MESSAGE).left()
         }
         if (!body.contains(JSONLD_CONTEXT_KW))
-            return BadRequestDataException(
-                "Request payload must contain @context term for a request having an application/ld+json content type"
-            ).left()
+            return BadRequestDataException(MISSING_AT_CONTEXT_JSON_LD_CONTENT_TYPE_MESSAGE).left()
     }
     return Unit.right()
 }
@@ -124,9 +123,7 @@ fun checkContentType(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<A
 fun checkLinkHeader(httpHeaders: HttpHeaders): Either<APIException, String?> = either {
     val linkHeader = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
     if (httpHeaders.contentType == JSON_LD_MEDIA_TYPE && linkHeader != null)
-        BadRequestDataException(
-            "JSON-LD Link header must not be provided for a request having an application/ld+json content type"
-        ).left().bind()
+        BadRequestDataException(INVALID_CONTEXT_LINK_JSON_LD_CONTENT_TYPE_MESSAGE).left().bind()
     else
         linkHeader
 }
@@ -231,7 +228,7 @@ fun validateIdPattern(idPattern: String?): Either<APIException, String?> =
             Pattern.compile(it)
         }.fold(
             { idPattern.right() },
-            { BadRequestDataException("Invalid value for idPattern: $idPattern ($it)").left() }
+            { BadRequestDataException(invalidIdPatternMessage(it.toString())).left() }
         )
     } ?: Either.Right(null)
 
@@ -247,7 +244,7 @@ fun List<MediaType>.getApplicable(): Either<APIException, MediaType> {
     MimeTypeUtils.sortBySpecificity(this)
     val mediaType = this.find {
         it.includes(MediaType.APPLICATION_JSON) || it.includes(JSON_LD_MEDIA_TYPE) || it.includes(GEO_JSON_MEDIA_TYPE)
-    } ?: return NotAcceptableException("Unsupported Accept header value: ${this.joinToString(",")}").left()
+    } ?: return NotAcceptableException(unsupportedAcceptHeaderMessage(this)).left()
     // as per 6.3.4, application/json has a higher precedence than application/ld+json
     return if (mediaType.includes(MediaType.APPLICATION_JSON))
         MediaType.APPLICATION_JSON.right()
@@ -272,7 +269,7 @@ fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
 fun parseAttrsParameter(attrsParam: String?, contexts: List<String>): Either<APIException, Set<String>> =
     parseQueryParameter(attrsParam).let {
         if (it.intersect(COMPACTED_ENTITY_CORE_MEMBERS).isNotEmpty())
-            return BadRequestDataException("Entity core members cannot be present in 'attrs' parameter").left()
+            return BadRequestDataException(ENTITY_CORE_MEMBERS_IN_ATTRS_MESSAGE).left()
         else it
     }.map {
         expandJsonLdTerm(it.trim(), contexts)

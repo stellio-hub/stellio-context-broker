@@ -36,7 +36,9 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.model.getScopes
-import com.egm.stellio.shared.util.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Scope.SCOPE_DOES_NOT_EXIST_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Scope.unrecognizedOperationTypeMessage
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -270,7 +272,7 @@ class ScopeService(
                 } else return@either FailedAttributeOperationResult(
                     attributeName = NGSILD_SCOPE_IRI,
                     operationStatus = OperationStatus.FAILED,
-                    errorMessage = "Scope does not exist and operation does not allow creating it"
+                    errorMessage = SCOPE_DOES_NOT_EXIST_MESSAGE
                 )
             }
             OperationType.APPEND_ATTRIBUTES, OperationType.MERGE_ENTITY -> {
@@ -306,7 +308,7 @@ class ScopeService(
         } ?: FailedAttributeOperationResult(
             attributeName = NGSILD_SCOPE_IRI,
             operationStatus = OperationStatus.FAILED,
-            errorMessage = "Unrecognized operation type on scope: $operationType"
+            errorMessage = unrecognizedOperationTypeMessage(operationType.toString())
         )
     }
 

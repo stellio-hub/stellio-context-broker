@@ -17,9 +17,10 @@ import com.egm.stellio.shared.model.Scope
 import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
 import com.egm.stellio.shared.util.CREATION_ROLES
-import com.egm.stellio.shared.util.ENTITIY_READ_FORBIDDEN_MESSAGE
-import com.egm.stellio.shared.util.ENTITY_ADMIN_FORBIDDEN_MESSAGE
-import com.egm.stellio.shared.util.ENTITY_UPDATE_FORBIDDEN_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotAuthorizedToAdminEntityMessage
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotAuthorizedToReadEntityMessage
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotAuthorizedToUpdateEntityMessage
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotHavingRequiredRolesMessage
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -35,17 +36,17 @@ class EnabledAuthorizationService(
 
     override suspend fun userIsAdmin(): Either<APIException, Unit> =
         userHasOneOfGivenRoles(ADMIN_ROLES)
-            .toAccessDecision("User does not have any of the required roles: $ADMIN_ROLES")
+            .toAccessDecision(userNotHavingRequiredRolesMessage(ADMIN_ROLES))
 
     override suspend fun userCanCreateEntities(): Either<APIException, Unit> =
         userHasOneOfGivenRoles(CREATION_ROLES)
-            .toAccessDecision("User does not have any of the required roles: $CREATION_ROLES")
+            .toAccessDecision(userNotHavingRequiredRolesMessage(CREATION_ROLES))
 
     internal suspend fun userHasOneOfGivenRoles(
         roles: Set<GlobalRole>
-    ): Either<APIException, Boolean> =
-        subjectReferentialService.getSubjectAndGroupsUUID()
-            .flatMap { uuids -> subjectReferentialService.hasOneOfGlobalRoles(uuids, roles) }
+    ): Either<APIException, Boolean> = either {
+        subjectReferentialService.getCurrentSubjectClaims().bind().any { it in roles.map { it.key } }
+    }
 
     private fun Either<APIException, Boolean>.toAccessDecision(errorMessage: String) =
         this.flatMap {
@@ -59,19 +60,19 @@ class EnabledAuthorizationService(
         userCanDoActionOnEntity(
             entityId,
             Action.READ
-        ).toAccessDecision(ENTITIY_READ_FORBIDDEN_MESSAGE)
+        ).toAccessDecision(userNotAuthorizedToReadEntityMessage(entityId))
 
     override suspend fun userCanUpdateEntity(entityId: URI): Either<APIException, Unit> =
         userCanDoActionOnEntity(
             entityId,
             Action.WRITE,
-        ).toAccessDecision(ENTITY_UPDATE_FORBIDDEN_MESSAGE)
+        ).toAccessDecision(userNotAuthorizedToUpdateEntityMessage(entityId))
 
     override suspend fun userCanAdminEntity(entityId: URI): Either<APIException, Unit> =
         userCanDoActionOnEntity(
             entityId,
             Action.ADMIN,
-        ).toAccessDecision(ENTITY_ADMIN_FORBIDDEN_MESSAGE)
+        ).toAccessDecision(userNotAuthorizedToAdminEntityMessage(entityId))
 
     private suspend fun userCanDoActionOnEntity(
         entityId: URI,
@@ -175,10 +176,10 @@ class EnabledAuthorizationService(
     }
 
     override suspend fun getAccessRightWithClauseAndFilter(): WithAndFilter? = either {
-        val uuids = subjectReferentialService.getSubjectAndGroupsUUID().bind()
-        if (subjectReferentialService.hasStellioAdminRole(uuids).bind())
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
+        if (userIsAdmin().isRight())
             null
-        else permissionService.buildCandidatePermissionsWithStatement(Action.READ, uuids) to
-            permissionService.buildAsRightOnEntityFilter(Action.READ, uuids)
+        else permissionService.buildCandidatePermissionsWithStatement(Action.READ, claims) to
+            permissionService.buildAsRightOnEntityFilter(Action.READ, claims)
     }.fold({ "" to "false" }, { it })
 }

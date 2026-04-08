@@ -2,7 +2,6 @@ package com.egm.stellio.search.csr.service
 
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
-import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.notFoundMessage
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RegistrationInfo
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -12,10 +11,12 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.DEVICE_IRI
+import com.egm.stellio.shared.util.ErrorMessages.Csr.csrNotFoundMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.LUMINOSITY_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertInstanceOf
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -373,9 +375,9 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
 
         contextSourceRegistrationService.delete(contextSourceRegistration.id).shouldSucceed()
 
-        contextSourceRegistrationService.getById(contextSourceRegistration.id).shouldFailWith {
-            it is ResourceNotFoundException &&
-                it.message == notFoundMessage(contextSourceRegistration.id)
+        contextSourceRegistrationService.getById(contextSourceRegistration.id).shouldFail {
+            assertInstanceOf<ResourceNotFoundException>(it)
+            assertEquals(csrNotFoundMessage(contextSourceRegistration.id), it.message)
         }
     }
 
@@ -384,9 +386,9 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
         val id = "urn:ngsi-ld:ContextSourceRegistration:UnknownContextSourceRegistration".toUri()
         contextSourceRegistrationService.delete(
             id
-        ).shouldFailWith {
-            it is ResourceNotFoundException &&
-                it.message == notFoundMessage(id)
+        ).shouldFail {
+            assertInstanceOf<ResourceNotFoundException>(it)
+            assertEquals(csrNotFoundMessage(id), it.message)
         }
     }
 }

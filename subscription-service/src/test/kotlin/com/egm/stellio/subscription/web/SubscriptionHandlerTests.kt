@@ -8,6 +8,9 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.userNotAuthorizedToAccessSubscriptionMessage
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.subscriptionAlreadyExistsMessage
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.subscriptionNotFoundMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
@@ -134,7 +137,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "${subscriptionUnauthorizedMessage(subscriptionId)}"
+                    "title": "${userNotAuthorizedToAccessSubscriptionMessage(subscriptionId)}"
                 }
                 """.trimIndent()
             )
@@ -270,7 +273,7 @@ class SubscriptionHandlerTests {
         coEvery { subscriptionService.exists(any()) } returns false.right()
         coEvery {
             subscriptionService.upsert(any(), any())
-        } returns BadRequestDataException("You can't use 'timeInterval' in conjunction with 'watchedAttributes'").left()
+        } returns BadRequestDataException("Cannot specify both 'timeInterval' and 'watchedAttributes'").left()
 
         @Suppress("MaxLineLength")
         webClient.post()
@@ -282,7 +285,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "You can't use 'timeInterval' in conjunction with 'watchedAttributes'"
+                    "title": "Cannot specify both 'timeInterval' and 'watchedAttributes'"
                 } 
                 """.trimIndent()
             )
@@ -600,7 +603,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "${subscriptionUnauthorizedMessage(subscriptionId)}"
+                    "title": "${userNotAuthorizedToAccessSubscriptionMessage(subscriptionId)}"
                 }
                 """.trimIndent()
             )
@@ -692,7 +695,7 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "${subscriptionUnauthorizedMessage(subscriptionId)}"
+                    "title": "${userNotAuthorizedToAccessSubscriptionMessage(subscriptionId)}"
                 }
                 """.trimIndent()
             )

@@ -5,12 +5,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.Permission
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.AUTHENTICATED_ADMIN_EXCEPTION
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.CREATE_OR_UPDATE_OWN_EXCEPTION
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.DELETE_OWN_EXCEPTION
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.PUBLIC_WITH_NON_READ_EXCEPTION
 import com.egm.stellio.search.authorization.permission.model.Permission.Companion.deserialize
-import com.egm.stellio.search.authorization.permission.model.Permission.Companion.unauthorizedRetrieveMessage
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters
 import com.egm.stellio.search.authorization.permission.model.PermissionFilters.Companion.PermissionKind
 import com.egm.stellio.search.authorization.permission.service.PermissionService
@@ -19,6 +14,7 @@ import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
@@ -33,6 +29,11 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUBJECT_ID
 import com.egm.stellio.shared.util.AuthContextModel.GENERIC_SUBJECTS
 import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
 import com.egm.stellio.shared.util.DataTypes
+import com.egm.stellio.shared.util.ErrorMessages.Permission.AUTHENTICATED_ADMIN_PROHIBITED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Permission.OWN_PERMISSION_CREATE_UPDATE_PROHIBITED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Permission.OWN_PERMISSION_DELETE_PROHIBITED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Permission.PUBLIC_NON_READ_PROHIBITED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Permission.unauthorizedRetrieveMessage
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
@@ -199,11 +200,11 @@ class PermissionHandler(
         )
         val mediaType = getApplicableMediaType(httpHeaders).bind()
 
-        val subjects = subjectReferentialService.getSubjectAndGroupsUUID().bind()
+        val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
 
         val permission = permissionService.getById(permissionId).bind()
 
-        if (permission.assignee !in subjects &&
+        if (permission.assignee !in claims &&
             permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN).isLeft()
         ) {
             AccessDeniedException(unauthorizedRetrieveMessage(permissionId)).left().bind<String>()
@@ -240,7 +241,7 @@ class PermissionHandler(
         permissionService.hasPermissionOnTarget(currentPermission.target, Action.ADMIN).bind()
 
         if (currentPermission.action == Action.OWN) {
-            CREATE_OR_UPDATE_OWN_EXCEPTION.left().bind<APIException>()
+            BadRequestDataException(OWN_PERMISSION_CREATE_UPDATE_PROHIBITED_MESSAGE).left().bind<APIException>()
         }
 
         val body = requestBody.awaitFirst().deserializeAsMap()
@@ -267,7 +268,7 @@ class PermissionHandler(
         checkCanDelete(currentPermission).bind()
 
         if (currentPermission.action == Action.OWN) {
-            DELETE_OWN_EXCEPTION.left().bind<APIException>()
+            BadRequestDataException(OWN_PERMISSION_DELETE_PROHIBITED_MESSAGE).left().bind<APIException>()
         }
 
         permissionService.delete(permissionId).bind()
@@ -282,19 +283,15 @@ class PermissionHandler(
         permissionService.hasPermissionOnTarget(permission.target, Action.ADMIN).bind()
 
         if (permission.action == Action.OWN) {
-            CREATE_OR_UPDATE_OWN_EXCEPTION.left().bind<APIException>()
+            BadRequestDataException(OWN_PERMISSION_CREATE_UPDATE_PROHIBITED_MESSAGE).left().bind<APIException>()
         }
 
         if (permission.action == Action.ADMIN && permission.assignee == AUTHENTICATED_SUBJECT) {
-            AUTHENTICATED_ADMIN_EXCEPTION.left().bind<APIException>()
+            BadRequestDataException(AUTHENTICATED_ADMIN_PROHIBITED_MESSAGE).left().bind<APIException>()
         }
 
         if (permission.assignee == PUBLIC_SUBJECT && permission.action != Action.READ) {
-            PUBLIC_WITH_NON_READ_EXCEPTION.left().bind<APIException>()
-        }
-
-        if (permission.assignee !in GENERIC_SUBJECTS) {
-            subjectReferentialService.retrieve(permission.assignee).bind()
+            BadRequestDataException(PUBLIC_NON_READ_PROHIBITED_MESSAGE).left().bind<APIException>()
         }
 
         permission.target.id?.let {

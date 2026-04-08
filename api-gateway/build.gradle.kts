@@ -1,11 +1,14 @@
+import com.google.cloud.tools.jib.gradle.PlatformParameters
+
 plugins {
+    id("com.google.cloud.tools.jib")
     id("org.springframework.boot")
 }
 
 dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux")
     implementation("org.springframework.boot:spring-boot-starter-webclient")
-    implementation("org.zalando:logbook-spring-boot-webflux-autoconfigure:4.0.0-RC.1")
+    implementation("org.zalando:logbook-spring-boot-webflux-autoconfigure:4.0.3")
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")
 
@@ -20,14 +23,9 @@ springBoot {
     }
 }
 
-tasks.bootBuildImage {
-    imageName = "stellio/stellio-api-gateway:${project.version}"
-    imagePlatform = "linux/amd64"
-
-    val buildpackEnvironment = project.ext["buildpackEnvironment"] as? Map<String, String> ?: emptyMap()
-    val buildpackRuntimeEnvironment = project.ext["buildpackRuntimeEnvironment"] as? Map<String, String> ?: emptyMap()
-    val buildpackOciLabels = project.ext["buildpackOciLabels"] as? Map<String, String> ?: emptyMap()
-    environment = buildpackEnvironment
-        .plus(buildpackRuntimeEnvironment)
-        .plus(buildpackOciLabels)
-}
+jib.from.image = project.ext["jibFromImage"].toString()
+jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParameters>)
+jib.to.image = "stellio/stellio-api-gateway:${project.version}"
+jib.container.ports = listOf("8080")
+jib.container.creationTime.set(project.ext["jibContainerCreationTime"].toString())
+jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)

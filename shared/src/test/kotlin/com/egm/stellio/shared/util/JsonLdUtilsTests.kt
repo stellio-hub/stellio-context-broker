@@ -57,11 +57,11 @@ class JsonLdUtilsTests {
                 expandJsonLdFragment(rawEntity.deserializeAsMap(), listOf("unknownContext"))
             }
             assertEquals(
-                "Unable to load remote context",
+                "Remote context could not be loaded",
                 exception.message
             )
             assertEquals(
-                "caused by: JsonLdError[code=There was a problem encountered " +
+                "Caused by: JsonLdError[code=There was a problem encountered " +
                     "loading a remote context [code=LOADING_REMOTE_CONTEXT_FAILED]., " +
                     "message=Context URI is not absolute [unknownContext].]",
                 exception.detail
@@ -83,7 +83,7 @@ class JsonLdUtilsTests {
             expandJsonLdFragment(rawEntity, listOf(NGSILD_TEST_CORE_CONTEXT))
         }
         assertEquals(
-            "Unable to expand input payload",
+            "JSON-LD payload could not be expanded",
             exception.message
         )
     }

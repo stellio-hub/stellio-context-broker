@@ -2,6 +2,7 @@ package com.egm.stellio.search.authorization.subject.service
 
 import arrow.core.Either
 import arrow.core.getOrElse
+import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.subject.model.Group
 import com.egm.stellio.search.authorization.subject.model.SubjectReferential
@@ -14,18 +15,21 @@ import com.egm.stellio.search.common.util.toInt
 import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.common.util.toJsonString
 import com.egm.stellio.search.common.util.toOptionalList
+import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
-import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTHENTICATED_SUBJECT
-import com.egm.stellio.shared.util.AuthContextModel.GENERIC_SUBJECTS
 import com.egm.stellio.shared.util.AuthContextModel.PUBLIC_SUBJECT
+import com.egm.stellio.shared.util.Claims
+import com.egm.stellio.shared.util.ErrorMessages.Authorization.subjectNotFoundMessage
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.containStellioAdmin
 import com.egm.stellio.shared.util.getSubFromSecurityContext
+import com.egm.stellio.shared.util.getTokenFromSecurityContext
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -33,8 +37,28 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class SubjectReferentialService(
+    private val applicationProperties: ApplicationProperties,
     private val databaseClient: DatabaseClient
 ) {
+
+    suspend fun getCurrentSubjectClaims(): Either<APIException, Claims> {
+        val claimsPaths = applicationProperties.authentication.claimsPaths
+        val token = getTokenFromSecurityContext() ?: return listOf(PUBLIC_SUBJECT).right()
+
+        return claimsPaths.flatMap { path ->
+            val paths = path.split(".")
+            val nodes = paths.dropLast(1)
+            val leaf = paths.last()
+            val claim: Map<String, Any> = nodes.fold(token.claims as Map<String, Any>) { currentClaim, node ->
+                currentClaim.getOrDefault(node, emptyMap<String, Any>()) as Map<String, Any>
+            }
+            claim.getOrDefault(leaf, emptyList<String>()) as List<String>
+        }.plus(listOf(getSubFromSecurityContext(), AUTHENTICATED_SUBJECT, PUBLIC_SUBJECT)).right()
+    }
+
+    suspend fun currentSubjectIsAdmin(): Either<APIException, Boolean> = either {
+        getCurrentSubjectClaims().bind().containStellioAdmin()
+    }
 
     @Transactional
     suspend fun create(subjectReferential: SubjectReferential): Either<APIException, Unit> =
@@ -83,37 +107,9 @@ class SubjectReferentialService(
                 """.trimIndent()
             )
             .bind("subject_id", sub)
-            .oneToResult(AccessDeniedException("No subject information found for $sub")) {
+            .oneToResult(AccessDeniedException(subjectNotFoundMessage(sub))) {
                 rowToSubjectReferential(it)
             }
-
-    suspend fun getSubjectAndGroupsUUID(): Either<APIException, List<Sub>> =
-        getSubjectAndGroupsUUID(getSubFromSecurityContext())
-
-    suspend fun getSubjectAndGroupsUUID(sub: Sub): Either<APIException, List<Sub>> =
-        when (sub) {
-            PUBLIC_SUBJECT -> listOf(PUBLIC_SUBJECT).right()
-            AUTHENTICATED_SUBJECT -> GENERIC_SUBJECTS.right()
-            else ->
-                databaseClient
-                    .sql(
-                        """
-                        SELECT subject_id, groups_memberships
-                        FROM subject_referential
-                        WHERE subject_id = :subject_id
-                        """.trimIndent()
-                    )
-                    .bind("subject_id", sub)
-                    .oneToResult(
-                        AccessDeniedException(
-                            "No subject information found for $sub"
-                        )
-                    ) {
-                        toOptionalList<Sub>(it["groups_memberships"]).orEmpty()
-                            .plus(it["subject_id"] as Sub)
-                            .plus(GENERIC_SUBJECTS)
-                    }
-        }
 
     suspend fun getGroups(offset: Int, limit: Int): List<Group> =
         databaseClient
@@ -234,9 +230,6 @@ class SubjectReferentialService(
                 """.trimIndent()
             )
             .oneToResult { toInt(it["count"]) }
-
-    suspend fun hasStellioAdminRole(uuids: List<Sub>): Either<APIException, Boolean> =
-        hasOneOfGlobalRoles(uuids, ADMIN_ROLES)
 
     suspend fun hasOneOfGlobalRoles(uuids: List<Sub>, roles: Set<GlobalRole>): Either<APIException, Boolean> =
         databaseClient

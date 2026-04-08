@@ -7,6 +7,8 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.Scope
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.atLeastOneRequiredMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.cannotSpecifyWhenPresent
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.fasterxml.jackson.annotation.JsonFormat
@@ -32,9 +34,9 @@ data class TargetAsset(
 
     fun validate(): Either<APIException, Unit> =
         if (id == null && types == null && scopes == null) {
-            BadRequestDataException("You must specify a target id, types or scopes").left()
+            BadRequestDataException(atLeastOneRequiredMessage("id", "types", "scopes")).left()
         } else if (id != null && (types != null || scopes != null)) {
-            BadRequestDataException("You can't target an id and types or scopes").left()
+            BadRequestDataException(cannotSpecifyWhenPresent("id", "types", "scopes")).left()
         } else { Unit.right() }
 
     @JsonIgnore

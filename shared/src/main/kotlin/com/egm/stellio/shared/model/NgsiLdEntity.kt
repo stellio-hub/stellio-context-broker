@@ -7,6 +7,22 @@ import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import arrow.core.right
 import arrow.fx.coroutines.parMap
+import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_MISSING_ID_PROPERTY_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_MISSING_TYPE_PROPERTY_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeForbiddenMemberMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeInconsistentInstanceTypesMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeInvalidOrNotImplementedTypeMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeMultipleDefaultInstancesMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeMultipleInstancesSameDatasetIdMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.geoPropertyMissingValueMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.jsonPropertyInvalidJsonMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.jsonPropertyMissingJsonMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.languagePropertyInvalidLanguageMapMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.languagePropertyMissingLanguageMapMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.propertyMissingValueMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.vocabPropertyInvalidVocabMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.vocabPropertyMissingVocabMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeUriMessage
 import com.egm.stellio.shared.util.isURI
 import java.net.URI
 import java.time.ZonedDateTime
@@ -24,15 +40,15 @@ class NgsiLdEntity private constructor(
         ): Either<APIException, NgsiLdEntity> = either {
             val parsedKeys = expandedEntity.members
             ensure(parsedKeys.containsKey(JSONLD_ID_KW)) {
-                BadRequestDataException("The provided NGSI-LD entity does not contain an id property")
+                BadRequestDataException(ENTITY_MISSING_ID_PROPERTY_MESSAGE)
             }
 
             ensure(parsedKeys.containsKey(JSONLD_TYPE_KW)) {
-                BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
+                BadRequestDataException(ENTITY_MISSING_TYPE_PROPERTY_MESSAGE)
             }
 
             val types = expandedEntity.types
-                .onEach { ensure(it.isURI()) { BadRequestDataException("type: $it should be a valid uri") } }
+                .onEach { ensure(it.isURI()) { BadRequestDataException(invalidTypeUriMessage(it)) } }
 
             val scopes = (parsedKeys as Map<String, List<Any>>).getScopes()
 
@@ -225,9 +241,9 @@ class NgsiLdPropertyInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdPropertyInstance> = either {
-            val value = values.getPropertyValue()
+            val value = values.getPropertyValue().getOrNull()
             ensureNotNull(value) {
-                BadRequestDataException("Property $name has an instance without a value")
+                BadRequestDataException(propertyMissingValueMessage(name))
             }
 
             val unitCode = values.getMemberValueAsString(NGSILD_UNIT_CODE_IRI)
@@ -295,9 +311,9 @@ class NgsiLdGeoPropertyInstance(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdGeoPropertyInstance> = either {
-            val wktValue = values.getMemberValue(NGSILD_GEOPROPERTY_VALUE) as? String
+            val wktValue = values.getMemberValue(NGSILD_GEOPROPERTY_VALUE).getOrNull() as? String
             ensureNotNull(wktValue) {
-                BadRequestDataException("GeoProperty $name has an instance without a value")
+                BadRequestDataException(geoPropertyMissingValueMessage(name))
             }
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
@@ -330,14 +346,12 @@ class NgsiLdJsonPropertyInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdJsonPropertyInstance> = either {
-            val json = values.getMemberValue(NGSILD_JSONPROPERTY_JSON)
+            val json = values.getMemberValue(NGSILD_JSONPROPERTY_JSON).getOrNull()
             ensureNotNull(json) {
-                BadRequestDataException("JsonProperty $name has an instance without a json member")
+                BadRequestDataException(jsonPropertyMissingJsonMessage(name))
             }
             ensure(json is Map<*, *> || json is List<*> && json.all { it is Map<*, *> }) {
-                BadRequestDataException(
-                    "JsonProperty $name has a json member that is not a JSON object, nor an array of JSON objects"
-                )
+                BadRequestDataException(jsonPropertyInvalidJsonMessage(name))
             }
 
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
@@ -373,10 +387,10 @@ class NgsiLdLanguagePropertyInstance private constructor(
         ): Either<APIException, NgsiLdLanguagePropertyInstance> = either {
             val languageMap = values[NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP]
             ensureNotNull(languageMap) {
-                BadRequestDataException("LanguageProperty $name has an instance without a languageMap member")
+                BadRequestDataException(languagePropertyMissingLanguageMapMessage(name))
             }
             ensure(isValidLanguageMap(languageMap)) {
-                BadRequestDataException("LanguageProperty $name has an invalid languageMap member")
+                BadRequestDataException(languagePropertyInvalidLanguageMapMessage(name))
             }
 
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
@@ -433,12 +447,10 @@ class NgsiLdVocabPropertyInstance private constructor(
         ): Either<APIException, NgsiLdVocabPropertyInstance> = either {
             val vocab = values[NGSILD_VOCABPROPERTY_VOCAB]
             ensureNotNull(vocab) {
-                BadRequestDataException("VocabProperty $name has an instance without a vocab member")
+                BadRequestDataException(vocabPropertyMissingVocabMessage(name))
             }
             ensure(vocab.all { it is Map<*, *> && it.size == 1 && it.containsKey(JSONLD_ID_KW) }) {
-                BadRequestDataException(
-                    "VocabProperty $name has a vocab member that is not a string, nor an array of string"
-                )
+                BadRequestDataException(vocabPropertyInvalidVocabMessage(name))
             }
 
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
@@ -497,7 +509,9 @@ private suspend fun parseAttributes(
                 NGSILD_JSONPROPERTY_TYPE.uri -> NgsiLdJsonProperty.create(it.first, it.second)
                 NGSILD_LANGUAGEPROPERTY_TYPE.uri -> NgsiLdLanguageProperty.create(it.first, it.second)
                 NGSILD_VOCABPROPERTY_TYPE.uri -> NgsiLdVocabProperty.create(it.first, it.second)
-                else -> BadRequestDataException("Attribute ${it.first} has an unknown type: $attributeType").left()
+                else -> BadRequestDataException(
+                    attributeInvalidOrNotImplementedTypeMessage(it.first, attributeType)
+                ).left()
             }
         }.let { l ->
             either { l.bindAll() }
@@ -514,7 +528,7 @@ fun checkInstancesAreOfSameType(
     type: AttributeType
 ): Either<APIException, Unit> = either {
     ensure(values.all { isAttributeOfType(it, type) }) {
-        BadRequestDataException("Attribute $name can't have instances with different types")
+        BadRequestDataException(attributeInconsistentInstanceTypesMessage(name))
     }
 }
 
@@ -523,7 +537,7 @@ fun checkAttributeDefaultInstance(
     instances: List<NgsiLdAttributeInstance>
 ): Either<APIException, Unit> = either {
     ensure(instances.count { it.datasetId == null } <= 1) {
-        BadRequestDataException("Attribute $name can't have more than one default instance")
+        BadRequestDataException(attributeMultipleDefaultInstancesMessage(name))
     }
 }
 
@@ -535,7 +549,7 @@ fun checkAttributeDuplicateDatasetId(
         it.datasetId
     }
     ensure(datasetIds.toSet().count() == datasetIds.count()) {
-        BadRequestDataException("Attribute $name can't have more than one instance with the same datasetId")
+        BadRequestDataException(attributeMultipleInstancesSameDatasetIdMessage(name))
     }
 }
 
@@ -545,9 +559,9 @@ fun checkAttributeHasNoForbiddenMembers(
     forbiddenMembers: Set<ExpandedTerm>
 ): Either<APIException, Unit> = either {
     forbiddenMembers.find {
-        instance.getMemberValue(it) != null
+        instance.getMemberValue(it).isRight()
     }.let {
-        if (it != null) BadRequestDataException("Attribute $name has an instance with a forbidden member: $it").left()
+        if (it != null) BadRequestDataException(attributeForbiddenMemberMessage(name, it)).left()
         else Unit.right()
     }
 }
@@ -576,7 +590,7 @@ suspend fun ExpandedAttributeInstances.toNgsiLdAttribute(
         NgsiLdLanguageProperty.create(attributeName, this)
     isAttributeOfType(this[0], NGSILD_VOCABPROPERTY_TYPE) ->
         NgsiLdVocabProperty.create(attributeName, this)
-    else -> BadRequestDataException("Unrecognized type for $attributeName").left()
+    else -> BadRequestDataException(attributeInvalidOrNotImplementedTypeMessage(attributeName)).left()
 }
 
 suspend fun ExpandedEntity.toNgsiLdEntity(): Either<APIException, NgsiLdEntity> =

@@ -25,6 +25,7 @@ import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.CATEGORY_IRI
 import com.egm.stellio.shared.util.CATEGORY_TERM
+import com.egm.stellio.shared.util.ErrorMessages.EntityTypeInfo.typeNotFoundMessage
 import com.egm.stellio.shared.util.FRIENDLYNAME_IRI
 import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
 import com.egm.stellio.shared.util.INCOMING_IRI
@@ -42,7 +43,6 @@ import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.shared.util.typeNotFoundMessage
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -105,6 +105,12 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         Attribute.AttributeType.JsonProperty,
         Attribute.AttributeValueType.JSON
     )
+    private val luminosityProperty = newAttribute(
+        "urn:ngsi-ld:BeeHive:TESTA",
+        LUMINOSITY_IRI,
+        Attribute.AttributeType.Property,
+        Attribute.AttributeValueType.NUMBER
+    )
     private val friendlyNameLanguageProperty = newAttribute(
         "urn:ngsi-ld:BeeHive:TESTA",
         FRIENDLYNAME_IRI,
@@ -136,6 +142,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         createAttribute(luminosityJsonProperty)
         createAttribute(friendlyNameLanguageProperty)
         createAttribute(categoryVocabProperty)
+        createAttribute(luminosityProperty)
     }
 
     @Test
@@ -175,6 +182,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                         attributeNames = listOf(
                             FRIENDLYNAME_TERM,
                             INCOMING_TERM,
+                            LUMINOSITY_TERM,
                             MANAGED_BY_TERM
                         )
                     ),
@@ -225,7 +233,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                         AttributeInfo(
                             id = toUri(LUMINOSITY_IRI),
                             attributeName = LUMINOSITY_TERM,
-                            attributeTypes = listOf(AttributeType.JsonProperty)
+                            attributeTypes = listOf(AttributeType.Property, AttributeType.JsonProperty)
                         ),
                         AttributeInfo(
                             id = toUri(MANAGED_BY_IRI),

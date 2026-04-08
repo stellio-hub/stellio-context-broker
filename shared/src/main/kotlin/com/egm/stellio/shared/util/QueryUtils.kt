@@ -52,12 +52,37 @@ fun String.isRange(): Boolean =
 fun String.rangeInterval(): Pair<Any, Any> =
     Pair(this.split("..")[0], this.split("..")[1])
 
-// a string value could contain a comma ... to be improved
-fun String.isValueList(): Boolean =
-    this.contains(",")
+fun String.isValueList(): Boolean {
+    var inQuotes = false
+    for (char in this) {
+        when (char) {
+            '"' -> inQuotes = !inQuotes
+            ',' if !inQuotes -> return true
+        }
+    }
+    return false
+}
 
-fun String.listOfValues(): Set<String> =
-    this.split(",").toSet()
+fun String.listOfValues(): Set<String> {
+    val values = mutableListOf<String>()
+    var inQuotes = false
+    val current = StringBuilder()
+    for (char in this) {
+        when (char) {
+            '"' -> {
+                inQuotes = !inQuotes
+                current.append(char)
+            }
+            ',' if !inQuotes -> {
+                values.add(current.toString())
+                current.clear()
+            }
+            else -> current.append(char)
+        }
+    }
+    values.add(current.toString())
+    return values.toSet()
+}
 
 fun Iterable<String>.toTypeSelection() = this.joinToString(",")
 

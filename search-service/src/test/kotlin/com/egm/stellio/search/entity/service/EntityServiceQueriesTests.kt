@@ -276,7 +276,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "simpleQuoteString~=\"(?i).*It's a name.*\", 1, urn:ngsi-ld:BeeHive:01",
         "simpleQuoteString~=\"(?i)^it's.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "simpleQuoteString==\"It's a name\", 1, urn:ngsi-ld:BeeHive:01",
-        "parenthesisString==\"It's (a) name\", 1, urn:ngsi-ld:BeeHive:01",
+        "'parenthesisString==\"Ammotragus lervia (Pallas, 1777)\"', 1, urn:ngsi-ld:BeeHive:01",
         "dateTime==2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "dateTime~=2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "dateTime>2023-02-16T00:00:00Z, 1, urn:ngsi-ld:BeeHive:02",

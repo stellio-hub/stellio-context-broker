@@ -110,7 +110,7 @@ class CompactedEntityTests {
     }
 
     @Test
-    fun `it should return an UnprocessableEntity error when no entity member matches the pick parameter`() = runTest {
+    fun `it should return an ResourceNotFound error when no entity member matches the pick parameter`() = runTest {
         val entity = loadSampleData("beehive_with_single_attribute_instances.jsonld").deserializeAsMap()
 
         val pickAndOmitParams = parsePickOmitParameters("unknown", null)
@@ -120,7 +120,7 @@ class CompactedEntityTests {
             pickAndOmitParams.first.getRootAttributesToPick(),
             pickAndOmitParams.second.getRootAttributesToOmit()
         ).shouldFailWith {
-            it is UnprocessableEntityException &&
+            it is ResourceNotFoundException &&
                 it.message == "No entity member left after applying pick and omit"
         }
     }

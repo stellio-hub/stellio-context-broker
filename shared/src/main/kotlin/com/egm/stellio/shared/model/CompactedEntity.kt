@@ -96,7 +96,7 @@ fun CompactedEntity.filterPickAndOmit(pick: Set<String>, omit: Set<String>): Eit
         !omit.contains(it)
     }.let {
         if (it.all { entry -> COMPACTED_ENTITY_MINIMAL_MEMBERS.contains(entry.key) })
-            UnprocessableEntityException(NO_ENTITY_MEMBER_AFTER_PROJECTION_MESSAGE).left()
+            ResourceNotFoundException(NO_ENTITY_MEMBER_AFTER_PROJECTION_MESSAGE).left()
         else it.right()
     }
 

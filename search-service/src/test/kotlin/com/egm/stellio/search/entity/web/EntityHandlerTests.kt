@@ -1117,7 +1117,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entity by id should return 422 if no entity member left after applying pick and omit`() {
+    fun `get entity by id should return 404 if no entity member left after applying pick and omit`() {
         initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any()) } returns ExpandedEntity(
             mapOf(
@@ -1129,11 +1129,11 @@ class EntityHandlerTests {
         webClient.get()
             .uri("/ngsi-ld/v1/entities/$beehiveId?pick=name")
             .exchange()
-            .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT)
+            .expectStatus().isEqualTo(HttpStatus.NOT_FOUND)
             .expectBody().json(
                 """
                 {
-                    "type": "https://uri.etsi.org/ngsi-ld/errors/UnprocessableEntity",
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                     "title": "No entity member left after applying pick and omit"
                 }
                 """.trimIndent()

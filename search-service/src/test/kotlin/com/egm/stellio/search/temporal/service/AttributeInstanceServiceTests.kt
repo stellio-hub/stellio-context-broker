@@ -1,6 +1,8 @@
 package com.egm.stellio.search.temporal.service
 
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.common.util.deserializeTemporalValue
+import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.service.EntityAttributeService
@@ -11,9 +13,11 @@ import com.egm.stellio.search.support.SAMPLE_VOCAB_PROPERTY_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
+import com.egm.stellio.search.support.gimmeGeoPropertyAttributeInstance
 import com.egm.stellio.search.support.gimmeJsonPropertyAttributeInstance
 import com.egm.stellio.search.support.gimmeLanguagePropertyAttributeInstance
 import com.egm.stellio.search.support.gimmeNumericPropertyAttributeInstance
+import com.egm.stellio.search.support.gimmePropertyAttributeInstance
 import com.egm.stellio.search.support.gimmeTemporalEntitiesQuery
 import com.egm.stellio.search.support.gimmeVocabPropertyAttributeInstance
 import com.egm.stellio.search.temporal.model.AttributeInstance
@@ -39,6 +43,7 @@ import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -63,6 +68,7 @@ import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.wktToGeoJson
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
@@ -336,7 +342,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             val observedAt = ngsiLdDateTime()
             val attributeMetadata = AttributeMetadata(
                 measuredValue = null,
-                value = "some value",
+                value = "some value".toJson(),
                 geoValue = null,
                 valueType = Attribute.AttributeValueType.STRING,
                 datasetId = null,
@@ -591,7 +597,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             gimmeNumericPropertyAttributeInstance(
                 attributeUuid = incomingAttribute.id,
                 time = now,
-                measuredValue = 100.0
+                measuredValue = 100.1
             )
         )
         assertThat(createResult.isRight())
@@ -609,7 +615,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             assertThat(results)
                 .singleElement()
                 .matches {
-                    (it as SimplifiedAttributeInstanceResult).value == 100.0
+                    (it as SimplifiedAttributeInstanceResult).value == 100.1
                 }
         }
     }
@@ -684,7 +690,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         )
         val attributeMetadata = AttributeMetadata(
             measuredValue = null,
-            value = false.toString(),
+            value = false.toJson(),
             geoValue = null,
             valueType = Attribute.AttributeValueType.BOOLEAN,
             datasetId = null,
@@ -715,7 +721,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService["create"](
                 match<AttributeInstance> {
                     it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
-                        it.value == "false" &&
+                        it.value?.deserializeTemporalValue() == false &&
                         it.measuredValue == null &&
                         it.payload.asString().matchContent(
                             """
@@ -761,7 +767,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.addDeletedAttributeInstance(
             incomingAttribute.id,
-            NGSILD_NULL,
+            NGSILD_NULL.toJson(),
             deletedAt,
             attributeValues
         )
@@ -770,7 +776,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService["create"](
                 match<AttributeInstance> {
                     it.time.toString() == "2025-01-02T11:20:30.000001Z" &&
-                        it.value == "urn:ngsi-ld:null" &&
+                        it.value?.deserializeTemporalValue() == "urn:ngsi-ld:null" &&
                         it.measuredValue == null &&
                         it.payload.asString().matchContent(
                             """
@@ -1113,5 +1119,183 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             .shouldSucceedWith { assertThat(it).hasSize(5) }
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith { assertThat(it).isEmpty() }
+    }
+
+    @Test
+    fun `it should retrieve temporal values for boolean properties`() = runTest {
+        val booleanAttribute = Attribute(
+            entityId = entityId,
+            attributeName = "booleanProperty",
+            attributeValueType = Attribute.AttributeValueType.BOOLEAN,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        entityAttributeService.upsert(booleanAttribute)
+
+        (1..5).forEach { index ->
+            val observedAt = now.plusHours(index.toLong())
+            val booleanValue = index % 2 == 0
+            attributeInstanceService.create(
+                gimmePropertyAttributeInstance(
+                    attributeUuid = booleanAttribute.id,
+                    value = booleanValue,
+                    valueType = Attribute.AttributeValueType.BOOLEAN,
+                    time = observedAt
+                )
+            )
+        }
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = now
+                ),
+                TemporalRepresentation.TEMPORAL_VALUES
+            ),
+            booleanAttribute
+        ).shouldSucceedWith { results ->
+            assertThat(results)
+                .hasSize(5)
+            val simplifiedResults = results as List<SimplifiedAttributeInstanceResult>
+            // Results are ordered by time ASC (oldest first)
+            assertThat(simplifiedResults.map { it.value })
+                .containsExactly(false, true, false, true, false)
+        }
+    }
+
+    @Test
+    fun `it should retrieve temporal values for text properties`() = runTest {
+        val textAttribute = Attribute(
+            entityId = entityId,
+            attributeName = "textProperty",
+            attributeValueType = Attribute.AttributeValueType.STRING,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        entityAttributeService.upsert(textAttribute)
+
+        val textValues = listOf("value1", "value2", "value3")
+        textValues.forEachIndexed { index, textValue ->
+            val observedAt = now.plusHours(index.toLong())
+            attributeInstanceService.create(
+                gimmePropertyAttributeInstance(
+                    attributeUuid = textAttribute.id,
+                    value = textValue,
+                    valueType = Attribute.AttributeValueType.STRING,
+                    time = observedAt
+                )
+            )
+        }
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = now
+                ),
+                TemporalRepresentation.TEMPORAL_VALUES
+            ),
+            textAttribute
+        ).shouldSucceedWith { results ->
+            assertThat(results)
+                .hasSize(3)
+            val simplifiedResults = results as List<SimplifiedAttributeInstanceResult>
+            assertThat(simplifiedResults.map { it.value })
+                .containsExactlyElementsOf(textValues)
+        }
+    }
+
+    @Test
+    fun `it should retrieve temporal values for list of text properties`() = runTest {
+        val arrayAttribute = Attribute(
+            entityId = entityId,
+            attributeName = "arrayProperty",
+            attributeValueType = Attribute.AttributeValueType.ARRAY,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        entityAttributeService.upsert(arrayAttribute)
+
+        val arrayValues = listOf(
+            listOf("item1", "item2"),
+            listOf("item3", "item4", "item5"),
+            listOf("item6")
+        )
+        arrayValues.forEachIndexed { index, arrayValue ->
+            val observedAt = now.plusHours(index.toLong())
+            attributeInstanceService.create(
+                gimmePropertyAttributeInstance(
+                    attributeUuid = arrayAttribute.id,
+                    value = arrayValue,
+                    valueType = Attribute.AttributeValueType.ARRAY,
+                    time = observedAt
+                )
+            )
+        }
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = now
+                ),
+                TemporalRepresentation.TEMPORAL_VALUES
+            ),
+            arrayAttribute
+        ).shouldSucceedWith { results ->
+            assertThat(results)
+                .hasSize(3)
+            val simplifiedResults = results as List<SimplifiedAttributeInstanceResult>
+            assertThat(simplifiedResults.map { it.value })
+                .containsExactlyElementsOf(arrayValues)
+        }
+    }
+
+    @Test
+    fun `it should retrieve temporal values for geoproperty`() = runTest {
+        val geoAttribute = Attribute(
+            entityId = entityId,
+            attributeName = "geoProperty",
+            attributeValueType = Attribute.AttributeValueType.GEOMETRY,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        entityAttributeService.upsert(geoAttribute)
+
+        val geoValues = listOf(
+            WKTCoordinates("POINT (24.30623 60.07966)"),
+            WKTCoordinates("POINT (25.30623 61.07966)"),
+            WKTCoordinates("POINT (26.30623 62.07966)")
+        )
+        geoValues.forEachIndexed { index, geoValue ->
+            val observedAt = now.plusHours(index.toLong())
+            attributeInstanceService.create(
+                gimmeGeoPropertyAttributeInstance(
+                    attributeUuid = geoAttribute.id,
+                    geoValue = geoValue,
+                    time = observedAt
+                )
+            )
+        }
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = now
+                ),
+                TemporalRepresentation.TEMPORAL_VALUES
+            ),
+            geoAttribute
+        ).shouldSucceedWith { results ->
+            assertThat(results)
+                .hasSize(3)
+            results as List<SimplifiedAttributeInstanceResult>
+            assertThat(results.map { it.value })
+                .containsExactlyElementsOf(
+                    geoValues.map { wktToGeoJson(it.value) }
+                )
+        }
     }
 }

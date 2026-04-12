@@ -67,6 +67,9 @@ subprojects {
         implementation("com.apicatalog:titanium-json-ld:1.7.0")
         implementation("org.glassfish:jakarta.json:2.0.1")
 
+        implementation("com.github.stellio-hub:json-merge:0.1.0")
+        implementation("org.json:json:20251224")
+
         implementation("io.arrow-kt:arrow-fx-coroutines:2.2.2.1")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.20.0")

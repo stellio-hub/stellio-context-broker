@@ -26,9 +26,11 @@ import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceContactErrorMe
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceNoErrorMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportCreationMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportDeletionMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportPurgeMessage
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.toTypeSelection
+import com.egm.stellio.shared.util.toUri
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -69,6 +71,34 @@ class DistributedEntityProvisionService(
                     result.addEither(
                         ConflictException(csrDoesNotSupportDeletionMessage(csr.id)).left(),
                         entityId,
+                        csr.id
+                    )
+                }
+            }
+
+        return result
+    }
+
+    suspend fun distributePurgeEntities(
+        queryParams: MultiValueMap<String, String>
+    ): BatchOperationResult {
+        val ids = queryParams.getFirst(QP.ID.key)?.split(",")?.map { it.toUri() }?.toSet() ?: emptySet()
+        val csrFilters = CSRFilters(ids = ids, typeSelection = queryParams.getFirst(QP.TYPE.key))
+        val result = BatchOperationResult()
+        val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(filters = csrFilters)
+
+        matchingCSR.filter { it.mode != Mode.AUXILIARY }
+            .forEach { csr ->
+                if (csr.isMatchingOperation(Operation.PURGE_ENTITY)) {
+                    result.addEither(
+                        sendDistributedInformation(null, csr, entityPath, HttpMethod.DELETE, queryParams),
+                        csr.id,
+                        csr.id
+                    )
+                } else if (csr.mode != Mode.INCLUSIVE) {
+                    result.addEither(
+                        ConflictException(csrDoesNotSupportPurgeMessage(csr.id)).left(),
+                        csr.id,
                         csr.id
                     )
                 }

@@ -70,6 +70,14 @@ enum class Operation(
         NGSILDPath.ENTITIES
     ),
 
+    @JsonProperty("purgeEntity")
+    PURGE_ENTITY(
+        "purgeEntity",
+        setOf(REDIRECTION_OPS),
+        HttpMethod.DELETE,
+        NGSILDPath.ENTITIES
+    ),
+
     // not implemented
     @JsonProperty("createBatch")
     CREATE_BATCH("createBatch"),

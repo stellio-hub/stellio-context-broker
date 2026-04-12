@@ -30,6 +30,10 @@ enum class QueryParameter(
     COORDINATES("coordinates"),
     GEOPROPERTY("geoproperty"),
 
+    // purge entities
+    KEEP("keep"),
+    DROP("drop"),
+
     // temporal
     TIMEREL("timerel"),
     TIMEAT("timeAt"),

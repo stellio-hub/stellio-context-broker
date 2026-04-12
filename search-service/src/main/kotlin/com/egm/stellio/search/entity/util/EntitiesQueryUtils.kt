@@ -20,6 +20,8 @@ import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePagi
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ATTRIBUTES_WITH_PICK_OR_OMIT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ENTITY_MEMBER_IN_PICK_AND_OMIT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.KEEP_AND_DROP_BOTH_PROVIDED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.MISSING_REQUIRED_PURGE_QUERY_PARAMETER_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.MISSING_REQUIRED_QUERY_PARAMETER_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.decode
@@ -102,6 +104,24 @@ fun EntitiesQueryFromGet.validateMinimalQueryEntitiesParameters(): Either<APIExc
 
     this@validateMinimalQueryEntitiesParameters
 }
+
+fun EntitiesQueryFromGet.validateMinimalPurgeEntitiesParameters(
+    keep: Set<String>,
+    drop: Set<String>
+): Either<APIException, EntitiesQueryFromGet> =
+    if (keep.isNotEmpty() && drop.isNotEmpty())
+        BadRequestDataException(KEEP_AND_DROP_BOTH_PROVIDED_MESSAGE).left()
+    else if (
+        typeSelection.isNullOrEmpty() &&
+        keep.isEmpty() &&
+        drop.isEmpty() &&
+        q.isNullOrEmpty() &&
+        geoQuery == null &&
+        !local
+    )
+        BadRequestDataException(MISSING_REQUIRED_PURGE_QUERY_PARAMETER_MESSAGE).left()
+    else
+        this.right()
 
 fun composeEntitiesQueryFromPost(
     defaultPagination: ApplicationProperties.Pagination,

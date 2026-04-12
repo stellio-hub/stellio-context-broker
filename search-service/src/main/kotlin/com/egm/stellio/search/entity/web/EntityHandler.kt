@@ -12,6 +12,7 @@ import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.service.LinkedEntityService
 import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
+import com.egm.stellio.search.entity.util.validateMinimalPurgeEntitiesParameters
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -45,6 +46,7 @@ import com.egm.stellio.shared.util.extractPayloadAndContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.missingPathErrorResponse
+import com.egm.stellio.shared.util.parseAttrsParameter
 import com.egm.stellio.shared.util.parseTimeParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.util.toUri
@@ -376,6 +378,46 @@ class EntityHandler(
 
         return result.toNonBatchEndpointResponse(entityId, HttpStatus.NO_CONTENT)
     }
+
+    /**
+     * Implements 6.4.3.3 - Purge Entities
+     */
+    @DeleteMapping
+    suspend fun purgeEntities(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @AllowedParameters(
+            implemented = [
+                QP.ID, QP.TYPE, QP.ID_PATTERN, QP.Q, QP.SCOPEQ,
+                QP.GEOREL, QP.GEOMETRY, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY,
+                QP.KEEP, QP.DROP, QP.LOCAL
+            ],
+            notImplemented = [QP.VIA]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
+        val entitiesQuery = composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
+
+        val keep = parseAttrsParameter(queryParams.getFirst(QP.KEEP.key), contexts).bind()
+        val drop = parseAttrsParameter(queryParams.getFirst(QP.DROP.key), contexts).bind()
+
+        entitiesQuery.validateMinimalPurgeEntitiesParameters(keep, drop).bind()
+
+        val result = if (queryParams.getFirst(QP.LOCAL.key)?.toBoolean() != true) {
+            distributedEntityProvisionService.distributePurgeEntities(queryParams)
+        } else BatchOperationResult()
+
+        entityService.purgeEntities(entitiesQuery, keep, drop).bind()
+            .let { localResult -> result += localResult }
+
+        if (result.errors.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(result)
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
 
     /**
      * Implements 6.6.3.1 - Append Entity Attributes

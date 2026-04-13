@@ -23,6 +23,7 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.DataTypes.deserializeAs
 import com.egm.stellio.shared.util.ErrorMessages.Csr.CONTEXT_SOURCE_MULTISTATUS_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Csr.CSR_IDPATTERN_CONFLICT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceContactErrorMessage
@@ -113,17 +114,13 @@ class DistributedEntityProvisionService(
                 else {
                     val newParams = entityInfo?.first()?.let { queryParams.addFilterForEntityInfo(it) } ?: queryParams
 
-                    sendDistributedPurgeOperation(
-                        httpHeaders,
-                        csr,
-                        newParams
-                    ).fold({
+                    sendDistributedPurgeOperation(httpHeaders, csr, newParams).fold({
                         result.addEither(it.left(), "urn:ngsi-ld:*".toUri(), csr.id)
                     }, {
                         if (it.second == HttpStatus.NO_CONTENT) {
-
+                            result.addEither(Unit.right(), "urn:ngsi-ld:*".toUri(), csr.id)
                         } else if (it.second == HttpStatus.MULTI_STATUS) {
-
+                            result += deserializeAs<BatchOperationResult>(it.first!!)
                         }
                     })
                 }

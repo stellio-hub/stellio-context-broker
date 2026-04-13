@@ -692,7 +692,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `purgeEntities should delete each entity matching the query`() = runTest {
-        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
+        coEvery { authorizationService.getAccessRightWithClauseAndFilter(any()) } returns null
         coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery {
             entityAttributeService.deleteAttributes(any(), any())
@@ -714,7 +714,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `purgeEntities in drop mode should delete only the specified attributes`() = runTest {
-        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
+        coEvery { authorizationService.getAccessRightWithClauseAndFilter(any()) } returns null
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
             entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
@@ -749,7 +749,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `purgeEntities in keep mode should delete all attributes except those in keep`() = runTest {
-        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
+        coEvery { authorizationService.getAccessRightWithClauseAndFilter(any()) } returns null
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
             entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
@@ -789,7 +789,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     fun `purgeEntities should collect errors and successes when some operations fail`() = runTest {
-        coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
+        coEvery { authorizationService.getAccessRightWithClauseAndFilter(any()) } returns null
         coEvery { authorizationService.userCanAdminEntity(any()) } returns
             AccessDeniedException("User is not allowed to purge entity $entity01Uri").left()
 

@@ -14,7 +14,6 @@ import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildDefaultPagination
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.GatewayTimeoutException
@@ -22,7 +21,6 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.ErrorMessages.Csr.CSR_IDPATTERN_CONFLICT_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_IRI
@@ -52,6 +50,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatusCode
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.LinkedMultiValueMap
 import java.net.URI
@@ -428,8 +427,8 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         } returns listOf(csrWithEntityInfoId)
 
         coEvery {
-            distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any(), any())
-        } returns Unit.right()
+            distributedEntityProvisionService.sendDistributedPurgeOperation(any(), any(), any())
+        } returns Pair(null, HttpStatusCode.valueOf(204)).right()
 
         val queryParams = LinkedMultiValueMap<String, String>()
         val result = distributedEntityProvisionService.distributePurgeEntities(
@@ -441,11 +440,9 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         assertTrue(result.isRight())
 
         coVerify(exactly = 1) {
-            distributedEntityProvisionService.sendDistributedInformation(
-                null,
+            distributedEntityProvisionService.sendDistributedPurgeOperation(
+                HttpHeaders.EMPTY,
                 csrWithEntityInfoId,
-                any(),
-                HttpMethod.DELETE,
                 match { params ->
                     params.getFirst(QP.ID.key) == apiaryId &&
                         params.getFirst(QP.TYPE.key) == APIARY_IRI
@@ -479,9 +476,15 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
                 queryParams
             )
 
-            assertTrue(result.isLeft())
-            assertInstanceOf(BadRequestDataException::class.java, result.leftOrNull())
-            assertEquals(CSR_IDPATTERN_CONFLICT_MESSAGE, result.leftOrNull()?.message)
+            assertTrue(result.isRight())
+            val batchOperationResult = result.getOrNull()!!
+            assertThat(batchOperationResult)
+                .isNotNull()
+                .matches {
+                    it.errors.size == 1 &&
+                        it.success.isEmpty() &&
+                        it.errors[0].error.type == ErrorType.CONFLICT.type
+                }
         }
 
     @Test
@@ -499,8 +502,8 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
             } returns listOf(csrWithoutIdPattern)
 
             coEvery {
-                distributedEntityProvisionService.sendDistributedInformation(any(), any(), any(), any(), any())
-            } returns Unit.right()
+                distributedEntityProvisionService.sendDistributedPurgeOperation(any(), any(), any())
+            } returns Pair(null, HttpStatusCode.valueOf(204)).right()
 
             val queryParams = LinkedMultiValueMap<String, String>()
             queryParams.add(QP.ID_PATTERN.key, "urn:ngsi-ld:.*")

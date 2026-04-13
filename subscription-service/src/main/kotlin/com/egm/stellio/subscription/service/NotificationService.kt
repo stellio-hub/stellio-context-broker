@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.service
 
 import arrow.core.Either
+import arrow.core.raise.Raise
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AttributeRepresentation
@@ -22,6 +23,7 @@ import com.egm.stellio.shared.model.getTypeAndValue
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.util.JsonLdUtils.compactAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.acceptToMediaType
 import com.egm.stellio.shared.util.getTenantFromContext
@@ -35,6 +37,7 @@ import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.mqtt.MqttNotificationService
+import com.savvasdalkitsis.jsonmerger.JsonMerger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -68,55 +71,100 @@ class NotificationService(
             notificationTrigger
         ).bind().map {
             val contexts = it.jsonldContext?.let { listOf(it.toString()) } ?: it.contexts
-            val compactedEntities =
-                if (it.notification.join in listOf(JoinType.FLAT, JoinType.INLINE)) {
-                    coreAPIService.retrieveLinkedEntities(
-                        tenantName,
-                        expandedEntity.id,
-                        it.notification,
-                        subscriptionService.getContextsLink(it)
-                    )
-                } else {
-                    val filteredEntity = expandedEntity.filterAttributes(
-                        it.notification.attributes?.toSet().orEmpty()
-                    ).applyDatasetView(
-                        it.datasetId?.toSet().orEmpty()
-                    )
-                    val entityRepresentation =
-                        EntityRepresentation.forMediaType(acceptToMediaType(it.notification.endpoint.accept.accept))
-                    val attributeRepresentation =
-                        if (it.notification.format in listOf(FormatType.KEY_VALUES, FormatType.SIMPLIFIED))
-                            AttributeRepresentation.SIMPLIFIED
-                        else AttributeRepresentation.NORMALIZED
+            val compactedEntity = prepareEntityRepresentation(expandedEntity, it, contexts)
 
-                    compactEntity(
-                        filteredEntity,
-                        contexts
-                    ).filterPickAndOmit(it.notification.pick.orEmpty(), it.notification.omit.orEmpty()).bind()
-                        .toFinalRepresentation(
-                            NgsiLdDataRepresentation(
-                                entityRepresentation,
-                                attributeRepresentation,
-                                it.notification.sysAttrs,
-                                it.lang
-                            )
-                        ).wrapToList()
-                }
+            val compactedEntityWithLinkedEntities =
+                if (it.notification.join in listOf(JoinType.FLAT, JoinType.INLINE))
+                    injectLinkedEntities(tenantName, expandedEntity.id, it, compactedEntity)
+                else compactedEntity.wrapToList()
 
             val compactedEntitiesWithPreviousValues =
                 if (it.notification.showChanges)
                     addChangesInNotifiedEntity(
                         expandedEntity.id,
-                        compactedEntities,
+                        compactedEntityWithLinkedEntities,
                         updatedAttribute,
                         previousPayload,
                         notificationTrigger,
                         contexts
                     )
-                else compactedEntities
+                else compactedEntityWithLinkedEntities
 
             callSubscriber(it, compactedEntitiesWithPreviousValues)
         }
+    }
+
+    private suspend fun injectLinkedEntities(
+        tenantName: String,
+        entityId: URI,
+        subscription: Subscription,
+        compactedEntity: Map<String, Any?>
+    ): List<Map<String, Any?>> {
+        val entityWithLinkedEntities = coreAPIService.retrieveLinkedEntities(
+            tenantName,
+            entityId,
+            subscription.notification,
+            subscriptionService.getContextsLink(subscription)
+        )
+
+        // since the call to search service can return an entity updated since the event has been received,
+        // re-inject the entity received in the event into the result received from the search service
+        return when (subscription.notification.join) {
+            JoinType.INLINE -> {
+                if (subscription.notification.format in listOf(FormatType.KEY_VALUES, FormatType.SIMPLIFIED)) {
+                    // JsonMerger cannot handle the merge in simplified representation since relationships are objects
+                    // on one side (the entity with linked entities) and strings on the other (the compacted entity)
+                    val linkedEntityAttributes = entityWithLinkedEntities[0]
+                        .filter { (_, value) -> value is Map<*, *> && value.containsKey(NGSILD_ID_TERM) }
+                    (compactedEntity + linkedEntityAttributes).wrapToList()
+                } else {
+                    JsonMerger().merge(
+                        serializeObject(entityWithLinkedEntities[0]),
+                        serializeObject(compactedEntity)
+                    ).deserializeAsMap().wrapToList()
+                }
+            }
+            JoinType.FLAT -> {
+                entityWithLinkedEntities.map { entity ->
+                    if (entity[NGSILD_ID_TERM] == entityId.toString())
+                        compactedEntity
+                    else entity
+                }
+            }
+            else -> compactedEntity.wrapToList()
+        }
+    }
+
+    private fun Raise<APIException>.prepareEntityRepresentation(
+        expandedEntity: ExpandedEntity,
+        subscription: Subscription,
+        contexts: List<String>
+    ): Map<String, Any?> {
+        val filteredEntity = expandedEntity.filterAttributes(
+            subscription.notification.attributes?.toSet().orEmpty()
+        ).applyDatasetView(
+            subscription.datasetId?.toSet().orEmpty()
+        )
+        val entityRepresentation =
+            EntityRepresentation.forMediaType(acceptToMediaType(subscription.notification.endpoint.accept.accept))
+        val attributeRepresentation =
+            if (subscription.notification.format in listOf(FormatType.KEY_VALUES, FormatType.SIMPLIFIED))
+                AttributeRepresentation.SIMPLIFIED
+            else AttributeRepresentation.NORMALIZED
+
+        val compactedEntity = compactEntity(
+            filteredEntity,
+            contexts
+        ).filterPickAndOmit(subscription.notification.pick.orEmpty(), subscription.notification.omit.orEmpty()).bind()
+            .toFinalRepresentation(
+                NgsiLdDataRepresentation(
+                    entityRepresentation,
+                    attributeRepresentation,
+                    subscription.notification.sysAttrs,
+                    subscription.lang
+                )
+            )
+        return compactedEntity
     }
 
     internal fun addChangesInNotifiedEntity(

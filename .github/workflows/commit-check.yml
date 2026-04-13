@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: 0  # Required for merge-base checks
-      - uses: commit-check/commit-check-action@443fb6a114414358496e6243105294c3b11610c5 # V2.4.2
+      - uses: commit-check/commit-check-action@2fe41833054c561710099d8e3e22bbeab4fe204a # V2.5.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed for PR comments
         with:

@@ -377,7 +377,7 @@ class EntityHandlerTests {
             registrationId = "id:2".toUri()
         )
         val firstResult = BatchOperationResult(
-            mutableListOf(BatchEntitySuccess("id:1".toUri())),
+            mutableListOf("id:1".toUri()),
             mutableListOf(error)
         )
         coEvery {
@@ -2498,7 +2498,7 @@ class EntityHandlerTests {
             registrationId = "id:2".toUri()
         )
         val firstResult = BatchOperationResult(
-            mutableListOf(BatchEntitySuccess("id:1".toUri())),
+            mutableListOf("id:1".toUri()),
             mutableListOf(error)
         )
         coEvery {
@@ -2699,7 +2699,7 @@ class EntityHandlerTests {
     @Test
     fun `purge entities should return 207 when some entities could not be purged`() {
         val partialResult = BatchOperationResult(
-            success = mutableListOf(BatchEntitySuccess(beehiveId)),
+            success = mutableListOf(beehiveId),
             errors = mutableListOf(
                 BatchEntityError(
                     "urn:ngsi-ld:BeeHive:OTHER".toUri(),

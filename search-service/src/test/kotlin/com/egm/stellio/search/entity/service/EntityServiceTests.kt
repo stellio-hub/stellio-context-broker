@@ -11,7 +11,6 @@ import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.web.BatchEntityError
-import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.gimmeSucceededAttributeOperationResult
@@ -706,7 +705,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val result = entityService.purgeEntities(buildTypeQuery(BEEHIVE_IRI)).shouldSucceedAndResult()
 
         assertTrue(result.errors.isEmpty())
-        assertThat(result.success).hasSize(1).contains(BatchEntitySuccess(entity01Uri))
+        assertThat(result.success).hasSize(1).contains(entity01Uri)
 
         entityQueryService.retrieve(entity01Uri)
             .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }

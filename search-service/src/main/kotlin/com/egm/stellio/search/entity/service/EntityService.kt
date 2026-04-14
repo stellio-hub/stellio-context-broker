@@ -32,7 +32,6 @@ import com.egm.stellio.search.entity.model.hasSuccessfulResult
 import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.search.entity.web.BatchEntityError
-import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
@@ -740,7 +739,7 @@ class EntityService(
                 keep.isEmpty() && drop.isEmpty() ->
                     deleteEntity(entityId).fold(
                         { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
-                        { result.success.add(BatchEntitySuccess(entityId)) }
+                        { result.success.add(entityId) }
                     )
                 keep.isNotEmpty() -> {
                     val currentAttrNames = entityAttributeService
@@ -750,7 +749,7 @@ class EntityService(
                     currentAttrNames.minus(keep).forEach { attrName ->
                         deleteAttribute(entityId, attrName, null, true).fold(
                             { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
-                            { result.success.add(BatchEntitySuccess(entityId)) }
+                            { result.success.add(entityId) }
                         )
                     }
                 }
@@ -758,7 +757,7 @@ class EntityService(
                     drop.forEach { attrName ->
                         deleteAttribute(entityId, attrName, null, true).fold(
                             { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
-                            { result.success.add(BatchEntitySuccess(entityId)) }
+                            { result.success.add(entityId) }
                         )
                     }
             }

@@ -28,7 +28,9 @@ import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.toTypeSelection
 import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.badRequest
+import com.github.tomakehurst.wiremock.client.WireMock.delete
 import com.github.tomakehurst.wiremock.client.WireMock.post
+import com.github.tomakehurst.wiremock.client.WireMock.status
 import com.github.tomakehurst.wiremock.client.WireMock.stubFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
@@ -685,5 +687,106 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         assertTrue(result.isRight())
         assertEquals(2, result.getOrNull()?.errors?.size)
+    }
+
+    @Test
+    fun `sendDistributedPurgeOperation should process badly formed errors`() = runTest {
+        val csr = gimmeRawCSR()
+        val path = "/ngsi-ld/v1/entities"
+
+        stubFor(
+            delete(urlMatching(path))
+                .willReturn(badRequest().withBody(invalidErrorResponse))
+        )
+
+        val response = distributedEntityProvisionService.sendDistributedPurgeOperation(
+            HttpHeaders.EMPTY,
+            csr,
+            LinkedMultiValueMap()
+        )
+
+        assertTrue(response.isLeft())
+        assertEquals(response.leftOrNull()?.type, ErrorType.BAD_GATEWAY.type)
+        assertEquals(response.leftOrNull()?.status, HttpStatus.BAD_GATEWAY)
+        assertEquals(response.leftOrNull()?.detail, invalidErrorResponse)
+    }
+
+    @Test
+    fun `sendDistributedPurgeOperation should return the received error`() = runTest {
+        val csr = gimmeRawCSR()
+        val path = "/ngsi-ld/v1/entities"
+
+        stubFor(
+            delete(urlMatching(path))
+                .willReturn(badRequest().withBody(validErrorResponse))
+        )
+
+        val response = distributedEntityProvisionService.sendDistributedPurgeOperation(
+            HttpHeaders.EMPTY,
+            csr,
+            LinkedMultiValueMap()
+        )
+
+        assertTrue(response.isLeft())
+        assertInstanceOf(ContextSourceException::class.java, response.leftOrNull())
+        assertEquals(ErrorType.BAD_REQUEST_DATA.type, response.leftOrNull()?.type)
+        assertEquals(HttpStatus.BAD_REQUEST, response.leftOrNull()?.status)
+        assertEquals("The detail of the valid Error", response.leftOrNull()?.detail)
+        assertEquals("A valid error", response.leftOrNull()?.message)
+    }
+
+    @Test
+    fun `sendDistributedPurgeOperation should return a GatewayTimeout error if it receives no answer`() = runTest {
+        val csr = gimmeRawCSR().copy(endpoint = "http://localhost:invalid".toUri())
+        val response = distributedEntityProvisionService.sendDistributedPurgeOperation(
+            HttpHeaders.EMPTY,
+            csr,
+            LinkedMultiValueMap()
+        )
+
+        assertTrue(response.isLeft())
+        assertInstanceOf(GatewayTimeoutException::class.java, response.leftOrNull())
+    }
+
+    @Test
+    fun `sendDistributedPurgeOperation should return the received 207 response`() = runTest {
+        val csr = gimmeRawCSR()
+        val path = "/ngsi-ld/v1/entities"
+        val multiStatusResponse =
+            """
+            {
+                "success": [],
+                "errors": [
+                {
+                    "entityId": "urn:ngsi-ld:Apiary:3",
+                    "error": {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
+                    "status": 501,
+                    "title": "Query param not implemented for this operation"
+                },
+                    "registrationId": "urn:ngsi-ld:ContextSourceRegistration:1"
+                }
+                ]
+            }
+            """.trimIndent()
+
+        stubFor(
+            delete(urlMatching(path))
+                .willReturn(status(207).withBody(multiStatusResponse))
+        )
+
+        val response = distributedEntityProvisionService.sendDistributedPurgeOperation(
+            HttpHeaders.EMPTY,
+            csr,
+            LinkedMultiValueMap()
+        )
+
+        assertTrue(response.isRight())
+        val (body, status) = response.getOrNull()!!
+        assertEquals(207, status.value())
+        assertEquals(
+            multiStatusResponse,
+            body
+        )
     }
 }

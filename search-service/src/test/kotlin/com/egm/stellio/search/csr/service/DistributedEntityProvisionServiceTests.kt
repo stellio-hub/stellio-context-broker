@@ -17,6 +17,7 @@ import com.egm.stellio.shared.model.BadGatewayException
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.GatewayTimeoutException
+import com.egm.stellio.shared.model.NGSILD_ALL_ENTITIES
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.APIARY_IRI
@@ -454,6 +455,95 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
+    fun `distributePurgeEntities should process keep attribute before calling sendDistributedPurgeOperation`() =
+        runTest {
+            val csrWithEntityInfoId = gimmeRawCSR(
+                information = listOf(
+                    RegistrationInfo(
+                        listOf(EntityInfo(id = apiaryId.toUri(), types = listOf(APIARY_IRI))),
+                        listOf("prop1", "prop2"),
+                        listOf("rel1")
+                    )
+                ),
+                operations = listOf(Operation.PURGE_ENTITY)
+            )
+
+            coEvery {
+                contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(csrWithEntityInfoId)
+
+            coEvery {
+                distributedEntityProvisionService.sendDistributedPurgeOperation(any(), any(), any())
+            } returns Pair(null, HttpStatusCode.valueOf(204)).right()
+
+            val queryParams = LinkedMultiValueMap(
+                mapOf(QP.KEEP.key to listOf("prop1,rel1"))
+            )
+            val result = distributedEntityProvisionService.distributePurgeEntities(
+                HttpHeaders.EMPTY,
+                composeEntitiesQueryFromGet(buildDefaultPagination(), queryParams, emptyList()).getOrNull()!!,
+                queryParams
+            )
+
+            assertTrue(result.isRight())
+
+            coVerify(exactly = 1) {
+                distributedEntityProvisionService.sendDistributedPurgeOperation(
+                    HttpHeaders.EMPTY,
+                    csrWithEntityInfoId,
+                    match { params ->
+                        params.getFirst(QP.DROP.key) == "prop2" &&
+                            params.getFirst(QP.KEEP.key) == null
+                    }
+                )
+            }
+        }
+
+    @Test
+    fun `distributePurgeEntities should process drop attribute before calling sendDistributedPurgeOperation`() =
+        runTest {
+            val csrWithEntityInfoId = gimmeRawCSR(
+                information = listOf(
+                    RegistrationInfo(
+                        listOf(EntityInfo(id = apiaryId.toUri(), types = listOf(APIARY_IRI))),
+                        listOf("prop1", "prop2"),
+                        listOf("rel1")
+                    )
+                ),
+                operations = listOf(Operation.PURGE_ENTITY)
+            )
+
+            coEvery {
+                contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(csrWithEntityInfoId)
+
+            coEvery {
+                distributedEntityProvisionService.sendDistributedPurgeOperation(any(), any(), any())
+            } returns Pair(null, HttpStatusCode.valueOf(204)).right()
+
+            val queryParams = LinkedMultiValueMap(
+                mapOf(QP.DROP.key to listOf("prop1,rel2"))
+            )
+            val result = distributedEntityProvisionService.distributePurgeEntities(
+                HttpHeaders.EMPTY,
+                composeEntitiesQueryFromGet(buildDefaultPagination(), queryParams, emptyList()).getOrNull()!!,
+                queryParams
+            )
+
+            assertTrue(result.isRight())
+
+            coVerify(exactly = 1) {
+                distributedEntityProvisionService.sendDistributedPurgeOperation(
+                    HttpHeaders.EMPTY,
+                    csrWithEntityInfoId,
+                    match { params ->
+                        params.getFirst(QP.DROP.key) == "prop1"
+                    }
+                )
+            }
+        }
+
+    @Test
     fun `distributePurgeEntities should return an error when both request and CSR define idPattern`() = runTest {
         val csrWithIdPattern = gimmeRawCSR(
             information = listOf(
@@ -515,7 +605,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         assertThat(result.getOrNull()?.errors?.first())
             .extracting("entityId", "error.type", "error.status", "error.title", "registrationId")
             .containsExactly(
-                "urn:ngsi-ld:*".toUri(),
+                NGSILD_ALL_ENTITIES,
                 ErrorType.BAD_GATEWAY.type,
                 HttpStatus.BAD_GATEWAY.value(),
                 "Bad gateway",

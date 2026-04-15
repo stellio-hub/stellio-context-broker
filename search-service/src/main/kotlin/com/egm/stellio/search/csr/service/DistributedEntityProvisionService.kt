@@ -22,18 +22,21 @@ import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
+import com.egm.stellio.shared.model.NGSILD_ALL_ENTITIES
+import com.egm.stellio.shared.model.UnprocessableEntityException
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.DataTypes.deserializeAs
 import com.egm.stellio.shared.util.ErrorMessages.Csr.CONTEXT_SOURCE_MULTISTATUS_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Csr.CSR_IDPATTERN_CONFLICT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceContactErrorMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceInvalidStatusCodeMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceNoErrorMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportCreationMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportDeletionMessage
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.parseQueryParameter
 import com.egm.stellio.shared.util.toTypeSelection
-import com.egm.stellio.shared.util.toUri
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -88,7 +91,6 @@ class DistributedEntityProvisionService(
         entitiesQuery: EntitiesQueryFromGet,
         queryParams: MultiValueMap<String, String>
     ): Either<APIException, BatchOperationResult> {
-        // TODO use keep and drop to match CSRs??
         val csrFilters =
             CSRFilters(
                 ids = entitiesQuery.ids,
@@ -108,19 +110,51 @@ class DistributedEntityProvisionService(
                 if (entitiesQuery.idPattern != null && entityInfo?.any { it.idPattern != null } == true)
                     result.addEither(
                         ConflictException(CSR_IDPATTERN_CONFLICT_MESSAGE).left(),
-                        "urn:ngsi-ld:*".toUri(),
+                        NGSILD_ALL_ENTITIES,
                         csr.id
                     )
                 else {
                     val newParams = entityInfo?.first()?.let { queryParams.addFilterForEntityInfo(it) } ?: queryParams
+                    val registrationInfo = csr.information.first()
+                    if (
+                        (registrationInfo.propertyNames != null || registrationInfo.relationshipNames != null) &&
+                        (queryParams.getFirst(QP.KEEP.key) != null || queryParams.getFirst(QP.DROP.key) != null)
+                    ) {
+                        val allCsrAttrs = registrationInfo.propertyNames.orEmpty() +
+                            registrationInfo.relationshipNames.orEmpty()
+                        if (queryParams.getFirst(QP.KEEP.key) != null) {
+                            newParams[QP.DROP.key] =
+                                allCsrAttrs.minus(parseQueryParameter(queryParams.getFirst(QP.KEEP.key)))
+                                    .joinToString(",")
+                            newParams.remove(QP.KEEP.key)
+                        } else {
+                            newParams[QP.DROP.key] =
+                                allCsrAttrs.intersect(parseQueryParameter(queryParams.getFirst(QP.DROP.key)))
+                                    .toList()
+                                    .joinToString(",")
+                        }
+                    }
 
                     sendDistributedPurgeOperation(httpHeaders, csr, newParams).fold({
-                        result.addEither(it.left(), "urn:ngsi-ld:*".toUri(), csr.id)
+                        result.addEither(it.left(), NGSILD_ALL_ENTITIES, csr.id)
                     }, {
-                        if (it.second == HttpStatus.NO_CONTENT) {
-                            result.addEither(Unit.right(), "urn:ngsi-ld:*".toUri(), csr.id)
-                        } else if (it.second == HttpStatus.MULTI_STATUS) {
-                            result += deserializeAs<BatchOperationResult>(it.first!!)
+                        when (it.second) {
+                            HttpStatus.NO_CONTENT -> {
+                                result.addEither(Unit.right(), NGSILD_ALL_ENTITIES, csr.id)
+                            }
+                            HttpStatus.MULTI_STATUS -> {
+                                result += deserializeAs<BatchOperationResult>(it.first!!)
+                            }
+                            else -> {
+                                result.addEither(
+                                    UnprocessableEntityException(
+                                        contextSourceInvalidStatusCodeMessage(it.second.value()),
+                                        it.first
+                                    ).left(),
+                                    NGSILD_ALL_ENTITIES,
+                                    csr.id
+                                )
+                            }
                         }
                     })
                 }

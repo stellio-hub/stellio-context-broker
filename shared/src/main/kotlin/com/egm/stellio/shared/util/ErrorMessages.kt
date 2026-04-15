@@ -68,6 +68,8 @@ object ErrorMessages {
         const val CONTEXT_SOURCE_BADLY_FORMED_ERROR_MESSAGE = "Context source sent a badly formed error"
         const val CONTEXT_SOURCE_DEFAULT_ERROR_MESSAGE = "Context source provided no additional detail about the error"
         const val CONTEXT_SOURCE_MULTISTATUS_MESSAGE = "Context source returned a 207 Multi-Status response"
+        fun contextSourceInvalidStatusCodeMessage(statusCode: Int) =
+            "Context source returned an invalid status code: $statusCode"
         fun contextSourceNoErrorMessage(csrId: URI, uri: URI) =
             "Context source registration $csrId did not provide any error message at URI $uri"
         fun contextSourceContactErrorMessage(csrId: URI, uri: URI) =

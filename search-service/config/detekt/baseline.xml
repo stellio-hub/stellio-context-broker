@@ -4,10 +4,12 @@
   <CurrentIssues>
     <ID>ClassNaming:V0_29_JsonLd_migrationTests.kt$V0_29_JsonLd_migrationTests</ID>
     <ID>ClassNaming:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration : BaseJavaMigration</ID>
+    <ID>ComplexCondition:DistributedEntityProvisionService.kt$DistributedEntityProvisionService$(registrationInfo.propertyNames != null || registrationInfo.relationshipNames != null) &amp;&amp; (queryParams.getFirst(QP.KEEP.key) != null || queryParams.getFirst(QP.DROP.key) != null)</ID>
     <ID>ComplexCondition:EntitiesQueryUtils.kt$geoQuery == null &amp;&amp; q.isNullOrEmpty() &amp;&amp; typeSelection.isNullOrEmpty() &amp;&amp; attrs.isEmpty() &amp;&amp; !local</ID>
     <ID>ComplexCondition:EntitiesQueryUtils.kt$typeSelection.isNullOrEmpty() &amp;&amp; keep.isEmpty() &amp;&amp; drop.isEmpty() &amp;&amp; q.isNullOrEmpty() &amp;&amp; geoQuery == null &amp;&amp; !local</ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
+    <ID>LongMethod:DistributedEntityProvisionService.kt$DistributedEntityProvisionService$suspend fun distributePurgeEntities( httpHeaders: HttpHeaders, entitiesQuery: EntitiesQueryFromGet, queryParams: MultiValueMap&lt;String, String&gt; ): Either&lt;APIException, BatchOperationResult&gt;</ID>
     <ID>LongMethod:EntitiesQueryUtilsTests.kt$EntitiesQueryUtilsTests$@Test fun `it should parse a valid complete Query datatype`()</ID>
     <ID>LongMethod:EntityEventService.kt$EntityEventService$private fun publishAttributeChangeEvent( sub: String?, tenantName: String, originalEntity: ExpandedEntity, updatedEntity: ExpandedEntity, attributeOperationResult: SucceededAttributeOperationResult )</ID>
     <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_UPDATE events if a multi-attribute is replaced`()</ID>
@@ -44,6 +46,7 @@
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" null , '/B' , null, '$beehiveType,$beekeeper,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'"</ID>
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$" null , '/B' , null, '$beekeeper,$beehiveType,$beehiveWithScope,$scopeA,$beehiveTypeAndScopeA'"</ID>
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$fun</ID>
+    <ID>NestedBlockDepth:DistributedEntityProvisionService.kt$DistributedEntityProvisionService$suspend fun distributePurgeEntities( httpHeaders: HttpHeaders, entitiesQuery: EntitiesQueryFromGet, queryParams: MultiValueMap&lt;String, String&gt; ): Either&lt;APIException, BatchOperationResult&gt;</ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
   </CurrentIssues>
 </SmellBaseline>

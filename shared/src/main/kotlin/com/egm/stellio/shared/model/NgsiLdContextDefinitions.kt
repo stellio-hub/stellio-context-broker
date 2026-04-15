@@ -131,5 +131,7 @@ const val NGSILD_TIME_TYPE = "${NGSILD_PREFIX}Time"
 const val NGSILD_NULL = "urn:ngsi-ld:null"
 
 // Stellio-specific way to identify a local broker (compared to a Context Source)
-
 val NGSILD_LOCAL = "urn:ngsi-ld:local".toUri()
+
+// Stellio-specific way to identify all entities when a distributed batch operation is performed
+val NGSILD_ALL_ENTITIES = "urn:ngsi-ld:*".toUri()

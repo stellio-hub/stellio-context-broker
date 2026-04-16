@@ -156,6 +156,11 @@ class EntityQueryService(
             entitiesQuery.geoQuery?.let { geoQuery ->
                 sqlFilter.wrapToAndClause(geoQuery.buildSqlFilter())
             } ?: sqlFilter
+        }.let { sqlFilter ->
+            // if local=true, there may have no query parameter provided
+            if (sqlFilter.trim().isEmpty()) {
+                "1 = 1"
+            } else sqlFilter
         }
 
     fun buildEntitiesQueryFilter(

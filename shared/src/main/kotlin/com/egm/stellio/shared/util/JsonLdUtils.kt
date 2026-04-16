@@ -524,7 +524,7 @@ object JsonLdUtils {
 
     fun <T> buildExpandedTemporalValue(
         values: List<T>,
-        transform: (T) -> List<Map<String, Any>>
+        transform: (T) -> List<Any>
     ): List<Map<String, List<Any>>> =
         listOf(
             mapOf(

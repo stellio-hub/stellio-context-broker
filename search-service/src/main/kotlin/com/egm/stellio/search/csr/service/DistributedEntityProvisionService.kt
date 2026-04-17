@@ -1,9 +1,9 @@
 package com.egm.stellio.search.csr.service
 
 import arrow.core.Either
+import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.catch
-import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
@@ -23,13 +23,11 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.model.NGSILD_ALL_ENTITIES
-import com.egm.stellio.shared.model.UnprocessableEntityException
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.DataTypes.deserializeAs
 import com.egm.stellio.shared.util.ErrorMessages.Csr.CONTEXT_SOURCE_MULTISTATUS_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Csr.CSR_IDPATTERN_CONFLICT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceContactErrorMessage
-import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceInvalidStatusCodeMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceNoErrorMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportCreationMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportDeletionMessage
@@ -117,45 +115,36 @@ class DistributedEntityProvisionService(
                     val newParams = entityInfo?.first()?.let { queryParams.addFilterForEntityInfo(it) } ?: queryParams
                     val registrationInfo = csr.information.first()
                     if (
-                        (registrationInfo.propertyNames != null || registrationInfo.relationshipNames != null) &&
+                        registrationInfo.getAttributeNames() != null &&
                         (queryParams.getFirst(QP.KEEP.key) != null || queryParams.getFirst(QP.DROP.key) != null)
                     ) {
-                        val allCsrAttrs = registrationInfo.propertyNames.orEmpty() +
-                            registrationInfo.relationshipNames.orEmpty()
+                        val allCsrAttrs = registrationInfo.getAttributeNames().orEmpty()
                         if (queryParams.getFirst(QP.KEEP.key) != null) {
                             newParams[QP.DROP.key] =
                                 allCsrAttrs.minus(parseQueryParameter(queryParams.getFirst(QP.KEEP.key)))
                                     .joinToString(",")
+                                    .ifEmpty { null }
                             newParams.remove(QP.KEEP.key)
                         } else {
                             newParams[QP.DROP.key] =
                                 allCsrAttrs.intersect(parseQueryParameter(queryParams.getFirst(QP.DROP.key)))
                                     .toList()
                                     .joinToString(",")
+                                    .ifEmpty { null }
                         }
+
+                        if (newParams.getFirst(QP.DROP.key) == null)
+                            return@forEach
                     }
 
                     sendDistributedPurgeOperation(httpHeaders, csr, newParams).fold({
                         result.addEither(it.left(), NGSILD_ALL_ENTITIES, csr.id)
                     }, {
-                        when (it.second) {
-                            HttpStatus.NO_CONTENT -> {
-                                result.addEither(Unit.right(), NGSILD_ALL_ENTITIES, csr.id)
+                        if (it.second == HttpStatus.MULTI_STATUS)
+                            deserializeAs<BatchOperationResult>(it.first!!).errors.forEach { error ->
+                                result.errors += error
                             }
-                            HttpStatus.MULTI_STATUS -> {
-                                result += deserializeAs<BatchOperationResult>(it.first!!)
-                            }
-                            else -> {
-                                result.addEither(
-                                    UnprocessableEntityException(
-                                        contextSourceInvalidStatusCodeMessage(it.second.value()),
-                                        it.first
-                                    ).left(),
-                                    NGSILD_ALL_ENTITIES,
-                                    csr.id
-                                )
-                            }
-                        }
+                        else result.addEither(Unit.right(), NGSILD_ALL_ENTITIES, csr.id)
                     })
                 }
             }
@@ -278,10 +267,39 @@ class DistributedEntityProvisionService(
         path: String,
         method: HttpMethod,
         queryParams: MultiValueMap<String, String> = MultiValueMap.fromSingleValue(emptyMap())
-    ): Either<APIException, Unit> = either {
-        val uri = URI("${csr.endpoint}$path")
+    ): Either<APIException, Unit> =
+        executeDistributedRequest(csr, path, method, body, queryParams) { headers ->
+            headers[HttpHeaders.CONTENT_TYPE] = JSON_LD_CONTENT_TYPE
+        }.flatMap { (response, statusCode) ->
+            if (statusCode.value() == HttpStatus.MULTI_STATUS.value())
+                ContextSourceException(
+                    type = ErrorType.MULTI_STATUS.type,
+                    status = HttpStatus.MULTI_STATUS,
+                    title = CONTEXT_SOURCE_MULTISTATUS_MESSAGE,
+                    detail = response ?: "No message"
+                ).left()
+            else Unit.right()
+        }
 
-        val request = WebClient.create()
+    internal suspend fun sendDistributedPurgeOperation(
+        httpHeaders: HttpHeaders,
+        csr: ContextSourceRegistration,
+        queryParams: MultiValueMap<String, String> = MultiValueMap.fromSingleValue(emptyMap())
+    ): Either<APIException, Pair<String?, HttpStatusCode>> =
+        executeDistributedRequest(csr, entityPath, HttpMethod.DELETE, queryParams = queryParams) { newHeaders ->
+            httpHeaders.getFirst(HttpHeaders.LINK)?.let { link -> newHeaders[HttpHeaders.LINK] = link }
+        }
+
+    private suspend fun executeDistributedRequest(
+        csr: ContextSourceRegistration,
+        path: String,
+        method: HttpMethod,
+        body: CompactedEntity? = null,
+        queryParams: MultiValueMap<String, String> = MultiValueMap.fromSingleValue(emptyMap()),
+        headersConfig: (HttpHeaders) -> Unit
+    ): Either<APIException, Pair<String?, HttpStatusCode>> {
+        val uri = URI("${csr.endpoint}$path")
+        val requestSpec = WebClient.create()
             .method(method)
             .uri { uriBuilder ->
                 uriBuilder.scheme(uri.scheme)
@@ -290,66 +308,8 @@ class DistributedEntityProvisionService(
                     .path(uri.path)
                     .queryParams(queryParams)
                     .build()
-            }.headers { newHeaders ->
-                newHeaders[HttpHeaders.CONTENT_TYPE] = JSON_LD_CONTENT_TYPE
-            }
-
-        body?.let { request.bodyValue(body) }
-
-        return catch(
-            {
-                val (statusCode, response, _) = request.awaitExchange { response ->
-                    Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
-                }
-                if (statusCode.value() == HttpStatus.MULTI_STATUS.value()) {
-                    ContextSourceException(
-                        type = ErrorType.MULTI_STATUS.type,
-                        status = HttpStatus.MULTI_STATUS,
-                        title = CONTEXT_SOURCE_MULTISTATUS_MESSAGE,
-                        detail = response ?: "No message"
-                    ).left()
-                } else if (statusCode.is2xxSuccessful) {
-                    logger.info("Successfully post data to CSR ${csr.id} at $uri")
-                    Unit.right()
-                } else if (response == null) {
-                    val message = contextSourceNoErrorMessage(csr.id, uri)
-                    logger.warn(message)
-                    BadGatewayException(message).left()
-                } else {
-                    logger.warn("Error creating an entity for CSR at $uri: $response")
-                    ContextSourceException.fromResponse(response).left()
-                }
-            },
-            { e ->
-                logger.warn("Error contacting CSR at $uri: ${e.message}")
-                logger.warn(e.stackTraceToString())
-                GatewayTimeoutException(
-                    contextSourceContactErrorMessage(csr.id, uri),
-                    detail = "${e.cause}: ${e.message}"
-                ).left()
-            }
-        )
-    }
-
-    internal suspend fun sendDistributedPurgeOperation(
-        httpHeaders: HttpHeaders,
-        csr: ContextSourceRegistration,
-        queryParams: MultiValueMap<String, String> = MultiValueMap.fromSingleValue(emptyMap())
-    ): Either<APIException, Pair<String?, HttpStatusCode>> = either {
-        val uri = URI("${csr.endpoint}$entityPath")
-
-        val request = WebClient.create()
-            .method(HttpMethod.DELETE)
-            .uri { uriBuilder ->
-                uriBuilder.scheme(uri.scheme)
-                    .host(uri.host)
-                    .port(uri.port)
-                    .path(uri.path)
-                    .queryParams(queryParams)
-                    .build()
-            }.headers { newHeaders ->
-                httpHeaders.getFirst(HttpHeaders.LINK)?.let { link -> newHeaders[HttpHeaders.LINK] = link }
-            }
+            }.headers(headersConfig)
+        val request = body?.let { requestSpec.bodyValue(it) } ?: requestSpec
 
         return catch(
             {
@@ -364,7 +324,7 @@ class DistributedEntityProvisionService(
                     logger.warn(message)
                     BadGatewayException(message).left()
                 } else {
-                    logger.warn("Error purging entities for CSR at $uri: $response")
+                    logger.warn("Error contacting CSR at $uri: $response")
                     ContextSourceException.fromResponse(response).left()
                 }
             },

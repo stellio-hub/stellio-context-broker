@@ -544,6 +544,43 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         }
 
     @Test
+    fun `distributePurgeEntities should not call the Context Source if no attribute left after applying drop`() =
+        runTest {
+            val csrWithEntityInfoId = gimmeRawCSR(
+                information = listOf(
+                    RegistrationInfo(
+                        listOf(EntityInfo(types = listOf(APIARY_IRI))),
+                        listOf("prop1")
+                    )
+                ),
+                operations = listOf(Operation.PURGE_ENTITY)
+            )
+
+            coEvery {
+                contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(csrWithEntityInfoId)
+
+            coEvery {
+                distributedEntityProvisionService.sendDistributedPurgeOperation(any(), any(), any())
+            } returns Pair(null, HttpStatusCode.valueOf(204)).right()
+
+            val queryParams = LinkedMultiValueMap(
+                mapOf(QP.DROP.key to listOf("prop2,rel3"))
+            )
+            val result = distributedEntityProvisionService.distributePurgeEntities(
+                HttpHeaders.EMPTY,
+                composeEntitiesQueryFromGet(buildDefaultPagination(), queryParams, emptyList()).getOrNull()!!,
+                queryParams
+            )
+
+            assertTrue(result.isRight())
+
+            coVerify(exactly = 0) {
+                distributedEntityProvisionService.sendDistributedPurgeOperation(any(), any(), any())
+            }
+        }
+
+    @Test
     fun `distributePurgeEntities should return an error when both request and CSR define idPattern`() = runTest {
         val csrWithIdPattern = gimmeRawCSR(
             information = listOf(
@@ -614,59 +651,6 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
     }
 
     @Test
-    fun `distributePurgeEntities should handle a 207 returned by the CSR`() = runTest {
-        val csr = gimmeRawCSR(operations = listOf(Operation.PURGE_ENTITY))
-
-        coEvery {
-            contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
-        } returns listOf(csr)
-
-        coEvery {
-            distributedEntityProvisionService.sendDistributedPurgeOperation(any(), any(), any())
-        } returns Pair(
-            """
-            {
-                "success": [],
-                "errors": [
-                    {
-                        "entityId": "urn:ngsi-ld:Apiary:3",
-                        "error": {
-                            "type": "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
-                            "status": 501,
-                            "title": "Query param not implemented for this operation"
-                        },
-                        "registrationId": "${csr.id}"
-                    }
-                ]
-            }
-            """.trimIndent(),
-            HttpStatus.MULTI_STATUS
-        ).right()
-
-        val queryParams = LinkedMultiValueMap(
-            mapOf(QP.TYPE.key to listOf(APIARY_IRI))
-        )
-
-        val result = distributedEntityProvisionService.distributePurgeEntities(
-            HttpHeaders.EMPTY,
-            composeEntitiesQueryFromGet(buildDefaultPagination(), queryParams, emptyList()).getOrNull()!!,
-            queryParams
-        )
-
-        assertTrue(result.isRight())
-        assertEquals(1, result.getOrNull()?.errors?.size)
-        assertThat(result.getOrNull()?.errors?.first())
-            .extracting("entityId", "error.type", "error.status", "error.title", "registrationId")
-            .containsExactly(
-                "urn:ngsi-ld:Apiary:3".toUri(),
-                ErrorType.NOT_IMPLEMENTED.type,
-                HttpStatus.NOT_IMPLEMENTED.value(),
-                "Query param not implemented for this operation",
-                csr.id
-            )
-    }
-
-    @Test
     fun `distributePurgeEntities should handle a 207 containing success and errors returned by the CSR`() = runTest {
         val csr = gimmeRawCSR(operations = listOf(Operation.PURGE_ENTITY))
 
@@ -717,9 +701,7 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
                 "An unexpected error occurred",
                 csr.id
             )
-        assertEquals(2, result.getOrNull()?.success?.size)
-        assertThat(result.getOrNull()?.success!!)
-            .isEqualTo(listOf("urn:ngsi-ld:Apiary:1".toUri(), "urn:ngsi-ld:Apiary:2".toUri()))
+        assertThat(result.getOrNull()?.success!!).isEmpty()
     }
 
     @Test

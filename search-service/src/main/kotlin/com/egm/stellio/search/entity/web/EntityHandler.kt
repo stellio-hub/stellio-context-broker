@@ -16,6 +16,8 @@ import com.egm.stellio.search.entity.util.validateMinimalPurgeEntitiesParameters
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.NGSILD_ALL_ENTITIES
+import com.egm.stellio.shared.model.NGSILD_LOCAL
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.applyDatasetView
@@ -383,7 +385,7 @@ class EntityHandler(
      * Implements 6.4.3.3 - Purge Entities
      */
     @DeleteMapping
-    suspend fun purgeEntities(
+    suspend fun purge(
         @RequestHeader httpHeaders: HttpHeaders,
         @AllowedParameters(
             implemented = [
@@ -407,8 +409,13 @@ class EntityHandler(
             distributedEntityProvisionService.distributePurgeEntities(httpHeaders, entitiesQuery, queryParams).bind()
         } else BatchOperationResult()
 
-        entityService.purgeEntities(entitiesQuery, keep, drop).bind()
-            .let { localResult -> result += localResult }
+        entityService.purgeEntities(entitiesQuery, keep, drop).fold({
+            result.addEither(it.left(), NGSILD_ALL_ENTITIES, NGSILD_LOCAL)
+        }, {
+            if (it.errors.isNotEmpty())
+                result.errors += it.errors
+            else result.success += NGSILD_LOCAL
+        })
 
         if (result.errors.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

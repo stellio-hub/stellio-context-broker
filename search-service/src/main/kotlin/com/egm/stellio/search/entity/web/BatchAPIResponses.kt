@@ -1,7 +1,6 @@
 package com.egm.stellio.search.entity.web
 
 import arrow.core.Either
-import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NGSILD_LOCAL
@@ -9,7 +8,6 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toErrorResponse
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.annotation.JsonValue
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
@@ -19,7 +17,7 @@ import java.net.URI
  * BatchOperationResult type as defined in 5.2.16
  */
 data class BatchOperationResult(
-    val success: MutableList<BatchEntitySuccess> = mutableListOf(),
+    val success: MutableList<URI> = mutableListOf(),
     val errors: MutableList<BatchEntityError> = mutableListOf()
 ) {
 
@@ -27,9 +25,6 @@ data class BatchOperationResult(
         success.addAll(other.success)
         errors.addAll(other.errors)
     }
-
-    @JsonIgnore
-    fun getSuccessfulEntitiesIds() = success.map { it.entityId }
 
     @JsonIgnore
     fun addEntitiesToErrors(entities: List<Pair<String, APIException>>) =
@@ -40,7 +35,7 @@ data class BatchOperationResult(
     fun addEither(either: Either<APIException, *>, entityId: URI, csrId: URI? = null) {
         either.fold(
             { this.errors.add(BatchEntityError(entityId, it.toProblemDetail(), csrId)) },
-            { this.success.add(BatchEntitySuccess(csrId ?: NGSILD_LOCAL)) }
+            { this.success.add(csrId ?: NGSILD_LOCAL) }
         )
     }
 
@@ -71,13 +66,6 @@ data class BatchOperationResult(
         }
     }
 }
-
-data class BatchEntitySuccess(
-    @JsonValue
-    val entityId: URI,
-    @JsonIgnore
-    val updateResult: UpdateResult? = null
-)
 
 /**
  * BatchEntityError type as defined in 5.2.17

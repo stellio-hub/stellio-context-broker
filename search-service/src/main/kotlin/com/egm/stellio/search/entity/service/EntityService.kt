@@ -6,6 +6,7 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.getSpecificAccessPolicy
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.common.util.deserializeAsMap
@@ -15,6 +16,7 @@ import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeOperationResult
+import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationStatus
@@ -29,6 +31,8 @@ import com.egm.stellio.search.entity.model.getSucceededAttributesOperations
 import com.egm.stellio.search.entity.model.hasSuccessfulResult
 import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.entity.util.rowToEntity
+import com.egm.stellio.search.entity.web.BatchEntityError
+import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.temporal.model.AttributeInstance.TemporalProperty
 import com.egm.stellio.shared.model.APIException
@@ -47,6 +51,7 @@ import com.egm.stellio.shared.model.addSysAttrs
 import com.egm.stellio.shared.model.flattenOnAttributeAndDatasetId
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.model.toNgsiLdAttributes
+import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
@@ -706,6 +711,59 @@ class EntityService(
             .forEach {
                 entityEventService.publishAttributeDeleteEvent(sub, originalEntity, updatedEntity, it)
             }
+    }
+
+    @Transactional
+    suspend fun purgeEntities(
+        entitiesQuery: EntitiesQueryFromGet,
+        keep: Set<ExpandedTerm> = emptySet(),
+        drop: Set<ExpandedTerm> = emptySet()
+    ): Either<APIException, BatchOperationResult> = either {
+        val matchingIds = entityQueryService.queryEntities(
+            entitiesQuery.copy(
+                // pass a special value of -1 to say we want all the results
+                // this is later handled in the queryEntities function
+                paginationQuery = PaginationQuery(0, -1)
+            ),
+            excludeDeleted = true,
+            authorizationService.getAccessRightWithClauseAndFilter(Action.ADMIN)
+        )
+
+        if (matchingIds.isEmpty())
+            return BatchOperationResult().right()
+
+        val result = BatchOperationResult()
+
+        matchingIds.forEach { entityId ->
+            when {
+                keep.isEmpty() && drop.isEmpty() ->
+                    deleteEntity(entityId).fold(
+                        { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
+                        { result.success.add(entityId) }
+                    )
+                keep.isNotEmpty() -> {
+                    val currentAttrNames = entityAttributeService
+                        .getAllForEntity(entityId, excludeDeleted = true)
+                        .map { it.attributeName }
+                        .toSet()
+                    currentAttrNames.minus(keep).forEach { attrName ->
+                        deleteAttribute(entityId, attrName, null, true).fold(
+                            { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
+                            { result.success.add(entityId) }
+                        )
+                    }
+                }
+                else ->
+                    drop.forEach { attrName ->
+                        deleteAttribute(entityId, attrName, null, true).fold(
+                            { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
+                            { result.success.add(entityId) }
+                        )
+                    }
+            }
+        }
+
+        result
     }
 
     @Transactional

@@ -2,9 +2,7 @@ package com.egm.stellio.search.entity.web
 
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
-import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.LinkedEntityService
@@ -25,7 +23,6 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.mockkClass
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -172,7 +169,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = twoEntityOneInvalidJsonLDFile
 
         coEvery { entityOperationService.update(any(), any()) } returns BatchOperationResult(
-            mutableListOf(BatchEntitySuccess(temperatureSensorUri, EMPTY_UPDATE_RESULT)),
+            mutableListOf(temperatureSensorUri),
             mutableListOf()
         )
 
@@ -230,7 +227,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = validJsonFile
 
         coEvery { entityOperationService.create(any()) } returns BatchOperationResult(
-            allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
+            allEntitiesUris.toMutableList(),
             arrayListOf()
         )
 
@@ -250,7 +247,7 @@ class EntityOperationHandlerTests {
         val createdEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
 
         coEvery { entityOperationService.create(any()) } returns BatchOperationResult(
-            createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
+            createdEntitiesIds.toMutableList(),
             mutableListOf(
                 BatchEntityError(
                     temperatureSensorUri,
@@ -296,7 +293,7 @@ class EntityOperationHandlerTests {
         val createdEntitiesIds = arrayListOf(temperatureSensorUri, deviceUri)
 
         coEvery { entityOperationService.create(any()) } returns BatchOperationResult(
-            createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList()
+            createdEntitiesIds.toMutableList()
         )
 
         webClient.post()
@@ -334,7 +331,7 @@ class EntityOperationHandlerTests {
         val updatedEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
 
         val updatedBatchResult = BatchOperationResult(
-            updatedEntitiesIds.map { BatchEntitySuccess(it, mockkClass(UpdateResult::class)) }.toMutableList()
+            updatedEntitiesIds.toMutableList()
         )
 
         coEvery { entityOperationService.upsert(any(), any(), any()) } returns (
@@ -382,7 +379,7 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.upsert(any(), any(), any()) } returns (
             BatchOperationResult(
-                arrayListOf(BatchEntitySuccess(deviceUri, mockkClass(UpdateResult::class))),
+                arrayListOf(deviceUri),
                 errors
             ) to emptyList()
             )
@@ -491,7 +488,7 @@ class EntityOperationHandlerTests {
 
         coEvery { entityOperationService.delete(any()) } returns
             BatchOperationResult(
-                allEntitiesUris.map { BatchEntitySuccess(it) }.toMutableList(),
+                allEntitiesUris.toMutableList(),
                 mutableListOf()
             )
 
@@ -506,7 +503,7 @@ class EntityOperationHandlerTests {
     fun `delete batch entity should return a 207 if some entities could not be deleted`() = runTest {
         coEvery { entityOperationService.delete(any()) } returns
             BatchOperationResult(
-                mutableListOf(BatchEntitySuccess(temperatureSensorUri), BatchEntitySuccess(dissolvedOxygenSensorUri)),
+                mutableListOf(temperatureSensorUri, dissolvedOxygenSensorUri),
                 mutableListOf(
                     BatchEntityError(
                         deviceUri,
@@ -647,7 +644,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = twoEntityOneInvalidJsonLDFile
 
         coEvery { entityOperationService.merge(any()) } returns BatchOperationResult(
-            mutableListOf(BatchEntitySuccess(temperatureSensorUri, EMPTY_UPDATE_RESULT)),
+            mutableListOf(temperatureSensorUri),
             mutableListOf()
         )
 
@@ -686,7 +683,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = validJsonFile
 
         coEvery { entityOperationService.merge(any()) } returns BatchOperationResult(
-            success = mutableListOf(BatchEntitySuccess(temperatureSensorUri, mockkClass(UpdateResult::class))),
+            success = mutableListOf(temperatureSensorUri),
             errors = mutableListOf(
                 BatchEntityError(
                     deviceUri,

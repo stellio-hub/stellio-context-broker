@@ -6,7 +6,6 @@ import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.entity.model.NotUpdatedDetails
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.web.BatchEntityError
-import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.entity.web.JsonLdNgsiLdEntity
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -31,6 +30,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityOperationService::class])
 @ActiveProfiles("test")
@@ -136,7 +136,7 @@ class EntityOperationServiceTests {
             )
 
         assertEquals(
-            listOf(BatchEntitySuccess(firstEntityURI, updateResult = EMPTY_UPDATE_RESULT)),
+            listOf(firstEntityURI),
             batchOperationResult.success
         )
         assertEquals(
@@ -170,7 +170,7 @@ class EntityOperationServiceTests {
         )
 
         assertEquals(
-            listOf(BatchEntitySuccess(firstEntityURI, EMPTY_UPDATE_RESULT)),
+            listOf(firstEntityURI),
             batchOperationResult.success
         )
         assertEquals(
@@ -197,7 +197,7 @@ class EntityOperationServiceTests {
 
         assertEquals(
             arrayListOf(firstEntityURI, secondEntityURI),
-            batchOperationResult.getSuccessfulEntitiesIds()
+            batchOperationResult.success
         )
         assertTrue(batchOperationResult.errors.isEmpty())
 
@@ -224,7 +224,7 @@ class EntityOperationServiceTests {
             )
         )
 
-        assertEquals(arrayListOf(BatchEntitySuccess(firstEntityURI)), batchOperationResult.success)
+        assertEquals(listOf(firstEntityURI), batchOperationResult.success)
         assertEquals(
             arrayListOf(
                 BatchEntityError(secondEntityURI, badRequestException.toProblemDetail())
@@ -251,7 +251,7 @@ class EntityOperationServiceTests {
 
         assertEquals(
             listOf(firstEntityURI, secondEntityURI),
-            batchOperationResult.getSuccessfulEntitiesIds()
+            batchOperationResult.success
         )
 
         coVerify {
@@ -277,7 +277,7 @@ class EntityOperationServiceTests {
 
         assertEquals(
             listOf(firstEntityURI, secondEntityURI),
-            batchOperationResult.getSuccessfulEntitiesIds()
+            batchOperationResult.success
         )
         assertTrue(batchOperationResult.errors.isEmpty())
 
@@ -300,7 +300,7 @@ class EntityOperationServiceTests {
 
         assertEquals(
             listOf(firstEntityURI, secondEntityURI),
-            batchOperationResult.getSuccessfulEntitiesIds()
+            batchOperationResult.success
         )
         assertEquals(emptyList<BatchEntityError>(), batchOperationResult.errors)
 
@@ -327,7 +327,7 @@ class EntityOperationServiceTests {
             )
 
             assertEquals(
-                listOf(BatchEntitySuccess(firstEntityURI)),
+                listOf(firstEntityURI),
                 batchOperationResult.success
             )
             assertEquals(
@@ -356,7 +356,7 @@ class EntityOperationServiceTests {
             )
         )
 
-        assertEquals(emptyList<BatchEntitySuccess>(), batchOperationResult.success)
+        assertEquals(emptyList<URI>(), batchOperationResult.success)
         assertEquals(
             listOf(
                 BatchEntityError(
@@ -390,7 +390,7 @@ class EntityOperationServiceTests {
 
         assertEquals(
             listOf(firstEntityURI, secondEntityURI),
-            batchOperationResult.getSuccessfulEntitiesIds()
+            batchOperationResult.success
         )
 
         coVerify {
@@ -420,7 +420,7 @@ class EntityOperationServiceTests {
         upsertUpdateSetup()
 
         coEvery { entityOperationService.replace(any()) } returns BatchOperationResult(
-            mutableListOf(BatchEntitySuccess(firstEntity.id), BatchEntitySuccess(secondEntity.id)),
+            mutableListOf(firstEntity.id, secondEntity.id),
             arrayListOf()
         )
 
@@ -449,7 +449,7 @@ class EntityOperationServiceTests {
         upsertUpdateSetup()
 
         coEvery { entityOperationService.update(any(), any()) } returns BatchOperationResult(
-            mutableListOf(BatchEntitySuccess(firstEntity.id), BatchEntitySuccess(secondEntity.id)),
+            mutableListOf(firstEntity.id, secondEntity.id),
             arrayListOf()
         )
 
@@ -490,7 +490,7 @@ class EntityOperationServiceTests {
         )
 
         coEvery { entityOperationService.create(any()) } returns BatchOperationResult(
-            mutableListOf(BatchEntitySuccess(firstEntity.id), BatchEntitySuccess(secondEntity.id)),
+            mutableListOf(firstEntity.id, secondEntity.id),
             arrayListOf()
         )
 
@@ -532,7 +532,7 @@ class EntityOperationServiceTests {
         )
 
         coEvery { entityOperationService.create(any()) } returns BatchOperationResult(
-            emptyList<BatchEntitySuccess>().toMutableList(),
+            emptyList<URI>().toMutableList(),
             arrayListOf(
                 BatchEntityError(
                     firstEntity.id,
@@ -541,7 +541,7 @@ class EntityOperationServiceTests {
             )
         )
         coEvery { entityOperationService.replace(any()) } returns BatchOperationResult(
-            emptyList<BatchEntitySuccess>().toMutableList(),
+            emptyList<URI>().toMutableList(),
             arrayListOf(
                 BatchEntityError(
                     secondEntity.id,

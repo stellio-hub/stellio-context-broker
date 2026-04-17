@@ -193,7 +193,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         (1..10).forEach { i ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(
                 attributeUuid = attributeUuid,
-                value = """[ $i ]"""
+                value = listOf(i)
             )
             attributeInstanceService.create(attributeInstance)
         }
@@ -224,7 +224,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         (1..10).forEach { i ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(
                 attributeUuid = attributeUuid,
-                value = if (i % 2 == 0) "true" else "false"
+                value = i % 2 == 0
             )
             attributeInstanceService.create(attributeInstance)
         }
@@ -256,7 +256,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         (1..10).forEach { i ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(
                 attributeUuid = attributeUuid,
-                value = baseDateTime.plusHours(i.toLong()).toString()
+                value = baseDateTime.plusHours(i.toLong())
             )
             attributeInstanceService.create(attributeInstance)
         }

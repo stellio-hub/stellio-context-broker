@@ -8,7 +8,7 @@ import com.egm.stellio.shared.model.Scope
 import java.net.URI
 
 interface AuthorizationService {
-    suspend fun getAccessRightWithClauseAndFilter(): WithAndFilter?
+    suspend fun getAccessRightWithClauseAndFilter(action: Action = Action.READ): WithAndFilter?
 
     suspend fun userIsAdmin(): Either<APIException, Unit>
     suspend fun userCanCreateEntities(): Either<APIException, Unit>

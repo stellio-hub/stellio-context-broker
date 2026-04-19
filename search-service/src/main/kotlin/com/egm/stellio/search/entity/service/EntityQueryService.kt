@@ -78,6 +78,7 @@ class EntityQueryService(
         val (adminPermissionWithClause, accessRightFilter) = accessRightWithAndFilter ?: "" to null
         val filterQuery = buildFullEntitiesFilter(entitiesQuery, accessRightFilter)
         val orderBy = entitiesQuery.ordering.toSQL()
+        val limit = entitiesQuery.paginationQuery.limit
 
         val selectQuery =
             """
@@ -92,13 +93,12 @@ class EntityQueryService(
             ${if (excludeDeleted) " AND entity_payload.deleted_at is null " else ""}
             GROUP BY entity_payload.entity_id
             ORDER BY $orderBy
-            LIMIT :limit
+            ${if (limit == -1) "LIMIT ALL" else "LIMIT $limit"}
             OFFSET :offset   
             """.trimIndent()
 
         return databaseClient
             .sql(selectQuery)
-            .bind("limit", entitiesQuery.paginationQuery.limit)
             .bind("offset", entitiesQuery.paginationQuery.offset)
             .allToMappedList { toUri(it["entity_id"]) }
     }
@@ -156,6 +156,11 @@ class EntityQueryService(
             entitiesQuery.geoQuery?.let { geoQuery ->
                 sqlFilter.wrapToAndClause(geoQuery.buildSqlFilter())
             } ?: sqlFilter
+        }.let { sqlFilter ->
+            // if local=true, there may have no query parameter provided
+            if (sqlFilter.trim().isEmpty()) {
+                "1 = 1"
+            } else sqlFilter
         }
 
     fun buildEntitiesQueryFilter(

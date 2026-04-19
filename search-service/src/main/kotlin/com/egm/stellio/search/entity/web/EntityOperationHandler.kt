@@ -94,7 +94,7 @@ class EntityOperationHandler(
             batchOperationResult.success.addAll(createOperationResult.success)
         }
         if (batchOperationResult.errors.isEmpty())
-            ResponseEntity.status(HttpStatus.CREATED).body(batchOperationResult.getSuccessfulEntitiesIds())
+            ResponseEntity.status(HttpStatus.CREATED).body(batchOperationResult.success)
         else
             ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }.fold(

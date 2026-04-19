@@ -7,7 +7,6 @@ import arrow.core.right
 import com.egm.stellio.search.entity.model.EMPTY_UPDATE_RESULT
 import com.egm.stellio.search.entity.model.UpdateResult
 import com.egm.stellio.search.entity.web.BatchEntityError
-import com.egm.stellio.search.entity.web.BatchEntitySuccess
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.entity.web.JsonLdNgsiLdEntity
 import com.egm.stellio.search.entity.web.entityId
@@ -84,13 +83,13 @@ class EntityOperationService(
         val creationResults = entities.map { jsonLdNgsiLdEntity ->
             either {
                 entityService.createEntity(jsonLdNgsiLdEntity.second, jsonLdNgsiLdEntity.first).map {
-                    BatchEntitySuccess(jsonLdNgsiLdEntity.entityId())
+                    listOf(jsonLdNgsiLdEntity.entityId())
                 }.mapLeft { apiException ->
                     BatchEntityError(jsonLdNgsiLdEntity.entityId(), apiException.toProblemDetail())
                 }.bind()
             }
         }.fold(
-            initial = Pair(listOf<BatchEntityError>(), listOf<BatchEntitySuccess>()),
+            initial = Pair(listOf<BatchEntityError>(), listOf<URI>()),
             operation = { acc, either ->
                 either.fold(
                     ifLeft = { Pair(acc.first.plus(it), acc.second) },
@@ -107,14 +106,14 @@ class EntityOperationService(
             either {
                 entityService.deleteEntity(id)
                     .map {
-                        BatchEntitySuccess(id)
+                        listOf(id)
                     }
                     .mapLeft { apiException ->
                         BatchEntityError(id, apiException.toProblemDetail())
                     }.bind()
             }
         }.fold(
-            initial = Pair(listOf<BatchEntityError>(), listOf<BatchEntitySuccess>()),
+            initial = Pair(listOf<BatchEntityError>(), listOf<URI>()),
             operation = { acc, either ->
                 either.fold(
                     ifLeft = { Pair(acc.first.plus(it), acc.second) },
@@ -157,7 +156,7 @@ class EntityOperationService(
             val createOperationResult = create(newUniqueEntities)
             batchOperationResult.errors.addAll(createOperationResult.errors)
             batchOperationResult.success.addAll(createOperationResult.success)
-            createOperationResult.success.map { it.entityId }
+            createOperationResult.success
         } else emptyList()
 
         if (existingOrDuplicatedEntities.isNotEmpty()) {
@@ -215,7 +214,7 @@ class EntityOperationService(
         entity: JsonLdNgsiLdEntity,
         disallowOverwrite: Boolean = false,
         processor: suspend (JsonLdNgsiLdEntity, Boolean) -> Either<APIException, UpdateResult>
-    ): Either<BatchEntityError, BatchEntitySuccess> =
+    ): Either<BatchEntityError, List<URI>> =
         kotlin.runCatching {
             either {
                 val result = processor(entity, disallowOverwrite).bind()
@@ -227,7 +226,7 @@ class EntityOperationService(
                             .joinToString()
                     ).left().bind<UpdateResult>()
             }.map {
-                BatchEntitySuccess(entity.entityId(), it)
+                listOf(entity.entityId())
             }.mapLeft {
                 BatchEntityError(entity.entityId(), it.toProblemDetail())
             }

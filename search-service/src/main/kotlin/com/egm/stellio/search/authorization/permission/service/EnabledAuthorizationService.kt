@@ -175,11 +175,11 @@ class EnabledAuthorizationService(
         Pair(usersCount, jsonLdEntities)
     }
 
-    override suspend fun getAccessRightWithClauseAndFilter(): WithAndFilter? = either {
+    override suspend fun getAccessRightWithClauseAndFilter(action: Action): WithAndFilter? = either {
         val claims = subjectReferentialService.getCurrentSubjectClaims().bind()
         if (userIsAdmin().isRight())
             null
-        else permissionService.buildCandidatePermissionsWithStatement(Action.READ, claims) to
-            permissionService.buildAsRightOnEntityFilter(Action.READ, claims)
+        else permissionService.buildCandidatePermissionsWithStatement(action, claims) to
+            permissionService.buildAsRightOnEntityFilter(action, claims)
     }.fold({ "" to "false" }, { it })
 }

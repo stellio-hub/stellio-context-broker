@@ -1,4 +1,4 @@
-package com.egm.stellio.search.csr.service
+package com.egm.stellio.search.csr.util
 
 import arrow.core.Either
 import arrow.core.Ior
@@ -29,6 +29,7 @@ typealias CompactedEntityWithCSR = Pair<CompactedEntity, ContextSourceRegistrati
 typealias CompactedEntitiesWithCSR = Pair<List<CompactedEntity>, ContextSourceRegistration>
 
 typealias AttributeByDatasetId = Map<String?, CompactedAttributeInstance>
+
 object ContextSourceUtils {
 
     fun mergeEntitiesLists(
@@ -169,4 +170,96 @@ object ContextSourceUtils {
         this?.isDateTime() == true &&
             date?.isDateTime() == true &&
             ZonedDateTime.parse(this) < ZonedDateTime.parse(date)
+
+    fun mergeTemporalEntitiesLists(
+        localEntities: List<CompactedEntity>,
+        remoteEntitiesWithCSR: List<CompactedEntitiesWithCSR>
+    ): IorNel<NGSILDWarning, List<CompactedEntity>> {
+        val mergedEntityMap = localEntities.map { it.toMutableMap() }.associateBy { it[NGSILD_ID_TERM] }.toMutableMap()
+
+        val warnings = remoteEntitiesWithCSR.mapNotNull { (entities, csr) ->
+            either {
+                entities.forEach { entity ->
+                    val id = entity[NGSILD_ID_TERM]
+                    mergedEntityMap[id]
+                        ?.let { it.putAll(getMergeTemporalNewValues(it, entity, csr).bind()) }
+                        ?: run { mergedEntityMap[id] = entity.toMutableMap() }
+                }
+                null
+            }.leftOrNull()
+        }.toNonEmptyListOrNull()
+
+        val entities = mergedEntityMap.values.toList()
+        return if (warnings == null) Ior.Right(entities) else Ior.Both(warnings, entities)
+    }
+
+    fun mergeTemporalEntities(
+        localEntity: CompactedEntity?,
+        remoteEntitiesWithCSR: List<CompactedEntityWithCSR>
+    ): IorNel<NGSILDWarning, CompactedEntity?> {
+        if (localEntity == null && remoteEntitiesWithCSR.isEmpty()) return Ior.Right(null)
+
+        val mergedEntity: MutableMap<String, Any> = localEntity?.toMutableMap() ?: mutableMapOf()
+
+        val warnings = remoteEntitiesWithCSR
+            .mapNotNull { (entity, csr) ->
+                getMergeTemporalNewValues(mergedEntity, entity, csr)
+                    .onRight { mergedEntity.putAll(it) }.leftOrNull()
+            }.toNonEmptyListOrNull()
+
+        return if (warnings == null) Ior.Right(mergedEntity) else Ior.Both(warnings, mergedEntity)
+    }
+
+    internal fun getMergeTemporalNewValues(
+        currentEntity: CompactedEntity,
+        remoteEntity: CompactedEntity,
+        csr: ContextSourceRegistration
+    ): Either<NGSILDWarning, CompactedEntity> = either {
+        remoteEntity.mapValues { (key, value) ->
+            val currentValue = currentEntity[key]
+            when {
+                currentValue == null -> value
+                key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW -> currentValue
+                key == NGSILD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
+                    mergeTypeOrScope(currentValue, value)
+                key == NGSILD_CREATED_AT_TERM ->
+                    if ((value as String?).isBefore(currentValue as String?)) value
+                    else currentValue
+                key == NGSILD_MODIFIED_AT_TERM ->
+                    if ((currentValue as String?).isBefore(value as String?)) value
+                    else currentValue
+                else -> mergeTemporalAttribute(currentValue, value, csr).bind()
+            }
+        }
+    }
+
+    fun mergeTemporalAttribute(
+        currentAttribute: Any,
+        remoteAttribute: Any,
+        csr: ContextSourceRegistration
+    ): Either<NGSILDWarning, Any> = either {
+        val currentInstances = normalizeToTemporalInstanceList(currentAttribute, csr).bind()
+        val remoteInstances = normalizeToTemporalInstanceList(remoteAttribute, csr).bind()
+        currentInstances + remoteInstances
+    }
+
+    private fun normalizeToTemporalInstanceList(
+        attribute: Any,
+        csr: ContextSourceRegistration
+    ): Either<NGSILDWarning, List<CompactedAttributeInstance>> =
+        when (attribute) {
+            is Map<*, *> -> {
+                attribute as CompactedAttributeInstance
+                listOf(attribute).right()
+            }
+            is List<*> -> {
+                attribute as CompactedAttributeInstances
+                attribute.right()
+            }
+            else ->
+                RevalidationFailedWarning(
+                    "The received payload is invalid. Temporal attribute is neither a List nor a Map: $attribute",
+                    csr
+                ).left()
+        }
 }

@@ -1,312 +1,352 @@
 package com.egm.stellio.search.csr.util
 
-import arrow.core.left
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.Mode
-import com.egm.stellio.search.csr.model.RevalidationFailedWarning
-import com.egm.stellio.shared.model.CompactedAttributeInstance
-import com.egm.stellio.shared.model.CompactedEntity
-import com.egm.stellio.shared.model.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
-import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_TERM
+import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
-import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.util.INCOMING_TERM
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.OUTGOING_TERM
+import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.toUri
-import io.mockk.every
-import io.mockk.mockkObject
-import io.mockk.verify
-import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
-import tools.jackson.module.kotlin.readValue
 
 @ActiveProfiles("test")
 class ContextSourceUtilsTemporalTests {
 
-    private val minimalEntity: CompactedEntity = mapper.readValue(loadSampleData("beehive_minimal.jsonld"))
-
-    private val time = "2010-01-01T01:01:01.01Z"
-    private val moreRecentTime = "2020-01-01T01:01:01.01Z"
-    private val evenMoreRecentTime = "2030-01-01T01:01:01.01Z"
-
-    private val temperatureInstance1: CompactedAttributeInstance = mapOf(
-        NGSILD_TYPE_TERM to "Property",
-        NGSILD_VALUE_TERM to 22.5,
-        "instanceId" to "urn:ngsi-ld:Instance:instance1",
-        "observedAt" to time
-    )
-
-    private val temperatureInstance2: CompactedAttributeInstance = mapOf(
-        NGSILD_TYPE_TERM to "Property",
-        NGSILD_VALUE_TERM to 24.0,
-        "instanceId" to "urn:ngsi-ld:Instance:instance2",
-        "observedAt" to moreRecentTime
-    )
-
-    private val temperatureInstance3: CompactedAttributeInstance = mapOf(
-        NGSILD_TYPE_TERM to "Property",
-        NGSILD_VALUE_TERM to 26.0,
-        "instanceId" to "urn:ngsi-ld:Instance:instance3",
-        "observedAt" to evenMoreRecentTime
-    )
-
-    private val entityWithTemperatureList: CompactedEntity =
-        minimalEntity.toMutableMap() + ("temperature" to listOf(temperatureInstance1, temperatureInstance2))
-
-    private val entityWithTemperatureInstance3: CompactedEntity =
-        minimalEntity.toMutableMap() + ("temperature" to temperatureInstance3)
+    private val localEntityNormalized: Map<String, Any> =
+        deserializeObject(loadSampleData("temporal/beehive_normalized_incoming.jsonld"))
+    private val remoteEntityNormalized: Map<String, Any> =
+        deserializeObject(loadSampleData("temporal/beehive_normalized_outgoing.jsonld"))
 
     private val inclusiveCSR = ContextSourceRegistration(endpoint = "http://mock-uri".toUri())
     private val auxiliaryCSR = ContextSourceRegistration(endpoint = "http://mock-uri".toUri(), mode = Mode.AUXILIARY)
 
-    // ------------------- mergeTemporalAttribute -------------------
-
     @Test
-    fun `mergeTemporalAttribute should concatenate all instances from two list attributes`() {
-        val result = ContextSourceUtils.mergeTemporalAttribute(
-            listOf(temperatureInstance1),
-            listOf(temperatureInstance2, temperatureInstance3),
-            inclusiveCSR
+    fun `mergeTemporalEntities should merge a normalized local entity with remote entity`() {
+        val result = ContextSourceUtils.mergeTemporalEntities(
+            localEntityNormalized,
+            listOf(remoteEntityNormalized to inclusiveCSR)
         )
 
-        Assertions.assertTrue(result.isRight())
-        @Suppress("UNCHECKED_CAST")
-        val instances = result.getOrNull() as List<CompactedAttributeInstance>
-        org.assertj.core.api.Assertions.assertThat(instances)
-            .hasSize(3).contains(temperatureInstance1, temperatureInstance2, temperatureInstance3)
+        assertTrue(result.isRight())
+        assertJsonPayloadsAreEqual(
+            loadSampleData("temporal/expectations/beehive_normalized_local_remote_inclusive.jsonld"),
+            serializeObject(result.getOrNull()!!)
+        )
     }
 
     @Test
-    fun `mergeTemporalAttribute should normalise a single map instance to a list before concatenation`() {
-        val result = ContextSourceUtils.mergeTemporalAttribute(
-            temperatureInstance1,
-            listOf(temperatureInstance2),
-            inclusiveCSR
+    fun `mergeTemporalEntities should concatenate normalized instances for the same attribute from inclusive CSR`() {
+        val remoteIncoming = deserializeObject(
+            loadSampleData("temporal/beehive_normalized_incoming_remote.jsonld")
         )
 
-        Assertions.assertTrue(result.isRight())
-        @Suppress("UNCHECKED_CAST")
-        val instances = result.getOrNull() as List<CompactedAttributeInstance>
-        org.assertj.core.api.Assertions.assertThat(instances)
-            .hasSize(2).contains(temperatureInstance1, temperatureInstance2)
+        val result = ContextSourceUtils.mergeTemporalEntities(
+            localEntityNormalized,
+            listOf(remoteIncoming to inclusiveCSR)
+        )
+
+        assertTrue(result.isRight())
+        assertThat(result.getOrNull()!!["incoming"] as List<*>).hasSize(5)
     }
 
     @Test
-    fun `mergeTemporalAttribute should normalise two single map instances to lists`() {
-        val result = ContextSourceUtils.mergeTemporalAttribute(
-            temperatureInstance1,
-            temperatureInstance2,
-            inclusiveCSR
+    fun `mergeTemporalEntities should concatenate normalized instances for the same attribute from auxiliary CSR`() {
+        val remoteIncoming = deserializeObject(
+            loadSampleData("temporal/beehive_normalized_incoming_remote.jsonld")
         )
 
-        Assertions.assertTrue(result.isRight())
-        @Suppress("UNCHECKED_CAST")
-        val instances = result.getOrNull() as List<CompactedAttributeInstance>
-        org.assertj.core.api.Assertions.assertThat(instances)
-            .hasSize(2).contains(temperatureInstance1, temperatureInstance2)
+        val result = ContextSourceUtils.mergeTemporalEntities(
+            localEntityNormalized,
+            listOf(remoteIncoming to auxiliaryCSR)
+        )
+
+        assertTrue(result.isRight())
+        // auxiliary CSR does not suppress temporal instance concatenation (unlike non-temporal merge)
+        assertThat(result.getOrNull()!!["incoming"] as List<*>).hasSize(5)
     }
 
     @Test
-    fun `mergeTemporalAttribute should leave local list unchanged when remote list is empty`() {
-        val result = ContextSourceUtils.mergeTemporalAttribute(
-            listOf(temperatureInstance1, temperatureInstance2),
-            emptyList<CompactedAttributeInstance>(),
-            inclusiveCSR
+    fun `mergeTemporalEntities should concatenate instances from multiple CSRs with different modes`() {
+        val remoteInclusiveIncoming = deserializeObject(
+            loadSampleData("temporal/beehive_normalized_incoming_remote.jsonld")
+        )
+        val remoteAuxiliaryIncoming = deserializeObject(
+            loadSampleData("temporal/beehive_normalized_incoming_remote2.jsonld")
         )
 
-        Assertions.assertTrue(result.isRight())
-        @Suppress("UNCHECKED_CAST")
-        val instances = result.getOrNull() as List<CompactedAttributeInstance>
-        org.assertj.core.api.Assertions.assertThat(instances)
-            .hasSize(2).contains(temperatureInstance1, temperatureInstance2)
+        val result = ContextSourceUtils.mergeTemporalEntities(
+            localEntityNormalized,
+            listOf(remoteInclusiveIncoming to inclusiveCSR, remoteAuxiliaryIncoming to auxiliaryCSR)
+        )
+
+        assertTrue(result.isRight())
+        // 3 local + 2 inclusive remote + 2 auxiliary remote
+        assertThat(result.getOrNull()!!["incoming"] as List<*>).hasSize(7)
     }
 
     @Test
-    fun `mergeTemporalAttribute should return a RevalidationFailedWarning for malformed current input`() {
-        val result = ContextSourceUtils.mergeTemporalAttribute(
-            "invalidAttribute",
-            listOf(temperatureInstance1),
-            inclusiveCSR
-        )
+    fun `mergeTemporalEntities should merge temporal values entities with different attributes`() {
+        val local = deserializeObject(loadSampleData("temporal/beehive_temporal_values_incoming.jsonld"))
+        val remote = deserializeObject(loadSampleData("temporal/beehive_temporal_values_outgoing.jsonld"))
 
-        Assertions.assertTrue(result.isLeft())
-        Assertions.assertInstanceOf(RevalidationFailedWarning::class.java, result.leftOrNull())
+        val result = ContextSourceUtils.mergeTemporalEntities(local, listOf(remote to inclusiveCSR))
+
+        assertTrue(result.isRight())
+        assertJsonPayloadsAreEqual(
+            loadSampleData("temporal/expectations/beehive_temporal_values_local_remote_inclusive.jsonld"),
+            serializeObject(result.getOrNull()!!)
+        )
     }
 
     @Test
-    fun `mergeTemporalAttribute should return a RevalidationFailedWarning for malformed remote input`() {
-        val result = ContextSourceUtils.mergeTemporalAttribute(
-            listOf(temperatureInstance1),
-            "invalidAttribute",
-            inclusiveCSR
-        )
+    fun `mergeTemporalEntities should concatenate temporal values instances for the same attribute`() {
+        val local = deserializeObject(loadSampleData("temporal/beehive_temporal_values_incoming.jsonld"))
+        val remote = deserializeObject(loadSampleData("temporal/beehive_temporal_values_incoming_remote.jsonld"))
 
-        Assertions.assertTrue(result.isLeft())
-        Assertions.assertInstanceOf(RevalidationFailedWarning::class.java, result.leftOrNull())
+        val result = ContextSourceUtils.mergeTemporalEntities(local, listOf(remote to inclusiveCSR))
+
+        assertTrue(result.isRight())
+        assertJsonPayloadsAreEqual(
+            loadSampleData("temporal/expectations/beehive_temporal_values_same_attr_merged.jsonld"),
+            serializeObject(result.getOrNull()!!)
+        )
     }
 
-    // ------------------- mergeTemporalEntities -------------------
+    @Test
+    fun `mergeTemporalEntities should concatenate aggregated instances for the same attribute`() {
+        val incomingAggLocal = mapOf(
+            "type" to "Property",
+            "avg" to listOf(listOf(2.5, "2020-01-24T12:00:00.000Z", "2020-01-24T13:00:00.000Z"))
+        )
+        val incomingAggRemote = mapOf(
+            "type" to "Property",
+            "avg" to listOf(listOf(3.1, "2020-01-24T13:00:00.000Z", "2020-01-24T14:00:00.000Z"))
+        )
+        val local = mapOf(
+            NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTC",
+            NGSILD_TYPE_TERM to "BeeHive",
+            INCOMING_TERM to incomingAggLocal
+        )
+        val remote = mapOf(
+            NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTC",
+            NGSILD_TYPE_TERM to "BeeHive",
+            INCOMING_TERM to incomingAggRemote
+        )
+
+        val result = ContextSourceUtils.mergeTemporalEntities(local, listOf(remote to inclusiveCSR))
+
+        assertTrue(result.isRight())
+        assertThat(result.getOrNull()!![INCOMING_TERM] as List<*>)
+            .hasSize(2)
+            .containsExactly(incomingAggLocal, incomingAggRemote)
+    }
 
     @Test
-    fun `mergeTemporalEntities should return null when both local and remote are empty`() = runTest {
+    fun `mergeTemporalEntities should merge aggregated entities with different attributes`() {
+        val incomingAgg = mapOf(
+            "type" to "Property",
+            "avg" to listOf(listOf(2.5, "2020-01-24T12:00:00.000Z", "2020-01-24T13:00:00.000Z"))
+        )
+        val outgoingAgg = mapOf(
+            "type" to "Property",
+            "sum" to listOf(listOf(100, "2020-01-24T12:00:00.000Z", "2020-01-24T13:00:00.000Z"))
+        )
+        val local = mapOf(
+            NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTC",
+            NGSILD_TYPE_TERM to "BeeHive",
+            INCOMING_TERM to incomingAgg
+        )
+        val remote = mapOf(
+            NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTC",
+            NGSILD_TYPE_TERM to "BeeHive",
+            OUTGOING_TERM to outgoingAgg
+        )
+
+        val result = ContextSourceUtils.mergeTemporalEntities(local, listOf(remote to inclusiveCSR))
+
+        assertTrue(result.isRight())
+        assertEquals(incomingAgg, result.getOrNull()!![INCOMING_TERM])
+        assertEquals(outgoingAgg, result.getOrNull()!![OUTGOING_TERM])
+    }
+
+    @Test
+    fun `mergeTemporalEntities should merge scope temporal instances from local and remote`() {
+        val scopeInstance1 = mapOf(
+            "type" to "Property",
+            "values" to listOf("/A/B", "2020-01-24T12:01:22.066Z")
+        )
+        val scopeInstance2 = mapOf(
+            "type" to "Property",
+            "values" to listOf("/C/D", "2020-01-24T13:01:22.066Z")
+        )
+        val remoteScopeInstance = mapOf(
+            "type" to "Property",
+            "values" to listOf("/E/F", "2020-01-24T14:01:22.066Z")
+        )
+        val local = mapOf(
+            NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTC",
+            NGSILD_TYPE_TERM to "BeeHive",
+            NGSILD_SCOPE_TERM to listOf(scopeInstance1, scopeInstance2)
+        )
+        val remote = mapOf(
+            NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTC",
+            NGSILD_TYPE_TERM to "BeeHive",
+            NGSILD_SCOPE_TERM to listOf(remoteScopeInstance)
+        )
+
+        val result = ContextSourceUtils.mergeTemporalEntities(local, listOf(remote to inclusiveCSR))
+
+        assertTrue(result.isRight())
+        assertThat(result.getOrNull()!![NGSILD_SCOPE_TERM] as List<*>)
+            .hasSize(3)
+            .containsExactlyInAnyOrder(scopeInstance1, scopeInstance2, remoteScopeInstance)
+    }
+
+    @Test
+    fun `mergeTemporalEntities should return null when there is no local entity and no remote entities`() {
         val result = ContextSourceUtils.mergeTemporalEntities(null, emptyList())
-        Assertions.assertTrue(result.isRight())
-        Assertions.assertEquals(null, result.getOrNull())
+
+        assertTrue(result.isRight())
+        assertNull(result.getOrNull())
     }
 
     @Test
-    fun `mergeTemporalEntities should return localEntity when no remote entities provided`() = runTest {
-        val result = ContextSourceUtils.mergeTemporalEntities(entityWithTemperatureList, emptyList())
-        Assertions.assertEquals(entityWithTemperatureList, result.getOrNull())
-    }
-
-    @Test
-    fun `mergeTemporalEntities should return remote entity when local is null`() = runTest {
-        val result = ContextSourceUtils.mergeTemporalEntities(null, listOf(entityWithTemperatureList to inclusiveCSR))
-        Assertions.assertEquals(entityWithTemperatureList, result.getOrNull())
-    }
-
-    @Test
-    fun `mergeTemporalEntities should concatenate all instances from local and remote`() = runTest {
+    fun `mergeTemporalEntities should return remote entity when there is no local entity`() {
         val result = ContextSourceUtils.mergeTemporalEntities(
-            entityWithTemperatureList,
-            listOf(entityWithTemperatureInstance3 to inclusiveCSR)
-        ).getOrNull()
+            null,
+            listOf(remoteEntityNormalized to inclusiveCSR)
+        )
 
-        @Suppress("UNCHECKED_CAST")
-        val instances = result?.get("temperature") as List<CompactedAttributeInstance>
-        org.assertj.core.api.Assertions.assertThat(instances).hasSize(3)
-            .contains(temperatureInstance1, temperatureInstance2, temperatureInstance3)
+        assertTrue(result.isRight())
+        assertEquals(remoteEntityNormalized, result.getOrNull())
     }
 
     @Test
-    fun `mergeTemporalEntities should concatenate instances from multiple remote CSRs`() = runTest {
-        val entityWithInstance2: CompactedEntity =
-            minimalEntity.toMutableMap() + ("temperature" to temperatureInstance2)
-        val entityWithInstance3: CompactedEntity =
-            minimalEntity.toMutableMap() + ("temperature" to temperatureInstance3)
-
+    fun `mergeTemporalEntities should merge multiple remote entities when there is no local entity`() {
         val result = ContextSourceUtils.mergeTemporalEntities(
-            minimalEntity.toMutableMap() + ("temperature" to temperatureInstance1),
-            listOf(entityWithInstance2 to inclusiveCSR, entityWithInstance3 to auxiliaryCSR)
-        ).getOrNull()
+            null,
+            listOf(localEntityNormalized to inclusiveCSR, remoteEntityNormalized to inclusiveCSR)
+        )
 
-        @Suppress("UNCHECKED_CAST")
-        val instances = result?.get("temperature") as List<CompactedAttributeInstance>
-        org.assertj.core.api.Assertions.assertThat(instances).hasSize(3)
-            .contains(temperatureInstance1, temperatureInstance2, temperatureInstance3)
+        assertTrue(result.isRight())
+        assertNotNull(result.getOrNull()!!["incoming"])
+        assertNotNull(result.getOrNull()!!["outgoing"])
     }
 
     @Test
-    fun `mergeTemporalEntities should keep least recent createdAt`() = runTest {
-        val localEntity = minimalEntity.toMutableMap() + (NGSILD_CREATED_AT_TERM to moreRecentTime)
-        val remoteEntity = minimalEntity.toMutableMap() + (NGSILD_CREATED_AT_TERM to time)
+    fun `mergeTemporalEntities should concatenate temporal instances with different datasetIds`() {
+        val instanceDatasetA = mapOf(
+            "type" to "Property",
+            "value" to 1550,
+            "observedAt" to "2020-01-24T12:01:22.066Z",
+            "datasetId" to "urn:ngsi-ld:Dataset:A",
+            "instanceId" to "urn:ngsi-ld:Instance:001"
+        )
+        val instanceDatasetB = mapOf(
+            "type" to "Property",
+            "value" to 2000,
+            "observedAt" to "2020-01-24T15:01:22.066Z",
+            "datasetId" to "urn:ngsi-ld:Dataset:B",
+            "instanceId" to "urn:ngsi-ld:Instance:002"
+        )
+        val local = mapOf(
+            NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTC",
+            NGSILD_TYPE_TERM to "BeeHive",
+            INCOMING_TERM to listOf(instanceDatasetA)
+        )
+        val remote = mapOf(
+            NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTC",
+            NGSILD_TYPE_TERM to "BeeHive",
+            INCOMING_TERM to listOf(instanceDatasetB)
+        )
 
-        val result = ContextSourceUtils.mergeTemporalEntities(localEntity, listOf(remoteEntity to inclusiveCSR))
-        Assertions.assertEquals(time, result.getOrNull()?.get(NGSILD_CREATED_AT_TERM))
+        val result = ContextSourceUtils.mergeTemporalEntities(local, listOf(remote to inclusiveCSR))
+
+        assertTrue(result.isRight())
+        assertThat(result.getOrNull()!![INCOMING_TERM] as List<*>)
+            .hasSize(2)
+            .containsExactlyInAnyOrder(instanceDatasetA, instanceDatasetB)
     }
 
     @Test
-    fun `mergeTemporalEntities should keep most recent modifiedAt`() = runTest {
-        val localEntity = minimalEntity.toMutableMap() + (NGSILD_MODIFIED_AT_TERM to time)
-        val remoteEntity = minimalEntity.toMutableMap() + (NGSILD_MODIFIED_AT_TERM to moreRecentTime)
+    fun `mergeTemporalEntities should concatenate temporal instances with the same datasetId from different sources`() {
+        val localInstance = mapOf(
+            "type" to "Property",
+            "value" to 1550,
+            "observedAt" to "2020-01-24T12:01:22.066Z",
+            "datasetId" to "urn:ngsi-ld:Dataset:A",
+            "instanceId" to "urn:ngsi-ld:Instance:001"
+        )
+        val remoteInstance = mapOf(
+            "type" to "Property",
+            "value" to 2000,
+            "observedAt" to "2020-01-24T15:01:22.066Z",
+            "datasetId" to "urn:ngsi-ld:Dataset:A",
+            "instanceId" to "urn:ngsi-ld:Instance:002"
+        )
+        val local = mapOf(
+            NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTC",
+            NGSILD_TYPE_TERM to "BeeHive",
+            INCOMING_TERM to listOf(localInstance)
+        )
+        val remote = mapOf(
+            NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTC",
+            NGSILD_TYPE_TERM to "BeeHive",
+            INCOMING_TERM to listOf(remoteInstance)
+        )
 
-        val result = ContextSourceUtils.mergeTemporalEntities(localEntity, listOf(remoteEntity to inclusiveCSR))
-        Assertions.assertEquals(moreRecentTime, result.getOrNull()?.get(NGSILD_MODIFIED_AT_TERM))
+        val result = ContextSourceUtils.mergeTemporalEntities(local, listOf(remote to inclusiveCSR))
+
+        assertTrue(result.isRight())
+        // unlike non-temporal merge, same datasetId instances from different sources are both kept
+        assertThat(result.getOrNull()!![INCOMING_TERM] as List<*>)
+            .hasSize(2)
+            .containsExactlyInAnyOrder(localInstance, remoteInstance)
     }
 
     @Test
-    fun `mergeTemporalEntities should return warnings from attribute merge failures`() = runTest {
-        val warning = RevalidationFailedWarning("bad payload", inclusiveCSR)
-        mockkObject(ContextSourceUtils) {
-            every { ContextSourceUtils.mergeTemporalAttribute(any(), any(), any()) } returns warning.left()
+    fun `mergeTemporalEntitiesLists should merge temporal entities from multiple CSRs`() {
+        val remoteIncoming = deserializeObject(
+            loadSampleData("temporal/beehive_normalized_incoming_remote.jsonld")
+        )
 
-            val entityWithInvalidAttr: CompactedEntity =
-                minimalEntity.toMutableMap() + ("temperature" to "invalidAttribute")
-            val localEntity: CompactedEntity =
-                minimalEntity.toMutableMap() + ("temperature" to temperatureInstance1)
-
-            val (warnings, entity) = ContextSourceUtils.mergeTemporalEntities(
-                localEntity,
-                listOf(entityWithInvalidAttr to inclusiveCSR)
-            ).toPair()
-
-            org.assertj.core.api.Assertions.assertThat(warnings).hasSize(1)
-            Assertions.assertEquals(localEntity, entity)
-        }
-    }
-
-    // ------------------- mergeTemporalEntitiesLists -------------------
-
-    @Test
-    fun `mergeTemporalEntitiesLists should merge entities with the same id`() = runTest {
         val result = ContextSourceUtils.mergeTemporalEntitiesLists(
-            listOf(entityWithTemperatureList),
-            listOf(listOf(entityWithTemperatureInstance3) to inclusiveCSR)
-        ).getOrNull()
+            listOf(localEntityNormalized),
+            listOf(
+                listOf(remoteIncoming) to inclusiveCSR,
+                listOf(remoteEntityNormalized) to auxiliaryCSR
+            )
+        )
 
-        Assertions.assertEquals(1, result!!.size)
-        @Suppress("UNCHECKED_CAST")
-        val instances = result.first()["temperature"] as List<CompactedAttributeInstance>
-        org.assertj.core.api.Assertions.assertThat(instances).hasSize(3)
+        assertTrue(result.isRight())
+        val entities = result.getOrNull()!!
+        assertThat(entities).hasSize(1)
+        assertThat(entities.first()["incoming"] as List<*>).hasSize(5)
+        assertNotNull(entities.first()["outgoing"])
     }
 
     @Test
-    fun `mergeTemporalEntitiesLists should add entities with different ids`() = runTest {
-        val entityWithDifferentId = minimalEntity.toMutableMap() + (NGSILD_ID_TERM to "differentId")
+    fun `mergeTemporalEntitiesLists should add remote entities with ids absent locally`() {
+        val remoteEntity = remoteEntityNormalized.toMutableMap()
+            .also { it[NGSILD_ID_TERM] = "urn:ngsi-ld:BeeHive:REMOTE" }
 
         val result = ContextSourceUtils.mergeTemporalEntitiesLists(
-            listOf(entityWithTemperatureList),
-            listOf(listOf(entityWithDifferentId) to inclusiveCSR)
-        ).getOrNull()
+            listOf(localEntityNormalized),
+            listOf(listOf(remoteEntity) to inclusiveCSR)
+        )
 
-        org.assertj.core.api.Assertions.assertThat(result).hasSize(2)
-    }
-
-    @Test
-    fun `mergeTemporalEntitiesLists should include remote-only entities not present locally`() = runTest {
-        val remoteOnlyEntity = (minimalEntity.toMutableMap() + (NGSILD_ID_TERM to "urn:ngsi-ld:Entity:remote"))
-            .plus("temperature" to temperatureInstance1)
-
-        val result = ContextSourceUtils.mergeTemporalEntitiesLists(
-            emptyList(),
-            listOf(listOf(remoteOnlyEntity) to inclusiveCSR)
-        ).getOrNull()
-
-        org.assertj.core.api.Assertions.assertThat(result).hasSize(1).contains(remoteOnlyEntity)
-    }
-
-    @Test
-    fun `mergeTemporalEntitiesLists should not deduplicate instances from auxiliary CSRs`() = runTest {
-        val result = ContextSourceUtils.mergeTemporalEntitiesLists(
-            listOf(entityWithTemperatureList),
-            listOf(listOf(entityWithTemperatureInstance3) to auxiliaryCSR)
-        ).getOrNull()
-
-        Assertions.assertEquals(1, result!!.size)
-        @Suppress("UNCHECKED_CAST")
-        val instances = result.first()["temperature"] as List<CompactedAttributeInstance>
-        org.assertj.core.api.Assertions.assertThat(instances).hasSize(3)
-            .contains(temperatureInstance1, temperatureInstance2, temperatureInstance3)
-    }
-
-    @Test
-    fun `mergeTemporalEntitiesLists should return warnings when attribute merge fails`() = runTest {
-        val warning = RevalidationFailedWarning("bad payload", inclusiveCSR)
-        mockkObject(ContextSourceUtils) {
-            every { ContextSourceUtils.getMergeTemporalNewValues(any(), any(), any()) } returns warning.left()
-
-            val (warnings, entities) = ContextSourceUtils.mergeTemporalEntitiesLists(
-                listOf(entityWithTemperatureList),
-                listOf(listOf(entityWithTemperatureList) to inclusiveCSR)
-            ).toPair()
-
-            verify(exactly = 1) { ContextSourceUtils.getMergeTemporalNewValues(any(), any(), any()) }
-            org.assertj.core.api.Assertions.assertThat(warnings).hasSize(1)
-            Assertions.assertEquals(listOf(entityWithTemperatureList), entities)
-        }
+        assertTrue(result.isRight())
+        assertThat(result.getOrNull()!!).hasSize(2)
     }
 }

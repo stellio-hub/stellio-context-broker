@@ -1,0 +1,41 @@
+{
+    "id": "urn:ngsi-ld:BeeHive:TESTC",
+    "type": "BeeHive",
+    "incoming": [
+        {
+            "instanceId": "urn:ngsi-ld:Instance:2c348a6d-0593-4e26-99fc-a01966b618d3",
+            "observedAt": "2020-01-24T12:01:22.066Z",
+            "type": "Property",
+            "value": 1550
+        },
+        {
+            "instanceId": "urn:ngsi-ld:Instance:0ff62512-e1c7-4854-bbbf-d73c4ff3600b",
+            "observedAt": "2020-01-24T13:01:22.066Z",
+            "type": "Property",
+            "value": 1543
+        },
+        {
+            "instanceId": "urn:ngsi-ld:Instance:0ff62512-e1c7-4854-bbbf-d73c4ff3600b",
+            "observedAt": "2020-01-24T14:01:22.066Z",
+            "type": "Property",
+            "value": 1600
+        }
+    ],
+    "outgoing": [
+        {
+            "instanceId": "urn:ngsi-ld:Instance:94469600-0192-4378-9fe3-fb973e99ba66",
+            "observedAt": "2020-01-24T13:01:22.066Z",
+            "type": "Property",
+            "value": 1543
+        },
+        {
+            "instanceId": "urn:ngsi-ld:Instance:ccea278d-1385-427e-993a-072ff2bd4603",
+            "observedAt": "2020-01-24T14:01:22.066Z",
+            "type": "Property",
+            "value": 1600
+        }
+    ],
+    "@context": [
+        "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+    ]
+}

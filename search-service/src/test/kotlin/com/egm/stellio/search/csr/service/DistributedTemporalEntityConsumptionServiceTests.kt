@@ -1,6 +1,7 @@
 package com.egm.stellio.search.csr.service
 
 import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
@@ -18,7 +19,6 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.toUri
@@ -174,6 +174,38 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
     }
 
     @Test
+    fun `distributeRetrieveTemporalEntityOperation should return entities from CSRs and update status to true`() =
+        runTest {
+            val csr = gimmeRawCSR()
+            val remoteEntity = mapOf("id" to apiaryId, "type" to "Apiary")
+
+            coEvery {
+                contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(csr)
+
+            coEvery {
+                distributedTemporalEntityConsumptionService.retrieveTemporalEntityFromContextSource(
+                    any(), any(), any(), any(), any()
+                )
+            } returns remoteEntity.right()
+
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+
+            val (warnings, entities) =
+                distributedTemporalEntityConsumptionService.distributeRetrieveTemporalEntityOperation(
+                    apiaryId.toUri(),
+                    buildTemporalEntitiesQuery(),
+                    HttpHeaders(),
+                    emptyParams
+                )
+
+            assertThat(warnings).isEmpty()
+            assertThat(entities).hasSize(1)
+            assertEquals(remoteEntity, entities.first().first)
+            coVerify(exactly = 1) { contextSourceRegistrationService.updateContextSourceStatus(any(), true) }
+        }
+
+    @Test
     fun `distributeRetrieveTemporalEntityOperation should return warnings and update CSR statuses`() = runTest {
         val csr = gimmeRawCSR()
 
@@ -202,16 +234,14 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
     }
 
     @Test
-    fun `queryTemporalEntitiesFromContextSource should return entities and count on success`() = runTest {
+    fun `queryTemporalEntitiesFromContextSource should return entities`() = runTest {
         val csr = gimmeRawCSR()
         val path = "/ngsi-ld/v1/temporal/entities"
-        val count = 42
         stubFor(
             get(urlMatching(path))
                 .willReturn(
                     ok()
                         .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-                        .withHeader(RESULTS_COUNT_HEADER, count.toString())
                         .withBody(temporalEntityListPayload)
                 )
         )
@@ -224,8 +254,7 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
         ).getOrNull()
 
         assertNotNull(response)
-        assertEquals(count, response!!.second)
-        assertJsonPayloadsAreEqual(temporalEntityPayload, serializeObject(response.first.first()))
+        assertJsonPayloadsAreEqual(temporalEntityPayload, serializeObject(response!!.first.first()))
     }
 
     @Test
@@ -247,6 +276,38 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
         assertTrue(response.isLeft())
         assertInstanceOf(RevalidationFailedWarning::class.java, response.leftOrNull())
     }
+
+    @Test
+    fun `distributeQueryTemporalEntitiesOperation should return entities and counts on success`() =
+        runTest {
+            val csr = gimmeRawCSR()
+            val remoteEntity = mapOf("id" to apiaryId, "type" to "Apiary")
+            val count = 5
+
+            coEvery {
+                contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
+            } returns listOf(csr)
+
+            coEvery {
+                distributedTemporalEntityConsumptionService.queryTemporalEntitiesFromContextSource(
+                    any(), any(), any(), any()
+                )
+            } returns (listOf(remoteEntity) to count).right()
+
+            coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
+
+            val (warnings, entitiesWithCSR, counts) =
+                distributedTemporalEntityConsumptionService.distributeQueryTemporalEntitiesOperation(
+                    buildTemporalEntitiesQuery(),
+                    HttpHeaders(),
+                    emptyParams
+                )
+
+            assertThat(warnings).isEmpty()
+            assertThat(entitiesWithCSR).hasSize(1)
+            assertThat(counts).containsExactly(count)
+            coVerify(exactly = 1) { contextSourceRegistrationService.updateContextSourceStatus(any(), true) }
+        }
 
     @Test
     fun `distributeQueryTemporalEntitiesOperation should return warnings and update CSR statuses`() = runTest {

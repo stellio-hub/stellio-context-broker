@@ -20,6 +20,7 @@ import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
+import com.egm.stellio.shared.model.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.util.isDateTime
 import java.time.ZonedDateTime
@@ -177,7 +178,7 @@ object ContextSourceUtils {
     ): IorNel<NGSILDWarning, List<CompactedEntity>> {
         val mergedEntityMap = localEntities.map { it.toMutableMap() }.associateBy { it[NGSILD_ID_TERM] }.toMutableMap()
 
-        val warnings = remoteEntitiesWithCSR.mapNotNull { (entities, csr) ->
+        val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }.mapNotNull { (entities, csr) ->
             either {
                 entities.forEach { entity ->
                     val id = entity[NGSILD_ID_TERM]
@@ -201,7 +202,7 @@ object ContextSourceUtils {
 
         val mergedEntity: MutableMap<String, Any> = localEntity?.toMutableMap() ?: mutableMapOf()
 
-        val warnings = remoteEntitiesWithCSR
+        val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }
             .mapNotNull { (entity, csr) ->
                 getMergeTemporalNewValues(mergedEntity, entity, csr)
                     .onRight { mergedEntity.putAll(it) }.leftOrNull()
@@ -220,13 +221,11 @@ object ContextSourceUtils {
             when {
                 currentValue == null -> value
                 key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW -> currentValue
+                // TODO scope is a temporal attribute, should be handled differently
                 key == NGSILD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
                     mergeTypeOrScope(currentValue, value)
-                key == NGSILD_CREATED_AT_TERM ->
+                key in NGSILD_SYSATTRS_TERMS ->
                     if ((value as String?).isBefore(currentValue as String?)) value
-                    else currentValue
-                key == NGSILD_MODIFIED_AT_TERM ->
-                    if ((currentValue as String?).isBefore(value as String?)) value
                     else currentValue
                 else -> mergeTemporalAttribute(currentValue, value, csr).bind()
             }

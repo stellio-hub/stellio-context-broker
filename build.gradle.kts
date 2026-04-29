@@ -197,7 +197,7 @@ subprojects {
 
 allprojects {
     group = "com.egm.stellio"
-    version = "otel"
+    version = "latest-dev"
 
     repositories {
         mavenCentral()

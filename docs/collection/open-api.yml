@@ -592,7 +592,7 @@ paths:
               type: object
   /auth/permissions/{permissionId}:
     get:
-      summary: Retrieve CSR
+      summary: Retrieve Permission
       parameters:
         - name: Link
           in: header
@@ -601,7 +601,7 @@ paths:
           example: '{{apicContextLink}}'
       responses: {}
       tags:
-        - ContextSourceRegistration
+        - Permission
     parameters:
       - name: permissionId
         in: path
@@ -610,7 +610,7 @@ paths:
           type: string
         example: '{{csrId}}'
     patch:
-      summary: Update CSR
+      summary: Update Permission
       parameters:
         - name: Link
           in: header
@@ -619,7 +619,7 @@ paths:
           example: '{{apicContextLink}}'
       responses: {}
       tags:
-        - ContextSourceRegistration
+        - Permission
       requestBody:
         content:
           application/json:
@@ -632,7 +632,7 @@ paths:
             example:
               endpoint: http://my.csource.org:1026
     delete:
-      summary: Delete CSR
+      summary: Delete Permission
       parameters:
         - name: Link
           in: header
@@ -641,10 +641,10 @@ paths:
           example: '{{apicContextLink}}'
       responses: {}
       tags:
-        - ContextSourceRegistration
+        - Permission
   /auth/permissions:
     get:
-      summary: Query CSR
+      summary: Query Permission
       parameters:
         - name: Link
           in: header
@@ -653,9 +653,9 @@ paths:
           example: '{{apicContextLink}}'
       responses: {}
       tags:
-        - ContextSourceRegistration
+        - Permission
     post:
-      summary: Create CSR
+      summary: Create Permission
       parameters:
         - name: Link
           in: header
@@ -664,7 +664,7 @@ paths:
           example: '{{apicContextLink}}'
       responses: {}
       tags:
-        - ContextSourceRegistration
+        - Permission
       requestBody:
         content:
           application/json:

@@ -35,6 +35,23 @@ management:
       access: none
     health:
       access: read_only
+  # URLs to the OpenTelemetry collector
+  # Log data are sent only if the 'otel' Spring profile is active
+  opentelemetry:
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+    # https://opentelemetry.io/docs/specs/semconv/registry/attributes/service/
+    # https://opentelemetry.io/docs/specs/semconv/registry/attributes/deployment/
+    resource-attributes:
+      service.name: api-gateway
+      service.namespace: stellio
+      deployment.environment.name: local
+  otlp:
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
 
 logbook:
   format.style: http
@@ -43,9 +60,3 @@ logbook:
   predicate:
     include:
       - path: /ngsi-ld/v1/**
-
-# Default values for sending log data to a Gelf compatible endpoint
-# Log data is sent only if the 'gelflogs' Spring profile is active
-# application.graylog.host: localhost
-# application.graylog.port: 12201
-# application.graylog.source: stellio-int

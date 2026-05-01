@@ -60,7 +60,7 @@ subprojects {
         implementation("org.springframework.boot:spring-boot-starter-validation")
 
         implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
-        implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.25.0-alpha")
+        implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.27.0-alpha")
 
         implementation("org.springframework.boot:spring-boot-starter-kafka")
 

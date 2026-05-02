@@ -15,7 +15,7 @@
             "value": 1543
         },
         {
-            "instanceId": "urn:ngsi-ld:Instance:0ff62512-e1c7-4854-bbbf-d73c4ff3600b",
+            "instanceId": "urn:ngsi-ld:Instance:0eea921d-7fc6-40f6-9cac-3860b9f920cb",
             "observedAt": "2020-01-24T14:01:22.066Z",
             "type": "Property",
             "value": 1600

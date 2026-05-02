@@ -1,0 +1,51 @@
+{
+    "id": "urn:ngsi-ld:BeeHive:TESTC",
+    "type": "BeeHive",
+    "incoming": [
+        {
+            "type": "Property",
+            "value": 1550,
+            "observedAt": "2020-01-24T12:01:22.066Z",
+            "instanceId": "urn:ngsi-ld:Instance:2c348a6d-0593-4e26-99fc-a01966b618d3"
+        },
+        {
+            "type": "Property",
+            "value": 1543,
+            "observedAt": "2020-01-24T13:01:22.066Z",
+            "instanceId": "urn:ngsi-ld:Instance:0ff62512-e1c7-4854-bbbf-d73c4ff3600b"
+        },
+        {
+            "type": "Property",
+            "value": 1600,
+            "observedAt": "2020-01-24T14:01:22.066Z",
+            "instanceId": "urn:ngsi-ld:Instance:0eea921d-7fc6-40f6-9cac-3860b9f920cb"
+        },
+        {
+            "type": "Property",
+            "value": 2000,
+            "observedAt": "2020-01-24T15:01:22.066Z",
+            "instanceId": "urn:ngsi-ld:Instance:25315d0b-a54a-4391-b36e-7236d76e7131"
+        },
+        {
+            "type": "Property",
+            "value": 2100,
+            "observedAt": "2020-01-24T16:01:22.066Z",
+            "instanceId": "urn:ngsi-ld:Instance:dcd6f5f3-f64b-481c-ad27-7a81d29c1703"
+        },
+        {
+            "type": "Property",
+            "value": 2200,
+            "observedAt": "2020-01-24T17:01:22.066Z",
+            "instanceId": "urn:ngsi-ld:Instance:da6343ae-77c5-4dea-a533-b386a65abb90"
+        },
+        {
+            "type": "Property",
+            "value": 2300,
+            "observedAt": "2020-01-24T18:01:22.066Z",
+            "instanceId": "urn:ngsi-ld:Instance:a585ee39-e3a3-44c0-8e32-4ae4ce2125ae"
+        }
+    ],
+    "@context": [
+        "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+    ]
+}

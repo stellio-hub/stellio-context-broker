@@ -4,12 +4,15 @@ import arrow.core.Either
 import arrow.core.Ior
 import arrow.core.IorNel
 import arrow.core.left
+import arrow.core.raise.Raise
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.toNonEmptyListOrNull
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
+import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedAttributeInstances
 import com.egm.stellio.shared.model.CompactedEntity
@@ -22,6 +25,8 @@ import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.model.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
+import com.egm.stellio.shared.model.TEMPORAL_REPRESENTATION_TERMS
+import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceInvalidPayloadMessage
 import com.egm.stellio.shared.util.isDateTime
 import java.time.ZonedDateTime
 import kotlin.random.Random.Default.nextBoolean
@@ -140,7 +145,9 @@ object ContextSourceUtils {
         if (values.size == 1) values[0] else values
     }
 
-    // only meant to work with attributes under the normalized representation
+    // only meant to work with attributes under:
+    // - the normalized representation when retrieving or querying entities
+    // - the simplified or aggregated representation when retrieving or querying tmeporal entities
     private fun groupInstancesByDataSetId(
         attribute: Any,
         csr: ContextSourceRegistration
@@ -156,7 +163,7 @@ object ContextSourceUtils {
             }
             else -> {
                 RevalidationFailedWarning( // could be avoided if Json payload is validated beforehand
-                    "The received payload is invalid. Attribute is nor List nor a Map : $attribute",
+                    contextSourceInvalidPayloadMessage(csr.id, attribute),
                     csr
                 ).left()
             }
@@ -174,7 +181,8 @@ object ContextSourceUtils {
 
     fun mergeTemporalEntitiesLists(
         localEntities: List<CompactedEntity>,
-        remoteEntitiesWithCSR: List<CompactedEntitiesWithCSR>
+        remoteEntitiesWithCSR: List<CompactedEntitiesWithCSR>,
+        temporalRepresentation: TemporalRepresentation
     ): IorNel<NGSILDWarning, List<CompactedEntity>> {
         val mergedEntityMap = localEntities.map { it.toMutableMap() }.associateBy { it[NGSILD_ID_TERM] }.toMutableMap()
 
@@ -183,7 +191,7 @@ object ContextSourceUtils {
                 entities.forEach { entity ->
                     val id = entity[NGSILD_ID_TERM]
                     mergedEntityMap[id]
-                        ?.let { it.putAll(getMergeTemporalNewValues(it, entity, csr).bind()) }
+                        ?.let { it.putAll(getMergeTemporalNewValues(it, entity, temporalRepresentation, csr).bind()) }
                         ?: run { mergedEntityMap[id] = entity.toMutableMap() }
                 }
                 null
@@ -196,7 +204,8 @@ object ContextSourceUtils {
 
     fun mergeTemporalEntities(
         localEntity: CompactedEntity?,
-        remoteEntitiesWithCSR: List<CompactedEntityWithCSR>
+        remoteEntitiesWithCSR: List<CompactedEntityWithCSR>,
+        temporalRepresentation: TemporalRepresentation
     ): IorNel<NGSILDWarning, CompactedEntity?> {
         if (localEntity == null && remoteEntitiesWithCSR.isEmpty()) return Ior.Right(null)
 
@@ -204,16 +213,19 @@ object ContextSourceUtils {
 
         val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }
             .mapNotNull { (entity, csr) ->
-                getMergeTemporalNewValues(mergedEntity, entity, csr)
+                getMergeTemporalNewValues(mergedEntity, entity, temporalRepresentation, csr)
                     .onRight { mergedEntity.putAll(it) }.leftOrNull()
             }.toNonEmptyListOrNull()
 
-        return if (warnings == null) Ior.Right(mergedEntity) else Ior.Both(warnings, mergedEntity)
+        return if (warnings == null)
+            Ior.Right(mergedEntity)
+        else Ior.Both(warnings, mergedEntity)
     }
 
     internal fun getMergeTemporalNewValues(
         currentEntity: CompactedEntity,
         remoteEntity: CompactedEntity,
+        temporalRepresentation: TemporalRepresentation,
         csr: ContextSourceRegistration
     ): Either<NGSILDWarning, CompactedEntity> = either {
         remoteEntity.mapValues { (key, value) ->
@@ -221,13 +233,12 @@ object ContextSourceUtils {
             when {
                 currentValue == null -> value
                 key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW -> currentValue
-                // TODO scope is a temporal attribute, should be handled differently
-                key == NGSILD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
-                    mergeTypeOrScope(currentValue, value)
+                key == NGSILD_TYPE_TERM -> mergeTypeOrScope(currentValue, value)
                 key in NGSILD_SYSATTRS_TERMS ->
                     if ((value as String?).isBefore(currentValue as String?)) value
                     else currentValue
-                else -> mergeTemporalAttribute(currentValue, value, csr).bind()
+                // handles temporal attributes and scope
+                else -> mergeTemporalAttribute(currentValue, value, temporalRepresentation, csr).bind()
             }
         }
     }
@@ -235,30 +246,68 @@ object ContextSourceUtils {
     fun mergeTemporalAttribute(
         currentAttribute: Any,
         remoteAttribute: Any,
+        temporalRepresentation: TemporalRepresentation,
         csr: ContextSourceRegistration
     ): Either<NGSILDWarning, Any> = either {
-        val currentInstances = normalizeToTemporalInstanceList(currentAttribute, csr).bind()
-        val remoteInstances = normalizeToTemporalInstanceList(remoteAttribute, csr).bind()
-        currentInstances + remoteInstances
+        when (temporalRepresentation) {
+            TemporalRepresentation.NORMALIZED -> {
+                val currentInstances = toListOfNormalizedInstances(currentAttribute, csr).bind()
+                val remoteInstances = toListOfNormalizedInstances(remoteAttribute, csr).bind()
+                currentInstances + remoteInstances
+            }
+            TemporalRepresentation.TEMPORAL_VALUES ->
+                mergeSimplifiedOrAggregatedAttributeInstances(
+                    currentAttribute,
+                    remoteAttribute,
+                    TEMPORAL_REPRESENTATION_TERMS,
+                    csr
+                )
+            TemporalRepresentation.AGGREGATED_VALUES ->
+                mergeSimplifiedOrAggregatedAttributeInstances(
+                    currentAttribute,
+                    remoteAttribute,
+                    TemporalQuery.Aggregate.toMethodsNames(),
+                    csr
+                )
+        }
     }
 
-    private fun normalizeToTemporalInstanceList(
+    private fun Raise<NGSILDWarning>.mergeSimplifiedOrAggregatedAttributeInstances(
+        currentAttribute: Any,
+        remoteAttribute: Any,
+        keysToMerge: List<String>,
+        csr: ContextSourceRegistration
+    ): Any {
+        val currentInstances = groupInstancesByDataSetId(currentAttribute, csr).bind().toMutableMap()
+        val remoteInstances = groupInstancesByDataSetId(remoteAttribute, csr).bind()
+        val currentAndRemoteValues = currentInstances.entries.map { (datasetId, currentInstance) ->
+            val remoteInstance = remoteInstances[datasetId]
+            if (remoteInstance != null) {
+                currentInstance.mapValues { (key, value) ->
+                    if (key in keysToMerge) {
+                        if (remoteInstance.containsKey(key))
+                            (value as List<*>).plus(remoteInstance[key] as List<*>)
+                        else value
+                    } else value
+                }
+            } else currentInstance
+        }
+        val remoteOnlyValues = remoteInstances.filter { (datasetId, _) ->
+            datasetId !in currentInstances.map { it.key }
+        }.map { it.value }
+
+        return (currentAndRemoteValues + remoteOnlyValues).let {
+            if (it.size == 1) it[0] else it
+        }
+    }
+
+    private fun toListOfNormalizedInstances(
         attribute: Any,
         csr: ContextSourceRegistration
     ): Either<NGSILDWarning, List<CompactedAttributeInstance>> =
         when (attribute) {
-            is Map<*, *> -> {
-                attribute as CompactedAttributeInstance
-                listOf(attribute).right()
-            }
-            is List<*> -> {
-                attribute as CompactedAttributeInstances
-                attribute.right()
-            }
-            else ->
-                RevalidationFailedWarning(
-                    "The received payload is invalid. Temporal attribute is neither a List nor a Map: $attribute",
-                    csr
-                ).left()
+            is Map<*, *> -> listOf(attribute as CompactedAttributeInstance).right()
+            is List<*> -> (attribute as CompactedAttributeInstances).right()
+            else -> RevalidationFailedWarning(contextSourceInvalidPayloadMessage(csr.id, attribute), csr).left()
         }
 }

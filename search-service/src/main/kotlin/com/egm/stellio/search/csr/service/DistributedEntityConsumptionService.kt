@@ -20,6 +20,7 @@ import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceBadlyFormedMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
@@ -93,7 +94,7 @@ class DistributedEntityConsumptionService(
             { e ->
                 logger.warn("Badly formed data received from CSR ${csr.id} at $path: ${e.message}")
                 RevalidationFailedWarning(
-                    "${csr.id} at $path returned badly formed data message :'${e.message}'",
+                    contextSourceBadlyFormedMessage(csr.id, path, e.cause.toString(), e.message),
                     csr
                 ).left()
             }
@@ -160,7 +161,7 @@ class DistributedEntityConsumptionService(
             { e ->
                 logger.warn("Badly formed data received from CSR ${csr.id} at $path: ${e.message}")
                 RevalidationFailedWarning(
-                    "${csr.id} at $path returned badly formed data message: \"${e.cause}:${e.message}\"",
+                    contextSourceBadlyFormedMessage(csr.id, path, e.cause.toString(), e.message),
                     csr
                 ).left()
             }

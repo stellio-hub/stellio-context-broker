@@ -68,12 +68,36 @@ object ErrorMessages {
         const val CONTEXT_SOURCE_BADLY_FORMED_ERROR_MESSAGE = "Context source sent a badly formed error"
         const val CONTEXT_SOURCE_DEFAULT_ERROR_MESSAGE = "Context source provided no additional detail about the error"
         const val CONTEXT_SOURCE_MULTISTATUS_MESSAGE = "Context source returned a 207 Multi-Status response"
-        fun contextSourceInvalidStatusCodeMessage(statusCode: Int) =
-            "Context source returned an invalid status code: $statusCode"
         fun contextSourceNoErrorMessage(csrId: URI, uri: URI) =
             "Context source registration $csrId did not provide any error message at URI $uri"
         fun contextSourceContactErrorMessage(csrId: URI, uri: URI) =
             "Context source registration $csrId could not be contacted at URI $uri"
+        fun contextSourceContactErrorMessage(
+            csrId: URI,
+            uri: URI,
+            cause: String,
+            message: String? = null
+        ) =
+            "Context source registration $csrId could not be contacted at URI $uri: '$cause' ('$message')"
+        fun contextSourceBadlyFormedMessage(
+            csrId: URI,
+            path: String,
+            cause: String,
+            message: String? = null
+        ) =
+            "Context source $csrId at $path returned badly formed data message: '$cause' ('$message')"
+        fun contextSourceErrorResponseMessage(
+            csrId: URI,
+            uri: URI,
+            statusCode: Int,
+            response: String?
+        ) =
+            "Context source $csrId returned an error at URI $uri with status code $statusCode (response: $response)"
+        fun contextSourceInvalidPayloadMessage(
+            csrId: URI,
+            attribute: Any
+        ) =
+            "Context source $csrId returned an invalid payload, attribute is neither a List nor a Map: $attribute"
     }
 
     object DataRepresentation {

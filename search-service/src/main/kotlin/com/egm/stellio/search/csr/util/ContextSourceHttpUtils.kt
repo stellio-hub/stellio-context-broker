@@ -9,6 +9,8 @@ import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
+import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceContactErrorMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceErrorResponseMessage
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -63,7 +65,7 @@ object ContextSourceHttpUtils {
                     else -> {
                         logger.warn("CSR returned an error at $uri: $response")
                         MiscellaneousPersistentWarning(
-                            "$uri returned an error $statusCode with response: $response",
+                            contextSourceErrorResponseMessage(csr.id, uri, statusCode.value(), response),
                             csr
                         ).left()
                     }
@@ -73,7 +75,7 @@ object ContextSourceHttpUtils {
                 logger.warn("Error connecting to CSR at $uri: ${e.message}")
                 logger.warn(e.stackTraceToString())
                 MiscellaneousWarning(
-                    "Error connecting to CSR at $uri: \"${e.cause}:${e.message}\"",
+                    contextSourceContactErrorMessage(csr.id, uri, e.cause.toString(), e.message),
                     csr
                 ).left()
             }

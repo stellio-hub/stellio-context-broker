@@ -179,7 +179,8 @@ class TemporalEntityHandler(
                 val maxCount = (remoteCounts + localTotal).maxBy { it ?: 0 } ?: 0
                 val (mergeWarnings, mergedEntities) = ContextSourceUtils.mergeTemporalEntitiesLists(
                     localEntities,
-                    remoteEntitiesWithCSR
+                    remoteEntitiesWithCSR,
+                    temporalEntitiesQuery.temporalRepresentation
                 ).toPair().let { (mergeWarnings, mergedEntities) ->
                     val allWarnings = mergeWarnings?.let { queryWarnings + it } ?: queryWarnings
                     allWarnings to (mergedEntities ?: emptyList())
@@ -248,7 +249,8 @@ class TemporalEntityHandler(
                     ).let { (warnings, it) -> warnings.toMutableList() to it }
                 val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeTemporalEntities(
                     localResult.getOrNull()?.first,
-                    remoteEntitiesWithCSR
+                    remoteEntitiesWithCSR,
+                    temporalEntitiesQuery.temporalRepresentation
                 ).toPair()
                 mergeWarnings?.let { queryWarnings.addAll(it) }
                 Triple(mergedEntity, localResult.getOrNull()?.second, queryWarnings.toList())

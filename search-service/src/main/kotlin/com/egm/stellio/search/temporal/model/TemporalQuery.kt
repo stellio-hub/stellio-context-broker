@@ -38,6 +38,8 @@ data class TemporalQuery(
 
             fun forMethod(method: String): Aggregate? =
                 entries.find { it.method == method }
+
+            fun toMethodsNames(): List<String> = entries.map { it.method }
         }
     }
 }

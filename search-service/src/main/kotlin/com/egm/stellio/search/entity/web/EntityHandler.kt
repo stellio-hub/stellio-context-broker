@@ -296,9 +296,9 @@ class EntityHandler(
         @AllowedParameters(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.TYPE, QP.ATTRS, QP.GEOMETRY_PROPERTY,
-                QP.LANG, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID, QP.PICK, QP.OMIT
+                QP.LANG, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID, QP.PICK, QP.OMIT, QP.LOCAL
             ],
-            notImplemented = [QP.ENTITY_MAP, QP.LOCAL, QP.VIA]
+            notImplemented = [QP.ENTITY_MAP, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {

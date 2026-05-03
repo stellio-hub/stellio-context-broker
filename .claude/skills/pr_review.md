@@ -18,6 +18,7 @@ First, determine which PR to review:
 
 Review the code changes with focus on:
 - **Correctness**: Does the code do what it claims to do?
+- **NGSI-LD compatibility**: If the code adds or fixes an NGSI-LD feature, does it fully respect the specification?
 - **Security**: Are there any security vulnerabilities (SQL injection, XSS, command injection, etc.)?
 - **Performance**: Any obvious performance issues?
 - **Code Quality**: Is the code readable, maintainable, and following best practices?

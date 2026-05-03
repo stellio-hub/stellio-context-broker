@@ -2,6 +2,9 @@ package com.egm.stellio.search.csr.util
 
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.Mode
+import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
+import com.egm.stellio.search.support.gimmeTemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.util.INCOMING_TERM
@@ -72,7 +75,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             localIncomingNormalized,
             listOf(remoteOutgoingNormalized to inclusiveCSR),
-            TemporalRepresentation.NORMALIZED
+            createTemporalQueryWithRepresentation(TemporalRepresentation.NORMALIZED)
         )
 
         assertTrue(result.isRight())
@@ -87,7 +90,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             localIncomingNormalized,
             listOf(remoteIncomingNormalized to inclusiveCSR),
-            TemporalRepresentation.NORMALIZED
+            createTemporalQueryWithRepresentation(TemporalRepresentation.NORMALIZED)
         )
 
         assertTrue(result.isRight())
@@ -102,7 +105,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             localIncomingNormalized,
             listOf(remoteIncomingNormalized to inclusiveCSR, remoteIncomingNormalized2 to auxiliaryCSR),
-            TemporalRepresentation.NORMALIZED
+            createTemporalQueryWithRepresentation(TemporalRepresentation.NORMALIZED)
         )
 
         assertTrue(result.isRight())
@@ -117,7 +120,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             localIncomingSimplified,
             listOf(remoteOutgoingSimplified to inclusiveCSR),
-            TemporalRepresentation.TEMPORAL_VALUES
+            createTemporalQueryWithRepresentation(TemporalRepresentation.TEMPORAL_VALUES)
         )
 
         assertTrue(result.isRight())
@@ -132,7 +135,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             localIncomingSimplified,
             listOf(remoteIncomingSimplified to inclusiveCSR),
-            TemporalRepresentation.TEMPORAL_VALUES
+            createTemporalQueryWithRepresentation(TemporalRepresentation.TEMPORAL_VALUES)
         )
 
         assertTrue(result.isRight())
@@ -150,7 +153,7 @@ class ContextSourceUtilsTemporalTests {
                 remoteIncomingDatasetIdSimplified to inclusiveCSR,
                 remoteIncomingDatasetIdSimplified2 to auxiliaryCSR
             ),
-            TemporalRepresentation.TEMPORAL_VALUES
+            createTemporalQueryWithRepresentation(TemporalRepresentation.TEMPORAL_VALUES)
         )
 
         assertTrue(result.isRight())
@@ -165,7 +168,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             localIncomingSimplified,
             listOf(remoteIncomingDatasetIdSimplified to inclusiveCSR),
-            TemporalRepresentation.TEMPORAL_VALUES
+            createTemporalQueryWithRepresentation(TemporalRepresentation.TEMPORAL_VALUES)
         )
 
         assertTrue(result.isRight())
@@ -180,7 +183,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             localIncomingAggregated,
             listOf(remoteOutgoingAggregated to inclusiveCSR),
-            TemporalRepresentation.AGGREGATED_VALUES
+            createTemporalQueryWithRepresentation(TemporalRepresentation.AGGREGATED_VALUES)
         )
 
         assertTrue(result.isRight())
@@ -195,7 +198,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             localIncomingAggregated,
             listOf(remoteIncomingAggregated to inclusiveCSR),
-            TemporalRepresentation.AGGREGATED_VALUES
+            createTemporalQueryWithRepresentation(TemporalRepresentation.AGGREGATED_VALUES)
         )
 
         assertTrue(result.isRight())
@@ -213,7 +216,7 @@ class ContextSourceUtilsTemporalTests {
                 remoteIncomingDatasetIdAggregated to inclusiveCSR,
                 remoteIncomingDatasetIdAggregated2 to auxiliaryCSR
             ),
-            TemporalRepresentation.AGGREGATED_VALUES
+            createTemporalQueryWithRepresentation(TemporalRepresentation.AGGREGATED_VALUES)
         )
 
         assertTrue(result.isRight())
@@ -228,7 +231,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             localScopeTemporal,
             listOf(remoteScopeTemporal to inclusiveCSR),
-            TemporalRepresentation.TEMPORAL_VALUES
+            createTemporalQueryWithRepresentation(TemporalRepresentation.TEMPORAL_VALUES)
         )
 
         assertTrue(result.isRight())
@@ -243,7 +246,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             null,
             emptyList(),
-            TemporalRepresentation.NORMALIZED
+            createTemporalQueryWithRepresentation(TemporalRepresentation.AGGREGATED_VALUES)
         )
 
         assertTrue(result.isRight())
@@ -255,7 +258,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             null,
             listOf(remoteOutgoingNormalized to inclusiveCSR),
-            TemporalRepresentation.NORMALIZED
+            createTemporalQueryWithRepresentation(TemporalRepresentation.AGGREGATED_VALUES)
         )
 
         assertTrue(result.isRight())
@@ -267,7 +270,7 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntities(
             null,
             listOf(remoteIncomingNormalized to inclusiveCSR, remoteOutgoingNormalized to inclusiveCSR),
-            TemporalRepresentation.NORMALIZED
+            createTemporalQueryWithRepresentation(TemporalRepresentation.NORMALIZED)
         )
 
         assertTrue(result.isRight())
@@ -283,10 +286,18 @@ class ContextSourceUtilsTemporalTests {
         val result = ContextSourceUtils.mergeTemporalEntitiesLists(
             listOf(localIncomingNormalized),
             listOf(listOf(remoteEntity) to inclusiveCSR),
-            TemporalRepresentation.NORMALIZED
+            createTemporalQueryWithRepresentation(TemporalRepresentation.NORMALIZED)
         )
 
         assertTrue(result.isRight())
         assertThat(result.getOrNull()!!).hasSize(2)
     }
+
+    private fun createTemporalQueryWithRepresentation(
+        temporalRepresentation: TemporalRepresentation
+    ): TemporalEntitiesQueryFromGet =
+        gimmeTemporalEntitiesQuery(
+            buildDefaultTestTemporalQuery(),
+            temporalRepresentation
+        )
 }

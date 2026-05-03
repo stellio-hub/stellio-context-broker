@@ -11,6 +11,8 @@ import arrow.core.toNonEmptyListOrNull
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.CompactedAttributeInstance
@@ -182,7 +184,7 @@ object ContextSourceUtils {
     fun mergeTemporalEntitiesLists(
         localEntities: List<CompactedEntity>,
         remoteEntitiesWithCSR: List<CompactedEntitiesWithCSR>,
-        temporalRepresentation: TemporalRepresentation
+        temporalEntitiesQuery: TemporalEntitiesQueryFromGet
     ): IorNel<NGSILDWarning, List<CompactedEntity>> {
         val mergedEntityMap = localEntities.map { it.toMutableMap() }.associateBy { it[NGSILD_ID_TERM] }.toMutableMap()
 
@@ -191,7 +193,7 @@ object ContextSourceUtils {
                 entities.forEach { entity ->
                     val id = entity[NGSILD_ID_TERM]
                     mergedEntityMap[id]
-                        ?.let { it.putAll(getMergeTemporalNewValues(it, entity, temporalRepresentation, csr).bind()) }
+                        ?.let { it.putAll(getMergeTemporalNewValues(it, entity, temporalEntitiesQuery, csr).bind()) }
                         ?: run { mergedEntityMap[id] = entity.toMutableMap() }
                 }
                 null
@@ -205,7 +207,7 @@ object ContextSourceUtils {
     fun mergeTemporalEntities(
         localEntity: CompactedEntity?,
         remoteEntitiesWithCSR: List<CompactedEntityWithCSR>,
-        temporalRepresentation: TemporalRepresentation
+        temporalEntitiesQuery: TemporalEntitiesQueryFromGet
     ): IorNel<NGSILDWarning, CompactedEntity?> {
         if (localEntity == null && remoteEntitiesWithCSR.isEmpty()) return Ior.Right(null)
 
@@ -213,7 +215,7 @@ object ContextSourceUtils {
 
         val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }
             .mapNotNull { (entity, csr) ->
-                getMergeTemporalNewValues(mergedEntity, entity, temporalRepresentation, csr)
+                getMergeTemporalNewValues(mergedEntity, entity, temporalEntitiesQuery, csr)
                     .onRight { mergedEntity.putAll(it) }.leftOrNull()
             }.toNonEmptyListOrNull()
 
@@ -225,7 +227,7 @@ object ContextSourceUtils {
     internal fun getMergeTemporalNewValues(
         currentEntity: CompactedEntity,
         remoteEntity: CompactedEntity,
-        temporalRepresentation: TemporalRepresentation,
+        temporalEntitiesQuery: TemporalEntitiesQuery,
         csr: ContextSourceRegistration
     ): Either<NGSILDWarning, CompactedEntity> = either {
         remoteEntity.mapValues { (key, value) ->
@@ -238,7 +240,7 @@ object ContextSourceUtils {
                     if ((value as String?).isBefore(currentValue as String?)) value
                     else currentValue
                 // handles temporal attributes and scope
-                else -> mergeTemporalAttribute(currentValue, value, temporalRepresentation, csr).bind()
+                else -> mergeTemporalAttribute(currentValue, value, temporalEntitiesQuery, csr).bind()
             }
         }
     }
@@ -246,14 +248,17 @@ object ContextSourceUtils {
     fun mergeTemporalAttribute(
         currentAttribute: Any,
         remoteAttribute: Any,
-        temporalRepresentation: TemporalRepresentation,
+        temporalEntitiesQuery: TemporalEntitiesQuery,
         csr: ContextSourceRegistration
     ): Either<NGSILDWarning, Any> = either {
-        when (temporalRepresentation) {
+        when (temporalEntitiesQuery.temporalRepresentation) {
             TemporalRepresentation.NORMALIZED -> {
                 val currentInstances = toListOfNormalizedInstances(currentAttribute, csr).bind()
                 val remoteInstances = toListOfNormalizedInstances(remoteAttribute, csr).bind()
-                currentInstances + remoteInstances
+                (currentInstances + remoteInstances).sortedBy {
+                    // order instances by the asked time property
+                    it[temporalEntitiesQuery.temporalQuery.timeproperty.propertyName] as String
+                }
             }
             TemporalRepresentation.TEMPORAL_VALUES ->
                 mergeSimplifiedOrAggregatedAttributeInstances(
@@ -286,7 +291,12 @@ object ContextSourceUtils {
                 currentInstance.mapValues { (key, value) ->
                     if (key in keysToMerge) {
                         if (remoteInstance.containsKey(key))
-                            (value as List<*>).plus(remoteInstance[key] as List<*>)
+                            (value as List<*>).plus(remoteInstance[key] as List<*>).sortedBy {
+                                // order instances using 2nd element of the list
+                                // - timestamp for simplified representation
+                                // - start of aggregation for aggregated representation
+                                (it as List<*>)[1] as String
+                            }
                         else value
                     } else value
                 }

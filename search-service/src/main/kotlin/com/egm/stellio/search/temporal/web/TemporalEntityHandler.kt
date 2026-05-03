@@ -180,7 +180,7 @@ class TemporalEntityHandler(
                 val (mergeWarnings, mergedEntities) = ContextSourceUtils.mergeTemporalEntitiesLists(
                     localEntities,
                     remoteEntitiesWithCSR,
-                    temporalEntitiesQuery.temporalRepresentation
+                    temporalEntitiesQuery
                 ).toPair().let { (mergeWarnings, mergedEntities) ->
                     val allWarnings = mergeWarnings?.let { queryWarnings + it } ?: queryWarnings
                     allWarnings to (mergedEntities ?: emptyList())
@@ -250,7 +250,7 @@ class TemporalEntityHandler(
                 val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeTemporalEntities(
                     localResult.getOrNull()?.first,
                     remoteEntitiesWithCSR,
-                    temporalEntitiesQuery.temporalRepresentation
+                    temporalEntitiesQuery
                 ).toPair()
                 mergeWarnings?.let { queryWarnings.addAll(it) }
                 Triple(mergedEntity, localResult.getOrNull()?.second, queryWarnings.toList())

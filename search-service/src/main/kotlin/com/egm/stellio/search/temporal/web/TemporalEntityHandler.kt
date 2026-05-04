@@ -10,6 +10,7 @@ import com.egm.stellio.search.csr.util.ContextSourceUtils
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.service.TemporalService
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder.wrapSingleValuesToList
+import com.egm.stellio.search.temporal.util.TemporalPaginationUtils
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntityTemporalResponse
@@ -162,10 +163,9 @@ class TemporalEntityHandler(
         val temporalEntitiesQuery =
             composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts, true).bind()
 
-        val (localEntities, localTotal, localRange) = either {
-            val (expandedEntities, total, range) =
-                temporalQueryService.queryTemporalEntities(temporalEntitiesQuery).bind()
-            Triple(compactEntities(expandedEntities, contexts), total, range)
+        val (localEntities, localTotal) = either {
+            val (expandedEntities, total) = temporalQueryService.queryTemporalEntities(temporalEntitiesQuery).bind()
+            compactEntities(expandedEntities, contexts) to total
         }.bind()
 
         val (warnings, compactedEntities, total) =
@@ -195,15 +195,20 @@ class TemporalEntityHandler(
             )
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
+        val range = TemporalPaginationUtils.calculateRangeFromEntities(finalEntities, temporalEntitiesQuery)
+        val rangedEntities = range?.let {
+            TemporalPaginationUtils.filterEntitiesToRange(finalEntities, it, temporalEntitiesQuery)
+        } ?: finalEntities
+
         buildEntitiesTemporalResponse(
-            finalEntities,
+            rangedEntities,
             total,
             "/ngsi-ld/v1/temporal/entities",
             temporalEntitiesQuery,
             queryParams,
             mediaType,
             contexts,
-            localRange
+            range
         ).addWarnings(warnings)
     }.fold(
         { it.toErrorResponse() },
@@ -233,12 +238,11 @@ class TemporalEntityHandler(
             composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
 
         val localResult = either {
-            val (expandedEntity, range) =
-                temporalQueryService.queryTemporalEntity(entityId, temporalEntitiesQuery).bind()
-            compactEntity(expandedEntity, contexts) to range
+            val expandedEntity = temporalQueryService.queryTemporalEntity(entityId, temporalEntitiesQuery).bind()
+            compactEntity(expandedEntity, contexts)
         }
 
-        val (compactedEntity, range, warnings) =
+        val (compactedEntity, warnings) =
             if (!temporalEntitiesQuery.entitiesQuery.local) {
                 val (queryWarnings, remoteEntitiesWithCSR) =
                     distributedTemporalEntityConsumptionService.distributeRetrieveTemporalEntityOperation(
@@ -248,14 +252,14 @@ class TemporalEntityHandler(
                         queryParams
                     ).let { (warnings, it) -> warnings.toMutableList() to it }
                 val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeTemporalEntities(
-                    localResult.getOrNull()?.first,
+                    localResult.getOrNull(),
                     remoteEntitiesWithCSR,
                     temporalEntitiesQuery
                 ).toPair()
                 mergeWarnings?.let { queryWarnings.addAll(it) }
-                Triple(mergedEntity, localResult.getOrNull()?.second, queryWarnings.toList())
+                mergedEntity to queryWarnings.toList()
             } else {
-                Triple(localResult.getOrNull()?.first, localResult.getOrNull()?.second, emptyList())
+                localResult.getOrNull() to emptyList()
             }
 
         if (compactedEntity == null) {
@@ -270,9 +274,14 @@ class TemporalEntityHandler(
             ).bind()
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
+        val range = TemporalPaginationUtils.calculateRangeFromEntity(finalEntity, temporalEntitiesQuery)
+        val rangedEntity = range?.let {
+            TemporalPaginationUtils.filterEntityToRange(finalEntity, range, temporalEntitiesQuery)
+        } ?: finalEntity
+
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         buildEntityTemporalResponse(mediaType, contexts, temporalEntitiesQuery, range)
-            .body(serializeObject(finalEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
+            .body(serializeObject(rangedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
             .addWarnings(warnings)
     }.fold(
         { it.toErrorResponse() },

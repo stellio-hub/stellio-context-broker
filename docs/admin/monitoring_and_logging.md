@@ -5,32 +5,19 @@
 Stellio services export telemetry data using the [OpenTelemetry](https://opentelemetry.io/) protocol (OTLP).
 The recommended backend is an **OpenTelemetry Collector** feeding into the
 [Grafana LGTM stack](https://grafana.com/docs/opentelemetry/docker-lgtm/) (Loki for logs,
-Tempo for traces, Mimir or Prometheus for metrics), with [Grafana](https://grafana.com/) for visualization.
+Tempo for traces, Mimir or Prometheus for metrics), with [Grafana](https://grafana.com/) for visualisation.
 
 It is also recommended to monitor the VMs with [node_exporter](https://github.com/prometheus/node_exporter)
 and the Docker containers with [cAdvisor](https://github.com/google/cadvisor).
 
-### Enabling OpenTelemetry export
-
-OTel export is controlled by the `otel` Spring profile. It must be included in `SPRING_PROFILES_ACTIVE` for 
-the services to emit telemetry data:
-
-```
-SPRING_PROFILES_ACTIVE=otel
-```
-
-Without this profile, the services start normally but do not send any metrics or logs to the OTel backend.
-
-When using the provided docker-compose setup, this is controlled via the `ENVIRONMENT` variable in the `.env` file:
-
-```
-ENVIRONMENT=docker,otel
-```
-
 ### Metrics
 
-JVM and application metrics are exported via OTLP using Micrometer. The relevant configuration property is
-(env var name in parentheses):
+Export of metrics is disabled by default, it can be enabled by setting
+the `management.otlp.metrics.export.enabled` property to `true` (env var name in parentheses):
+
+- `management.otlp.metrics.export.enabled` (`MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED`): enable metrics export (default: `false`)
+
+The following property configures where metrics are sent (env var name in parentheses):
 
 - `management.otlp.metrics.export.url` (`MANAGEMENT_OTLP_METRICS_EXPORT_URL`): URL of the OTLP metrics endpoint 
 (default: `http://localhost:4318/v1/metrics`)
@@ -93,7 +80,20 @@ It is then easy to create alerts based on the health of the services.
 The logs produced by the Stellio services are exported via OpenTelemetry (OTLP) and can be ingested by any compatible
 backend, such as [Grafana Loki](https://grafana.com/oss/loki/).
 
-Logs are only exported when the `otel` Spring profile is active (see [Enabling OpenTelemetry export](#enabling-opentelemetry-export)).
+Export of logs is controlled by the `otel` Spring profile. It must be included in `SPRING_PROFILES_ACTIVE` for
+the services to emit telemetry data:
+
+```
+SPRING_PROFILES_ACTIVE=otel
+```
+
+Without this profile, the services start normally but do not send any logs to the OTel backend.
+
+When using the provided docker-compose setup, this is controlled via the `ENVIRONMENT` variable in the `.env` file:
+
+```
+ENVIRONMENT=docker,otel
+```
 
 The following property configures where logs are sent (env var name in parentheses):
 
@@ -126,6 +126,7 @@ in the `environment` section of each service:
       - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
       - MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT=${MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT}
       - MANAGEMENT_OPENTELEMETRY_RESOURCE_ATTRIBUTES_DEPLOYMENT_ENVIRONMENT_NAME=${DEPLOYMENT_ENVIRONMENT_NAME}
+      - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=${MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED}
       - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${MANAGEMENT_OTLP_METRICS_EXPORT_URL}
 ```
 
@@ -136,5 +137,6 @@ ENVIRONMENT=docker,otel
 DEPLOYMENT_ENVIRONMENT_NAME=production
 
 MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT=http://otel-collector:4318/v1/logs
+MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
 MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://otel-collector:4318/v1/metrics
 ```

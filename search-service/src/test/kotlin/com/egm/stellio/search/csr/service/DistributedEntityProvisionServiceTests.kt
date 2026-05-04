@@ -446,6 +446,24 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         }
 
     @Test
+    fun `sendDistributedInformation should add tenant as HTTP header when provisioning to a CSR`() = runTest {
+        val csr = gimmeRawCSR(
+            tenant = "urn:ngsi-ld:tenant:01"
+        )
+        val path = "/ngsi-ld/v1/entities"
+
+        stubFor(post(urlMatching(path)).willReturn(ok()))
+
+        val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
+        distributedEntityProvisionService.sendDistributedInformation(entity, csr, path, HttpMethod.POST)
+
+        verify(
+            postRequestedFor(urlPathEqualTo(path))
+                .withHeader("NGSILD-Tenant", equalTo("urn:ngsi-ld:tenant:01"))
+        )
+    }
+
+    @Test
     fun `distributePurgeEntities should call sendDistributedPurgeOperation`() = runTest {
         val csrWithEntityInfoId = gimmeRawCSR(
             information = listOf(

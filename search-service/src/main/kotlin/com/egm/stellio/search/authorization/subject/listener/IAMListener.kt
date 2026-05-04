@@ -28,9 +28,9 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.extractSub
-import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import io.r2dbc.postgresql.codec.Json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

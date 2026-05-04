@@ -76,7 +76,7 @@ different modes of operations.
   operation
 - Partial failures (some CSRs unreachable or rejecting) must be reported in a `207 Multi-Status` response;
   do not silently drop failures
-- Never forward to an AUXILIARY-mode CSR unless the spec explicitly mandates it
+- Never forward a provision operation to a CSR with the AUXILIARY mode.
 
 ## Security
 

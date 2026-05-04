@@ -11,6 +11,7 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_CSR_TERM
 import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.DataTypes.toFinalRepresentation
@@ -47,6 +48,7 @@ data class ContextSourceRegistration(
     val modifiedAt: ZonedDateTime = createdAt,
     val observationInterval: TimeInterval? = null,
     val managementInterval: TimeInterval? = null,
+    val contextSourceInfo: List<ContextSourceInfo>? = null,
     val status: StatusType? = null,
     @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     val timesSent: Int = 0,
@@ -152,6 +154,12 @@ data class ContextSourceRegistration(
                 { it.right() },
                 { it.toAPIException(csrFailedToParseMessage(it.message)).left() }
             )
+
+        fun deserializeContextSourceInfo(input: String?): List<ContextSourceInfo>? {
+            return if (input != null && input != "null")
+                DataTypes.convertToList(input)
+            else null
+        }
     }
 
     enum class StatusType(val status: String) {

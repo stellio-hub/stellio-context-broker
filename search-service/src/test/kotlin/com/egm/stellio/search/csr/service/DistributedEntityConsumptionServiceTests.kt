@@ -4,6 +4,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.CSRFilters
+import com.egm.stellio.search.csr.model.ContextSourceInfo
 import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
@@ -31,6 +32,7 @@ import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.containing
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.notContaining
@@ -462,4 +464,31 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
             )
         )
     }
+
+    @Test
+    fun `getDistributedInformation should add contextSourceInfo entries as HTTP headers when retrieving from a CSR`() =
+        runTest {
+            val csr = gimmeRawCSR(
+                contextSourceInfo = listOf(
+                    ContextSourceInfo("Authorization", "Bearer secret"),
+                    ContextSourceInfo("X-Extra-Header", "myHeaderValue")
+                )
+            )
+            val path = "/ngsi-ld/v1/entities/$apiaryId"
+            stubFor(get(urlMatching(path)).willReturn(ok()))
+
+            distributedEntityConsumptionService.getDistributedInformation(
+                HttpHeaders.EMPTY,
+                csr,
+                CSRFilters(),
+                path,
+                emptyParams
+            )
+
+            verify(
+                getRequestedFor(urlPathEqualTo(path))
+                    .withHeader("Authorization", equalTo("Bearer secret"))
+                    .withHeader("X-Extra-Header", equalTo("myHeaderValue"))
+            )
+        }
 }

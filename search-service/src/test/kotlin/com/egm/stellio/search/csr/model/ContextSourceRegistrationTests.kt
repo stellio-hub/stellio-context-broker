@@ -234,6 +234,27 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
+    fun `it should deserialize a CSR payload containing contextSourceInfo`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "endpoint" to endpoint,
+            "contextSourceInfo" to listOf(
+                mapOf("key" to "Authorization", "value" to "Bearer secret"),
+                mapOf("key" to "X-Extra-Header", "value" to "myHeaderValue")
+            )
+        )
+
+        val csr = ContextSourceRegistration.deserialize(payload, emptyList()).shouldSucceedAndResult()
+        assertThat(csr.contextSourceInfo)
+            .isNotNull
+            .hasSize(2)
+            .contains(
+                ContextSourceInfo("Authorization", "Bearer secret"),
+                ContextSourceInfo("X-Extra-Header", "myHeaderValue")
+            )
+    }
+
+    @Test
     fun `toSingleEntityInfoCSRList should keep registrationInfo without entityInfo`() = runTest {
         val registrationInformations = listOf(
             RegistrationInfo(

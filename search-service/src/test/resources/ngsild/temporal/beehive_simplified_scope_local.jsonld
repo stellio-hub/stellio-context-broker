@@ -1,0 +1,24 @@
+{
+    "id": "urn:ngsi-ld:BeeHive:TESTC",
+    "type": "BeeHive",
+    "scope": {
+        "type": "Property",
+        "values": [
+            [
+                ["/A", "/B"],
+                "2020-01-24T12:01:22.066Z"
+            ],
+            [
+                "/A",
+                "2020-01-24T13:01:22.066Z"
+            ],
+            [
+                ["/A", "/C"],
+                "2020-01-24T14:01:22.066Z"
+            ]
+        ]
+    },
+    "@context": [
+        "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+    ]
+}

@@ -8,7 +8,6 @@ import arrow.core.right
 import arrow.core.separateEither
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.csr.model.CSRFilters
-import com.egm.stellio.search.csr.model.EntityInfo.Companion.addFilterForEntityInfo
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
@@ -16,7 +15,8 @@ import com.egm.stellio.search.csr.model.SingleEntityInfoCSR
 import com.egm.stellio.search.csr.util.CompactedEntitiesWithCSR
 import com.egm.stellio.search.csr.util.CompactedEntityWithCSR
 import com.egm.stellio.search.csr.util.ContextSourceHttpUtils
-import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.queryparameter.QueryParameter
@@ -34,41 +34,33 @@ import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.client.ClientResponse
 import java.net.URI
 
-typealias QueryEntitiesResponse = Pair<List<CompactedEntity>, Int?>
+typealias QueryTemporalEntitiesResponse = Pair<List<CompactedEntity>, Int?>
 
 @Service
-class DistributedEntityConsumptionService(
+class DistributedTemporalEntityConsumptionService(
     private val contextSourceRegistrationService: ContextSourceRegistrationService,
     private val applicationProperties: ApplicationProperties,
 ) {
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    suspend fun distributeRetrieveEntityOperation(
+    suspend fun distributeRetrieveTemporalEntityOperation(
         id: URI,
-        entitiesQuery: EntitiesQueryFromGet,
+        temporalEntitiesQuery: TemporalEntitiesQuery,
         httpHeaders: HttpHeaders,
         queryParams: MultiValueMap<String, String>
     ): Pair<List<NGSILDWarning>, List<CompactedEntityWithCSR>> {
-        val csrFilters =
-            CSRFilters(
-                ids = setOf(id),
-                operations = Operation.RETRIEVE_ENTITY.getMatchingOperations().toList(),
-                attrs = entitiesQuery.attrs
-            )
+        val csrFilters = CSRFilters(
+            ids = setOf(id),
+            operations = Operation.RETRIEVE_TEMPORAL.getMatchingOperations().toList(),
+            attrs = temporalEntitiesQuery.entitiesQuery.attrs
+        )
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
             .flatMap { it.toSingleEntityInfoCSRList(csrFilters) }
 
-        // we can add parMap(concurrency = X) if this triggers too many HTTP connexions at the same time
         return matchingCSR.parMap { csr ->
-            val response = retrieveEntityFromContextSource(
-                httpHeaders,
-                csr,
-                csrFilters,
-                id,
-                queryParams
-            )
+            val response = retrieveTemporalEntityFromContextSource(httpHeaders, csr, csrFilters, id, queryParams)
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
             response.map { it?.let { it to csr } }
         }.separateEither()
@@ -77,18 +69,18 @@ class DistributedEntityConsumptionService(
             }
     }
 
-    suspend fun retrieveEntityFromContextSource(
+    suspend fun retrieveTemporalEntityFromContextSource(
         httpHeaders: HttpHeaders,
         csr: SingleEntityInfoCSR,
         csrFilters: CSRFilters,
         id: URI,
         params: MultiValueMap<String, String>
     ): Either<NGSILDWarning, CompactedEntity?> = either {
-        val path = "/ngsi-ld/v1/entities/$id"
+        val path = "/ngsi-ld/v1/temporal/entities/$id"
 
         return catch(
             {
-                getDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind()
+                getTemporalDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind()
                     .first?.deserializeAsMap().right()
             },
             { e ->
@@ -101,33 +93,25 @@ class DistributedEntityConsumptionService(
         )
     }
 
-    suspend fun distributeQueryEntitiesOperation(
-        entitiesQuery: EntitiesQueryFromGet,
+    suspend fun distributeQueryTemporalEntitiesOperation(
+        temporalEntitiesQuery: TemporalEntitiesQueryFromGet,
         httpHeaders: HttpHeaders,
         queryParams: MultiValueMap<String, String>
     ): Triple<List<NGSILDWarning>, List<CompactedEntitiesWithCSR>, List<Int?>> {
-        val csrFilters =
-            CSRFilters(
-                ids = entitiesQuery.ids,
-                idPattern = entitiesQuery.idPattern,
-                typeSelection = entitiesQuery.typeSelection,
-                operations = Operation.QUERY_ENTITY.getMatchingOperations().toList(),
-                attrs = entitiesQuery.attrs
-            )
+        val entitiesQuery = temporalEntitiesQuery.entitiesQuery
+        val csrFilters = CSRFilters(
+            ids = entitiesQuery.ids,
+            idPattern = entitiesQuery.idPattern,
+            typeSelection = entitiesQuery.typeSelection,
+            operations = Operation.QUERY_TEMPORAL.getMatchingOperations().toList(),
+            attrs = entitiesQuery.attrs
+        )
 
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
             .flatMap { it.toSingleEntityInfoCSRList(csrFilters) }
 
         return matchingCSR.parMap { csr ->
-            val newParams = csr.information.first().entities?.first()?.let { entityInfo ->
-                queryParams.addFilterForEntityInfo(entityInfo)
-            } ?: queryParams
-            val response = queryEntitiesFromContextSource(
-                httpHeaders,
-                csr,
-                csrFilters,
-                newParams
-            )
+            val response = queryTemporalEntitiesFromContextSource(httpHeaders, csr, csrFilters, queryParams)
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
             response.map { (entities, count) -> Triple(entities, csr, count) }
         }.separateEither()
@@ -140,20 +124,19 @@ class DistributedEntityConsumptionService(
             }
     }
 
-    suspend fun queryEntitiesFromContextSource(
+    suspend fun queryTemporalEntitiesFromContextSource(
         httpHeaders: HttpHeaders,
         csr: SingleEntityInfoCSR,
         csrFilters: CSRFilters,
         params: MultiValueMap<String, String>
-    ): Either<NGSILDWarning, QueryEntitiesResponse> = either {
-        val path = "/ngsi-ld/v1/entities"
+    ): Either<NGSILDWarning, QueryTemporalEntitiesResponse> = either {
+        val path = "/ngsi-ld/v1/temporal/entities"
 
         return catch(
             {
-                getDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind()
+                getTemporalDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind()
                     .let { (response, headers) ->
                         (response?.deserializeAsList() ?: emptyList()) to
-                            // if count was not asked this will be null
                             headers.header(RESULTS_COUNT_HEADER).firstOrNull()?.toInt()
                     }
                     .right()
@@ -168,7 +151,7 @@ class DistributedEntityConsumptionService(
         )
     }
 
-    suspend fun getDistributedInformation(
+    suspend fun getTemporalDistributedInformation(
         httpHeaders: HttpHeaders,
         csr: SingleEntityInfoCSR,
         csrFilters: CSRFilters,
@@ -180,7 +163,6 @@ class DistributedEntityConsumptionService(
 
         val queryParams = CollectionUtils.toMultiValueMap(params.toMutableMap())
         queryParams.remove(QueryParameter.GEOMETRY_PROPERTY.key)
-        queryParams.remove(QueryParameter.OPTIONS.key) // only normalized request
         queryParams.remove(QueryParameter.LANG.key)
         csr.information.first().computeAttrsQueryParam(csrFilters, contexts)?.let {
             queryParams[QueryParameter.ATTRS.key] = it

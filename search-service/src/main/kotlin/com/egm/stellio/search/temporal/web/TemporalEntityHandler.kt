@@ -4,9 +4,13 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.csr.model.addWarnings
+import com.egm.stellio.search.csr.service.DistributedTemporalEntityConsumptionService
+import com.egm.stellio.search.csr.util.ContextSourceUtils
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.service.TemporalService
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder.wrapSingleValuesToList
+import com.egm.stellio.search.temporal.util.TemporalPaginationUtils
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntityTemporalResponse
@@ -66,6 +70,7 @@ import java.net.URI
 class TemporalEntityHandler(
     private val temporalService: TemporalService,
     private val temporalQueryService: TemporalQueryService,
+    private val distributedTemporalEntityConsumptionService: DistributedTemporalEntityConsumptionService,
     private val applicationProperties: ApplicationProperties
 ) : BaseHandler() {
 
@@ -143,10 +148,10 @@ class TemporalEntityHandler(
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT,
                 QP.ENDTIMEAT, QP.LASTN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.SCOPEQ, QP.DATASET_ID,
-                QP.PICK, QP.OMIT, QP.ORDER_BY
+                QP.PICK, QP.OMIT, QP.ORDER_BY, QP.LOCAL
             ],
             notImplemented = [
-                QP.LOCAL, QP.VIA, QP.EXPAND_VALUES, QP.CSF,
+                QP.VIA, QP.EXPAND_VALUES, QP.CSF,
                 QP.COLLATION, QP.ORDER_FROM, QP.ORDER_GEOMETRY
             ]
         )
@@ -158,19 +163,45 @@ class TemporalEntityHandler(
         val temporalEntitiesQuery =
             composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts, true).bind()
 
-        val (temporalEntities, total, range) = temporalQueryService.queryTemporalEntities(
-            temporalEntitiesQuery
-        ).bind()
+        val (localEntities, localTotal) = either {
+            val (expandedEntities, total) = temporalQueryService.queryTemporalEntities(temporalEntitiesQuery).bind()
+            compactEntities(expandedEntities, contexts) to total
+        }.bind()
 
-        val compactedEntities = compactEntities(temporalEntities, contexts)
+        val (warnings, compactedEntities, total) =
+            if (!temporalEntitiesQuery.entitiesQuery.local) {
+                val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
+                    distributedTemporalEntityConsumptionService.distributeQueryTemporalEntitiesOperation(
+                        temporalEntitiesQuery,
+                        httpHeaders,
+                        queryParams
+                    )
+                val maxCount = (remoteCounts + localTotal).maxBy { it ?: 0 } ?: 0
+                val (mergeWarnings, mergedEntities) = ContextSourceUtils.mergeTemporalEntitiesLists(
+                    localEntities,
+                    remoteEntitiesWithCSR,
+                    temporalEntitiesQuery
+                ).toPair().let { (mergeWarnings, mergedEntities) ->
+                    val allWarnings = mergeWarnings?.let { queryWarnings + it } ?: queryWarnings
+                    allWarnings to (mergedEntities ?: emptyList())
+                }
+                Triple(mergeWarnings, mergedEntities, maxCount)
+            } else Triple(emptyList(), localEntities, localTotal)
+
+        val finalEntities = compactedEntities
             .filterPickAndOmit(
                 temporalEntitiesQuery.entitiesQuery.pick.getRootAttributesToPick(),
                 temporalEntitiesQuery.entitiesQuery.omit.getRootAttributesToOmit()
             )
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
+        val range = TemporalPaginationUtils.calculateRangeFromEntities(finalEntities, temporalEntitiesQuery)
+        val rangedEntities = range?.let {
+            TemporalPaginationUtils.filterEntitiesToRange(finalEntities, it, temporalEntitiesQuery)
+        } ?: finalEntities
+
         buildEntitiesTemporalResponse(
-            compactedEntities,
+            rangedEntities,
             total,
             "/ngsi-ld/v1/temporal/entities",
             temporalEntitiesQuery,
@@ -178,7 +209,7 @@ class TemporalEntityHandler(
             mediaType,
             contexts,
             range
-        )
+        ).addWarnings(warnings)
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -194,9 +225,9 @@ class TemporalEntityHandler(
         @AllowedParameters(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.ATTRS, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT, QP.LASTN,
-                QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.DATASET_ID, QP.PICK, QP.OMIT
+                QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.DATASET_ID, QP.PICK, QP.OMIT, QP.LOCAL
             ],
-            notImplemented = [QP.LOCAL, QP.VIA]
+            notImplemented = [QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
@@ -206,21 +237,52 @@ class TemporalEntityHandler(
         val temporalEntitiesQuery =
             composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
 
-        val (temporalEntity, range) = temporalQueryService.queryTemporalEntity(
-            entityId,
-            temporalEntitiesQuery
-        ).bind()
+        val localResult = either {
+            val expandedEntity = temporalQueryService.queryTemporalEntity(entityId, temporalEntitiesQuery).bind()
+            compactEntity(expandedEntity, contexts)
+        }
 
-        val compactedEntity = compactEntity(temporalEntity, contexts)
+        val (compactedEntity, warnings) =
+            if (!temporalEntitiesQuery.entitiesQuery.local) {
+                val (queryWarnings, remoteEntitiesWithCSR) =
+                    distributedTemporalEntityConsumptionService.distributeRetrieveTemporalEntityOperation(
+                        entityId,
+                        temporalEntitiesQuery,
+                        httpHeaders,
+                        queryParams
+                    ).let { (warnings, it) -> warnings.toMutableList() to it }
+                val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeTemporalEntities(
+                    localResult.getOrNull(),
+                    remoteEntitiesWithCSR,
+                    temporalEntitiesQuery
+                ).toPair()
+                mergeWarnings?.let { queryWarnings.addAll(it) }
+                mergedEntity to queryWarnings.toList()
+            } else {
+                localResult.getOrNull() to emptyList()
+            }
+
+        if (compactedEntity == null) {
+            val localError = localResult.leftOrNull()
+            return localError!!.toErrorResponse().addWarnings(warnings)
+        }
+
+        val finalEntity = compactedEntity
             .filterPickAndOmit(
                 temporalEntitiesQuery.entitiesQuery.pick.getRootAttributesToPick(),
                 temporalEntitiesQuery.entitiesQuery.omit.getRootAttributesToOmit(),
             ).bind()
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
+        val range = TemporalPaginationUtils.calculateRangeFromEntity(finalEntity, temporalEntitiesQuery)
+        val rangedEntity = range?.let {
+            TemporalPaginationUtils.filterEntityToRange(finalEntity, range, temporalEntitiesQuery)
+        } ?: finalEntity
+
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
         buildEntityTemporalResponse(mediaType, contexts, temporalEntitiesQuery, range)
-            .body(serializeObject(compactedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
+            .body(serializeObject(rangedEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
+            .addWarnings(warnings)
     }.fold(
         { it.toErrorResponse() },
         { it }

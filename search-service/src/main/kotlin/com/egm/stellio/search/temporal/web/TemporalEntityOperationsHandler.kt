@@ -4,6 +4,7 @@ import arrow.core.raise.either
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder.wrapSingleValuesToList
+import com.egm.stellio.search.temporal.util.TemporalPaginationUtils
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromPost
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -65,7 +66,7 @@ class TemporalEntityOperationsHandler(
                 contexts
             ).bind()
 
-        val (temporalEntities, total, range) = temporalQueryService.queryTemporalEntities(
+        val (temporalEntities, total) = temporalQueryService.queryTemporalEntities(
             temporalEntitiesQuery
         ).bind()
 
@@ -76,8 +77,16 @@ class TemporalEntityOperationsHandler(
             )
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
-        buildEntitiesTemporalResponse(
+        val range = TemporalPaginationUtils.calculateRangeFromEntities(
             compactedEntities,
+            temporalEntitiesQuery
+        )
+        val rangedEntities = range?.let {
+            TemporalPaginationUtils.filterEntitiesToRange(compactedEntities, it, temporalEntitiesQuery)
+        } ?: compactedEntities
+
+        buildEntitiesTemporalResponse(
+            rangedEntities,
             total,
             "/ngsi-ld/v1/temporal/entities",
             temporalEntitiesQuery,

@@ -21,6 +21,7 @@ import com.egm.stellio.shared.util.MANAGED_BY_IRI
 import com.egm.stellio.shared.util.MANAGED_BY_TERM
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NAME_TERM
+import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.expandJsonLdEntity
@@ -28,7 +29,6 @@ import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
-import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.NotificationParams

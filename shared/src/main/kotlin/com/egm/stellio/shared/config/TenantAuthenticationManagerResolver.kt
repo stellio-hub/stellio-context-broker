@@ -4,8 +4,8 @@ import com.egm.stellio.shared.model.NonexistentTenantException
 import com.egm.stellio.shared.util.ErrorMessages.Tenant.ISSUER_MANDATORY_WHEN_AUTHENTICATION_ENABLED
 import com.egm.stellio.shared.util.ErrorMessages.Tenant.issuerPropertyName
 import com.egm.stellio.shared.util.ErrorMessages.Tenant.tenantNotFoundMessage
+import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
-import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.source.InvalidConfigurationPropertyValueException

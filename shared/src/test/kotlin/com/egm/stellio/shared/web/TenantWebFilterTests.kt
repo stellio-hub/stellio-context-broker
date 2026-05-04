@@ -2,6 +2,7 @@ package com.egm.stellio.shared.web
 
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.MockkedHandler
+import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeAll

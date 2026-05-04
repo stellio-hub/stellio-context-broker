@@ -74,14 +74,14 @@ class ContextSourceRegistrationService(
                 information, operations, registration_name,
                 observation_interval_start, observation_interval_end,
                 management_interval_start, management_interval_end,
-                context_source_info, sub, created_at, modified_at
+                context_source_info, tenant, sub, created_at, modified_at
             )
             VALUES(
                 :id, :endpoint, :mode,
                 :information, :operations, :registration_name,
                 :observation_interval_start, :observation_interval_end,
                 :management_interval_start, :management_interval_end,
-                :context_source_info, :sub, :created_at, :modified_at
+                :context_source_info, :tenant, :sub, :created_at, :modified_at
             )
             ON CONFLICT (id)
             DO UPDATE SET
@@ -95,6 +95,7 @@ class ContextSourceRegistrationService(
                 management_interval_start = :management_interval_start,
                 management_interval_end = :management_interval_end,
                 context_source_info = :context_source_info,
+                tenant = :tenant,
                 sub = :sub,
                 modified_at = :modified_at
             """.trimIndent()
@@ -117,6 +118,7 @@ class ContextSourceRegistrationService(
             .bind("management_interval_start", csr.managementInterval?.start)
             .bind("management_interval_end", csr.managementInterval?.end)
             .bind("context_source_info", Json.of(serialize(csr.contextSourceInfo)))
+            .bind("tenant", csr.tenant)
             .bind("sub", getSubFromSecurityContext())
             .bind("created_at", csr.createdAt)
             .bind("modified_at", csr.modifiedAt)
@@ -164,6 +166,7 @@ class ContextSourceRegistrationService(
                 management_interval_start,
                 management_interval_end,
                 context_source_info,
+                tenant,
                 created_at,
                 modified_at
             FROM context_source_registration
@@ -217,6 +220,7 @@ class ContextSourceRegistrationService(
                 management_interval_start,
                 management_interval_end,
                 context_source_info,
+                tenant,
                 created_at,
                 modified_at
             FROM context_source_registration as csr
@@ -356,6 +360,7 @@ class ContextSourceRegistrationService(
                     )
                 },
                 contextSourceInfo = deserializeContextSourceInfo(toJsonString(row["context_source_info"])),
+                tenant = row["tenant"] as? String,
                 createdAt = toZonedDateTime(row["created_at"]),
                 modifiedAt = toZonedDateTime(row["modified_at"])
             )

@@ -15,7 +15,7 @@ import com.egm.stellio.shared.model.OperationNotSupportedException
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
-import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
+import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.service.NotificationService
 import kotlinx.coroutines.CoroutineScope

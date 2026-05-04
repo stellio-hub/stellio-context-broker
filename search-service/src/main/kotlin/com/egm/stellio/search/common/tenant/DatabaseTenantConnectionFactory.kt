@@ -3,8 +3,8 @@ package com.egm.stellio.search.common.tenant
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NonexistentTenantException
 import com.egm.stellio.shared.util.ErrorMessages.Tenant.tenantNotFoundMessage
+import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
-import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import org.springframework.r2dbc.connection.lookup.AbstractRoutingConnectionFactory
 import reactor.core.publisher.Mono
 

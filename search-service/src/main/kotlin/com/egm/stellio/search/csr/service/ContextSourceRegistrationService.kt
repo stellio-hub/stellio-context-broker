@@ -10,11 +10,13 @@ import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toBoolean
 import com.egm.stellio.search.common.util.toInt
+import com.egm.stellio.search.common.util.toJsonString
 import com.egm.stellio.search.common.util.toOptionalZonedDateTime
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
+import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.deserializeContextSourceInfo
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.TimeInterval
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
@@ -24,6 +26,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.DataTypes
+import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrAlreadyExistsMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrNotFoundMessage
 import com.egm.stellio.shared.util.Sub
@@ -68,17 +71,17 @@ class ContextSourceRegistrationService(
             """
             INSERT INTO context_source_registration(
                 id, endpoint, mode,
-                information, operations,  registration_name,
+                information, operations, registration_name,
                 observation_interval_start, observation_interval_end,
                 management_interval_start, management_interval_end,
-                sub, created_at, modified_at
+                context_source_info, sub, created_at, modified_at
             )
             VALUES(
                 :id, :endpoint, :mode,
                 :information, :operations, :registration_name,
                 :observation_interval_start, :observation_interval_end,
                 :management_interval_start, :management_interval_end,
-                :sub, :created_at, :modified_at
+                :context_source_info, :sub, :created_at, :modified_at
             )
             ON CONFLICT (id)
             DO UPDATE SET
@@ -91,6 +94,7 @@ class ContextSourceRegistrationService(
                 observation_interval_end = :observation_interval_end,
                 management_interval_start = :management_interval_start,
                 management_interval_end = :management_interval_end,
+                context_source_info = :context_source_info,
                 sub = :sub,
                 modified_at = :modified_at
             """.trimIndent()
@@ -112,6 +116,7 @@ class ContextSourceRegistrationService(
             .bind("observation_interval_end", csr.observationInterval?.end)
             .bind("management_interval_start", csr.managementInterval?.start)
             .bind("management_interval_end", csr.managementInterval?.end)
+            .bind("context_source_info", Json.of(serialize(csr.contextSourceInfo)))
             .bind("sub", getSubFromSecurityContext())
             .bind("created_at", csr.createdAt)
             .bind("modified_at", csr.modifiedAt)
@@ -158,9 +163,10 @@ class ContextSourceRegistrationService(
                 observation_interval_end,
                 management_interval_start,
                 management_interval_end,
+                context_source_info,
                 created_at,
                 modified_at
-            FROM context_source_registration  
+            FROM context_source_registration
             WHERE id = :id
             """.trimIndent()
 
@@ -210,6 +216,7 @@ class ContextSourceRegistrationService(
                 observation_interval_end,
                 management_interval_start,
                 management_interval_end,
+                context_source_info,
                 created_at,
                 modified_at
             FROM context_source_registration as csr
@@ -336,8 +343,6 @@ class ContextSourceRegistrationService(
                     .readValue((row["information"] as Json).asString()),
                 operations = (row["operations"] as Array<String>).mapNotNull { Operation.fromString(it) },
                 registrationName = row["registration_name"] as? String,
-                createdAt = toZonedDateTime(row["created_at"]),
-                modifiedAt = toZonedDateTime(row["modified_at"]),
                 observationInterval = row["observation_interval_start"]?.let {
                     TimeInterval(
                         toZonedDateTime(it),
@@ -350,6 +355,9 @@ class ContextSourceRegistrationService(
                         toOptionalZonedDateTime(row["management_interval_end"])
                     )
                 },
+                contextSourceInfo = deserializeContextSourceInfo(toJsonString(row["context_source_info"])),
+                createdAt = toZonedDateTime(row["created_at"]),
+                modifiedAt = toZonedDateTime(row["modified_at"])
             )
         }
     }

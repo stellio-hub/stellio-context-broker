@@ -1,5 +1,6 @@
 package com.egm.stellio.search.csr
 
+import com.egm.stellio.search.csr.model.ContextSourceInfo
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
 import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.csr.model.Mode
@@ -20,13 +21,15 @@ object CsrUtils {
             )
         ),
         operations: List<Operation> = listOf(Operation.FEDERATION_OPS),
-        mode: Mode = Mode.INCLUSIVE
+        mode: Mode = Mode.INCLUSIVE,
+        contextSourceInfo: List<ContextSourceInfo>? = null
     ) = ContextSourceRegistration(
         id = id,
         endpoint = endpoint,
         information = information,
         operations = operations,
         createdAt = ngsiLdDateTime(),
-        mode = mode
+        mode = mode,
+        contextSourceInfo = contextSourceInfo
     )
 }

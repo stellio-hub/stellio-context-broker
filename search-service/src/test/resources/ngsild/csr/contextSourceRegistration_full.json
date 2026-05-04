@@ -30,6 +30,10 @@
   "mode": "exclusive",
   "operations": ["updateOps","retrieveSubscription","querySubscription"],
   "endpoint": "http://my.csr.endpoint/",
+  "contextSourceInfo": [
+    { "key": "Authorization", "value": "Bearer secret" },
+    { "key": "X-Extra-Header", "value": "myHeaderValue" }
+  ],
   "observationInterval":{
     "start": "2001-01-01T00:00:00Z",
     "end": "2100-01-01T00:00:00Z"

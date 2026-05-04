@@ -43,6 +43,7 @@ object ContextSourceHttpUtils {
                     .queryParams(queryParams)
                     .build()
             }.headers { newHeaders ->
+                csr.contextSourceInfo?.forEach { info -> newHeaders[info.key] = info.value }
                 httpHeaders.getFirst(HttpHeaders.LINK)?.let { link -> newHeaders[HttpHeaders.LINK] = link }
             }
 

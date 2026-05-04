@@ -4,6 +4,7 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.NonexistentTenantException
 import com.egm.stellio.shared.util.ErrorMessages.Tenant.tenantNotFoundMessage
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.core.Ordered
@@ -19,7 +20,6 @@ import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-const val NGSILD_TENANT_HEADER = "NGSILD-Tenant"
 const val DEFAULT_TENANT_NAME = "urn:ngsi-ld:tenant:default"
 
 @Component

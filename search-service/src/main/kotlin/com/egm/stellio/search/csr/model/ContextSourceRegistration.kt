@@ -49,6 +49,7 @@ data class ContextSourceRegistration(
     val observationInterval: TimeInterval? = null,
     val managementInterval: TimeInterval? = null,
     val contextSourceInfo: List<ContextSourceInfo>? = null,
+    val tenant: String? = null,
     val status: StatusType? = null,
     @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     val timesSent: Int = 0,

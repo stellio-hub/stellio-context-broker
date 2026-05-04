@@ -491,4 +491,26 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                     .withHeader("X-Extra-Header", equalTo("myHeaderValue"))
             )
         }
+
+    @Test
+    fun `getDistributedInformation should add tenant as HTTP header when retrieving from a CSR`() = runTest {
+        val csr = gimmeRawCSR(
+            tenant = "urn:ngsi-ld:tenant:01"
+        )
+        val path = "/ngsi-ld/v1/entities/$apiaryId"
+        stubFor(get(urlMatching(path)).willReturn(ok()))
+
+        distributedEntityConsumptionService.getDistributedInformation(
+            HttpHeaders.EMPTY,
+            csr,
+            CSRFilters(),
+            path,
+            emptyParams
+        )
+
+        verify(
+            getRequestedFor(urlPathEqualTo(path))
+                .withHeader("NGSILD-Tenant", equalTo("urn:ngsi-ld:tenant:01"))
+        )
+    }
 }

@@ -22,7 +22,8 @@ object CsrUtils {
         ),
         operations: List<Operation> = listOf(Operation.FEDERATION_OPS),
         mode: Mode = Mode.INCLUSIVE,
-        contextSourceInfo: List<ContextSourceInfo>? = null
+        contextSourceInfo: List<ContextSourceInfo>? = null,
+        tenant: String? = null
     ) = ContextSourceRegistration(
         id = id,
         endpoint = endpoint,
@@ -30,6 +31,7 @@ object CsrUtils {
         operations = operations,
         createdAt = ngsiLdDateTime(),
         mode = mode,
-        contextSourceInfo = contextSourceInfo
+        contextSourceInfo = contextSourceInfo,
+        tenant = tenant
     )
 }

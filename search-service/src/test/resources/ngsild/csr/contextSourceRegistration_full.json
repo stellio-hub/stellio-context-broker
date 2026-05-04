@@ -41,5 +41,6 @@
   "managementInterval": {
     "start": "2001-01-01T00:00:00Z",
     "end": "2100-01-01T00:00:00Z"
-  }
+  },
+  "tenant": "urn:ngsi-ld:tenant:01"
 }

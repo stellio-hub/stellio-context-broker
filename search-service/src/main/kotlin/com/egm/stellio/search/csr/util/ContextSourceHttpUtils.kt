@@ -11,6 +11,7 @@ import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceContactErrorMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceErrorResponseMessage
+import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -44,6 +45,7 @@ object ContextSourceHttpUtils {
                     .build()
             }.headers { newHeaders ->
                 csr.contextSourceInfo?.forEach { info -> newHeaders[info.key] = info.value }
+                csr.tenant?.let { newHeaders[NGSILD_TENANT_HEADER] = it }
                 httpHeaders.getFirst(HttpHeaders.LINK)?.let { link -> newHeaders[HttpHeaders.LINK] = link }
             }
 

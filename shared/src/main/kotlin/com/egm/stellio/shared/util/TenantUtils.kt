@@ -1,7 +1,6 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
-import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import kotlinx.coroutines.reactor.awaitSingle
 import reactor.core.publisher.Mono
 

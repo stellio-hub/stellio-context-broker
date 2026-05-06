@@ -149,7 +149,7 @@ object ContextSourceUtils {
 
     // only meant to work with attributes under:
     // - the normalized representation when retrieving or querying entities
-    // - the simplified or aggregated representation when retrieving or querying tmeporal entities
+    // - the simplified or aggregated representation when retrieving or querying temporal entities
     private fun groupInstancesByDataSetId(
         attribute: Any,
         csr: ContextSourceRegistration
@@ -186,21 +186,21 @@ object ContextSourceUtils {
         remoteEntitiesWithCSR: List<CompactedEntitiesWithCSR>,
         temporalEntitiesQuery: TemporalEntitiesQueryFromGet
     ): IorNel<NGSILDWarning, List<CompactedEntity>> {
-        val mergedEntityMap = localEntities.map { it.toMutableMap() }.associateBy { it[NGSILD_ID_TERM] }.toMutableMap()
+        val mergedEntities = localEntities.map { it.toMutableMap() }.associateBy { it[NGSILD_ID_TERM] }.toMutableMap()
 
         val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }.mapNotNull { (entities, csr) ->
             either {
                 entities.forEach { entity ->
                     val id = entity[NGSILD_ID_TERM]
-                    mergedEntityMap[id]
+                    mergedEntities[id]
                         ?.let { it.putAll(getMergeTemporalNewValues(it, entity, temporalEntitiesQuery, csr).bind()) }
-                        ?: run { mergedEntityMap[id] = entity.toMutableMap() }
+                        ?: run { mergedEntities[id] = entity.toMutableMap() }
                 }
                 null
             }.leftOrNull()
         }.toNonEmptyListOrNull()
 
-        val entities = mergedEntityMap.values.toList()
+        val entities = mergedEntities.values.toList()
         return if (warnings == null) Ior.Right(entities) else Ior.Both(warnings, entities)
     }
 

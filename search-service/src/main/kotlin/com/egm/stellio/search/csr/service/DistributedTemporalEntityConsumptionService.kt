@@ -162,7 +162,6 @@ class DistributedTemporalEntityConsumptionService(
         val uri = URI("${csr.endpoint}$path")
 
         val queryParams = CollectionUtils.toMultiValueMap(params.toMutableMap())
-        queryParams.remove(QueryParameter.GEOMETRY_PROPERTY.key)
         queryParams.remove(QueryParameter.LANG.key)
         csr.information.first().computeAttrsQueryParam(csrFilters, contexts)?.let {
             queryParams[QueryParameter.ATTRS.key] = it

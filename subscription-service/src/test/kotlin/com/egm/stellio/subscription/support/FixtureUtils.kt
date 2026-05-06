@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.support
 
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -8,7 +9,6 @@ import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
-import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.GeoQ
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
@@ -63,7 +63,7 @@ fun gimmeRawSubscription(
 
     val endpointReceiverInfo =
         if (withEndpointReceiverInfo)
-            listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value"))
+            listOf(KeyValuePair(key = "Authorization-token", value = "Authorization-token-value"))
         else
             null
 

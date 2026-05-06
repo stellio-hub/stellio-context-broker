@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.model
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_OPERATION_SPACE_IRI
@@ -47,7 +48,7 @@ import org.springframework.http.MediaType
 class SubscriptionTests {
 
     private val endpointReceiverInfo =
-        listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value"))
+        listOf(KeyValuePair(key = "Authorization-token", value = "Authorization-token-value"))
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 

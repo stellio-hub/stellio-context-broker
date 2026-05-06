@@ -12,7 +12,6 @@ import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_CSR_TERM
 import com.egm.stellio.shared.model.toAPIException
-import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.DataTypes.toFinalRepresentation
@@ -155,12 +154,6 @@ data class ContextSourceRegistration(
                 { it.right() },
                 { it.toAPIException(csrFailedToParseMessage(it.message)).left() }
             )
-
-        fun deserializeContextSourceInfo(input: String?): List<KeyValuePair>? {
-            return if (input != null && input != "null")
-                DataTypes.convertToList(input)
-            else null
-        }
     }
 
     enum class StatusType(val status: String) {

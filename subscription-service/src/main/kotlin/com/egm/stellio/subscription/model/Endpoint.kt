@@ -1,7 +1,6 @@
 package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.model.KeyValuePair
-import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.subscription.model.Endpoint.AcceptType.JSON
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.net.URI
@@ -36,12 +35,6 @@ data class Endpoint(
         const val HTTP_SCHEME = "http"
         const val HTTPS_SCHEME = "https"
         val allowedSchemes = listOf(MQTT_SCHEME, MQTTS_SCHEME, HTTP_SCHEME, HTTPS_SCHEME)
-
-        fun deserialize(input: String?): List<KeyValuePair>? {
-            return if (input != null && input != "null")
-                DataTypes.convertToList(input)
-            else null
-        }
     }
 
     fun computeTimeout(): Long {

@@ -16,7 +16,6 @@ import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.ContextSourceRegistration
-import com.egm.stellio.search.csr.model.ContextSourceRegistration.Companion.deserializeContextSourceInfo
 import com.egm.stellio.search.csr.model.ContextSourceRegistration.TimeInterval
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
@@ -24,6 +23,7 @@ import com.egm.stellio.search.csr.model.RegistrationInfo
 import com.egm.stellio.search.csr.model.RegistrationInfoDBWriter
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.DataTypes.serialize
@@ -355,7 +355,7 @@ class ContextSourceRegistrationService(
                         toOptionalZonedDateTime(row["management_interval_end"])
                     )
                 },
-                contextSourceInfo = deserializeContextSourceInfo(toJsonString(row["context_source_info"])),
+                contextSourceInfo = KeyValuePair.deserialize(toJsonString(row["context_source_info"])),
                 createdAt = toZonedDateTime(row["created_at"]),
                 modifiedAt = toZonedDateTime(row["modified_at"])
             )

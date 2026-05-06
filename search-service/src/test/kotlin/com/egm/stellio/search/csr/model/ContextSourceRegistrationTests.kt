@@ -2,6 +2,7 @@ package com.egm.stellio.search.csr.model
 
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_CSR_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.BEEHIVE_IRI
@@ -249,8 +250,8 @@ class ContextSourceRegistrationTests {
             .isNotNull
             .hasSize(2)
             .contains(
-                ContextSourceInfo("Authorization", "Bearer secret"),
-                ContextSourceInfo("X-Extra-Header", "myHeaderValue")
+                KeyValuePair("Authorization", "Bearer secret"),
+                KeyValuePair("X-Extra-Header", "myHeaderValue")
             )
     }
 

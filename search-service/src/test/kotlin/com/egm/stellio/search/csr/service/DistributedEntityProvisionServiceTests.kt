@@ -4,7 +4,6 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.CSRFilters
-import com.egm.stellio.search.csr.model.ContextSourceInfo
 import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.csr.model.Mode
 import com.egm.stellio.search.csr.model.Operation
@@ -18,6 +17,7 @@ import com.egm.stellio.shared.model.BadGatewayException
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.GatewayTimeoutException
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_ALL_ENTITIES
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.QP
@@ -427,8 +427,8 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
         runTest {
             val csr = gimmeRawCSR(
                 contextSourceInfo = listOf(
-                    ContextSourceInfo("Authorization", "Bearer secret"),
-                    ContextSourceInfo("X-Extra-Header", "myHeaderValue")
+                    KeyValuePair("Authorization", "Bearer secret"),
+                    KeyValuePair("X-Extra-Header", "myHeaderValue")
                 )
             )
             val path = "/ngsi-ld/v1/entities"

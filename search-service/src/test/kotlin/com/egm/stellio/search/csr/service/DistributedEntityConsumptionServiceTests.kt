@@ -4,7 +4,6 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.search.csr.model.CSRFilters
-import com.egm.stellio.search.csr.model.ContextSourceInfo
 import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
 import com.egm.stellio.search.csr.model.MiscellaneousWarning
@@ -16,6 +15,7 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
@@ -470,8 +470,8 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
         runTest {
             val csr = gimmeRawCSR(
                 contextSourceInfo = listOf(
-                    ContextSourceInfo("Authorization", "Bearer secret"),
-                    ContextSourceInfo("X-Extra-Header", "myHeaderValue")
+                    KeyValuePair("Authorization", "Bearer secret"),
+                    KeyValuePair("X-Extra-Header", "myHeaderValue")
                 )
             )
             val path = "/ngsi-ld/v1/entities/$apiaryId"

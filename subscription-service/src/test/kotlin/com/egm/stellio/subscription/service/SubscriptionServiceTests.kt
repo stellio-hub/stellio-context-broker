@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.model.NGSILD_OBSERVATION_SPACE_IRI
@@ -38,7 +39,6 @@ import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
-import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.JoinType
@@ -201,7 +201,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                         Endpoint.AcceptType.JSON,
                         1000,
                         null,
-                        listOf(EndpointInfo("Authorization-token", "Authorization-token-value")),
+                        listOf(KeyValuePair("Authorization-token", "Authorization-token-value")),
                         10000
                     ) &&
                     it.notification.sysAttrs &&

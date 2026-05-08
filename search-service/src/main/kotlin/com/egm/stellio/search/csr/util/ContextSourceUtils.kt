@@ -252,14 +252,13 @@ object ContextSourceUtils {
         csr: ContextSourceRegistration
     ): Either<NGSILDWarning, Any> = either {
         when (temporalEntitiesQuery.temporalRepresentation) {
-            TemporalRepresentation.NORMALIZED -> {
-                val currentInstances = toListOfNormalizedInstances(currentAttribute, csr).bind()
-                val remoteInstances = toListOfNormalizedInstances(remoteAttribute, csr).bind()
-                (currentInstances + remoteInstances).sortedBy {
-                    // order instances by the asked time property
-                    it[temporalEntitiesQuery.temporalQuery.timeproperty.propertyName] as String
-                }
-            }
+            TemporalRepresentation.NORMALIZED ->
+                mergeNormalizeAttributeInstances(
+                    currentAttribute,
+                    remoteAttribute,
+                    temporalEntitiesQuery.temporalQuery,
+                    csr
+                )
             TemporalRepresentation.TEMPORAL_VALUES ->
                 mergeSimplifiedOrAggregatedAttributeInstances(
                     currentAttribute,
@@ -277,6 +276,28 @@ object ContextSourceUtils {
         }
     }
 
+    private fun Raise<NGSILDWarning>.mergeNormalizeAttributeInstances(
+        currentAttribute: Any,
+        remoteAttribute: Any,
+        temporalQuey: TemporalQuery,
+        csr: ContextSourceRegistration
+    ): List<CompactedAttributeInstance> {
+        val currentInstances = toListOfNormalizedInstances(currentAttribute, csr).bind()
+        val remoteInstances = toListOfNormalizedInstances(remoteAttribute, csr).bind()
+
+        val keysInCurrentInstances = currentInstances.associateBy {
+            it[temporalQuey.timeproperty.propertyName] to it[NGSILD_DATASET_ID_TERM]
+        }
+        val mergedInstances = currentInstances + remoteInstances.filter {
+            it[temporalQuey.timeproperty.propertyName] to it[NGSILD_DATASET_ID_TERM] !in keysInCurrentInstances
+        }
+
+        return mergedInstances.sortedBy {
+            // order instances by the asked time property
+            it[temporalQuey.timeproperty.propertyName] as String
+        }
+    }
+
     private fun Raise<NGSILDWarning>.mergeSimplifiedOrAggregatedAttributeInstances(
         currentAttribute: Any,
         remoteAttribute: Any,
@@ -289,15 +310,19 @@ object ContextSourceUtils {
             val remoteInstance = remoteInstances[datasetId]
             if (remoteInstance != null) {
                 currentInstance.mapValues { (key, value) ->
-                    if (key in keysToMerge) {
-                        if (remoteInstance.containsKey(key))
-                            (value as List<*>).plus(remoteInstance[key] as List<*>).sortedBy {
-                                // order instances using 2nd element of the list
-                                // - timestamp for simplified representation
-                                // - start of aggregation for aggregated representation
-                                (it as List<*>)[1] as String
-                            }
-                        else value
+                    if (key in keysToMerge && remoteInstance.containsKey(key)) {
+                        val temporalValues = value as List<*>
+                        val timestampsInCurrentInstances = temporalValues.associateBy { (it as List<*>)[1] as String }
+                        val mergedAttribute = temporalValues + (remoteInstance[key] as List<*>).filter {
+                            (it as List<*>)[1] !in timestampsInCurrentInstances
+                        }
+
+                        mergedAttribute.sortedBy {
+                            // order instances using 2nd element of the list
+                            // - timestamp for simplified representation
+                            // - start of aggregation for aggregated representation
+                            (it as List<*>)[1] as String
+                        }
                     } else value
                 }
             } else currentInstance

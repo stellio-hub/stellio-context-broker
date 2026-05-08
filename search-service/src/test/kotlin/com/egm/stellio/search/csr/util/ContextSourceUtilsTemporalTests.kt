@@ -34,6 +34,11 @@ class ContextSourceUtilsTemporalTests {
     private val remoteIncomingNormalized2 =
         deserializeObject(loadSampleData("temporal/beehive_normalized_incoming_remote2.jsonld"))
 
+    private val localIncomingDatasetIdNormalized =
+        deserializeObject(loadSampleData("temporal/beehive_normalized_incoming_datasetid_local.jsonld"))
+    private val remoteIncomingDatasetIdNormalized =
+        deserializeObject(loadSampleData("temporal/beehive_normalized_incoming_datasetid_remote.jsonld"))
+
     private val localIncomingSimplified =
         deserializeObject(loadSampleData("temporal/beehive_simplified_incoming_local.jsonld"))
     private val remoteOutgoingSimplified =
@@ -96,6 +101,21 @@ class ContextSourceUtilsTemporalTests {
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
             loadSampleData("temporal/expectations/beehive_normalized_incoming.jsonld"),
+            serializeObject(result.getOrNull()!!)
+        )
+    }
+
+    @Test
+    fun `mergeTemporalEntities should not merge normalized instances with the same observedAt and datasetId`() {
+        val result = ContextSourceUtils.mergeTemporalEntities(
+            localIncomingDatasetIdNormalized,
+            listOf(remoteIncomingDatasetIdNormalized to inclusiveCSR),
+            createTemporalQueryWithRepresentation(TemporalRepresentation.NORMALIZED)
+        )
+
+        assertTrue(result.isRight())
+        assertJsonPayloadsAreEqual(
+            loadSampleData("temporal/expectations/beehive_normalized_incoming_datasetid.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }

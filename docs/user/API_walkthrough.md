@@ -35,8 +35,11 @@ You can also use [our Postman collection](https://www.postman.com/stellio-doc/wo
 
 Note: The Postman web app cannot access `localhost`. To test against a local broker, install the Postman desktop app or use a broker with a public URL.
 
-If you prefer importing the collection directly, you can [download it here](https://raw.githubusercontent.com/stellio-hub/stellio-docs/master/collection/API_walkthrough.json) (see [Postman’s guide](https://learning.postman.com/docs/getting-started/importing-and-exporting-data)).
+If you prefer importing the collection directly, you can [download it here](https://raw.githubusercontent.com/stellio-hub/stellio-context-broker/master/docs/collection/API_walkthrough.json) (see [Postman’s guide](https://learning.postman.com/docs/getting-started/importing-and-exporting-data)).
 
+## Open API
+
+An open API specification is also [available](https://raw.githubusercontent.com/stellio-hub/stellio-context-broker/master/docs/collection/open-api.yml).
 ## Case study
 
 This case study is for anyone who wants to get familiar with the API. We use a simple and concrete example.

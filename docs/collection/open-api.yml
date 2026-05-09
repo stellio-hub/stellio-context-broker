@@ -1,0 +1,699 @@
+openapi: 3.0.0
+info:
+  title: API_Quick_Start_No_Auth
+  version: 1.0.0
+  description: ''
+servers:
+  - url: http://localhost:8080
+paths:
+  /ngsi-ld/v1/entities:
+    post:
+      summary: Create Beekeeper
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Create entity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uri
+                type:
+                  type: string
+                name:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    value:
+                      type: string
+            example:
+              id: urn:ngsi-ld:Beekeeper:01
+              type: Beekeeper
+              name:
+                type: Property
+                value: Scalpa
+    get:
+      summary: Query by types
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+          example: BeeHive,Sensor
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Consume entities
+        - Query Entities
+  /ngsi-ld/v1/entities/urn{ngsi-ld}{BeeHive}{01}:
+    get:
+      summary: Retrieve By id
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Consume entities
+        - Retrieve Entity
+    put:
+      summary: Replace entity
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Modify entity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uri
+                type:
+                  type: string
+                managedBy:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    object:
+                      type: string
+                      format: uri
+                temperature:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    value:
+                      type: number
+                    unitCode:
+                      type: string
+                    observedAt:
+                      type: string
+                      format: date-time
+                    observedBy:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        object:
+                          type: string
+                          format: uri
+            example:
+              id: urn:ngsi-ld:BeeHive:01
+              type: BeeHive
+              managedBy:
+                type: Relationship
+                object: urn:ngsi-ld:Beekeeper:01
+              temperature:
+                type: Property
+                value: 43.2
+                unitCode: CEL
+                observedAt: '2025-10-26T21:32:52.98601Z'
+                observedBy:
+                  type: Relationship
+                  object: urn:ngsi-ld:Sensor:01
+    patch:
+      summary: Merge entity
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Modify entity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uri
+                type:
+                  type: string
+                managedBy:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    object:
+                      type: string
+                      format: uri
+                    subProperty:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        value:
+                          type: string
+                location:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    value:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        coordinates:
+                          type: array
+                          items:
+                            type: number
+            example:
+              id: urn:ngsi-ld:BeeHive:01
+              type: BeeHive
+              managedBy:
+                type: Relationship
+                object: urn:ngsi-ld:Beekeeper:01
+                subProperty:
+                  type: Property
+                  value: addSubProperty
+              location:
+                type: GeoProperty
+                value:
+                  type: Point
+                  coordinates:
+                    - 24.30623
+                    - 60.07966
+    delete:
+      summary: Delete Entity
+      responses: {}
+      tags:
+        - Modify entity
+  /ngsi-ld/v1/entities/urn{ngsi-ld}{Sensor}{01}:
+    delete:
+      summary: Delete Entity Sensor
+      responses: {}
+      tags:
+        - Modify entity
+  /ngsi-ld/v1/entityOperations/delete:
+    post:
+      summary: Delete Apiculture Entities
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Batch operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                format: uri
+            example:
+              - urn:ngsi-ld:BeeHive:01
+              - urn:ngsi-ld:Sensor:01
+  /ngsi-ld/v1/entityOperations/create:
+    post:
+      summary: Create Batch Entities
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Batch operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uri
+                  type:
+                    type: string
+                  deviceParameter:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      value:
+                        type: string
+            example:
+              - id: urn:ngsi-ld:Sensor:01
+                type: Sensor
+                deviceParameter:
+                  type: Property
+                  value: temperature
+              - id: urn:ngsi-ld:BeeHive:01
+                type: BeeHive
+                managedBy:
+                  type: Relationship
+                  object: urn:ngsi-ld:Beekeeper:01
+                location:
+                  type: GeoProperty
+                  value:
+                    type: Point
+                    coordinates:
+                      - 24.30623
+                      - 60.07966
+                temperature:
+                  type: Property
+                  value: 22.1
+                  unitCode: CEL
+                  observedAt: '2025-10-26T21:32:52.98601Z'
+                  observedBy:
+                    type: Relationship
+                    object: urn:ngsi-ld:Sensor:01
+  /ngsi-ld/v1/entities/urn{ngsi-ld}{BeeHive}{01}/attrs:
+    post:
+      summary: Append attributes
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Modify Attributes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    value:
+                      type: string
+            example:
+              name:
+                type: Property
+                value: BeeHiveSophia
+    patch:
+      summary: Update attributes
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Modify Attributes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                temperature:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    value:
+                      type: number
+                    unitCode:
+                      type: string
+                    observedAt:
+                      type: string
+                      format: date-time
+                    observedBy:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        object:
+                          type: string
+                          format: uri
+            example:
+              temperature:
+                type: Property
+                value: 30.7
+                unitCode: CEL
+                observedAt: '2025-10-26T22:35:52.98601Z'
+                observedBy:
+                  type: Relationship
+                  object: urn:ngsi-ld:Sensor:01
+  /ngsi-ld/v1/entities/urn{ngsi-ld}{BeeHive}{01}/attrs/temperature:
+    patch:
+      summary: Partial Update on attribute
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Modify Attributes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                value:
+                  type: integer
+                observedAt:
+                  type: string
+                  format: date-time
+            example:
+              value: 42
+              observedAt: '2025-10-12T10:20:30.98601Z'
+  /ngsi-ld/v1/entities/urn{ngsi-ld}{BeeHive}{01}/attrs/name:
+    delete:
+      summary: Delete attribute
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Modify Attributes
+  /ngsi-ld/v1/temporal/entities/urn{ngsi-ld}{BeeHive}{01}:
+    get:
+      summary: Retrieve Temporal Entity
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Get Temporal Evolution of Entities
+    delete:
+      summary: Permanently Delete Entity
+      responses: {}
+      tags:
+        - Modify Temporal
+  /ngsi-ld/v1/temporal/entities:
+    get:
+      summary: QueryTemporal Entities
+      parameters:
+        - name: timerel
+          in: query
+          schema:
+            type: string
+          example: after
+        - name: timeAt
+          in: query
+          schema:
+            type: string
+          example: '2025-10-26T12:00:00Z'
+        - name: type
+          in: query
+          schema:
+            type: string
+          example: BeeHive
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Get Temporal Evolution of Entities
+  /ngsi-ld/v1/types:
+    get:
+      summary: Retrieve All Entity Types
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Discovery
+  /ngsi-ld/v1/types/Beekeeper:
+    get:
+      summary: Retrieve Attributes of an Entity Type
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Discovery
+  /ngsi-ld/v1/attributes:
+    get:
+      summary: Retrieve All Attributes
+      responses: {}
+      tags:
+        - Discovery
+  /ngsi-ld/v1/attributes/name:
+    get:
+      summary: Retrieve Entities of an Attribute
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Discovery
+  /ngsi-ld/v1/subscriptions:
+    post:
+      summary: Create subscription to Beehive
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Subscription
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uri
+                type:
+                  type: string
+                entities:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                q:
+                  type: string
+                notification:
+                  type: object
+                  properties:
+                    attributes:
+                      type: array
+                      items:
+                        type: string
+                    format:
+                      type: string
+                    endpoint:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          format: uri
+                        accept:
+                          type: string
+                        notifierInfo:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              key:
+                                type: string
+                              value:
+                                type: string
+            example:
+              id: urn:ngsi-ld:Subscription:01
+              type: Subscription
+              entities:
+                - type: BeeHive
+              q: temperature>40
+              notification:
+                attributes:
+                  - temperature
+                format: normalized
+                endpoint:
+                  uri: http://my-domain-name
+                  accept: application/json
+                  notifierInfo:
+                    - key: Authorization-token
+                      value: Authorization-token-value
+  /ngsi-ld/v1/subscriptions/urn{ngsi-ld}{Subscription}{01}:
+    get:
+      summary: Retrieve subscription to Beehive
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Subscription
+    delete:
+      summary: Delete subscription to Beehive
+      responses: {}
+      tags:
+        - Subscription
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /auth/permissions/{permissionId}:
+    get:
+      summary: Retrieve Permission
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Permission
+    parameters:
+      - name: permissionId
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '{{csrId}}'
+    patch:
+      summary: Update Permission
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Permission
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                endpoint:
+                  type: string
+                  format: uri
+            example:
+              endpoint: http://my.csource.org:1026
+    delete:
+      summary: Delete Permission
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Permission
+  /auth/permissions:
+    get:
+      summary: Query Permission
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Permission
+    post:
+      summary: Create Permission
+      parameters:
+        - name: Link
+          in: header
+          schema:
+            type: string
+          example: '{{apicContextLink}}'
+      responses: {}
+      tags:
+        - Permission
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uri
+                type:
+                  type: string
+                target:
+                  type: object
+                  properties:
+                    types:
+                      type: array
+                      items:
+                        type: string
+                assignee:
+                  type: string
+                  format: uri
+                action:
+                  type: string
+            example:
+              id: urn:ngsi-ld:Permission:public
+              type: Permission
+              target:
+                types:
+                  - WeatherInformation
+                  - WeatherObserved
+              assignee: urn:ngsi-ld:Subject:public
+              action: read

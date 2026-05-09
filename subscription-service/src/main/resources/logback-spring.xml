@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <springProperty scope="context" name="graylogHost" source="application.graylog.host" defaultValue="localhost"/>
-    <springProperty scope="context" name="graylogPort" source="application.graylog.port" defaultValue="12201"/>
-    <springProperty scope="context" name="graylogSource" source="application.graylog.source" defaultValue="stellio-int"/>
-
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <!-- displaying method name may be costly, eventually remove it -->
@@ -16,33 +12,19 @@
     <logger name="org.flywaydb" level="DEBUG"/>
     <logger name="org.apache.kafka" level="WARN"/>
 
-    <springProfile name="!gelflogs">
+    <springProfile name="!otel">
         <root level="INFO">
             <appender-ref ref="console" />
         </root>
     </springProfile>
 
-    <springProfile name="gelflogs">
-        <appender name="gelf" class="de.siegmar.logbackgelf.GelfTcpAppender">
-            <graylogHost>${graylogHost}</graylogHost>
-            <graylogPort>${graylogPort}</graylogPort>
-            <encoder class="de.siegmar.logbackgelf.GelfEncoder">
-                <includeLevelName>true</includeLevelName>
-                <staticField>app_name:subscription-service</staticField>
-                <staticField>platform:${graylogSource}</staticField>
-            </encoder>
-        </appender>
-
-        <!-- Use AsyncAppender to prevent slowdowns -->
-        <appender name="async_gelf" class="ch.qos.logback.classic.AsyncAppender">
-            <!-- do not block the queue if Graylog is unavailable -->
-            <neverBlock>true</neverBlock>
-            <appender-ref ref="gelf" />
+    <springProfile name="otel">
+        <appender name="otel" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
         </appender>
 
         <root level="INFO">
-            <appender-ref ref="async_gelf" />
             <appender-ref ref="console" />
+            <appender-ref ref="otel" />
         </root>
     </springProfile>
 

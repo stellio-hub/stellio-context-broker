@@ -26,51 +26,51 @@ import org.springframework.test.context.ActiveProfiles
 class ContextSourceUtilsTemporalTests {
 
     private val localIncomingNormalized =
-        deserializeObject(loadSampleData("temporal/beehive_normalized_incoming_local.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_normalized_incoming_local.jsonld"))
     private val remoteOutgoingNormalized =
-        deserializeObject(loadSampleData("temporal/beehive_normalized_outgoing_remote.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_normalized_outgoing_remote.jsonld"))
     private val remoteIncomingNormalized =
-        deserializeObject(loadSampleData("temporal/beehive_normalized_incoming_remote.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_normalized_incoming_remote.jsonld"))
     private val remoteIncomingNormalized2 =
-        deserializeObject(loadSampleData("temporal/beehive_normalized_incoming_remote2.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_normalized_incoming_remote2.jsonld"))
 
     private val localIncomingDatasetIdNormalized =
-        deserializeObject(loadSampleData("temporal/beehive_normalized_incoming_datasetid_local.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_normalized_incoming_datasetid_local.jsonld"))
     private val remoteIncomingDatasetIdNormalized =
-        deserializeObject(loadSampleData("temporal/beehive_normalized_incoming_datasetid_remote.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_normalized_incoming_datasetid_remote.jsonld"))
 
     private val localIncomingSimplified =
-        deserializeObject(loadSampleData("temporal/beehive_simplified_incoming_local.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_simplified_incoming_local.jsonld"))
     private val remoteOutgoingSimplified =
-        deserializeObject(loadSampleData("temporal/beehive_simplified_outgoing_remote.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_simplified_outgoing_remote.jsonld"))
     private val remoteIncomingSimplified =
-        deserializeObject(loadSampleData("temporal/beehive_simplified_incoming_remote.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_simplified_incoming_remote.jsonld"))
 
     private val localIncomingDatasetIdSimplified =
-        deserializeObject(loadSampleData("temporal/beehive_simplified_incoming_datasetid_local.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_simplified_incoming_datasetid_local.jsonld"))
     private val remoteIncomingDatasetIdSimplified =
-        deserializeObject(loadSampleData("temporal/beehive_simplified_incoming_datasetid_remote.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_simplified_incoming_datasetid_remote.jsonld"))
     private val remoteIncomingDatasetIdSimplified2 =
-        deserializeObject(loadSampleData("temporal/beehive_simplified_incoming_datasetid_remote2.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_simplified_incoming_datasetid_remote2.jsonld"))
 
     private val localIncomingAggregated =
-        deserializeObject(loadSampleData("temporal/beehive_aggregated_incoming_local.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_aggregated_incoming_local.jsonld"))
     private val remoteOutgoingAggregated =
-        deserializeObject(loadSampleData("temporal/beehive_aggregated_outgoing_remote.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_aggregated_outgoing_remote.jsonld"))
     private val remoteIncomingAggregated =
-        deserializeObject(loadSampleData("temporal/beehive_aggregated_incoming_remote.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_aggregated_incoming_remote.jsonld"))
 
     private val localIncomingDatasetIdAggregated =
-        deserializeObject(loadSampleData("temporal/beehive_aggregated_incoming_datasetid_local.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_aggregated_incoming_datasetid_local.jsonld"))
     private val remoteIncomingDatasetIdAggregated =
-        deserializeObject(loadSampleData("temporal/beehive_aggregated_incoming_datasetid_remote.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_aggregated_incoming_datasetid_remote.jsonld"))
     private val remoteIncomingDatasetIdAggregated2 =
-        deserializeObject(loadSampleData("temporal/beehive_aggregated_incoming_datasetid_remote2.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_aggregated_incoming_datasetid_remote2.jsonld"))
 
     private val localScopeTemporal =
-        deserializeObject(loadSampleData("temporal/beehive_simplified_scope_local.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_simplified_scope_local.jsonld"))
     private val remoteScopeTemporal =
-        deserializeObject(loadSampleData("temporal/beehive_simplified_scope_remote.jsonld"))
+        deserializeObject(loadSampleData("temporal/distribution/beehive_simplified_scope_remote.jsonld"))
 
     private val inclusiveCSR = ContextSourceRegistration(endpoint = "http://mock-uri".toUri())
     private val auxiliaryCSR = ContextSourceRegistration(endpoint = "http://mock-uri".toUri(), mode = Mode.AUXILIARY)
@@ -85,7 +85,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_normalized_incoming_outgoing.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_normalized_incoming_outgoing.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }
@@ -100,7 +100,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_normalized_incoming.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_normalized_incoming.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }
@@ -115,7 +115,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_normalized_incoming_datasetid.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_normalized_incoming_datasetid.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }
@@ -130,7 +130,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_normalized_incoming_two_csrs.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_normalized_incoming_two_csrs.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }
@@ -145,7 +145,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_simplified_incoming_outgoing.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_simplified_incoming_outgoing.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }
@@ -160,7 +160,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_simplified_incoming.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_simplified_incoming.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }
@@ -178,7 +178,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_simplified_incoming_datasetid.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_simplified_incoming_datasetid.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }
@@ -193,7 +193,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_simplified_incoming_datasetid_remote.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_simplified_incoming_datasetid_remote.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }
@@ -208,7 +208,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_aggregated_incoming_outgoing.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_aggregated_incoming_outgoing.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }
@@ -223,7 +223,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_aggregated_incoming.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_aggregated_incoming.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }
@@ -241,7 +241,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_aggregated_incoming_datasetid.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_aggregated_incoming_datasetid.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }
@@ -256,7 +256,7 @@ class ContextSourceUtilsTemporalTests {
 
         assertTrue(result.isRight())
         assertJsonPayloadsAreEqual(
-            loadSampleData("temporal/expectations/beehive_simplified_scope.jsonld"),
+            loadSampleData("temporal/distribution/expectations/beehive_simplified_scope.jsonld"),
             serializeObject(result.getOrNull()!!)
         )
     }

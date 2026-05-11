@@ -285,16 +285,22 @@ object ContextSourceUtils {
         val currentInstances = toListOfNormalizedInstances(currentAttribute, csr).bind()
         val remoteInstances = toListOfNormalizedInstances(remoteAttribute, csr).bind()
 
-        val keysInCurrentInstances = currentInstances.associateBy {
-            it[temporalQuey.timeproperty.propertyName] to it[NGSILD_DATASET_ID_TERM]
-        }
-        val mergedInstances = currentInstances + remoteInstances.filter {
-            it[temporalQuey.timeproperty.propertyName] to it[NGSILD_DATASET_ID_TERM] !in keysInCurrentInstances
+        val timePropertyName = temporalQuey.timeproperty.propertyName
+        val keysInCurrentInstances = currentInstances.map {
+            it[timePropertyName] to it[NGSILD_DATASET_ID_TERM]
+        }.toSet()
+
+        val newInstances = remoteInstances.filter {
+            it[timePropertyName] to it[NGSILD_DATASET_ID_TERM] !in keysInCurrentInstances
         }
 
-        return mergedInstances.sortedBy {
-            // order instances by the asked time property
-            it[temporalQuey.timeproperty.propertyName] as String
+        return if (newInstances.isEmpty()) {
+            currentInstances
+        } else {
+            (currentInstances + newInstances).sortedBy {
+                // order instances by the asked time property
+                it[timePropertyName] as String
+            }
         }
     }
 
@@ -306,30 +312,33 @@ object ContextSourceUtils {
     ): Any {
         val currentInstances = groupInstancesByDataSetId(currentAttribute, csr).bind().toMutableMap()
         val remoteInstances = groupInstancesByDataSetId(remoteAttribute, csr).bind()
-        val currentAndRemoteValues = currentInstances.entries.map { (datasetId, currentInstance) ->
+        val currentAndRemoteValues = currentInstances.map { (datasetId, currentInstance) ->
             val remoteInstance = remoteInstances[datasetId]
             if (remoteInstance != null) {
                 currentInstance.mapValues { (key, value) ->
                     if (key in keysToMerge && remoteInstance.containsKey(key)) {
                         val temporalValues = value as List<*>
-                        val timestampsInCurrentInstances = temporalValues.associateBy { (it as List<*>)[1] as String }
-                        val mergedAttribute = temporalValues + (remoteInstance[key] as List<*>).filter {
-                            (it as List<*>)[1] !in timestampsInCurrentInstances
+                        val remoteTemporalValues = remoteInstance[key] as List<*>
+                        val timestampsInCurrentInstances = temporalValues.map { (it as List<*>)[1] as String }.toSet()
+                        val newTemporalValues = remoteTemporalValues.filter {
+                            (it as List<*>)[1] as String !in timestampsInCurrentInstances
                         }
-
-                        mergedAttribute.sortedBy {
-                            // order instances using 2nd element of the list
-                            // - timestamp for simplified representation
-                            // - start of aggregation for aggregated representation
-                            (it as List<*>)[1] as String
-                        }
+                        if (newTemporalValues.isEmpty())
+                            value
+                        else
+                            (temporalValues + newTemporalValues).sortedBy {
+                                // order instances using 2nd element of the list
+                                // - timestamp for simplified representation
+                                // - start of aggregation for aggregated representation
+                                (it as List<*>)[1] as String
+                            }
                     } else value
                 }
             } else currentInstance
         }
         val remoteOnlyValues = remoteInstances.filter { (datasetId, _) ->
-            datasetId !in currentInstances.map { it.key }
-        }.map { it.value }
+            datasetId !in currentInstances.keys
+        }.values.toList()
 
         return (currentAndRemoteValues + remoteOnlyValues).let {
             if (it.size == 1) it[0] else it

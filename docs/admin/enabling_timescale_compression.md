@@ -24,7 +24,7 @@ ALTER TABLE attribute_instance_audit SET(
 );
 
 -- add compression policy
-CALL add_columnstore_policy('3m.attribute_instance_audit', after => INTERVAL '30d');
+CALL add_columnstore_policy('attribute_instance_audit', after => INTERVAL '30d');
 
 
 -- prevent potential "tuple decompression limit exceeded by operation" issue

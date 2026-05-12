@@ -33,6 +33,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportCreationMe
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrDoesNotSupportDeletionMessage
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.shared.util.parseQueryParameter
 import com.egm.stellio.shared.util.toTypeSelection
 import org.slf4j.Logger
@@ -310,6 +311,7 @@ class DistributedEntityProvisionService(
                     .build()
             }.headers { newHeaders ->
                 csr.contextSourceInfo?.forEach { info -> newHeaders[info.key] = info.value }
+                csr.tenant?.let { newHeaders[NGSILD_TENANT_HEADER] = it }
                 headersConfig(newHeaders)
             }
         val request = body?.let { requestSpec.bodyValue(it) } ?: requestSpec

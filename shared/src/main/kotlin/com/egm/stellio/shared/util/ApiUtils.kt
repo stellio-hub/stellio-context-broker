@@ -34,6 +34,7 @@ import java.time.format.DateTimeParseException
 import java.util.Optional
 import java.util.regex.Pattern
 
+const val NGSILD_TENANT_HEADER = "NGSILD-Tenant"
 const val RESULTS_COUNT_HEADER = "NGSILD-Results-Count"
 const val JSON_LD_CONTENT_TYPE = "application/ld+json"
 const val GEO_JSON_CONTENT_TYPE = "application/geo+json"

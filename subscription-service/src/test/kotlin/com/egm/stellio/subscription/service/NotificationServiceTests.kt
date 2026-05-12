@@ -4,6 +4,7 @@ import arrow.core.filterIsInstance
 import arrow.core.right
 import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_LANG_TERM
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
@@ -30,7 +31,6 @@ import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.shared.web.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.Endpoint
-import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
@@ -864,7 +864,7 @@ class NotificationServiceTests {
                 endpoint = Endpoint(
                     uri = "mqtt://localhost:8089/notification".toUri(),
                     accept = Endpoint.AcceptType.JSON,
-                    receiverInfo = listOf(EndpointInfo(key = infoKey, value = infoValue)),
+                    receiverInfo = listOf(KeyValuePair(key = infoKey, value = infoValue)),
                 )
             )
         )

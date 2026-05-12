@@ -308,7 +308,10 @@ class DistributedEntityProvisionService(
                     .path(uri.path)
                     .queryParams(queryParams)
                     .build()
-            }.headers(headersConfig)
+            }.headers { newHeaders ->
+                csr.contextSourceInfo?.forEach { info -> newHeaders[info.key] = info.value }
+                headersConfig(newHeaders)
+            }
         val request = body?.let { requestSpec.bodyValue(it) } ?: requestSpec
 
         return catch(

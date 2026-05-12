@@ -6,6 +6,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
@@ -20,7 +21,6 @@ import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.Endpoint
-import com.egm.stellio.subscription.model.Endpoint.Companion.deserialize
 import com.egm.stellio.subscription.model.GeoQ
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
@@ -465,8 +465,8 @@ class SubscriptionService(
                     uri = toUri(row["endpoint_uri"]),
                     accept = toEnum(row["endpoint_accept"]!!),
                     cooldown = toNullableInt(row["cooldown"]),
-                    receiverInfo = deserialize(toJsonString(row["endpoint_receiver_info"])),
-                    notifierInfo = deserialize(toJsonString(row["endpoint_notifier_info"])),
+                    receiverInfo = KeyValuePair.deserialize(toJsonString(row["endpoint_receiver_info"])),
+                    notifierInfo = KeyValuePair.deserialize(toJsonString(row["endpoint_notifier_info"])),
                     timeout = toNullableInt(row["timeout"])
                 ),
                 status = toOptionalEnum<NotificationParams.StatusType>(row["status"]),

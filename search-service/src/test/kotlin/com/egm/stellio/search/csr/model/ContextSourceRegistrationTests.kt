@@ -2,6 +2,7 @@ package com.egm.stellio.search.csr.model
 
 import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_CSR_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.BEEHIVE_IRI
@@ -231,6 +232,27 @@ class ContextSourceRegistrationTests {
         assertThat(csrs).hasSize(1)
             .first()
             .matches { it.information[0].entities?.get(0)?.id == "urn:3".toUri() }
+    }
+
+    @Test
+    fun `it should deserialize a CSR payload containing contextSourceInfo`() = runTest {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
+            "endpoint" to endpoint,
+            "contextSourceInfo" to listOf(
+                mapOf("key" to "Authorization", "value" to "Bearer secret"),
+                mapOf("key" to "X-Extra-Header", "value" to "myHeaderValue")
+            )
+        )
+
+        val csr = ContextSourceRegistration.deserialize(payload, emptyList()).shouldSucceedAndResult()
+        assertThat(csr.contextSourceInfo)
+            .isNotNull
+            .hasSize(2)
+            .contains(
+                KeyValuePair("Authorization", "Bearer secret"),
+                KeyValuePair("X-Extra-Header", "myHeaderValue")
+            )
     }
 
     @Test

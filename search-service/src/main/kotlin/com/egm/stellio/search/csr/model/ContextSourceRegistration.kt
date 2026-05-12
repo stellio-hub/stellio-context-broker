@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_CSR_TERM
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.util.DataTypes.convertTo
@@ -47,6 +48,7 @@ data class ContextSourceRegistration(
     val modifiedAt: ZonedDateTime = createdAt,
     val observationInterval: TimeInterval? = null,
     val managementInterval: TimeInterval? = null,
+    val contextSourceInfo: List<KeyValuePair>? = null,
     val status: StatusType? = null,
     @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     val timesSent: Int = 0,

@@ -13,11 +13,9 @@ import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.temporal.model.EntityTemporalResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
-import com.egm.stellio.search.temporal.service.TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange
 import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
-import com.egm.stellio.search.temporal.web.Range
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -42,7 +40,7 @@ class TemporalQueryService(
     suspend fun queryTemporalEntity(
         entityId: URI,
         temporalEntitiesQuery: TemporalEntitiesQuery
-    ): Either<APIException, Pair<ExpandedEntity, Range?>> = either {
+    ): Either<APIException, ExpandedEntity> = either {
         val entity = entityQueryService.retrieve(entityId, false).bind()
         authorizationService.userCanReadEntity(entityId).bind()
 
@@ -68,16 +66,11 @@ class TemporalQueryService(
         val attributesWithMatchingInstances =
             searchInstancesForAttributes(attributes, temporalEntitiesQuery, origin).bind()
 
-        val (paginatedAttributesWithInstances, range) = getPaginatedAttributeWithInstancesAndRange(
-            attributesWithMatchingInstances,
-            temporalEntitiesQuery
-        )
-
         TemporalEntityBuilder.buildTemporalEntity(
-            EntityTemporalResult(entity, scopeHistory, paginatedAttributesWithInstances),
+            EntityTemporalResult(entity, scopeHistory, attributesWithMatchingInstances),
             temporalEntitiesQuery,
             applicationProperties.contexts.core
-        ) to range
+        )
     }
 
     internal suspend fun calculateOldestTimestamp(
@@ -117,7 +110,7 @@ class TemporalQueryService(
 
     suspend fun queryTemporalEntities(
         temporalEntitiesQuery: TemporalEntitiesQuery
-    ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
+    ): Either<APIException, Pair<List<ExpandedEntity>, Int>> = either {
         val accessRightWithAndFilter = authorizationService.getAccessRightWithClauseAndFilter()
         val entitiesIds = entityQueryService.queryEntities(
             temporalEntitiesQuery.entitiesQuery,
@@ -132,7 +125,7 @@ class TemporalQueryService(
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
-            return@either Triple(emptyList(), count, null)
+            return@either emptyList<ExpandedEntity>() to count
 
         val pick = temporalEntitiesQuery.expandedPickOmitAttributes.first
         val omit = temporalEntitiesQuery.expandedPickOmitAttributes.second
@@ -151,12 +144,8 @@ class TemporalQueryService(
         val attributesWithMatchingInstances =
             searchInstancesForAttributes(attributes, temporalEntitiesQuery).bind()
 
-        val (paginatedAttributesWithInstances, range) = getPaginatedAttributeWithInstancesAndRange(
-            attributesWithMatchingInstances,
-            temporalEntitiesQuery
-        )
         val attributeInstancesPerEntityAndAttribute =
-            paginatedAttributesWithInstances
+            attributesWithMatchingInstances
                 .toList()
                 .groupBy {
                     // then, group them by entity
@@ -175,15 +164,11 @@ class TemporalQueryService(
                     EntityTemporalResult(it.first, scopesHistory[it.first.entityId] ?: emptyList(), it.second)
                 }
 
-        Triple(
-            TemporalEntityBuilder.buildTemporalEntities(
-                attributeInstancesPerEntityAndAttribute,
-                temporalEntitiesQuery,
-                applicationProperties.contexts.core
-            ),
-            count,
-            range
-        )
+        TemporalEntityBuilder.buildTemporalEntities(
+            attributeInstancesPerEntityAndAttribute,
+            temporalEntitiesQuery,
+            applicationProperties.contexts.core
+        ) to count
     }
 
     private suspend fun searchInstancesForAttributes(

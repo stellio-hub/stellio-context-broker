@@ -2,10 +2,13 @@ package com.egm.stellio.search.temporal.web
 
 import arrow.core.Either
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.temporal.util.TemporalPaginationUtils
 import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockkObject
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -34,21 +37,20 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
         } returns Either.Right(
-            Triple(
-                listOf(firstTemporalEntity, secondTemporalEntity),
-                2,
-                range
-            )
+            listOf(firstTemporalEntity, secondTemporalEntity) to 2
         )
+
+        mockkObject(TemporalPaginationUtils)
+        every { TemporalPaginationUtils.calculateRangeFromEntities(any(), any()) } returns range
     }
 
     private suspend fun mockQueryEntityService(range: Range? = null) {
         val firstTemporalEntity = loadAndExpandSampleData("/temporal/beehive_create_temporal_entity.jsonld")
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
-        } returns Either.Right(
-            firstTemporalEntity to range
-        )
+        } returns Either.Right(firstTemporalEntity)
+
+        every { TemporalPaginationUtils.calculateRangeFromEntity(any(), any()) } returns range
     }
 
     @Test
@@ -146,7 +148,7 @@ class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `query temporal entity should return 206 if pagination was triggered`() = runTest {
+    fun `retrieve temporal entity should return 206 if pagination was triggered`() = runTest {
         mockQueryEntityService(range)
 
         webClient.get()

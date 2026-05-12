@@ -15,6 +15,9 @@ enum class Operation(
     @JsonProperty("federationOps")
     FEDERATION_OPS("federationOps"),
 
+    @JsonProperty("associationOps")
+    ASSOCIATION_OPS("associationOps"),
+
     @JsonProperty("updateOps")
     UPDATE_OPS("updateOps"),
 
@@ -163,13 +166,21 @@ enum class Operation(
     @JsonProperty("queryBatch")
     QUERY_BATCH("queryBatch", setOf(FEDERATION_OPS)),
 
-    // not implemented
     @JsonProperty("retrieveTemporal")
-    RETRIEVE_TEMPORAL("retrieveTemporal"),
+    RETRIEVE_TEMPORAL(
+        "retrieveTemporal",
+        setOf(FEDERATION_OPS, ASSOCIATION_OPS, RETRIEVE_OPS, REDIRECTION_OPS),
+        HttpMethod.GET,
+        NGSILDPath.TEMPORAL_ENTITY
+    ),
 
-    // not implemented
     @JsonProperty("queryTemporal")
-    QUERY_TEMPORAL("queryTemporal"),
+    QUERY_TEMPORAL(
+        "queryTemporal",
+        setOf(FEDERATION_OPS, ASSOCIATION_OPS, RETRIEVE_OPS, REDIRECTION_OPS),
+        HttpMethod.GET,
+        NGSILDPath.TEMPORAL_ENTITIES
+    ),
 
     // not implemented
     @JsonProperty("retrieveEntityTypes")
@@ -259,6 +270,7 @@ enum class Operation(
             Operation.entries.find { it.key == operation }
 
         const val ENTITY_PATH = "/ngsi-ld/v1/entities"
+        const val TEMPORAL_PATH = "/ngsi-ld/v1/temporal/entities"
         const val ENTITY_ID_PLACEHOLDER = ":entityId"
         const val ATTRIBUTE_ID_PLACEHOLDER = ":attrId"
         const val ATTRS_PATH = "$ENTITY_PATH/$ENTITY_ID_PLACEHOLDER/attrs"
@@ -267,7 +279,9 @@ enum class Operation(
             ENTITIES(ENTITY_PATH),
             ENTITY("$ENTITY_PATH/$ENTITY_ID_PLACEHOLDER"),
             ATTRIBUTES(ATTRS_PATH),
-            ATTRIBUTE("$ATTRS_PATH/$ATTRIBUTE_ID_PLACEHOLDER")
+            ATTRIBUTE("$ATTRS_PATH/$ATTRIBUTE_ID_PLACEHOLDER"),
+            TEMPORAL_ENTITIES(TEMPORAL_PATH),
+            TEMPORAL_ENTITY("$TEMPORAL_PATH/$ENTITY_ID_PLACEHOLDER")
         }
     }
 }

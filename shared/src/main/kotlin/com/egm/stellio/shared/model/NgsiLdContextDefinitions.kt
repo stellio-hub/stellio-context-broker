@@ -84,10 +84,15 @@ const val NGSILD_VOCABPROPERTY_VOCABS = "${NGSILD_PREFIX}hasVocabs"
 const val NGSILD_ID_TERM = "id"
 const val NGSILD_TYPE_TERM = "type"
 const val NGSILD_VALUE_TERM = "value"
+const val NGSILD_VALUES_TERM = "values"
 const val NGSILD_OBJECT_TERM = "object"
+const val NGSILD_OBJECTS_TERM = "objects"
 const val NGSILD_JSON_TERM = "json"
+const val NGSILD_JSONS_TERM = "jsons"
 const val NGSILD_LANGUAGEMAP_TERM = "languageMap"
+const val NGSILD_LANGUAGEMAPS_TERM = "languageMaps"
 const val NGSILD_VOCAB_TERM = "vocab"
+const val NGSILD_VOCABS_TERM = "vocabs"
 const val NGSILD_SCOPE_TERM = "scope"
 const val NGSILD_SCOPE_IRI = "${NGSILD_PREFIX}$NGSILD_SCOPE_TERM"
 const val NGSILD_LANG_TERM = "lang"
@@ -113,6 +118,14 @@ const val NGSILD_DELETED_AT_TERM = "deletedAt"
 const val NGSILD_DELETED_AT_IRI = "${NGSILD_PREFIX}$NGSILD_DELETED_AT_TERM"
 const val NGSILD_OBSERVED_AT_TERM = "observedAt"
 const val NGSILD_OBSERVED_AT_IRI = "${NGSILD_PREFIX}$NGSILD_OBSERVED_AT_TERM"
+
+val TEMPORAL_REPRESENTATION_TERMS = listOf(
+    NGSILD_VALUES_TERM,
+    NGSILD_OBJECTS_TERM,
+    NGSILD_JSONS_TERM,
+    NGSILD_LANGUAGEMAPS_TERM,
+    NGSILD_VOCABS_TERM
+)
 
 // Data types (5.2)
 

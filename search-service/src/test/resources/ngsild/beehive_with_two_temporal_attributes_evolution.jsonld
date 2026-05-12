@@ -1,5 +1,5 @@
 {
-  "id": "urn:ngsi-ld:BeeHive:TESTC",
+  "id": "urn:ngsi-ld:BeeHive:Temporal:01",
   "type": "BeeHive",
   "incoming": [
       {

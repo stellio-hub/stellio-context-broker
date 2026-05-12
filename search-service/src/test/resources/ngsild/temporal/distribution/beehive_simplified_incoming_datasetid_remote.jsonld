@@ -1,0 +1,37 @@
+{
+    "id": "urn:ngsi-ld:BeeHive:TESTC",
+    "type": "BeeHive",
+    "incoming": [
+        {
+            "type": "Property",
+            "datasetId": "urn:ngsi-ld:Dataset:A",
+            "values": [
+                [
+                    550,
+                    "2020-01-24T15:01:22.066Z"
+                ],
+                [
+                    500,
+                    "2020-01-24T16:01:22.066Z"
+                ]
+            ]
+        },
+        {
+            "type": "Property",
+            "datasetId": "urn:ngsi-ld:Dataset:C",
+            "values": [
+                [
+                    250,
+                    "2020-01-24T15:01:22.066Z"
+                ],
+                [
+                    200,
+                    "2020-01-24T16:01:22.066Z"
+                ]
+            ]
+        }
+    ],
+    "@context": [
+        "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+    ]
+}

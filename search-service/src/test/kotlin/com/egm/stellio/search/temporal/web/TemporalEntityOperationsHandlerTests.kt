@@ -9,6 +9,7 @@ import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIARY_TERM
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
@@ -69,7 +70,7 @@ class TemporalEntityOperationsHandlerTests {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(Triple(emptyList(), 2, null))
+        } returns Either.Right(emptyList<ExpandedEntity>() to 2)
 
         val query = """
             {
@@ -120,7 +121,7 @@ class TemporalEntityOperationsHandlerTests {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(Triple(emptyList(), 2, null))
+        } returns Either.Right(emptyList<ExpandedEntity>() to 2)
 
         val query = """
             {
@@ -200,7 +201,7 @@ class TemporalEntityOperationsHandlerTests {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Triple(listOf(expandedEntity), 1, null).right()
+        } returns (listOf(expandedEntity) to 1).right()
 
         val query = """
             {
@@ -232,7 +233,7 @@ class TemporalEntityOperationsHandlerTests {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Triple(listOf(expandedEntity), 1, null).right()
+        } returns (listOf(expandedEntity) to 1).right()
 
         val query = """
             {
@@ -264,7 +265,7 @@ class TemporalEntityOperationsHandlerTests {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Triple(listOf(expandedEntity), 1, null).right()
+        } returns (listOf(expandedEntity) to 1).right()
 
         val query = """
             {

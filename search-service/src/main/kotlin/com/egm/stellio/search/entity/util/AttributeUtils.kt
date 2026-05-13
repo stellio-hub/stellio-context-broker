@@ -4,8 +4,8 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.common.util.asJsonObject
 import com.egm.stellio.search.common.util.deserializeAsMap
-import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.common.util.valueToDoubleOrNull
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Attribute.AttributeType
@@ -66,7 +66,7 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
             Triple(
                 AttributeType.Relationship,
                 Attribute.AttributeValueType.URI,
-                Triple(this.objectId.toJson(), null, null)
+                Triple(this.objectId.asJsonObject(), null, null)
             )
         is NgsiLdGeoPropertyInstance ->
             Triple(
@@ -78,19 +78,19 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
             Triple(
                 AttributeType.JsonProperty,
                 Attribute.AttributeValueType.JSON,
-                Triple(this.json.toJson(), null, null)
+                Triple(this.json.asJsonObject(), null, null)
             )
         is NgsiLdLanguagePropertyInstance ->
             Triple(
                 AttributeType.LanguageProperty,
                 Attribute.AttributeValueType.ARRAY,
-                Triple(this.languageMap.toJson(), null, null)
+                Triple(this.languageMap.asJsonObject(), null, null)
             )
         is NgsiLdVocabPropertyInstance ->
             Triple(
                 AttributeType.VocabProperty,
                 Attribute.AttributeValueType.ARRAY,
-                Triple(this.vocab.toJson(), null, null)
+                Triple(this.vocab.asJsonObject(), null, null)
             )
     }
     if (attributeValue == Triple(null, null, null)) {
@@ -135,14 +135,17 @@ fun guessPropertyValueType(
     when (value) {
         is Double -> Pair(Attribute.AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
         is Int -> Pair(Attribute.AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
-        is Map<*, *> -> Pair(Attribute.AttributeValueType.OBJECT, Triple(value.toJson(), null, null))
-        is List<*> -> Pair(Attribute.AttributeValueType.ARRAY, Triple(value.toJson(), null, null))
-        is String -> Pair(Attribute.AttributeValueType.STRING, Triple(value.toJson(), null, null))
-        is Boolean -> Pair(Attribute.AttributeValueType.BOOLEAN, Triple(value.toJson(), null, null))
-        is LocalDate -> Pair(Attribute.AttributeValueType.DATE, Triple(value.toString().toJson(), null, null))
-        is ZonedDateTime -> Pair(Attribute.AttributeValueType.DATETIME, Triple(value.toString().toJson(), null, null))
-        is LocalTime -> Pair(Attribute.AttributeValueType.TIME, Triple(value.toString().toJson(), null, null))
-        else -> Pair(Attribute.AttributeValueType.STRING, Triple(value.toString().toJson(), null, null))
+        is Map<*, *> -> Pair(Attribute.AttributeValueType.OBJECT, Triple(value.asJsonObject(), null, null))
+        is List<*> -> Pair(Attribute.AttributeValueType.ARRAY, Triple(value.asJsonObject(), null, null))
+        is String -> Pair(Attribute.AttributeValueType.STRING, Triple(value.asJsonObject(), null, null))
+        is Boolean -> Pair(Attribute.AttributeValueType.BOOLEAN, Triple(value.asJsonObject(), null, null))
+        is LocalDate -> Pair(Attribute.AttributeValueType.DATE, Triple(value.toString().asJsonObject(), null, null))
+        is ZonedDateTime -> Pair(
+            Attribute.AttributeValueType.DATETIME,
+            Triple(value.toString().asJsonObject(), null, null)
+        )
+        is LocalTime -> Pair(Attribute.AttributeValueType.TIME, Triple(value.toString().asJsonObject(), null, null))
+        else -> Pair(Attribute.AttributeValueType.STRING, Triple(value.toString().asJsonObject(), null, null))
     }
 
 /**

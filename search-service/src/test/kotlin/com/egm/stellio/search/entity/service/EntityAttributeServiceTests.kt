@@ -2,8 +2,8 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.right
 import com.egm.stellio.search.authorization.subject.USER_UUID
+import com.egm.stellio.search.common.util.asJsonObject
 import com.egm.stellio.search.common.util.deserializeTemporalValue
-import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.Entity
@@ -285,7 +285,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             INCOMING_IRI,
             AttributeMetadata(
                 null,
-                "It's a string now".toJson(),
+                "It's a string now".asJsonObject(),
                 null,
                 Attribute.AttributeValueType.STRING,
                 null,
@@ -330,7 +330,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             attribute,
             AttributeMetadata(
                 null,
-                "It's a string now".toJson(),
+                "It's a string now".asJsonObject(),
                 null,
                 Attribute.AttributeValueType.STRING,
                 null,

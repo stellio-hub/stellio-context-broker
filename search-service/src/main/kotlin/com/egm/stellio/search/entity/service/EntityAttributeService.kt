@@ -8,7 +8,7 @@ import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.common.util.allToMappedList
-import com.egm.stellio.search.common.util.castToJson
+import com.egm.stellio.search.common.util.asJsonObject
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
@@ -352,7 +352,10 @@ class EntityAttributeService(
             RETURNING id, created_at, modified_at, new.deleted_at
             """.trimIndent()
         )
-            .bind("values", attributesToDeleteWithPayload.map { arrayOf(it.first.id, deletedAt, it.second.toJson()) })
+            .bind(
+                "values",
+                attributesToDeleteWithPayload.map { arrayOf(it.first.id, deletedAt, it.second.asJsonObject()) }
+            )
             .allToMappedList { row ->
                 mapOf(
                     toUuid(row["id"]) to Triple(
@@ -366,7 +369,7 @@ class EntityAttributeService(
         attributesToDeleteWithPayload.forEach { (attribute, expandedAttributePayload) ->
             attributeInstanceService.addDeletedAttributeInstance(
                 attributeUuid = attribute.id,
-                value = attribute.attributeType.toNullValue().toJson(),
+                value = attribute.attributeType.toNullValue().asJsonObject(),
                 deletedAt = deletedAt,
                 attributeValues = expandedAttributePayload
             ).bind()
@@ -567,7 +570,7 @@ class EntityAttributeService(
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toZonedDateTime(row["modified_at"]),
             deletedAt = toOptionalZonedDateTime(row["deleted_at"]),
-            payload = castToJson(row["payload"])
+            payload = toJson(row["payload"])
         )
 
     suspend fun checkEntityAndAttributeExistence(
@@ -914,7 +917,7 @@ class EntityAttributeService(
                 guessPropertyValueType(attributePayload.getPropertyValue().bind()).second
             Attribute.AttributeType.Relationship ->
                 Triple(
-                    attributePayload.getMemberValue(NGSILD_RELATIONSHIP_OBJECT).bind().toJson(),
+                    attributePayload.getMemberValue(NGSILD_RELATIONSHIP_OBJECT).bind().asJsonObject(),
                     null,
                     null
                 )
@@ -926,19 +929,19 @@ class EntityAttributeService(
                 )
             Attribute.AttributeType.JsonProperty ->
                 Triple(
-                    attributePayload.getMemberValue(NGSILD_JSONPROPERTY_JSON).bind().toJson(),
+                    attributePayload.getMemberValue(NGSILD_JSONPROPERTY_JSON).bind().asJsonObject(),
                     null,
                     null
                 )
             Attribute.AttributeType.LanguageProperty ->
                 Triple(
-                    attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).bind().toJson(),
+                    attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).bind().asJsonObject(),
                     null,
                     null
                 )
             Attribute.AttributeType.VocabProperty ->
                 Triple(
-                    attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VOCAB).bind().toJson(),
+                    attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VOCAB).bind().asJsonObject(),
                     null,
                     null
                 )

@@ -7,11 +7,11 @@ import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.common.util.allToMappedList
-import com.egm.stellio.search.common.util.castToJson
 import com.egm.stellio.search.common.util.deserializeTemporalValue
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.executeExpected
 import com.egm.stellio.search.common.util.oneToResult
+import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.common.util.toJsonString
 import com.egm.stellio.search.common.util.toUuid
 import com.egm.stellio.search.common.util.toZonedDateTime
@@ -346,7 +346,7 @@ class AttributeInstanceService(
                 val value = row["value"]
                 SimplifiedAttributeInstanceResult(
                     attributeUuid = toUuid(row["temporal_entity_attribute"]),
-                    value = castToJson(value).deserializeTemporalValue(),
+                    value = toJson(value).deserializeTemporalValue(),
                     time = toZonedDateTime(row["start"])
                 )
             }

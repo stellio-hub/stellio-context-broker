@@ -22,7 +22,7 @@ fun toOptionalZonedDateTime(entry: Any?): ZonedDateTime? =
     (entry as? OffsetDateTime)?.atZoneSameInstant(ZoneOffset.UTC)
 fun <T> toList(entry: Any?): List<T> = (entry as Array<T>).toList()
 fun <T> toOptionalList(entry: Any?): List<T>? = (entry as? Array<T>)?.toList()
-fun castToJson(entry: Any?): Json = entry as Json
+fun toJson(entry: Any?): Json = entry as Json
 fun toJsonString(entry: Any?): String = (entry as Json).asString()
 fun toInt(entry: Any?): Int = (entry as Long).toInt()
 
@@ -30,18 +30,11 @@ fun Json.deserializeExpandedPayload(): Map<String, List<Any>> = this.asString().
 fun Json.deserializeAsMap(): Map<String, Any> = this.asString().deserializeAsMap()
 fun Json.deserializeTemporalValue(): Any = deserializeAs<Any>(this.asString())
 
-fun Any.toJson(): Json = Json.of(serializeObject(this))
+fun Any.asJsonObject(): Json = Json.of(serializeObject(this))
 
 fun valueToDoubleOrNull(value: Any): Double? =
     when (value) {
         is Double -> value
         is Int -> value.toDouble()
-        else -> null
-    }
-
-fun valueToStringOrNull(value: Any): String? =
-    when (value) {
-        is String -> value
-        is Boolean -> value.toString()
         else -> null
     }

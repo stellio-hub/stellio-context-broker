@@ -1,8 +1,8 @@
 package com.egm.stellio.search.temporal.service
 
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.common.util.asJsonObject
 import com.egm.stellio.search.common.util.deserializeTemporalValue
-import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.service.EntityAttributeService
@@ -342,7 +342,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             val observedAt = ngsiLdDateTime()
             val attributeMetadata = AttributeMetadata(
                 measuredValue = null,
-                value = "some value".toJson(),
+                value = "some value".asJsonObject(),
                 geoValue = null,
                 valueType = Attribute.AttributeValueType.STRING,
                 datasetId = null,
@@ -690,7 +690,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
         )
         val attributeMetadata = AttributeMetadata(
             measuredValue = null,
-            value = false.toJson(),
+            value = false.asJsonObject(),
             geoValue = null,
             valueType = Attribute.AttributeValueType.BOOLEAN,
             datasetId = null,
@@ -767,7 +767,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.addDeletedAttributeInstance(
             incomingAttribute.id,
-            NGSILD_NULL.toJson(),
+            NGSILD_NULL.asJsonObject(),
             deletedAt,
             attributeValues
         )

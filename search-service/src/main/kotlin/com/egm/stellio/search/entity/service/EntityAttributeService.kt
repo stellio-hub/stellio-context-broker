@@ -8,6 +8,7 @@ import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.common.util.allToMappedList
+import com.egm.stellio.search.common.util.castToJson
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
@@ -18,8 +19,6 @@ import com.egm.stellio.search.common.util.toOptionalZonedDateTime
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toUuid
 import com.egm.stellio.search.common.util.toZonedDateTime
-import com.egm.stellio.search.common.util.valueToDoubleOrNull
-import com.egm.stellio.search.common.util.valueToStringOrNull
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.AttributeOperationResult
@@ -27,6 +26,7 @@ import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.util.guessAttributeValueType
+import com.egm.stellio.search.entity.util.guessPropertyValueType
 import com.egm.stellio.search.entity.util.hasNgsiLdNullValue
 import com.egm.stellio.search.entity.util.mergePatch
 import com.egm.stellio.search.entity.util.partialUpdatePatch
@@ -366,7 +366,7 @@ class EntityAttributeService(
         attributesToDeleteWithPayload.forEach { (attribute, expandedAttributePayload) ->
             attributeInstanceService.addDeletedAttributeInstance(
                 attributeUuid = attribute.id,
-                value = attribute.attributeType.toNullValue(),
+                value = attribute.attributeType.toNullValue().toJson(),
                 deletedAt = deletedAt,
                 attributeValues = expandedAttributePayload
             ).bind()
@@ -567,7 +567,7 @@ class EntityAttributeService(
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toZonedDateTime(row["modified_at"]),
             deletedAt = toOptionalZonedDateTime(row["deleted_at"]),
-            payload = toJson(row["payload"])
+            payload = castToJson(row["payload"])
         )
 
     suspend fun checkEntityAndAttributeExistence(
@@ -908,17 +908,13 @@ class EntityAttributeService(
     suspend fun getValueFromPartialAttributePayload(
         attribute: Attribute,
         attributePayload: ExpandedAttributeInstance
-    ): Either<APIException, Triple<String?, Double?, WKTCoordinates?>> = either {
+    ): Either<APIException, Triple<Json?, Double?, WKTCoordinates?>> = either {
         when (attribute.attributeType) {
             Attribute.AttributeType.Property ->
-                Triple(
-                    valueToStringOrNull(attributePayload.getPropertyValue().bind()),
-                    valueToDoubleOrNull(attributePayload.getPropertyValue().bind()),
-                    null
-                )
+                guessPropertyValueType(attributePayload.getPropertyValue().bind()).second
             Attribute.AttributeType.Relationship ->
                 Triple(
-                    attributePayload.getMemberValue(NGSILD_RELATIONSHIP_OBJECT).bind() as String,
+                    attributePayload.getMemberValue(NGSILD_RELATIONSHIP_OBJECT).bind().toJson(),
                     null,
                     null
                 )
@@ -930,25 +926,19 @@ class EntityAttributeService(
                 )
             Attribute.AttributeType.JsonProperty ->
                 Triple(
-                    serializeObject(
-                        attributePayload.getMemberValue(NGSILD_JSONPROPERTY_JSON).bind()
-                    ),
+                    attributePayload.getMemberValue(NGSILD_JSONPROPERTY_JSON).bind().toJson(),
                     null,
                     null
                 )
             Attribute.AttributeType.LanguageProperty ->
                 Triple(
-                    serializeObject(
-                        attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).bind()
-                    ),
+                    attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).bind().toJson(),
                     null,
                     null
                 )
             Attribute.AttributeType.VocabProperty ->
                 Triple(
-                    serializeObject(
-                        attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VOCAB).bind()
-                    ),
+                    attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VOCAB).bind().toJson(),
                     null,
                     null
                 )
@@ -961,7 +951,7 @@ class EntityAttributeService(
     private suspend fun createContextualAttributeInstance(
         attribute: Attribute,
         expandedAttributeInstance: ExpandedAttributeInstance,
-        value: Triple<String?, Double?, WKTCoordinates?>,
+        value: Triple<Json?, Double?, WKTCoordinates?>,
         modifiedAt: ZonedDateTime
     ): AttributeInstance {
         val timeAndProperty =

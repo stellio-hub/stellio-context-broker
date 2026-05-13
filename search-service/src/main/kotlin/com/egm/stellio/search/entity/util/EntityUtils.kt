@@ -1,6 +1,6 @@
 package com.egm.stellio.search.entity.util
 
-import com.egm.stellio.search.common.util.toJson
+import com.egm.stellio.search.common.util.castToJson
 import com.egm.stellio.search.common.util.toList
 import com.egm.stellio.search.common.util.toOptionalList
 import com.egm.stellio.search.common.util.toOptionalZonedDateTime
@@ -16,5 +16,5 @@ fun Map<String, Any>.rowToEntity(): Entity =
         createdAt = toZonedDateTime(this["created_at"]),
         modifiedAt = toZonedDateTime(this["modified_at"]),
         deletedAt = toOptionalZonedDateTime(this["deleted_at"]),
-        payload = toJson(this["payload"]),
+        payload = castToJson(this["payload"]),
     )

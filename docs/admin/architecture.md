@@ -39,7 +39,8 @@ One core principle of the event model is that an event is atomic, i.e., it conta
 
 ### Types and structure of events
 
-Here is the list of supported events, accompanied by a sample payload:
+Below is the list of supported events, accompanied by a sample payload (for ease of reading, the payloads presented
+are JSON-LD compacted, but when sent by Stellio, they are JSON-LD expanded):
 
 - Entity creation
 
@@ -47,12 +48,8 @@ Here is the list of supported events, accompanied by a sample payload:
 {
     "tenantName": "urn:ngsi-ld:tenant:stellio",
     "entityId": "urn:ngsi-ld:Vehicle:A4567",
-    "entityTypes": "Vehicle",
+    "entityTypes": ["https://vocab.egm.io/Vehicle"],
     "operationPayload": "{\"id\": \"urn:ngsi-ld:Vehicle:A4567\", \"type\": \"Vehicle\", \"brandName\": { \"type\": \"Property\", \"value\": \"Mercedes\"}}",
-    "contexts": [
-        "https://some.host/my-context.jsonld",
-        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.8.jsonld"
-    ],
     "operationType": "ENTITY_CREATE"
 }
 ```
@@ -63,11 +60,9 @@ Here is the list of supported events, accompanied by a sample payload:
 {
     "tenantName": "urn:ngsi-ld:tenant:stellio",
     "entityId": "urn:ngsi-ld:Vehicle:A4567",
-    "entityTypes": ["Vehicle"],
-    "contexts": [
-        "https://some.host/my-context.jsonld",
-        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.8.jsonld"
-    ],
+    "entityTypes": ["https://vocab.egm.io/Vehicle"],
+    "previousEntity": "(expanded payload of the entity before the delete operation)",
+    "updateEntity": "(expanded payload of the entity after the delete operation: only id and deletedAt timestamp)",
     "operationType": "ENTITY_DELETE"
 }
 ```
@@ -78,15 +73,11 @@ Here is the list of supported events, accompanied by a sample payload:
 {
     "tenantName": "urn:ngsi-ld:tenant:stellio",
     "entityId": "urn:ngsi-ld:Vehicle:A4567",
-    "entityTypes": ["Vehicle"],
-    "attributeName": "speed",
+    "entityTypes": ["https://vocab.egm.io/Vehicle"],
+    "attributeName": "https://vocab.egm.io/speed",
     "datasetId": "urn:ngsi-ld:Dataset:GPS",
     "operationPayload": "{ \"value\": 76, \"unitCode\": \"KMH\", \"observedAt\": \"2021-10-26T22:35:52.98601Z\", \"datasetId\": \"urn:ngsi-ld:Dataset:GPS\" }",
-    "updatedEntity": "(entity payload after the append operation)",
-    "contexts": [
-        "https://some.host/my-context.jsonld",
-        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.8.jsonld"
-    ],
+    "updatedEntity": "(expanded payload of the entity after the append operation)",
     "operationType": "ATTRIBUTE_CREATE"
 }
 ```
@@ -97,15 +88,12 @@ Here is the list of supported events, accompanied by a sample payload:
 {
     "tenantName": "urn:ngsi-ld:tenant:stellio",
     "entityId": "urn:ngsi-ld:Vehicle:A4567",
-    "entityTypes": ["Vehicle"],
-    "attributeName": "speed",
+    "entityTypes": ["https://vocab.egm.io/Vehicle"],
+    "attributeName": "https://vocab.egm.io/speed",
     "datasetId": "urn:ngsi-ld:Dataset:GPS",
+    "previousPayload": "{ \"value\":57, \"observedAt\": \"2021-10-26T23:34:52.98601Z\" }",
     "operationPayload": "{ \"value\":60, \"observedAt\": \"2021-10-26T23:35:52.98601Z\" }",
-    "updatedEntity": "(entity payload after the update operation)",
-    "contexts": [
-        "https://some.host/my-context.jsonld",
-        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.8.jsonld"
-    ],
+    "updatedEntity": "(expanded payload of the entity after the update operation)",
     "operationType": "ATTRIBUTE_UPDATE"
 }
 ```
@@ -116,14 +104,11 @@ Here is the list of supported events, accompanied by a sample payload:
 {
     "tenantName": "urn:ngsi-ld:tenant:stellio",
     "entityId": "urn:ngsi-ld:Vehicle:A4567",
-    "entityTypes": ["Vehicle"],
-    "attributeName": "speed",
+    "entityTypes": ["https://vocab.egm.io/Vehicle"],
+    "attributeName": "https://vocab.egm.io/speed",
     "datasetId": "urn:ngsi-ld:Dataset:GPS",
-    "updatedEntity": "(entity payload after the delete operation)",
-    "contexts": [
-        "https://some.host/my-context.jsonld",
-        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.8.jsonld"
-    ],
+    "previousPayload": "{ \"value\":57, \"observedAt\": \"2021-10-26T23:34:52.98601Z\" }",
+    "updatedEntity": "(expanded payload of the entity after the delete operation)",
     "operationType": "ATTRIBUTE_DELETE"
 }
 ```

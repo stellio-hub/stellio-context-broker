@@ -13,6 +13,7 @@ import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_JSON_KW
+import com.egm.stellio.shared.model.JSONLD_LIST_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
@@ -187,10 +188,17 @@ object TemporalEntityBuilder {
                             listOf(expendedGeoProperty)
                         }
                         else -> {
-                            listOf(
-                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.value),
-                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
-                            )
+                            if (attributeInstanceResult.value is List<*>)
+                                listOf(
+                                    mapOf(JSONLD_LIST_KW to attributeInstanceResult.value),
+                                    mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
+                                )
+                            else {
+                                listOf(
+                                    mapOf(JSONLD_VALUE_KW to attributeInstanceResult.value),
+                                    mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
+                                )
+                            }
                         }
                     }
                 }

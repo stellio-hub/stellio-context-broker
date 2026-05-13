@@ -1,8 +1,5 @@
 package com.egm.stellio.shared.util
 
-import com.apicatalog.jsonld.JsonLd
-import com.apicatalog.jsonld.JsonLdOptions
-import com.apicatalog.jsonld.document.JsonDocument
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.JSONLD_JSON_KW
@@ -456,45 +453,6 @@ class JsonLdUtilsTests {
             "https://vocab.egm.io/incoming",
             expandJsonLdTerm(INCOMING_TERM, listOf(otherNamespaceContextUrl))
         )
-    }
-
-    @Test
-    fun `compact should not flatten the list`() = runTest {
-        val context =
-            JsonDocument.of(
-                """
-                {
-                  "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.9.jsonld"
-                }
-                """.trimIndent().byteInputStream()
-            )
-        val json =
-            JsonDocument.of(
-                """
-{
-  "@id": "urn:4",
-  "https://uri.etsi.org/ngsi-ld/hasValues": [
-    {
-      "@list": [
-        [
-          "urn:2",
-          "urn:1"
-        ],
-        {
-          "@value": "2026-04-07T16:13:42.081937Z"
-        }
-      ]
-    }
-  ]
-}
-                    """.byteInputStream()
-            )
-
-        val a = JsonLd.compact(
-            json,
-            context
-        ).options(JsonLdOptions()).get()
-        print(a)
     }
 
     companion object {

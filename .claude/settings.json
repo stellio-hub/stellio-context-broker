@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://${POSTGRES_USER}:${POSTGRES_PASS}@localhost:5432/stellio_search"
+      ]
+    },
+    "ngsi-ld-spec": {
+      "command": "python3",
+      "args": [
+        ".claude/mcp/ngsi-ld-spec/server.py"
+      ]
+    }
+  }
+}

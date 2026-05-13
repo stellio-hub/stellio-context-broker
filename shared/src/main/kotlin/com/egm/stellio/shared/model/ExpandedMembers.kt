@@ -1,11 +1,8 @@
 package com.egm.stellio.shared.model
 
 import arrow.core.Either
-import arrow.core.flatMap
-import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.raise.ensureNotNull
-import arrow.core.right
 import com.egm.stellio.shared.util.ErrorMessages.Entity.CANNOT_ADD_SUBATTRIBUTE_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.EXPECTED_SINGLE_ENTRY_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeMissingValueMessage
@@ -174,28 +171,22 @@ fun ExpandedAttributeInstance.getMemberValueAsDateTime(memberName: ExpandedTerm)
 fun ExpandedAttributeInstance.getMemberValueAsString(memberName: ExpandedTerm): String? =
     String::class.safeCast(this.getMemberValue(memberName).getOrNull())
 
-fun ExpandedAttributeInstance.getRelationshipObject(name: String): Either<BadRequestDataException, URI> =
-    this.right()
-        .flatMap {
-            if (!it.containsKey(NGSILD_RELATIONSHIP_OBJECT))
-                BadRequestDataException(relationshipMissingObjectMessage(name)).left()
-            else it[NGSILD_RELATIONSHIP_OBJECT]!!.right()
-        }
-        .flatMap {
-            if (it.isEmpty())
-                BadRequestDataException(relationshipEmptyMessage(name)).left()
-            else it[0].right()
-        }
-        .flatMap {
+fun ExpandedAttributeInstance.getRelationshipObject(name: String): Either<BadRequestDataException, List<URI>> {
+    val attributeInstance = this
+    return either {
+        if (!attributeInstance.containsKey(NGSILD_RELATIONSHIP_OBJECT))
+            raise(BadRequestDataException(relationshipMissingObjectMessage(name)))
+        if (attributeInstance.isEmpty())
+            raise(BadRequestDataException(relationshipEmptyMessage(name)))
+        attributeInstance[NGSILD_RELATIONSHIP_OBJECT]!!.map {
             if (it !is Map<*, *>)
-                BadRequestDataException(relationshipInvalidObjectTypeMessage(name, it.javaClass)).left()
-            else it[JSONLD_ID_KW].right()
+                raise(BadRequestDataException(relationshipInvalidObjectTypeMessage(name, it.javaClass)))
+            else if (it[JSONLD_ID_KW] !is String)
+                raise(BadRequestDataException(relationshipInvalidObjectIdMessage(name, it)))
+            else (it[JSONLD_ID_KW] as String).toUri()
         }
-        .flatMap {
-            if (it !is String)
-                BadRequestDataException(relationshipInvalidObjectIdMessage(name, it)).left()
-            else it.toUri().right()
-        }
+    }
+}
 
 fun ExpandedAttributeInstance.getDatasetId(): URI? =
     (this[NGSILD_DATASET_ID_IRI]?.get(0) as? Map<String, String>)?.get(JSONLD_ID_KW)?.toUri()

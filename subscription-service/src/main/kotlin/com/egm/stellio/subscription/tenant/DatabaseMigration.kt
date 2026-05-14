@@ -31,6 +31,7 @@ class DatabaseMigration(
                 .baselineOnMigrate(flywayProperties.isBaselineOnMigrate)
                 .defaultSchema(schemaName)
                 .dataSource(flywayDataSource())
+                .callbacks(TimescaleUpdateCallback())
         )
 
     fun flywayDataSource(): DataSource =

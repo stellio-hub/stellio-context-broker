@@ -13,6 +13,7 @@ import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.PaginationQuery
+import com.egm.stellio.shared.queryparameter.parseQQuery
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
@@ -321,7 +322,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
-                    q = q,
+                    q = parseQQuery(q).shouldSucceedAndResult(),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -614,7 +615,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
                     typeSelection = BEEHIVE_IRI,
-                    q = q,
+                    q = parseQQuery(q).shouldSucceedAndResult(),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS,
                     jsonKeys = setOf("jsonProp")
@@ -633,7 +634,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
                     typeSelection = BEEHIVE_IRI,
-                    q = "category==\"BeeHive\"",
+                    q = parseQQuery("category==\"BeeHive\"").shouldSucceedAndResult(),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS,
                     expandValues = setOf("category")
@@ -651,7 +652,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
                     typeSelection = BEEHIVE_IRI,
-                    q = "category==\"BeeHive\"",
+                    q = parseQQuery("category==\"BeeHive\"").shouldSucceedAndResult(),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -680,7 +681,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     entitySelectors = listOf(
                         EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI)
                     ),
-                    q = q,
+                    q = parseQQuery(q).shouldSucceedAndResult(),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
@@ -700,7 +701,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     entitySelectors = listOf(
                         EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI)
                     ),
-                    q = "jsonProp[aString]==\"flow monitoring\"",
+                    q = parseQQuery("jsonProp[aString]==\"flow monitoring\"").shouldSucceedAndResult(),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS,
                     jsonKeys = setOf("jsonProp")
@@ -720,7 +721,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     entitySelectors = listOf(
                         EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI)
                     ),
-                    q = "category==\"BeeHive\"",
+                    q = parseQQuery("category==\"BeeHive\"").shouldSucceedAndResult(),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS,
                     expandValues = setOf("category")

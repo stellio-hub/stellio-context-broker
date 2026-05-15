@@ -2,7 +2,8 @@ package com.egm.stellio.shared.queryparameter
 
 import arrow.core.Either
 import arrow.core.left
-import arrow.core.right
+import arrow.core.raise.either
+import arrow.core.raise.ensure
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidQQueryMessage
@@ -23,14 +24,9 @@ import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidQQueryMes
  */
 fun parseQQuery(raw: String): Either<APIException, QNode> {
     if (raw.isBlank()) return BadRequestDataException(invalidQQueryMessage("Query string is empty")).left()
-    return try {
-        QParserImpl(raw).parse().right()
-    } catch (e: QParseException) {
-        BadRequestDataException(invalidQQueryMessage(e.message ?: "Invalid query")).left()
-    }
+    return QParserImpl(raw).parse()
+        .mapLeft { BadRequestDataException(invalidQQueryMessage(it)) }
 }
-
-private class QParseException(message: String) : Exception(message)
 
 private class QParserImpl(private val raw: String) {
     private var pos = 0
@@ -39,64 +35,60 @@ private class QParserImpl(private val raw: String) {
         private const val OPERATOR_SNIPPET_LENGTH = 3
     }
 
-    fun parse(): QNode {
-        val node = parseOrExpr()
-        if (pos < raw.length) {
-            throw QParseException("Unexpected character at position $pos: '${raw[pos]}'")
-        }
-        return node
+    fun parse(): Either<String, QNode> = either {
+        val node = parseOrExpr().bind()
+        if (pos < raw.length) raise("Unexpected character at position $pos: '${raw[pos]}'")
+        node
     }
 
-    private fun parseOrExpr(): QNode {
-        var left = parseAndExpr()
+    private fun parseOrExpr(): Either<String, QNode> = either {
+        var left = parseAndExpr().bind()
         while (pos < raw.length && raw[pos] == '|') {
             pos++
-            val right = parseAndExpr()
-            left = OrNode(left, right)
+            left = OrNode(left, parseAndExpr().bind())
         }
-        return left
+        left
     }
 
-    private fun parseAndExpr(): QNode {
-        var left = parseTerm()
+    private fun parseAndExpr(): Either<String, QNode> = either {
+        var left = parseTerm().bind()
         while (pos < raw.length && raw[pos] == ';') {
             pos++
-            if (pos >= raw.length) throw QParseException("Trailing ';' at end of query")
-            val right = parseTerm()
-            left = AndNode(left, right)
+            ensure(pos < raw.length) { "Trailing ';' at end of query" }
+            left = AndNode(left, parseTerm().bind())
         }
-        return left
+        left
     }
 
-    private fun parseTerm(): QNode {
-        if (pos >= raw.length) throw QParseException("Unexpected end of input")
-        return when {
-            raw[pos] == '(' -> parseGroupedExpr()
-            isNegationPrefix() -> parseNotExistsExpr()
-            else -> parseAttrExpr()
+    private fun parseTerm(): Either<String, QNode> = either {
+        ensure(pos < raw.length) { "Unexpected end of input" }
+        when {
+            raw[pos] == '(' -> parseGroupedExpr().bind()
+            isNegationPrefix() -> parseNotExistsExpr().bind()
+            else -> parseAttrExpr().bind()
         }
     }
 
-    private fun parseGroupedExpr(): QNode {
+    private fun parseGroupedExpr(): Either<String, QNode> = either {
         pos++
-        val node = parseOrExpr()
-        if (pos >= raw.length || raw[pos] != ')') throw QParseException("Unbalanced parenthesis: missing closing ')'")
+        val node = parseOrExpr().bind()
+        ensure(!(pos >= raw.length || raw[pos] != ')')) { "Unbalanced parenthesis: missing closing ')'" }
         pos++
-        return node
+        node
     }
 
-    private fun parseNotExistsExpr(): QNode {
+    private fun parseNotExistsExpr(): Either<String, QNode> = either {
         pos++
         val rawPath = parseRawAttributePath()
-        if (rawPath.isEmpty()) throw QParseException("Missing attribute path after '!'")
-        return NotExistsNode(rawPath)
+        ensure(!rawPath.isEmpty()) { "Missing attribute path after '!'" }
+        NotExistsNode(rawPath)
     }
 
-    private fun parseAttrExpr(): QNode {
+    private fun parseAttrExpr(): Either<String, QNode> = either {
         val rawPath = parseRawAttributePath()
-        if (rawPath.isEmpty()) throw QParseException("Empty attribute path at position $pos")
-        val op = parseOperator()
-        return if (op == null) ExistsNode(rawPath) else ComparisonNode(rawPath, op, parseValue())
+        ensure(!rawPath.isEmpty()) { "Empty attribute path at position $pos" }
+        val op = parseOperator().bind()
+        if (op == null) ExistsNode(rawPath) else ComparisonNode(rawPath, op, parseValue().bind())
     }
 
     private fun isNegationPrefix(): Boolean {
@@ -132,9 +124,9 @@ private class QParserImpl(private val raw: String) {
 
     private fun isOperatorChar(c: Char): Boolean = c == '=' || c == '!' || c == '>' || c == '<' || c == '~'
 
-    private fun parseOperator(): ComparisonOperator? {
-        if (pos >= raw.length || !isOperatorChar(raw[pos])) return null
-        return when {
+    private fun parseOperator(): Either<String, ComparisonOperator?> = either {
+        if (pos >= raw.length || !isOperatorChar(raw[pos])) return@either null
+        when {
             tryConsume("!~=") -> ComparisonOperator.NOT_LIKE_REGEX
             tryConsume("~=") -> ComparisonOperator.LIKE_REGEX
             tryConsume("==") -> ComparisonOperator.EQ
@@ -143,10 +135,10 @@ private class QParserImpl(private val raw: String) {
             tryConsume("<=") -> ComparisonOperator.LTE
             tryConsume(">") -> ComparisonOperator.GT
             tryConsume("<") -> ComparisonOperator.LT
-            else -> {
-                val snippetEnd = minOf(pos + OPERATOR_SNIPPET_LENGTH, raw.length)
-                throw QParseException("Unknown operator at position $pos: '${raw.substring(pos, snippetEnd)}'")
-            }
+            else -> raise(
+                "Unknown operator at position $pos: " +
+                    "'${raw.substring(pos, minOf(pos + OPERATOR_SNIPPET_LENGTH, raw.length))}'"
+            )
         }
     }
 
@@ -158,28 +150,30 @@ private class QParserImpl(private val raw: String) {
         return false
     }
 
-    private fun parseValue(): QValue {
-        val rawVal = parseRawValue()
-        if (rawVal.isEmpty()) throw QParseException("Empty value after operator")
+    private fun parseValue(): Either<String, QValue> = either {
+        val rawVal = parseRawValue().bind()
+        ensure(!rawVal.isEmpty()) { "Empty value after operator" }
 
         if (!rawVal.startsWith('"') && rawVal.contains("..")) {
             val parts = rawVal.split("..")
-            val validRange = parts.size == 2 && parts[0].isNotEmpty() && parts[1].isNotEmpty()
-            if (!validRange) throw QParseException("Invalid range value: '$rawVal'")
-            val low = SingleValue(parts[0], ValueType.detect(parts[0]))
-            val high = SingleValue(parts[1], ValueType.detect(parts[1]))
-            return RangeValue(low, high)
+            ensure(!(parts.size != 2 || parts[0].isEmpty() || parts[1].isEmpty())) {
+                "Invalid range value: '$rawVal'"
+            }
+            return@either RangeValue(
+                SingleValue(parts[0], ValueType.detect(parts[0])),
+                SingleValue(parts[1], ValueType.detect(parts[1]))
+            )
         }
 
         if (rawVal.isQValueList()) {
             val items = rawVal.splitQValueList().map { SingleValue(it, ValueType.detect(it)) }
-            if (items.size > 1) return ListValue(items)
+            if (items.size > 1) return@either ListValue(items)
         }
 
-        return SingleValue(rawVal, ValueType.detect(rawVal))
+        SingleValue(rawVal, ValueType.detect(rawVal))
     }
 
-    private fun parseRawValue(): String {
+    private fun parseRawValue(): Either<String, String> = either {
         val sb = StringBuilder()
         var inQuotes = false
         while (pos < raw.length) {
@@ -201,8 +195,8 @@ private class QParserImpl(private val raw: String) {
                 }
             }
         }
-        if (inQuotes) throw QParseException("Unclosed quote in value")
-        return sb.toString()
+        ensure(!inQuotes) { "Unclosed quote in value" }
+        sb.toString()
     }
 }
 

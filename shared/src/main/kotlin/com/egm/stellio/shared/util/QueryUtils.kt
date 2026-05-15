@@ -2,7 +2,7 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.queryparameter.parseQQuery
+import com.egm.stellio.shared.queryparameter.QNode
 import com.egm.stellio.shared.queryparameter.toSqlJsonPath
 
 fun String.quote(): String =
@@ -41,16 +41,13 @@ fun buildTypeQuery(rawQuery: String, columnName: String = "types", target: List<
  * Uses a recursive descent parser to build an AST, then translates the AST to SQL jsonb_path_exists calls.
  */
 fun buildQQuery(
-    rawQuery: String,
+    qNode: QNode,
     jsonKeys: Set<String> = emptySet(),
     expandValues: Set<String> = emptySet(),
     contexts: List<String>,
     target: ExpandedEntity? = null
-): String {
-    val result = parseQQuery(rawQuery)
-    val node = result.fold({ throw it }, { it })
-    return node.toSqlJsonPath(jsonKeys, expandValues, contexts, target)
-}
+): String =
+    qNode.toSqlJsonPath(jsonKeys, expandValues, contexts, target)
 
 fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null, columnName: String = "scopes"): String =
     scopeQQuery.replace(scopeSelectionRegex) { matchResult ->

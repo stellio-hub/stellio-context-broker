@@ -124,4 +124,5 @@ fun isValidLanguageTag(tag: String): Boolean =
         Locale.forLanguageTag(tag).isO3Language
     }.fold(
         { !it.isEmpty() },
-        { false })
+        { false }
+    )

@@ -122,7 +122,7 @@ private class QParserImpl(private val raw: String) {
         return raw.substring(start, pos)
     }
 
-    private fun isOperatorChar(c: Char): Boolean = c == '=' || c == '!' || c == '>' || c == '<' || c == '~'
+    private fun isOperatorChar(c: Char): Boolean = c in setOf('=', '!', '>', '<', '~')
 
     private fun parseOperator(): Either<String, ComparisonOperator?> = either {
         if (pos >= raw.length || !isOperatorChar(raw[pos])) return@either null

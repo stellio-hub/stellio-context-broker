@@ -8,10 +8,11 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery
 import com.egm.stellio.shared.queryparameter.PaginationQuery
+import com.egm.stellio.shared.queryparameter.QNode
 import java.net.URI
 
 sealed class EntitiesQuery(
-    open val q: String?,
+    open val q: QNode?,
     open val scopeQ: String?,
     open val paginationQuery: PaginationQuery,
     open val attrs: Set<ExpandedTerm>,
@@ -31,7 +32,7 @@ data class EntitiesQueryFromGet(
     val ids: Set<URI> = emptySet(),
     val typeSelection: EntityTypeSelection? = null,
     val idPattern: String? = null,
-    override val q: String? = null,
+    override val q: QNode? = null,
     override val scopeQ: String? = null,
     override val paginationQuery: PaginationQuery,
     override val attrs: Set<ExpandedTerm> = emptySet(),
@@ -64,7 +65,7 @@ data class EntitiesQueryFromGet(
 
 data class EntitiesQueryFromPost(
     val entitySelectors: List<EntitySelector>? = null,
-    override val q: String? = null,
+    override val q: QNode? = null,
     override val scopeQ: String? = null,
     override val paginationQuery: PaginationQuery,
     override val attrs: Set<ExpandedTerm> = emptySet(),

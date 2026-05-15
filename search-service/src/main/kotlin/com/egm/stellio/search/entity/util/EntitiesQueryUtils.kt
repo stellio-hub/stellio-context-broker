@@ -46,7 +46,7 @@ fun composeEntitiesQueryFromGet(
      * Decoding query parameters is not supported by default so a call to a decode function was added query
      * with the right parameters values
      */
-    val q = queryParams.getFirst(QueryParameter.Q.key)?.decode()?.also {
+    val q = queryParams.getFirst(QueryParameter.Q.key)?.decode()?.let {
         parseQQuery(it).bind()
     }
     val scopeQ = queryParams.getFirst(QueryParameter.SCOPEQ.key)
@@ -102,7 +102,7 @@ fun composeEntitiesQueryFromGet(
 fun EntitiesQueryFromGet.validateMinimalQueryEntitiesParameters(): Either<APIException, EntitiesQueryFromGet> = either {
     if (
         geoQuery == null &&
-        q.isNullOrEmpty() &&
+        q == null &&
         typeSelection.isNullOrEmpty() &&
         attrs.isEmpty() &&
         !local
@@ -123,7 +123,7 @@ fun EntitiesQueryFromGet.validateMinimalPurgeEntitiesParameters(
         typeSelection.isNullOrEmpty() &&
         keep.isEmpty() &&
         drop.isEmpty() &&
-        q.isNullOrEmpty() &&
+        q == null &&
         geoQuery == null &&
         !local
     )
@@ -145,6 +145,7 @@ fun composeEntitiesQueryFromPost(
             expandTypeSelection(entitySelector.typeSelection, contexts)!!
         )
     }
+    val q = query.q?.decode()?.let { parseQQuery(it).bind() }
     val attrs = query.attrs.orEmpty().map { JsonLdUtils.expandJsonLdTerm(it.trim(), contexts) }.toSet()
     val (pick, omit) = parsePickOmitParameters(
         query.pick?.joinToString(","),
@@ -182,7 +183,7 @@ fun composeEntitiesQueryFromPost(
 
     EntitiesQueryFromPost(
         entitySelectors = entitySelectors,
-        q = query.q?.decode(),
+        q = q,
         scopeQ = query.scopeQ,
         paginationQuery = paginationQuery,
         attrs = attrs,

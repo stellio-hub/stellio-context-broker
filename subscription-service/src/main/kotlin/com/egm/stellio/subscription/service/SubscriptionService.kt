@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.service
 
 import arrow.core.Either
+import arrow.core.raise.context.bind
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.EntitySelector
@@ -11,6 +12,7 @@ import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
+import com.egm.stellio.shared.queryparameter.parseQQuery
 import com.egm.stellio.shared.util.DataTypes.serialize
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildContextLinkHeader
@@ -406,7 +408,11 @@ class SubscriptionService(
         expandedEntity: ExpandedEntity,
         contexts: List<String>
     ): String? =
-        query?.let { buildQQuery(query, jsonKeys.orEmpty(), expandValues.orEmpty(), contexts, expandedEntity) }
+        query?.let {
+            // q query has been validated at subscription creation time
+            val qNode = parseQQuery(it).getOrNull()!!
+            buildQQuery(qNode, jsonKeys.orEmpty(), expandValues.orEmpty(), contexts, expandedEntity)
+        }
 
     suspend fun prepareScopeQQuery(
         scopeQ: String?,

@@ -302,11 +302,7 @@ private fun SingleValue.toJsonParameterizedValue(): String =
 private fun SingleValue.toJsonValue(): String = when (type) {
     ValueType.NUMBER -> raw
     ValueType.BOOLEAN -> raw
-    ValueType.STRING -> {
-        val unquoted = raw.removePrefix("\"").removeSuffix("\"")
-        "\"$unquoted\""
-    }
-    ValueType.DATETIME, ValueType.DATE, ValueType.TIME -> {
+    ValueType.STRING, ValueType.DATETIME, ValueType.DATE, ValueType.TIME -> {
         val unquoted = raw.removePrefix("\"").removeSuffix("\"")
         "\"$unquoted\""
     }

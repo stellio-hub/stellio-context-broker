@@ -1429,6 +1429,23 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entities should return 400 if q parameter is syntactically invalid`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities?q=temperature%3D%3D")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "Q query is invalid: Empty value after operator"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `get entities should return the warnings sent by the CSRs`() {
         val csr = gimmeRawCSR()
         initializeQueryEntitiesMocks()

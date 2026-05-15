@@ -22,7 +22,9 @@ sealed class EntitiesQuery(
     open val linkedEntityQuery: LinkedEntityQuery?,
     open val local: Boolean = false,
     open val ordering: OrderingParams = OrderingParams(),
-    open val contexts: List<String>
+    open val contexts: List<String>,
+    open val jsonKeys: Set<String>,
+    open val expandValues: Set<String>
 )
 
 data class EntitiesQueryFromGet(
@@ -41,6 +43,8 @@ data class EntitiesQueryFromGet(
     override val local: Boolean = false,
     override val ordering: OrderingParams = OrderingParams(),
     override val contexts: List<String>,
+    override val jsonKeys: Set<String> = emptySet(),
+    override val expandValues: Set<String> = emptySet()
 ) : EntitiesQuery(
     q,
     scopeQ,
@@ -53,7 +57,9 @@ data class EntitiesQueryFromGet(
     linkedEntityQuery,
     local,
     ordering,
-    contexts
+    contexts,
+    jsonKeys,
+    expandValues
 )
 
 data class EntitiesQueryFromPost(
@@ -69,7 +75,9 @@ data class EntitiesQueryFromPost(
     override val linkedEntityQuery: LinkedEntityQuery? = null,
     override val local: Boolean = false,
     override val ordering: OrderingParams = OrderingParams(),
-    override val contexts: List<String>
+    override val contexts: List<String>,
+    override val jsonKeys: Set<String> = emptySet(),
+    override val expandValues: Set<String> = emptySet()
 ) : EntitiesQuery(
     q,
     scopeQ,
@@ -82,5 +90,7 @@ data class EntitiesQueryFromPost(
     linkedEntityQuery,
     local,
     ordering,
-    contexts
+    contexts,
+    jsonKeys,
+    expandValues
 )

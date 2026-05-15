@@ -2,87 +2,14 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.queryparameter.AttributePath
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
-
-/**
- * Parse a query term to return a triple consisting of (attribute path, operator, value)
- */
-fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, String, String> {
-    return when {
-        queryTerm.contains("==") ->
-            Triple(queryTerm.split("==")[0], "==", queryTerm.split("==")[1])
-        queryTerm.contains("!=") ->
-            Triple(queryTerm.split("!=")[0], "<>", queryTerm.split("!=")[1])
-        queryTerm.contains(">=") ->
-            Triple(queryTerm.split(">=")[0], ">=", queryTerm.split(">=")[1])
-        queryTerm.contains(">") ->
-            Triple(queryTerm.split(">")[0], ">", queryTerm.split(">")[1])
-        queryTerm.contains("<=") ->
-            Triple(queryTerm.split("<=")[0], "<=", queryTerm.split("<=")[1])
-        queryTerm.contains("<") ->
-            Triple(queryTerm.split("<")[0], "<", queryTerm.split("<")[1])
-        queryTerm.contains("!~=") ->
-            // there is no such operator in PG JSON functions
-            // it will be later transformed in a NOT(attrName like_regex "...")
-            Triple(queryTerm.split("!~=")[0], "not_like_regex", queryTerm.split("!~=")[1])
-        queryTerm.contains("~=") ->
-            Triple(queryTerm.split("~=")[0], "like_regex", queryTerm.split("~=")[1])
-        else ->
-            // no operator found, it is a check for the existence of an attribute
-            Triple(queryTerm, "", "")
-    }
-}
-
-fun String.prepareDateValue() =
-    if (this.isDate() || this.isDateTime() || this.isTime())
-        this.quote()
-    else
-        this
+import com.egm.stellio.shared.queryparameter.parseQQuery
+import com.egm.stellio.shared.queryparameter.toSqlJsonPath
 
 fun String.quote(): String =
     "\"".plus(this).plus("\"")
 
 fun String.escapeSingleQuotes(): String =
     this.replace("'", "''")
-
-fun String.isRange(): Boolean =
-    this.contains("..")
-
-fun String.rangeInterval(): Pair<Any, Any> =
-    Pair(this.split("..")[0], this.split("..")[1])
-
-fun String.isValueList(): Boolean {
-    var inQuotes = false
-    for (char in this) {
-        when (char) {
-            '"' -> inQuotes = !inQuotes
-            ',' if !inQuotes -> return true
-        }
-    }
-    return false
-}
-
-fun String.listOfValues(): Set<String> {
-    val values = mutableListOf<String>()
-    var inQuotes = false
-    val current = StringBuilder()
-    for (char in this) {
-        when (char) {
-            '"' -> {
-                inQuotes = !inQuotes
-                current.append(char)
-            }
-            ',' if !inQuotes -> {
-                values.add(current.toString())
-                current.clear()
-            }
-            else -> current.append(char)
-        }
-    }
-    values.add(current.toString())
-    return values.toSet()
-}
 
 fun Iterable<String>.toTypeSelection() = this.joinToString(",")
 
@@ -109,112 +36,20 @@ fun buildTypeQuery(rawQuery: String, columnName: String = "types", target: List<
                 it.replace("#{TARGET}#", columnName)
         }
 
-// Transforms an NGSI-LD Query Language parameter as per clause 4.9 to a query supported by JsonPath.
-fun buildQQuery(rawQuery: String, contexts: List<String>, target: ExpandedEntity? = null): String =
-    rawQuery.replace(qPattern.toRegex()) { matchResult ->
-        val query = extractComparisonParametersFromQuery(matchResult.value)
-
-        val attributePath = AttributePath(query.first, contexts)
-        val operator = query.second
-        val value = query.third.prepareDateValue()
-
-        transformQQueryToSqlJsonPath(
-            attributePath,
-            operator,
-            value
-        )
-    }
-        .replace(";", " AND ")
-        .replace("|", " OR ")
-        .replace("JSONPATH_OR_FILTER", "||")
-        .let {
-            if (target == null)
-                it.replace("#{TARGET}#", "entity_payload.payload")
-            else
-                // escape single quotes in the serialized entity to not crash the SQL query
-                it.replace("#{TARGET}#", "'" + serializeObject(target.members).escapeSingleQuotes() + "'")
-        }
-
-private fun transformQQueryToSqlJsonPath(
-    attributePath: AttributePath,
-    operator: String,
-    value: String
-) = when {
-    attributePath.mainPath.size > 1 && !value.isURI() -> {
-        """
-        jsonb_path_exists(#{TARGET}#,
-            '${attributePath.buildJsonBPropertyPath()} ? (@ $operator ${'$'}value)',
-            '{ "value": ${value.escapeSingleQuotes()}}')
-        """.trimIndent()
-    }
-    attributePath.mainPath.size > 1 && value.isURI() -> {
-        """
-        jsonb_path_exists(#{TARGET}#,
-            '${attributePath.buildJsonBRelationshipPath()} ? (@ $operator ${'$'}value)',
-            '{ "value": ${value.quote()} }')
-        """.trimIndent()
-    }
-    operator.isEmpty() ->
-        """
-        jsonb_path_exists(#{TARGET}#, '$."${attributePath.mainPath[0]}"')
-        """.trimIndent()
-    attributePath.trailingPath.isNotEmpty() -> {
-        """
-        jsonb_path_exists(#{TARGET}#,
-            '${attributePath.buildJsonBPropertyPath()} ?
-                (@ $operator ${'$'}value)',
-            '{ "value": ${value.escapeSingleQuotes()} }')
-        """.trimIndent()
-    }
-    operator == "like_regex" ->
-        """
-        jsonb_path_exists(#{TARGET}#,
-            '${attributePath.buildJsonBPropertyPath()} ? (@ like_regex ${value.escapeSingleQuotes()})')
-        """.trimIndent()
-    operator == "not_like_regex" ->
-        """
-        NOT (jsonb_path_exists(#{TARGET}#,
-            '${attributePath.buildJsonBPropertyPath()} ? (@ like_regex ${value.escapeSingleQuotes()})'))
-        """.trimIndent()
-    value.isURI() || value.replace("\"", "").isURI() -> {
-        // for queries on relationships, values can be quoted or not, handle both cases
-        val preparedValue = if (value.isURI()) value.quote() else value
-        """
-        (
-            jsonb_path_exists(#{TARGET}#,
-                '${attributePath.buildJsonBRelationshipPath()} ? (@ $operator ${'$'}value)',
-                '{ "value": $preparedValue }') OR
-            jsonb_path_exists(#{TARGET}#,
-                '${attributePath.buildJsonBPropertyPath()} ? (@ $operator ${'$'}value)',
-                '{ "value": $preparedValue }')
-        )
-        """.trimIndent()
-    }
-    value.isRange() -> {
-        val (min, max) = value.rangeInterval()
-        """
-        jsonb_path_exists(#{TARGET}#,
-            '${attributePath.buildJsonBPropertyPath()} ?
-                (@ >= ${'$'}min && @ <= ${'$'}max)',
-            '{ "min": $min, "max": $max }')
-        """.trimIndent()
-    }
-    value.isValueList() -> {
-        // can't use directly the || operator since it will be replaced below when composing the filters
-        // so use an intermediate JSONPATH_OR_FILTER placeholder
-        val valuesFilter = value.listOfValues()
-            .joinToString(separator = " JSONPATH_OR_FILTER ") { "@ == $it" }
-        """
-        jsonb_path_exists(#{TARGET}#,
-            '${attributePath.buildJsonBPropertyPath()} ? (${valuesFilter.escapeSingleQuotes()})')
-        """.trimIndent()
-    }
-    else ->
-        """
-        jsonb_path_exists(#{TARGET}#,
-            '${attributePath.buildJsonBPropertyPath()} ? (@ $operator ${'$'}value)',
-            '{ "value": ${value.escapeSingleQuotes()} }')
-        """.trimIndent()
+/**
+ * Transforms an NGSI-LD Query Language parameter as per clause 4.9 to a PostgreSQL SQL expression.
+ * Uses a recursive descent parser to build an AST, then translates the AST to SQL jsonb_path_exists calls.
+ */
+fun buildQQuery(
+    rawQuery: String,
+    jsonKeys: Set<String> = emptySet(),
+    expandValues: Set<String> = emptySet(),
+    contexts: List<String>,
+    target: ExpandedEntity? = null
+): String {
+    val result = parseQQuery(rawQuery)
+    val node = result.fold({ throw it }, { it })
+    return node.toSqlJsonPath(jsonKeys, expandValues, contexts, target)
 }
 
 fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null, columnName: String = "scopes"): String =
@@ -222,12 +57,12 @@ fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null, column
         when {
             matchResult.value.endsWith('#') ->
                 """
-                exists (select * from unnest(#{TARGET}#) as scope 
+                exists (select * from unnest(#{TARGET}#) as scope
                 where scope similar to '${matchResult.value.replace('#', '%')}')
                 """.trimIndent()
             matchResult.value.contains('+') ->
                 """
-                exists (select * from unnest(#{TARGET}#) as scope 
+                exists (select * from unnest(#{TARGET}#) as scope
                 where scope similar to '${matchResult.value.replace("+", "[\\w\\d]+")}')
                 """.trimIndent()
             else ->

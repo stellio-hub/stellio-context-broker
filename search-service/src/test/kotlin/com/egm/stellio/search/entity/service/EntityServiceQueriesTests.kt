@@ -271,7 +271,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "integer==213;boolean==true, 1, urn:ngsi-ld:BeeHive:01",
         "(integer>200|integer<100);observedProperty.observedAt<2023-02-25T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "string~=\"(?i)another.*\", 1, urn:ngsi-ld:BeeHive:02",
-        "string!~=\"(?i)another.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:MultiTypes:03'",
+        "string!~=\"(?i)another.*\";string, 1, 'urn:ngsi-ld:BeeHive:01'",
         "(string!~=\"(?i)another.*\";integer==213), 1, urn:ngsi-ld:BeeHive:01",
         "simpleQuoteString~=\"(?i).*It's a name.*\", 1, urn:ngsi-ld:BeeHive:01",
         "simpleQuoteString~=\"(?i)^it's.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
@@ -296,6 +296,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "jsonObject[aSimpleQuote]==\"precipitation's measures\", 1, urn:ngsi-ld:BeeHive:01",
         "jsonObject[anObject.name]==\"River\", 1, urn:ngsi-ld:BeeHive:02",
         "jsonObject[anObject.name]==\"Sea\", 0, ",
+        "!name;integer==143, 1, urn:ngsi-ld:BeeHive:02",
+        "!name;integer==213, 0, ",
         "integer==143..213, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "integer==144..213, 1, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "integer==100..120, 0, ",
@@ -306,7 +308,10 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         """'listOfString=="fiware","egm"', 0, """,
         "'listOfInt==12,14', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "'listOfInt==12', 1, urn:ngsi-ld:BeeHive:01",
-        "date, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'"
+        "date, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "localizedName[en]==\"Bee Hive One\", 1, urn:ngsi-ld:BeeHive:01",
+        "localizedName[en]~=\"Bee.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "localizedName[de]==\"something\", 0, "
     )
     fun `it should retrieve entities according to q parameter`(
         q: String,
@@ -317,7 +322,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
                     q = q,
-                    paginationQuery = PaginationQuery(limit = 2, offset = 0),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 null
@@ -589,5 +594,141 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             )
 
         assertThat(entitiesIds).isEmpty()
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "jsonProp[aString]==\"flow monitoring\", 1, urn:ngsi-ld:BeeHive:02",
+        "jsonProp[aNumber]==93.93, 1, urn:ngsi-ld:BeeHive:02",
+        "jsonProp[aNumber]>90, 1, urn:ngsi-ld:BeeHive:02",
+        "jsonProp[aNumber]==12..14, 1, urn:ngsi-ld:BeeHive:01",
+        "jsonProp[anObject.name]==\"City\", 1, urn:ngsi-ld:BeeHive:01",
+        "jsonProp[anObject.name]==\"Sea\", 0, "
+    )
+    fun `it should retrieve entities according to q parameter with jsonKeys`(
+        q: String,
+        expectedCount: Int,
+        expectedListOfEntities: String?
+    ) = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromGet(
+                    typeSelection = BEEHIVE_IRI,
+                    q = q,
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS,
+                    jsonKeys = setOf("jsonProp")
+                ),
+                null
+            )
+
+        assertEquals(expectedCount, entitiesIds.size)
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
+    }
+
+    @Test
+    fun `it should retrieve entities according to q parameter with expandValues`() = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromGet(
+                    typeSelection = BEEHIVE_IRI,
+                    q = "category==\"BeeHive\"",
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS,
+                    expandValues = setOf("category")
+                ),
+                null
+            )
+
+        assertEquals(1, entitiesIds.size)
+        assertThat(entitiesIds).contains(entity01Uri)
+    }
+
+    @Test
+    fun `it should not match entities when expandValues is not set for a vocab attribute`() = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromGet(
+                    typeSelection = BEEHIVE_IRI,
+                    q = "category==\"BeeHive\"",
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                null
+            )
+
+        // Without expandValues, "BeeHive" is treated as a plain string, not matched against the stored IRI
+        assertThat(entitiesIds).isEmpty()
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "integer==213, 1, urn:ngsi-ld:BeeHive:01",
+        "integer==143, 1, urn:ngsi-ld:BeeHive:02",
+        "boolean==true, 1, urn:ngsi-ld:BeeHive:01",
+        "!name;integer==143, 1, urn:ngsi-ld:BeeHive:02"
+    )
+    fun `it should retrieve entities according to q parameter via POST query`(
+        q: String,
+        expectedCount: Int,
+        expectedListOfEntities: String?
+    ) = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromPost(
+                    entitySelectors = listOf(
+                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI)
+                    ),
+                    q = q,
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                null
+            )
+
+        assertEquals(expectedCount, entitiesIds.size)
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
+    }
+
+    @Test
+    fun `it should retrieve entities according to jsonKeys via POST query`() = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromPost(
+                    entitySelectors = listOf(
+                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI)
+                    ),
+                    q = "jsonProp[aString]==\"flow monitoring\"",
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS,
+                    jsonKeys = setOf("jsonProp")
+                ),
+                null
+            )
+
+        assertEquals(1, entitiesIds.size)
+        assertThat(entitiesIds).contains(entity02Uri)
+    }
+
+    @Test
+    fun `it should retrieve entities according to expandValues via POST query`() = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromPost(
+                    entitySelectors = listOf(
+                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI)
+                    ),
+                    q = "category==\"BeeHive\"",
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS,
+                    expandValues = setOf("category")
+                ),
+                null
+            )
+
+        assertEquals(1, entitiesIds.size)
+        assertThat(entitiesIds).contains(entity01Uri)
     }
 }

@@ -62,6 +62,23 @@
       ]
     }
   },
+  "jsonProp": {
+    "type": "JsonProperty",
+    "json": {
+      "anObject": {
+        "name": "River"
+      },
+      "aString": "flow monitoring",
+      "aNumber": 93.93
+    }
+  },
+  "localizedName": {
+    "type": "LanguageProperty",
+    "languageMap": {
+      "en": "Bee Hive Two",
+      "es": "Colmena Dos"
+    }
+  },
   "observedProperty": {
     "type": "Property",
     "value": 93.0,

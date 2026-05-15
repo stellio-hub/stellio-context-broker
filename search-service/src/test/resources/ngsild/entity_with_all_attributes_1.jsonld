@@ -72,6 +72,27 @@
       "aSimpleQuote": "precipitation's measures"
     }
   },
+  "jsonProp": {
+    "type": "JsonProperty",
+    "json": {
+      "anObject": {
+        "name": "City"
+      },
+      "aString": "precipitation monitoring",
+      "aNumber": 12.4
+    }
+  },
+  "localizedName": {
+    "type": "LanguageProperty",
+    "languageMap": {
+      "en": "Bee Hive One",
+      "fr": "Ruche Une"
+    }
+  },
+  "category": {
+    "type": "VocabProperty",
+    "vocab": "BeeHive"
+  },
   "observedProperty": {
     "type": "Property",
     "value": 12.0,

@@ -70,12 +70,13 @@ class SubscriptionService(
     private val subscriptionBaseQuery = """
         SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
             modified_at, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes,
-            notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status, 
-            times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id, 
-            id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates, 
-            pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang, 
-            datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout
-        FROM subscription 
+            notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status,
+            times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
+            id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates,
+            pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang,
+            datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout,
+            json_keys, expand_values
+        FROM subscription
         LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id
         LEFT JOIN geometry_query on subscription.id = geometry_query.subscription_id
     """.trimIndent()
@@ -89,23 +90,26 @@ class SubscriptionService(
                 watched_attributes, notification_trigger, time_interval, q, scope_q, notif_attributes,
                 notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info,
                 times_sent, is_active, expires_at, sub, contexts, throttling, sys_attrs, lang, datasetId,
-                jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout)
+                jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout,
+                json_keys, expand_values)
             VALUES(:id, :type, :subscription_name, :created_at, :modified_at, :description,
                 :watched_attributes, :notification_trigger, :time_interval, :q, :scope_q, :notif_attributes,
                 :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_receiver_info, :endpoint_notifier_info,
                 :times_sent, :is_active, :expires_at, :sub, :contexts, :throttling, :sys_attrs, :lang, :datasetId,
-                :jsonld_context, :join_type, :join_level, :show_changes, :pick, :omit, :cooldown, :timeout)
+                :jsonld_context, :join_type, :join_level, :show_changes, :pick, :omit, :cooldown, :timeout,
+                :json_keys, :expand_values)
             ON CONFLICT (id)
-                DO UPDATE SET subscription_name = :subscription_name, modified_at = :modified_at, 
-                    description = :description, watched_attributes = :watched_attributes, 
-                    notification_trigger = :notification_trigger, time_interval = :time_interval, q = :q, 
-                    scope_q = :scope_q, notif_attributes = :notif_attributes, notif_format = :notif_format, 
-                    endpoint_uri = :endpoint_uri, endpoint_accept = :endpoint_accept, 
+                DO UPDATE SET subscription_name = :subscription_name, modified_at = :modified_at,
+                    description = :description, watched_attributes = :watched_attributes,
+                    notification_trigger = :notification_trigger, time_interval = :time_interval, q = :q,
+                    scope_q = :scope_q, notif_attributes = :notif_attributes, notif_format = :notif_format,
+                    endpoint_uri = :endpoint_uri, endpoint_accept = :endpoint_accept,
                     endpoint_receiver_info = :endpoint_receiver_info, times_sent = :times_sent, is_active = :is_active,
                     expires_at = :expires_at, sub = :sub, contexts = :contexts, throttling = :throttling,
                     sys_attrs = :sys_attrs, lang = :lang, datasetId = :datasetId, jsonld_context = :jsonld_context,
                     join_type = :join_type, join_level = :join_level, show_changes = :show_changes,
-                    pick = :pick, omit = :omit, cooldown = :cooldown, timeout = :timeout
+                    pick = :pick, omit = :omit, cooldown = :cooldown, timeout = :timeout,
+                    json_keys = :json_keys, expand_values = :expand_values
             """.trimIndent()
 
         databaseClient.sql(insertStatement)
@@ -143,6 +147,8 @@ class SubscriptionService(
             .bind("omit", subscription.notification.omit?.toTypedArray())
             .bind("cooldown", subscription.notification.endpoint.cooldown)
             .bind("timeout", subscription.notification.endpoint.timeout)
+            .bind("json_keys", subscription.jsonKeys?.toTypedArray())
+            .bind("expand_values", subscription.expandValues?.toTypedArray())
             .execute().bind()
 
         subscription.geoQ?.let { geoQ ->
@@ -362,7 +368,7 @@ class SubscriptionService(
         getMatchingSubscriptions(updatedAttribute, notificationTrigger)
             .filter {
                 val entitiesFilter = prepareEntitiesQuery(it.entities, expandedEntity)
-                val qFilter = prepareQQuery(it.q?.decode(), expandedEntity, it.contexts)
+                val qFilter = prepareQQuery(it.q?.decode(), it.jsonKeys, it.expandValues, expandedEntity, it.contexts)
                 val scopeFilter = prepareScopeQQuery(it.scopeQ?.decode(), expandedEntity)
                 val geoQueryFilter = prepareGeoQuery(it.geoQ, expandedEntity)
 
@@ -395,10 +401,12 @@ class SubscriptionService(
 
     suspend fun prepareQQuery(
         query: String?,
+        jsonKeys: Set<String>?,
+        expandValues: Set<String>?,
         expandedEntity: ExpandedEntity,
         contexts: List<String>
     ): String? =
-        query?.let { buildQQuery(query, contexts, expandedEntity) }
+        query?.let { buildQQuery(query, jsonKeys.orEmpty(), expandValues.orEmpty(), contexts, expandedEntity) }
 
     suspend fun prepareScopeQQuery(
         scopeQ: String?,
@@ -484,7 +492,9 @@ class SubscriptionService(
             throttling = toNullableInt(row["throttling"]),
             lang = row["lang"] as? String,
             datasetId = toNullableList(row["datasetId"]),
-            jsonldContext = toNullableUri(row["jsonld_context"])
+            jsonldContext = toNullableUri(row["jsonld_context"]),
+            jsonKeys = toNullableSet(row["json_keys"]),
+            expandValues = toNullableSet(row["expand_values"])
         )
     }
 

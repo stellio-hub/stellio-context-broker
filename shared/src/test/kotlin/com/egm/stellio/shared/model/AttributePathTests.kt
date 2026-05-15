@@ -10,6 +10,10 @@ import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_TERM
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -56,5 +60,58 @@ class AttributePathTests {
         val queryTerm = AttributePath(term, APIC_COMPOUND_CONTEXTS)
         assertEquals(expectedMainPath, queryTerm.mainPath)
         assertEquals(expectedTrailingPath, queryTerm.trailingPath)
+    }
+
+    @Test
+    fun `it should mark attribute as jsonKeys and keep trailing path unexpanded`() = runTest {
+        val attrPath = AttributePath(
+            "$INCOMING_TERM[$TEMPERATURE_TERM]",
+            APIC_COMPOUND_CONTEXTS,
+            jsonKeys = setOf(INCOMING_TERM)
+        )
+        assertTrue(attrPath.isJsonKeysAttribute)
+        assertFalse(attrPath.isExpandValuesAttribute)
+        assertNull(attrPath.languageTag)
+        assertEquals(listOf(TEMPERATURE_TERM), attrPath.trailingPath)
+    }
+
+    @Test
+    fun `it should keep composed trailing path unexpanded when attribute is in jsonKeys`() = runTest {
+        val attrPath = AttributePath(
+            "$INCOMING_TERM[$TEMPERATURE_TERM.$NAME_TERM]",
+            APIC_COMPOUND_CONTEXTS,
+            jsonKeys = setOf(INCOMING_TERM)
+        )
+        assertTrue(attrPath.isJsonKeysAttribute)
+        assertEquals(listOf(TEMPERATURE_TERM, NAME_TERM), attrPath.trailingPath)
+    }
+
+    @Test
+    fun `it should mark attribute as expandValues`() = runTest {
+        val attrPath = AttributePath(
+            INCOMING_TERM,
+            APIC_COMPOUND_CONTEXTS,
+            expandValues = setOf(INCOMING_TERM)
+        )
+        assertTrue(attrPath.isExpandValuesAttribute)
+        assertFalse(attrPath.isJsonKeysAttribute)
+        assertNull(attrPath.languageTag)
+    }
+
+    @Test
+    fun `it should parse language tag from bracket notation`() = runTest {
+        val attrPath = AttributePath("$INCOMING_TERM[en]", APIC_COMPOUND_CONTEXTS)
+        assertEquals("en", attrPath.languageTag)
+        assertEquals(listOf(INCOMING_IRI), attrPath.mainPath)
+        assertTrue(attrPath.trailingPath.isEmpty())
+        assertFalse(attrPath.isJsonKeysAttribute)
+    }
+
+    @Test
+    fun `it should expand trailing path terms when attribute is not in jsonKeys`() = runTest {
+        val attrPath = AttributePath("$INCOMING_TERM[$TEMPERATURE_TERM.$NAME_TERM]", APIC_COMPOUND_CONTEXTS)
+        assertFalse(attrPath.isJsonKeysAttribute)
+        assertNull(attrPath.languageTag)
+        assertEquals(listOf(TEMPERATURE_IRI, NAME_IRI), attrPath.trailingPath)
     }
 }

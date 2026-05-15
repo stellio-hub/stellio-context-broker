@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.BEEKEEPER_IRI
 import com.egm.stellio.shared.util.BEEKEEPER_TERM
+import com.egm.stellio.shared.util.CATEGORY_TERM
 import com.egm.stellio.shared.util.DEVICE_IRI
 import com.egm.stellio.shared.util.DEVICE_TERM
 import com.egm.stellio.shared.util.INCOMING_IRI
@@ -211,7 +212,9 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     it.expiresAt == ZonedDateTime.parse("2100-01-01T00:00:00Z") &&
                     it.throttling == 60 &&
                     it.lang == "fr,en" &&
-                    it.jsonldContext == APIC_COMPOUND_CONTEXT.toUri()
+                    it.jsonldContext == APIC_COMPOUND_CONTEXT.toUri() &&
+                    it.jsonKeys == setOf("jsonProp1", "jsonProp2") &&
+                    it.expandValues == setOf("vocabProp1", "vocabProp2")
             }
     }
 
@@ -983,12 +986,30 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if entity matched a q query with a boolean value`() = runTest {
+    fun `it should return a subscription if entity matched a q query with a boolean inequality`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
                 "q" to "foodName.isHealthy!=false"
+            )
+        )
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(1, it.size) }
+    }
+
+    @Test
+    fun `it should return a subscription if entity matched a q query with a boolean equality`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+                "q" to "foodName.isHealthy==true"
             )
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
@@ -1052,6 +1073,110 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             Pair(NGSILD_LOCATION_IRI, null),
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { assertEquals(1, it.size) }
+    }
+
+    @Test
+    fun `it should return a subscription if entity matched a q query with a NOT EXISTS filter`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+                "q" to "!foodQuality"
+            )
+        )
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(1, it.size) }
+    }
+
+    @Test
+    fun `it should not return a subscription if entity has the attribute excluded by a NOT EXISTS filter`() = runTest {
+        val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+                "q" to "!foodName"
+            )
+        )
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(0, it.size) }
+    }
+
+    @Test
+    fun `it should handle jsonKeys when matching subscriptions`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+                "q" to """metadata[id]=="123"""",
+                "jsonKeys" to listOf("metadata")
+            )
+        )
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+
+        val matchingEntity = loadAndExpandMinimalEntity(
+            "urn:ngsi-ld:Beehive:01",
+            BEEHIVE_TERM,
+            """"metadata": {"type": "JsonProperty", "json": {"id": "123"}}"""
+        )
+        subscriptionService.getMatchingSubscriptions(
+            matchingEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(1, it.size) }
+
+        val nonMatchingEntity = loadAndExpandMinimalEntity(
+            "urn:ngsi-ld:Beehive:02",
+            BEEHIVE_TERM,
+            """"metadata": {"type": "JsonProperty", "json": {"id": "999"}}"""
+        )
+        subscriptionService.getMatchingSubscriptions(
+            nonMatchingEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(0, it.size) }
+    }
+
+    @Test
+    fun `it should handle expandValues when matching subscriptions`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+                "q" to "$CATEGORY_TERM==\"BeeHive\"",
+                "expandValues" to listOf(CATEGORY_TERM)
+            )
+        )
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+
+        val matchingEntity = loadAndExpandMinimalEntity(
+            "urn:ngsi-ld:Beehive:01",
+            BEEHIVE_TERM,
+            """"$CATEGORY_TERM": {"type": "VocabProperty", "vocab": "BeeHive"}"""
+        )
+        subscriptionService.getMatchingSubscriptions(
+            matchingEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(1, it.size) }
+
+        val nonMatchingEntity = loadAndExpandMinimalEntity(
+            "urn:ngsi-ld:Beehive:02",
+            BEEHIVE_TERM,
+            """"$CATEGORY_TERM": {"type": "VocabProperty", "vocab": "Feeder"}"""
+        )
+        subscriptionService.getMatchingSubscriptions(
+            nonMatchingEntity,
+            Pair(NGSILD_LOCATION_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { assertEquals(0, it.size) }
     }
 
     @Test

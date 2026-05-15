@@ -131,6 +131,24 @@ class SubscriptionTests {
     }
 
     @Test
+    fun `it should not validate a subscription with an invalid q`() = runTest {
+        val payload = mapOf(
+            "id" to beehiveId,
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "q" to "temperature==",
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Q query is invalid: Empty value after operator", it.message)
+            }
+    }
+
+    @Test
     fun `it should not validate a subscription with an invalid idPattern`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),

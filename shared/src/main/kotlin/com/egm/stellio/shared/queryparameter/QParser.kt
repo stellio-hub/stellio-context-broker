@@ -80,13 +80,13 @@ private class QParserImpl(private val raw: String) {
     private fun parseNotExistsExpr(): Either<String, QNode> = either {
         pos++
         val rawPath = parseRawAttributePath()
-        ensure(!rawPath.isEmpty()) { "Missing attribute path after '!'" }
+        ensure(rawPath.isNotEmpty()) { "Missing attribute path after '!'" }
         NotExistsNode(rawPath)
     }
 
     private fun parseAttrExpr(): Either<String, QNode> = either {
         val rawPath = parseRawAttributePath()
-        ensure(!rawPath.isEmpty()) { "Empty attribute path at position $pos" }
+        ensure(rawPath.isNotEmpty()) { "Empty attribute path at position $pos" }
         val op = parseOperator().bind()
         if (op == null) ExistsNode(rawPath) else ComparisonNode(rawPath, op, parseValue().bind())
     }
@@ -152,7 +152,7 @@ private class QParserImpl(private val raw: String) {
 
     private fun parseValue(): Either<String, QValue> = either {
         val rawVal = parseRawValue().bind()
-        ensure(!rawVal.isEmpty()) { "Empty value after operator" }
+        ensure(rawVal.isNotEmpty()) { "Empty value after operator" }
 
         if (!rawVal.startsWith('"') && rawVal.contains("..")) {
             val parts = rawVal.split("..")
@@ -188,7 +188,7 @@ private class QParserImpl(private val raw: String) {
                     sb.append(c)
                     pos++
                 }
-                c == ';' || c == '|' || c == ')' -> break
+                c in listOf(';', '|', ')') -> break
                 else -> {
                     sb.append(c)
                     pos++

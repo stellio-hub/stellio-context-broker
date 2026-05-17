@@ -161,17 +161,11 @@ private fun uriValueSql(
     val propPath = attrPath.buildJsonBPropertyPath()
     val vocabPath = attrPath.buildJsonBVocabPath()
 
-    // For NEQ operator, it should be an AND between clause, but if a path does not exist, PG returns an empty result.
+    // For NEQ operator, it should be an AND between clauses, but if a path does not exist, PG returns an empty result.
     // So since an attribute name is unique within an entity, it works with an OR.
-    return if (operator == ComparisonOperator.NEQ) {
-        """(${singlePathFilter(targetExpr, relPath, operator, uriValue)} OR """ +
-            """${singlePathFilter(targetExpr, propPath, operator, uriValue)} OR """ +
-            """${singlePathFilter(targetExpr, vocabPath, operator, uriValue)})"""
-    } else {
-        """(${singlePathFilter(targetExpr, relPath, ComparisonOperator.EQ, uriValue)} OR """ +
-            """${singlePathFilter(targetExpr, propPath, ComparisonOperator.EQ, uriValue)} OR """ +
-            """${singlePathFilter(targetExpr, vocabPath, ComparisonOperator.EQ, uriValue)})"""
-    }
+    return """(${singlePathFilter(targetExpr, relPath, operator, uriValue)} OR """ +
+        """${singlePathFilter(targetExpr, propPath, operator, uriValue)} OR """ +
+        """${singlePathFilter(targetExpr, vocabPath, operator, uriValue)})"""
 }
 
 private fun stringValueSql(
@@ -183,15 +177,10 @@ private fun stringValueSql(
     val propPath = attrPath.buildJsonBPropertyPath()
     val langMapPath = attrPath.buildJsonBLanguageMapPath()
 
-    // For NEQ operator, it should be an AND between clause, but if a path does not exist, PG returns an empty result.
+    // For NEQ operator, it should be an AND between clauses, but if a path does not exist, PG returns an empty result.
     // So since an attribute name is unique within an entity, it works with an OR.
-    return if (operator == ComparisonOperator.NEQ) {
-        """(${singlePathFilter(targetExpr, propPath, operator, value)} OR """ +
-            """${singlePathFilter(targetExpr, langMapPath, operator, value)})"""
-    } else {
-        """(${singlePathFilter(targetExpr, propPath, operator, value)} OR """ +
-            """${singlePathFilter(targetExpr, langMapPath, operator, value)})"""
-    }
+    return """(${singlePathFilter(targetExpr, propPath, operator, value)} OR """ +
+        """${singlePathFilter(targetExpr, langMapPath, operator, value)})"""
 }
 
 private fun likeRegexMultiPathSql(

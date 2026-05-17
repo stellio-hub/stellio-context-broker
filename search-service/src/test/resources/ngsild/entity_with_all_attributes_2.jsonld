@@ -123,6 +123,36 @@
       ]
     }
   },
+  "propWithVocabSub": {
+    "type": "Property",
+    "value": "ignored",
+    "vocabSub": {
+      "type": "VocabProperty",
+      "vocab": "Apiary"
+    }
+  },
+  "propWithLangSub": {
+    "type": "Property",
+    "value": "ignored",
+    "langSub": {
+      "type": "LanguageProperty",
+      "languageMap": {
+        "en": "sub lang two",
+        "es": "sub lang dos"
+      }
+    }
+  },
+  "propWithJsonSub": {
+    "type": "Property",
+    "value": "ignored",
+    "jsonSub": {
+      "type": "JsonProperty",
+      "json": {
+        "sensor": "S02",
+        "reading": 3.1
+      }
+    }
+  },
   "@context": [
     "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
   ]

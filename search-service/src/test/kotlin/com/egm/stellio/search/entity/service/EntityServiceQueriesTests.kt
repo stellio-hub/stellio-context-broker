@@ -312,7 +312,10 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "date, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "localizedName[en]==\"Bee Hive One\", 1, urn:ngsi-ld:BeeHive:01",
         "localizedName[en]~=\"Bee.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
-        "localizedName[de]==\"something\", 0, "
+        "localizedName[de]==\"something\", 0, ",
+        "propWithLangSub.langSub[en]==\"sub lang one\", 1, urn:ngsi-ld:BeeHive:01",
+        "propWithLangSub.langSub[en]~=\"sub lang.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "propWithLangSub.langSub[de]==\"anything\", 0, "
     )
     fun `it should retrieve entities according to q parameter`(
         q: String,
@@ -599,15 +602,19 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @ParameterizedTest
     @CsvSource(
-        "jsonProp[aString]==\"flow monitoring\", 1, urn:ngsi-ld:BeeHive:02",
-        "jsonProp[aNumber]==93.93, 1, urn:ngsi-ld:BeeHive:02",
-        "jsonProp[aNumber]>90, 1, urn:ngsi-ld:BeeHive:02",
-        "jsonProp[aNumber]==12..14, 1, urn:ngsi-ld:BeeHive:01",
-        "jsonProp[anObject.name]==\"City\", 1, urn:ngsi-ld:BeeHive:01",
-        "jsonProp[anObject.name]==\"Sea\", 0, "
+        "jsonProp[aString]==\"flow monitoring\", jsonProp, 1, urn:ngsi-ld:BeeHive:02",
+        "jsonProp[aNumber]==93.93, jsonProp, 1, urn:ngsi-ld:BeeHive:02",
+        "jsonProp[aNumber]>90, jsonProp, 1, urn:ngsi-ld:BeeHive:02",
+        "jsonProp[aNumber]==12..14, jsonProp, 1, urn:ngsi-ld:BeeHive:01",
+        "jsonProp[anObject.name]==\"City\", jsonProp, 1, urn:ngsi-ld:BeeHive:01",
+        "jsonProp[anObject.name]==\"Sea\", jsonProp, 0, ",
+        "propWithJsonSub.jsonSub[sensor]==\"S01\", propWithJsonSub, 1, urn:ngsi-ld:BeeHive:01",
+        "propWithJsonSub.jsonSub[reading]==7.3, propWithJsonSub, 1, urn:ngsi-ld:BeeHive:01",
+        "propWithJsonSub.jsonSub[reading]==3..8, propWithJsonSub, 2, "
     )
-    fun `it should retrieve entities according to q parameter with jsonKeys`(
+    fun `it should retrieve entities according to q parameter with a JsonProperty attribute and sub-attribute`(
         q: String,
+        jsonKeys: String,
         expectedCount: Int,
         expectedListOfEntities: String?
     ) = runTest {
@@ -618,7 +625,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
                     q = parseQQuery(q).shouldSucceedAndResult(),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS,
-                    jsonKeys = setOf("jsonProp")
+                    jsonKeys = setOf(jsonKeys)
                 ),
                 null
             )
@@ -628,22 +635,35 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
     }
 
-    @Test
-    fun `it should retrieve entities according to q parameter with expandValues`() = runTest {
+    @ParameterizedTest
+    @CsvSource(
+        "category==\"BeeHive\", category, 1, urn:ngsi-ld:BeeHive:01",
+        "category==\"Apiary\", category, 0, ",
+        "propWithVocabSub.vocabSub==\"BeeHive\", propWithVocabSub, 1, urn:ngsi-ld:BeeHive:01",
+        "propWithVocabSub.vocabSub==\"Apiary\", propWithVocabSub, 1, urn:ngsi-ld:BeeHive:02",
+        "propWithVocabSub.vocabSub==\"Beekeeper\", propWithVocabSub, 0, ",
+    )
+    fun `it should retrieve entities according to q parameter with a VocabProperty attribute and sub-attribute`(
+        q: String,
+        expandValues: String,
+        expectedCount: Int,
+        expectedListOfEntities: String?
+    ) = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
                     typeSelection = BEEHIVE_IRI,
-                    q = parseQQuery("category==\"BeeHive\"").shouldSucceedAndResult(),
+                    q = parseQQuery(q).shouldSucceedAndResult(),
                     paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS,
-                    expandValues = setOf("category")
+                    expandValues = setOf(expandValues)
                 ),
                 null
             )
 
-        assertEquals(1, entitiesIds.size)
-        assertThat(entitiesIds).contains(entity01Uri)
+        assertEquals(expectedCount, entitiesIds.size)
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
     }
 
     @Test
@@ -731,5 +751,35 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
 
         assertEquals(1, entitiesIds.size)
         assertThat(entitiesIds).contains(entity01Uri)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "propWithJsonSub.jsonSub[sensor]==\"S01\", 1, urn:ngsi-ld:BeeHive:01",
+        "propWithJsonSub.jsonSub[sensor]==\"S02\", 1, urn:ngsi-ld:BeeHive:02",
+        "propWithJsonSub.jsonSub[reading]==7.3, 1, urn:ngsi-ld:BeeHive:01",
+        "propWithJsonSub.jsonSub[reading]==3.1, 1, urn:ngsi-ld:BeeHive:02",
+        "propWithJsonSub.jsonSub[sensor]==\"S99\", 0, "
+    )
+    fun `it should retrieve entities according to q parameter with json property sub-attribute`(
+        q: String,
+        expectedCount: Int,
+        expectedListOfEntities: String?
+    ) = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromGet(
+                    typeSelection = BEEHIVE_IRI,
+                    q = parseQQuery(q).shouldSucceedAndResult(),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS,
+                    jsonKeys = setOf("propWithJsonSub")
+                ),
+                null
+            )
+
+        assertEquals(expectedCount, entitiesIds.size)
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
     }
 }

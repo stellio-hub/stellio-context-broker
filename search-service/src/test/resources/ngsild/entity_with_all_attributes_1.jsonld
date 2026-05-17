@@ -133,6 +133,36 @@
       ]
     }
   },
+  "propWithVocabSub": {
+    "type": "Property",
+    "value": "ignored",
+    "vocabSub": {
+      "type": "VocabProperty",
+      "vocab": "BeeHive"
+    }
+  },
+  "propWithLangSub": {
+    "type": "Property",
+    "value": "ignored",
+    "langSub": {
+      "type": "LanguageProperty",
+      "languageMap": {
+        "en": "sub lang one",
+        "es": "sub lang uno"
+      }
+    }
+  },
+  "propWithJsonSub": {
+    "type": "Property",
+    "value": "ignored",
+    "jsonSub": {
+      "type": "JsonProperty",
+      "json": {
+        "sensor": "S01",
+        "reading": 7.3
+      }
+    }
+  },
   "@context": [
     "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
   ]

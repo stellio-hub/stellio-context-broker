@@ -19,19 +19,19 @@ fun QNode.toSqlJsonPath(
     else
         "'" + serializeObject(target.members).escapeSingleQuotes() + "'"
 
-    return toSql(contexts, targetExpr, jsonKeys, expandValues)
+    return toSql(targetExpr, jsonKeys, expandValues, contexts)
 }
 
 private fun QNode.toSql(
-    contexts: List<String>,
     targetExpr: String,
     jsonKeys: Set<String>,
-    expandValues: Set<String>
+    expandValues: Set<String>,
+    contexts: List<String>
 ): String = when (this) {
-    is AndNode -> "(${left.toSql(contexts, targetExpr, jsonKeys, expandValues)}) AND " +
-        "(${right.toSql(contexts, targetExpr, jsonKeys, expandValues)})"
-    is OrNode -> "(${left.toSql(contexts, targetExpr, jsonKeys, expandValues)}) OR " +
-        "(${right.toSql(contexts, targetExpr, jsonKeys, expandValues)})"
+    is AndNode -> "(${left.toSql(targetExpr, jsonKeys, expandValues, contexts)}) AND " +
+        "(${right.toSql(targetExpr, jsonKeys, expandValues, contexts)})"
+    is OrNode -> "(${left.toSql(targetExpr, jsonKeys, expandValues, contexts)}) OR " +
+        "(${right.toSql(targetExpr, jsonKeys, expandValues, contexts)})"
     is NotExistsNode -> {
         val attrPath = AttributePath(rawPath, contexts, jsonKeys, expandValues)
         "NOT (${existsSql(targetExpr, attrPath)})"
@@ -68,7 +68,7 @@ private fun comparisonSql(
 
     return when (value) {
         is RangeValue -> rangeComparisonSql(targetExpr, attrPath, operator, value)
-        is ListValue -> listComparisonSql(targetExpr, attrPath, operator, value)
+        is ListValue -> listComparisonSql(targetExpr, attrPath, operator, value, contexts)
         is SingleValue -> singleValueComparisonSql(targetExpr, attrPath, operator, value, contexts)
     }
 }
@@ -82,7 +82,9 @@ private fun languageTagComparisonSql(
     val langFilterPath = attrPath.buildJsonBLanguageMapFilterPath()
     val lang = attrPath.languageTag!!
 
+    // LanguageProperty and ListValue is not specified, return empty string
     if (value !is SingleValue) return ""
+
     val pattern = value.raw.escapeSingleQuotes()
     val langParams = """{"lang": "$lang"}"""
     return when (operator) {
@@ -142,7 +144,6 @@ private fun singleValueComparisonSql(
             likeRegexMultiPathSql(targetExpr, attrPath, operator, effectiveValue)
         }
         else -> {
-            // STRING: 2-path OR/AND block
             stringValueSql(targetExpr, attrPath, operator, effectiveValue)
         }
     }
@@ -160,9 +161,11 @@ private fun uriValueSql(
     val propPath = attrPath.buildJsonBPropertyPath()
     val vocabPath = attrPath.buildJsonBVocabPath()
 
+    // For NEQ operator, it should be an AND between clause, but if a path does not exist, PG returns an empty result.
+    // So since an attribute name is unique within an entity, it works with an OR.
     return if (operator == ComparisonOperator.NEQ) {
-        """(${singlePathFilter(targetExpr, relPath, operator, uriValue)} AND """ +
-            """${singlePathFilter(targetExpr, propPath, operator, uriValue)} AND """ +
+        """(${singlePathFilter(targetExpr, relPath, operator, uriValue)} OR """ +
+            """${singlePathFilter(targetExpr, propPath, operator, uriValue)} OR """ +
             """${singlePathFilter(targetExpr, vocabPath, operator, uriValue)})"""
     } else {
         """(${singlePathFilter(targetExpr, relPath, ComparisonOperator.EQ, uriValue)} OR """ +
@@ -180,8 +183,10 @@ private fun stringValueSql(
     val propPath = attrPath.buildJsonBPropertyPath()
     val langMapPath = attrPath.buildJsonBLanguageMapPath()
 
+    // For NEQ operator, it should be an AND between clause, but if a path does not exist, PG returns an empty result.
+    // So since an attribute name is unique within an entity, it works with an OR.
     return if (operator == ComparisonOperator.NEQ) {
-        """(${singlePathFilter(targetExpr, propPath, operator, value)} AND """ +
+        """(${singlePathFilter(targetExpr, propPath, operator, value)} OR """ +
             """${singlePathFilter(targetExpr, langMapPath, operator, value)})"""
     } else {
         """(${singlePathFilter(targetExpr, propPath, operator, value)} OR """ +
@@ -222,7 +227,8 @@ private fun listComparisonSql(
     targetExpr: String,
     attrPath: AttributePath,
     operator: ComparisonOperator,
-    value: ListValue
+    value: ListValue,
+    contexts: List<String>
 ): String {
     val valueType = value.items.firstOrNull()?.type ?: ValueType.STRING
     return if (valueType == ValueType.URI || attrPath.isExpandValuesAttribute) {
@@ -231,8 +237,15 @@ private fun listComparisonSql(
             attrPath.buildJsonBPropertyPath(),
             attrPath.buildJsonBVocabPath()
         )
+        val effectiveValue = if (attrPath.isExpandValuesAttribute) {
+            ListValue(
+                value.items.map { SingleValue(JsonLdUtils.expandJsonLdTerm(it.raw, contexts), ValueType.URI) }
+            )
+        } else {
+            value
+        }
         val joinOp = if (operator == ComparisonOperator.NEQ) " AND " else " OR "
-        paths.joinToString(joinOp) { path -> listFilter(targetExpr, path, operator, value) }
+        paths.joinToString(joinOp) { path -> listFilter(targetExpr, path, operator, effectiveValue) }
     } else {
         listFilter(targetExpr, attrPath.buildJsonBPropertyPath(), operator, value)
     }

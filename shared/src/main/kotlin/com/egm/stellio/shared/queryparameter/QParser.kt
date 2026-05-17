@@ -79,13 +79,13 @@ private class QParserImpl(private val raw: String) {
 
     private fun parseNotExistsExpr(): Either<String, QNode> = either {
         pos++
-        val rawPath = parseRawAttributePath()
+        val rawPath = parseRawAttributePath().bind()
         ensure(rawPath.isNotEmpty()) { "Missing attribute path after '!'" }
         NotExistsNode(rawPath)
     }
 
     private fun parseAttrExpr(): Either<String, QNode> = either {
-        val rawPath = parseRawAttributePath()
+        val rawPath = parseRawAttributePath().bind()
         ensure(rawPath.isNotEmpty()) { "Empty attribute path at position $pos" }
         val op = parseOperator().bind()
         if (op == null) ExistsNode(rawPath) else ComparisonNode(rawPath, op, parseValue().bind())
@@ -98,7 +98,7 @@ private class QParserImpl(private val raw: String) {
         return raw[next] != '=' && raw[next] != '~'
     }
 
-    private fun parseRawAttributePath(): String {
+    private fun parseRawAttributePath(): Either<String, String> = either {
         val start = pos
         var inBracket = false
         var done = false
@@ -119,7 +119,8 @@ private class QParserImpl(private val raw: String) {
                 else -> pos++
             }
         }
-        return raw.substring(start, pos)
+        ensure(!inBracket) { "Unclosed bracket in value" }
+        raw.substring(start, pos)
     }
 
     private fun isOperatorChar(c: Char): Boolean = c in setOf('=', '!', '>', '<', '~')

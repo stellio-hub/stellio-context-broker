@@ -39,7 +39,7 @@ class QNodeSqlTranslatorTests {
     private val incomingRelPath =
         """$."$INCOMING_IRI"."$NGSILD_RELATIONSHIP_OBJECT"."$JSONLD_ID_KW""""
     private val incomingVocabPath =
-        """$."$INCOMING_IRI"."$NGSILD_VOCABPROPERTY_VOCAB"."$JSONLD_ID_KW""""
+        """$."$INCOMING_IRI"."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW""""
     private val incomingLangMapPath =
         """$."$INCOMING_IRI"."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW""""
     private val incomingLangFilterPath =

@@ -269,7 +269,7 @@ class NgsiLdPropertyInstance private constructor(
 }
 
 class NgsiLdRelationshipInstance private constructor(
-    val objectId: List<URI>,
+    val objectId: Any, // URI or list of URIs
     observedAt: ZonedDateTime?,
     datasetId: URI?,
     attributes: List<NgsiLdAttribute>

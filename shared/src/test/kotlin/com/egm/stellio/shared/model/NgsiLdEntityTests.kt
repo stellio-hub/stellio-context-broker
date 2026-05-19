@@ -443,6 +443,39 @@ class NgsiLdEntityTests {
     }
 
     @Test
+    fun `it should parse an entity with a multivalued relationship`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "refDeviceModel": {
+                    "type": "Relationship",
+                    "object": [
+                        "urn:ngsi-ld:DeviceModel:09876",
+                        "urn:ngsi-ld:DeviceModel:12345"
+                    ]
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        assertEquals(1, ngsiLdEntity.relationships.size)
+        val ngsiLdRelationship = ngsiLdEntity.relationships[0]
+        assertEquals(1, ngsiLdRelationship.instances.size)
+        val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
+        assertEquals(
+            listOf(
+                "urn:ngsi-ld:DeviceModel:09876".toUri(),
+                "urn:ngsi-ld:DeviceModel:12345".toUri()
+            ),
+            ngsiLdRelationshipInstance.objectId
+        )
+    }
+
+    @Test
     fun `it should not parse a relationship with more than one default instance`() = runTest {
         val rawRelationship =
             """

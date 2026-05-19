@@ -196,4 +196,22 @@ class ExpandedMembersTests {
                 assertEquals(relationshipObjectId.toUri(), it)
             }
     }
+
+    @Test
+    fun `it should extract the target objects of a multivalued relationship`() {
+        val relationshipValues = mapOf(
+            NGSILD_RELATIONSHIP_OBJECT to listOf(
+                mapOf(JSONLD_ID_KW to "urn:ngsi-ld:T:1"),
+                mapOf(JSONLD_ID_KW to "urn:ngsi-ld:T:2")
+            )
+        )
+
+        relationshipValues.getRelationshipObject("isARelationship")
+            .shouldSucceedWith {
+                assertEquals(
+                    listOf("urn:ngsi-ld:T:1".toUri(), "urn:ngsi-ld:T:2".toUri()),
+                    it
+                )
+            }
+    }
 }

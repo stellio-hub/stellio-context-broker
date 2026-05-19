@@ -141,6 +141,10 @@
     "type": "Relationship",
     "object": "urn:ngsi-ld:AnotherEntity:01"
   },
+  "multiValuedRelationship": {
+    "type": "Relationship",
+    "object": ["urn:ngsi-ld:AnotherEntity:01","urn:ngsi-ld:AnotherEntity:02"]
+  },
   "location": {
     "type": "GeoProperty",
     "value": {

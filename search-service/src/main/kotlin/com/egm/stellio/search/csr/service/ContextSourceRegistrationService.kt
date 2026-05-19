@@ -11,6 +11,7 @@ import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toBoolean
 import com.egm.stellio.search.common.util.toInt
 import com.egm.stellio.search.common.util.toJsonString
+import com.egm.stellio.search.common.util.toOptionalEnum
 import com.egm.stellio.search.common.util.toOptionalZonedDateTime
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
@@ -74,14 +75,16 @@ class ContextSourceRegistrationService(
                 information, operations, registration_name,
                 observation_interval_start, observation_interval_end,
                 management_interval_start, management_interval_end,
-                context_source_info, tenant, sub, created_at, modified_at
+                context_source_info, tenant, sub, created_at, modified_at,
+                times_sent, times_failed
             )
             VALUES(
                 :id, :endpoint, :mode,
                 :information, :operations, :registration_name,
                 :observation_interval_start, :observation_interval_end,
                 :management_interval_start, :management_interval_end,
-                :context_source_info, :tenant, :sub, :created_at, :modified_at
+                :context_source_info, :tenant, :sub, :created_at, :modified_at,
+                :times_sent, :times_failed
             )
             ON CONFLICT (id)
             DO UPDATE SET
@@ -97,7 +100,9 @@ class ContextSourceRegistrationService(
                 context_source_info = :context_source_info,
                 tenant = :tenant,
                 sub = :sub,
-                modified_at = :modified_at
+                modified_at = :modified_at,
+                times_sent = :times_sent,
+                times_failed = :times_failed
             """.trimIndent()
         databaseClient.sql(insertStatement)
             .bind("id", csr.id)
@@ -122,6 +127,8 @@ class ContextSourceRegistrationService(
             .bind("sub", getSubFromSecurityContext())
             .bind("created_at", csr.createdAt)
             .bind("modified_at", csr.modifiedAt)
+            .bind("times_sent", csr.timesSent)
+            .bind("times_failed", csr.timesFailed)
             .execute().bind()
     }
 
@@ -168,7 +175,11 @@ class ContextSourceRegistrationService(
                 context_source_info,
                 tenant,
                 created_at,
-                modified_at
+                modified_at,
+                status,
+                times_sent,
+                times_failed,
+                last_failure
             FROM context_source_registration
             WHERE id = :id
             """.trimIndent()
@@ -222,7 +233,11 @@ class ContextSourceRegistrationService(
                 context_source_info,
                 tenant,
                 created_at,
-                modified_at
+                modified_at,
+                status,
+                times_sent,
+                times_failed,
+                last_failure
             FROM context_source_registration as csr
             LEFT JOIN jsonb_to_recordset(information)
                 as information(entities jsonb, "propertyNames" text[], "relationshipNames" text[]) on true
@@ -264,10 +279,10 @@ class ContextSourceRegistrationService(
         success: Boolean
     ) {
         val updateStatement = if (success)
-            Update.update("status", ContextSourceRegistration.StatusType.OK.name)
+            Update.update("status", ContextSourceRegistration.StatusType.OK)
                 .set("times_sent", csr.timesSent + 1)
                 .set("last_success", ngsiLdDateTime())
-        else Update.update("status", ContextSourceRegistration.StatusType.FAILED.name)
+        else Update.update("status", ContextSourceRegistration.StatusType.FAILED)
             .set("times_sent", csr.timesSent + 1)
             .set("times_failed", csr.timesFailed + 1)
             .set("last_failure", ngsiLdDateTime())
@@ -362,7 +377,11 @@ class ContextSourceRegistrationService(
                 contextSourceInfo = KeyValuePair.deserialize(toJsonString(row["context_source_info"])),
                 tenant = row["tenant"] as? String,
                 createdAt = toZonedDateTime(row["created_at"]),
-                modifiedAt = toZonedDateTime(row["modified_at"])
+                modifiedAt = toZonedDateTime(row["modified_at"]),
+                status = toOptionalEnum<ContextSourceRegistration.StatusType>(row["status"]),
+                timesSent = row["times_sent"] as Int,
+                timesFailed = row["times_failed"] as Int,
+                lastFailure = toOptionalZonedDateTime(row["last_failure"])
             )
         }
     }

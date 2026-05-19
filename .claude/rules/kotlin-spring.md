@@ -49,10 +49,13 @@ the `model` package, and utility functions in the `util` package
 - Domain exceptions use `APIException` (or its subtypes) with an HTTP status
 - Services throw domain exceptions; controllers translate them to HTTP responses via `@ControllerAdvice`
 - Repositories wrap persistence exceptions into domain exceptions
+- **Never use exceptions for control flow in business or parsing logic.** Represent parse and validation failures as
+  `Either.Left` using Arrow `Either` — use the `either { }` builder (`arrow.core.raise.either`) with `raise()` for
+  errors and `.bind()` to propagate them.
 - Use Arrow `Either` for recoverable errors in functional pipelines; use `IorNel` when partial success with warnings
-is needed
+  is needed
 - Extract all error messages in the *shared/src/main/kotlin/com/egm/stellio/shared/util/ErrorMessages.kt* class; do not
-hardcode them.
+  hardcode them.
 
 ## Logging
 

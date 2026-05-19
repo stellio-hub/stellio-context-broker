@@ -62,6 +62,23 @@
       ]
     }
   },
+  "jsonProp": {
+    "type": "JsonProperty",
+    "json": {
+      "anObject": {
+        "name": "River"
+      },
+      "aString": "flow monitoring",
+      "aNumber": 93.93
+    }
+  },
+  "localizedName": {
+    "type": "LanguageProperty",
+    "languageMap": {
+      "en": "Bee Hive Two",
+      "es": "Colmena Dos"
+    }
+  },
   "observedProperty": {
     "type": "Property",
     "value": 93.0,
@@ -104,6 +121,36 @@
         90.0,
         10
       ]
+    }
+  },
+  "propWithVocabSub": {
+    "type": "Property",
+    "value": "ignored",
+    "vocabSub": {
+      "type": "VocabProperty",
+      "vocab": "Apiary"
+    }
+  },
+  "propWithLangSub": {
+    "type": "Property",
+    "value": "ignored",
+    "langSub": {
+      "type": "LanguageProperty",
+      "languageMap": {
+        "en": "sub lang two",
+        "es": "sub lang dos"
+      }
+    }
+  },
+  "propWithJsonSub": {
+    "type": "Property",
+    "value": "ignored",
+    "jsonSub": {
+      "type": "JsonProperty",
+      "json": {
+        "sensor": "S02",
+        "reading": 3.1
+      }
     }
   },
   "@context": [

@@ -5,35 +5,72 @@ import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
+import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
+import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils
+import java.util.Locale
+import kotlin.collections.joinToString
 
-data class AttributePath(val term: String, val contexts: List<String>) {
+data class AttributePath(
+    val term: String,
+    val contexts: List<String>,
+    val jsonKeys: Set<String> = emptySet(),
+    val expandValues: Set<String> = emptySet()
+) {
+    val compactMainAttr: String = term.substringBefore("[").substringBefore(".").trim()
+    val isJsonKeysAttribute: Boolean = compactMainAttr in jsonKeys
+    val isExpandValuesAttribute: Boolean = compactMainAttr in expandValues
 
     val mainPath: List<ExpandedTerm> = term.substringBefore("[").split(".")
         .map { JsonLdUtils.expandJsonLdTerm(it, contexts) }
 
-    // some should not be expanded based on jsonKeys parameter
-    val trailingPath: List<ExpandedTerm> = if (term.contains("["))
-        term.substringAfter('[').substringBefore(']').split(".")
-            .map { JsonLdUtils.expandJsonLdTerm(it, contexts) }
-    else emptyList()
+    val languageTag: String?
+    val trailingPath: List<ExpandedTerm>
+
+    init {
+        if (term.contains("[")) {
+            val bracketContent = term.substringAfter('[').substringBefore(']')
+            val rawTerms = bracketContent.split(".")
+            when {
+                isJsonKeysAttribute -> {
+                    languageTag = null
+                    trailingPath = rawTerms
+                }
+                rawTerms.size == 1 && isValidLanguageTag(rawTerms[0]) -> {
+                    languageTag = rawTerms[0]
+                    trailingPath = emptyList()
+                }
+                else -> {
+                    languageTag = null
+                    trailingPath = rawTerms.map { JsonLdUtils.expandJsonLdTerm(it, contexts) }
+                }
+            }
+        } else {
+            languageTag = null
+            trailingPath = emptyList()
+        }
+    }
 
     fun buildJsonBPropertyPath(): String {
-        val mainPathString = mainPath.joinToString(".") { "\"$it\"" }
-        val trailingPathString = trailingPath.joinToString(".") { "\"$it\"" }
+        val mainPathString = mainPath.toQuotedJsonPath()
+        val trailingPathString = trailingPath.toQuotedJsonPath()
         return when {
+            // id and type are only used for entity ordering (not applicable for q queries)
             term == "id" -> """$."$JSONLD_ID_KW""""
             term == "type" -> """$."@type""""
             mainPath.last() == NGSILD_MODIFIED_AT_IRI ||
                 mainPath.last() == NGSILD_CREATED_AT_IRI ||
                 mainPath.last() == NGSILD_DELETED_AT_IRI ||
                 mainPath.last() == NGSILD_OBSERVED_AT_IRI -> """$.$mainPathString."$JSONLD_VALUE_KW""""
-            mainPath.size > 1 ->
+            mainPath.size > 1 && trailingPath.isEmpty() ->
                 """$.$mainPathString.**{0 to 2}."$JSONLD_VALUE_KW""""
+            mainPath.size > 1 ->
+                """$.$mainPathString.**{0 to 2}.$trailingPathString.**{0 to 1}."$JSONLD_VALUE_KW""""
             trailingPath.isEmpty() ->
                 """$."${mainPath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW""""
             else ->
@@ -42,16 +79,49 @@ data class AttributePath(val term: String, val contexts: List<String>) {
     }
 
     fun buildJsonBRelationshipPath(): String {
-        val mainPathString = mainPath.joinToString(".") { "\"$it\"" }
-        val trailingPathString = trailingPath.joinToString(".") { "\"$it\"" }
-        return when {
-            mainPath.size > 1 ->
-                """$.$mainPathString.**{0 to 2}."$JSONLD_ID_KW""""
-            trailingPath.isEmpty() ->
-                """$."${mainPath[0]}"."$NGSILD_RELATIONSHIP_OBJECT"."$JSONLD_ID_KW""""
-            else ->
-                """$."${mainPath[0]}"."$NGSILD_RELATIONSHIP_OBJECT".$trailingPathString.**{0 to 1}."$JSONLD_ID_KW""""
-        }
+        val mainPathString = mainPath.toQuotedJsonPath()
+        return if (mainPath.size > 1)
+            """$.$mainPathString.**{0 to 2}."$JSONLD_ID_KW""""
+        else
+            """$."${mainPath[0]}"."$NGSILD_RELATIONSHIP_OBJECT"."$JSONLD_ID_KW""""
+    }
+
+    fun buildJsonBVocabPath(): String {
+        val mainPathString = mainPath.toQuotedJsonPath()
+        return if (mainPath.size > 1)
+            """$.$mainPathString."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW""""
+        else
+            """$."${mainPath[0]}"."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW""""
+    }
+
+    fun buildJsonBLanguageMapPath(): String {
+        val mainPathString = mainPath.toQuotedJsonPath()
+        return if (mainPath.size > 1)
+            """$.$mainPathString."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW""""
+        else
+            """$."${mainPath[0]}"."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW""""
+    }
+
+    fun buildJsonBLanguageMapFilterPath(): String {
+        val mainPathString = mainPath.toQuotedJsonPath()
+        return if (mainPath.size > 1)
+            """$.$mainPathString."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]"""
+        else
+            """$."${mainPath[0]}"."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]"""
+    }
+
+    fun buildJsonBJsonPropertyPath(): String {
+        val mainPathString = mainPath.toQuotedJsonPath()
+        val keyPath = trailingPath.toQuotedJsonPath()
+        return if (mainPath.size > 1)
+            """$.$mainPathString."$NGSILD_JSONPROPERTY_JSON"."$JSONLD_VALUE_KW".$keyPath"""
+        else
+            """$."${mainPath[0]}"."$NGSILD_JSONPROPERTY_JSON"."$JSONLD_VALUE_KW".$keyPath"""
+    }
+
+    fun buildJsonBExistsPath(): String {
+        val mainPathString = mainPath.toQuotedJsonPath()
+        return """$.$mainPathString"""
     }
 
     fun buildSqlOrderClause() = """
@@ -65,4 +135,15 @@ data class AttributePath(val term: String, val contexts: List<String>) {
             '${buildJsonBRelationshipPath()}'
         )
     """.trimIndent()
+
+    private fun isValidLanguageTag(tag: String): Boolean =
+        runCatching {
+            Locale.forLanguageTag(tag).isO3Language
+        }.fold(
+            { it.isNotEmpty() },
+            { false }
+        )
+
+    private fun List<ExpandedTerm>.toQuotedJsonPath(): String =
+        this.joinToString(".") { "\"$it\"" }
 }

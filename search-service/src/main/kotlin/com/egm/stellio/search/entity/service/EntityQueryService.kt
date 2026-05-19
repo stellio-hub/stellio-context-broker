@@ -146,7 +146,9 @@ class EntityQueryService(
             accessRightFilter
         ).let { sqlFilter ->
             entitiesQuery.q?.let { q ->
-                sqlFilter.wrapToAndClause(buildQQuery(q, entitiesQuery.contexts))
+                sqlFilter.wrapToAndClause(
+                    buildQQuery(q, entitiesQuery.jsonKeys, entitiesQuery.expandValues, entitiesQuery.contexts)
+                )
             } ?: sqlFilter
         }.let { sqlFilter ->
             entitiesQuery.scopeQ?.let { scopeQ ->

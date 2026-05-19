@@ -18,6 +18,7 @@ import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryPar
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.queryparameter.parseQQuery
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ATTRIBUTES_WITH_PICK_OR_OMIT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ENTITY_MEMBER_IN_PICK_AND_OMIT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.KEEP_AND_DROP_BOTH_PROVIDED_MESSAGE
@@ -45,7 +46,9 @@ fun composeEntitiesQueryFromGet(
      * Decoding query parameters is not supported by default so a call to a decode function was added query
      * with the right parameters values
      */
-    val q = queryParams.getFirst(QueryParameter.Q.key)?.decode()
+    val q = queryParams.getFirst(QueryParameter.Q.key)?.decode()?.let {
+        parseQQuery(it).bind()
+    }
     val scopeQ = queryParams.getFirst(QueryParameter.SCOPEQ.key)
     val attrs = parseAttrsParameter(queryParams.getFirst(QueryParameter.ATTRS.key), contexts).bind()
     val (pick, omit) = parsePickOmitParameters(
@@ -72,6 +75,9 @@ fun composeEntitiesQueryFromGet(
         queryParams.getFirst(QueryParameter.ORDER_BY.key)?.split(','),
         contexts
     ).bind()
+    val jsonKeys = parseQueryParameter(queryParams.getFirst(QueryParameter.JSON_KEYS.key))
+    val expandValues = parseQueryParameter(queryParams.getFirst(QueryParameter.EXPAND_VALUES.key))
+
     EntitiesQueryFromGet(
         ids = ids,
         typeSelection = typeSelection,
@@ -87,14 +93,16 @@ fun composeEntitiesQueryFromGet(
         linkedEntityQuery = linkedEntityQuery,
         local = local,
         ordering = ordering,
-        contexts = contexts
+        contexts = contexts,
+        jsonKeys = jsonKeys,
+        expandValues = expandValues
     )
 }
 
 fun EntitiesQueryFromGet.validateMinimalQueryEntitiesParameters(): Either<APIException, EntitiesQueryFromGet> = either {
     if (
         geoQuery == null &&
-        q.isNullOrEmpty() &&
+        q == null &&
         typeSelection.isNullOrEmpty() &&
         attrs.isEmpty() &&
         !local
@@ -115,7 +123,7 @@ fun EntitiesQueryFromGet.validateMinimalPurgeEntitiesParameters(
         typeSelection.isNullOrEmpty() &&
         keep.isEmpty() &&
         drop.isEmpty() &&
-        q.isNullOrEmpty() &&
+        q == null &&
         geoQuery == null &&
         !local
     )
@@ -137,6 +145,7 @@ fun composeEntitiesQueryFromPost(
             expandTypeSelection(entitySelector.typeSelection, contexts)!!
         )
     }
+    val q = query.q?.decode()?.let { parseQQuery(it).bind() }
     val attrs = query.attrs.orEmpty().map { JsonLdUtils.expandJsonLdTerm(it.trim(), contexts) }.toSet()
     val (pick, omit) = parsePickOmitParameters(
         query.pick?.joinToString(","),
@@ -169,10 +178,12 @@ fun composeEntitiesQueryFromPost(
         query.ordering?.orderBy,
         contexts
     ).bind()
+    val jsonKeys = query.jsonKeys.orEmpty().toSet()
+    val expandValues = query.expandValues.orEmpty().toSet()
 
     EntitiesQueryFromPost(
         entitySelectors = entitySelectors,
-        q = query.q?.decode(),
+        q = q,
         scopeQ = query.scopeQ,
         paginationQuery = paginationQuery,
         attrs = attrs,
@@ -182,7 +193,9 @@ fun composeEntitiesQueryFromPost(
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
         ordering = ordering,
-        contexts = contexts
+        contexts = contexts,
+        jsonKeys = jsonKeys,
+        expandValues = expandValues
     )
 }
 

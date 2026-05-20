@@ -134,13 +134,12 @@ private fun simplifyAttribute(value: Map<String, Any>): Any {
     return when (attributeCompactedType) {
         PROPERTY, GEOPROPERTY -> value.getOrDefault(NGSILD_VALUE_TERM, value)
         RELATIONSHIP -> {
-            if (value.containsKey(NGSILD_ENTITY_TERM)) {
-                when (val linkedEntity = value[NGSILD_ENTITY_TERM]) {
-                    is Map<*, *> -> (linkedEntity as CompactedEntity).toSimplifiedAttributes()
-                    is List<*> -> linkedEntity.map { (it as CompactedEntity).toSimplifiedAttributes() }
-                    else -> value
-                }
-            } else value.getOrDefault(NGSILD_OBJECT_TERM, value)
+            when (val linkedEntity = value[NGSILD_ENTITY_TERM]) {
+                null -> value.getOrDefault(NGSILD_OBJECT_TERM, value)
+                is Map<*, *> -> (linkedEntity as CompactedEntity).toSimplifiedAttributes()
+                is List<*> -> linkedEntity.map { (it as CompactedEntity).toSimplifiedAttributes() }
+                else -> value
+            }
         }
         JSONPROPERTY -> mapOf(NGSILD_JSON_TERM to value.getOrDefault(NGSILD_JSON_TERM, value))
         LANGUAGEPROPERTY -> mapOf(NGSILD_LANGUAGEMAP_TERM to value.getOrDefault(NGSILD_LANGUAGEMAP_TERM, value))

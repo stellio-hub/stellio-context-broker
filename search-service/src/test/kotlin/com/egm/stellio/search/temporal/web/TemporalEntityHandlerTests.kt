@@ -12,7 +12,6 @@ import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.TooManyResultsException
@@ -274,7 +273,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         val expandedTemporalEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
-        } returns expandedTemporalEntity.right()
+        } returns Pair(expandedTemporalEntity, null).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
@@ -494,7 +493,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         val expandedTemporalEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
-        } returns expandedTemporalEntity.right()
+        } returns Pair(expandedTemporalEntity, null).right()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri?pick=name")
@@ -515,7 +514,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         val expandedTemporalEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
-        } returns expandedTemporalEntity.right()
+        } returns Pair(expandedTemporalEntity, null).right()
 
         webClient.get()
             .uri(
@@ -609,7 +608,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         val temporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_one_evolution.jsonld")
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
-        } returns temporalEntity.right()
+        } returns (temporalEntity to null).right()
 
         webClient.get()
             .uri(
@@ -633,7 +632,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
         val entityResponseWith2temporalEvolutions = loadAndExpandSampleData(entityFileName)
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
-        } returns entityResponseWith2temporalEvolutions.right()
+        } returns (entityResponseWith2temporalEvolutions to null).right()
     }
 
     @Test
@@ -662,7 +661,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(emptyList<ExpandedEntity>() to 2)
+        } returns Either.Right(Triple(emptyList(), 2, null))
 
         webClient.get()
             .uri(
@@ -696,7 +695,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(listOf(firstTemporalEntity, secondTemporalEntity) to 2)
+        } returns Either.Right(Triple(listOf(firstTemporalEntity, secondTemporalEntity), 2, null))
 
         webClient.get()
             .uri(
@@ -721,7 +720,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(listOf(firstTemporalEntity, secondTemporalEntity) to 2)
+        } returns Either.Right(Triple(listOf(firstTemporalEntity, secondTemporalEntity), 2, null))
 
         webClient.get()
             .uri(
@@ -748,7 +747,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(listOf(firstTemporalEntity, secondTemporalEntity) to 2)
+        } returns Either.Right(Triple(listOf(firstTemporalEntity, secondTemporalEntity), 2, null))
 
         webClient.get()
             .uri(
@@ -771,7 +770,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `query temporal entity should return 200 and empty response if requested offset does not exist`() {
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(emptyList<ExpandedEntity>() to 2)
+        } returns Either.Right(Triple(emptyList(), 2, null))
 
         webClient.get()
             .uri(
@@ -788,7 +787,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     fun `query temporal entities should return 200 and the number of results if count is asked for`() {
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(emptyList<ExpandedEntity>() to 2)
+        } returns Either.Right(Triple(emptyList(), 2, null))
 
         webClient.get()
             .uri(
@@ -809,7 +808,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(listOf(firstTemporalEntity, secondTemporalEntity) to 2)
+        } returns Either.Right(Triple(listOf(firstTemporalEntity, secondTemporalEntity), 2, null))
 
         webClient.get()
             .uri(
@@ -835,7 +834,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(listOf(firstTemporalEntity, secondTemporalEntity) to 3)
+        } returns Either.Right(Triple(listOf(firstTemporalEntity, secondTemporalEntity), 3, null))
 
         webClient.get()
             .uri(

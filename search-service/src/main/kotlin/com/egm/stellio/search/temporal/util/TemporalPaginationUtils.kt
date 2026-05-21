@@ -1,11 +1,9 @@
-package com.egm.stellio.search.temporal.service
+package com.egm.stellio.search.temporal.util
 
 import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery
-import com.egm.stellio.search.temporal.util.AttributesWithInstances
-import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import java.time.ZonedDateTime
 
 typealias Range = Pair<ZonedDateTime, ZonedDateTime>

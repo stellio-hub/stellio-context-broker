@@ -1,4 +1,4 @@
-package com.egm.stellio.search.temporal.service
+package com.egm.stellio.search.temporal.util
 
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.Attribute
@@ -11,29 +11,24 @@ import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
-import com.egm.stellio.search.temporal.service.TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange
-import com.egm.stellio.search.temporal.util.AttributesWithInstances
-import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.ZonedDateTime
-import java.time.ZonedDateTime.now
 import java.util.UUID
 
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [TemporalPaginationService::class])
 @EnableConfigurationProperties(SearchProperties::class)
-class TemporalPaginationServiceTests {
+class TemporalPaginationUtilsTests {
 
     private val timeAt = ZonedDateTime.parse("2019-01-01T00:00:00Z")
     private val endTimeAt = ZonedDateTime.parse("2021-01-01T00:00:00Z")
@@ -45,7 +40,7 @@ class TemporalPaginationServiceTests {
         entityId = entityUri,
         attributeName = INCOMING_IRI,
         attributeValueType = Attribute.AttributeValueType.NUMBER,
-        createdAt = now(),
+        createdAt = ZonedDateTime.now(),
         payload = EMPTY_JSON_PAYLOAD
     )
 
@@ -53,7 +48,7 @@ class TemporalPaginationServiceTests {
         entityId = entityUri,
         attributeName = OUTGOING_IRI,
         attributeValueType = Attribute.AttributeValueType.NUMBER,
-        createdAt = now(),
+        createdAt = ZonedDateTime.now(),
         payload = EMPTY_JSON_PAYLOAD
     )
 
@@ -153,14 +148,17 @@ class TemporalPaginationServiceTests {
                 endTimeAt = endTimeAt
             )
         )
-        val (newTeas, range) = getPaginatedAttributeWithInstancesAndRange(attributesWithInstances, query)
-        assertNotNull(range)
+        val (newTeas, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstances,
+            query
+        )
+        Assertions.assertNotNull(range)
 
-        assertEquals(5, newTeas[attributeIncoming]?.size)
-        assertEquals(2, newTeas[attributeOutgoing]?.size)
+        Assertions.assertEquals(5, newTeas[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newTeas[attributeOutgoing]?.size)
 
-        assertEquals(timeAt, range!!.first)
-        assertEquals(mostRecentTimestamp, range.second)
+        Assertions.assertEquals(timeAt, range!!.first)
+        Assertions.assertEquals(mostRecentTimestamp, range.second)
     }
 
     @Test
@@ -172,15 +170,18 @@ class TemporalPaginationServiceTests {
                 timeAt = timeAt,
             )
         )
-        val (newTeas, range) = getPaginatedAttributeWithInstancesAndRange(attributesWithInstances, query)
+        val (newTeas, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstances,
+            query
+        )
 
-        assertNotNull(range)
+        Assertions.assertNotNull(range)
 
-        assertEquals(5, newTeas[attributeIncoming]?.size)
-        assertEquals(2, newTeas[attributeOutgoing]?.size)
+        Assertions.assertEquals(5, newTeas[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newTeas[attributeOutgoing]?.size)
 
-        assertEquals(timeAt, range!!.first)
-        assertEquals(mostRecentTimestamp, range.second)
+        Assertions.assertEquals(timeAt, range!!.first)
+        Assertions.assertEquals(mostRecentTimestamp, range.second)
     }
 
     @Test
@@ -192,15 +193,18 @@ class TemporalPaginationServiceTests {
                 timeAt = endTimeAt,
             )
         )
-        val (newTeas, range) = getPaginatedAttributeWithInstancesAndRange(attributesWithInstances, query)
+        val (newTeas, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstances,
+            query
+        )
 
-        assertNotNull(range)
+        Assertions.assertNotNull(range)
 
-        assertEquals(5, newTeas[attributeIncoming]?.size)
-        assertEquals(2, newTeas[attributeOutgoing]?.size)
+        Assertions.assertEquals(5, newTeas[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newTeas[attributeOutgoing]?.size)
 
-        assertEquals(leastRecentTimestamp, range!!.first)
-        assertEquals(mostRecentTimestamp, range.second)
+        Assertions.assertEquals(leastRecentTimestamp, range!!.first)
+        Assertions.assertEquals(mostRecentTimestamp, range.second)
     }
 
     @Test
@@ -214,15 +218,18 @@ class TemporalPaginationServiceTests {
                 lastN = 100
             )
         )
-        val (newTeas, range) = getPaginatedAttributeWithInstancesAndRange(attributesWithInstancesForLastN, query)
+        val (newTeas, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstancesForLastN,
+            query
+        )
 
-        assertNotNull(range)
+        Assertions.assertNotNull(range)
 
-        assertEquals(5, newTeas[attributeIncoming]?.size)
-        assertEquals(2, newTeas[attributeOutgoing]?.size)
+        Assertions.assertEquals(5, newTeas[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newTeas[attributeOutgoing]?.size)
 
-        assertEquals(endTimeAt, range!!.first)
-        assertEquals(leastRecentTimestamp, range.second)
+        Assertions.assertEquals(endTimeAt, range!!.first)
+        Assertions.assertEquals(leastRecentTimestamp, range.second)
     }
 
     @Test
@@ -235,15 +242,18 @@ class TemporalPaginationServiceTests {
                 lastN = 100
             )
         )
-        val (newTeas, range) = getPaginatedAttributeWithInstancesAndRange(attributesWithInstancesForLastN, query)
+        val (newTeas, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstancesForLastN,
+            query
+        )
 
-        assertNotNull(range)
+        Assertions.assertNotNull(range)
 
-        assertEquals(5, newTeas[attributeIncoming]?.size)
-        assertEquals(2, newTeas[attributeOutgoing]?.size)
+        Assertions.assertEquals(5, newTeas[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newTeas[attributeOutgoing]?.size)
 
-        assertEquals(mostRecentTimestamp, range!!.first)
-        assertEquals(leastRecentTimestamp, range.second)
+        Assertions.assertEquals(mostRecentTimestamp, range!!.first)
+        Assertions.assertEquals(leastRecentTimestamp, range.second)
     }
 
     @Test
@@ -256,15 +266,18 @@ class TemporalPaginationServiceTests {
                 lastN = 100
             )
         )
-        val (newAttributes, range) = getPaginatedAttributeWithInstancesAndRange(attributesWithInstancesForLastN, query)
+        val (newAttributes, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstancesForLastN,
+            query
+        )
 
-        assertNotNull(range)
+        Assertions.assertNotNull(range)
 
-        assertEquals(5, newAttributes[attributeIncoming]?.size)
-        assertEquals(2, newAttributes[attributeOutgoing]?.size)
+        Assertions.assertEquals(5, newAttributes[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newAttributes[attributeOutgoing]?.size)
 
-        assertEquals(endTimeAt, range!!.first)
-        assertEquals(leastRecentTimestamp, range.second)
+        Assertions.assertEquals(endTimeAt, range!!.first)
+        Assertions.assertEquals(leastRecentTimestamp, range.second)
     }
 
     @Test
@@ -288,14 +301,17 @@ class TemporalPaginationServiceTests {
 
         val attributesWithInstances: AttributesWithInstances =
             mapOf(attributeIncoming to aggregationInstances, attributeOutgoing to aggregationInstances)
-        val (newAttributes, range) = getPaginatedAttributeWithInstancesAndRange(attributesWithInstances, query)
+        val (newAttributes, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstances,
+            query
+        )
 
-        assertNotNull(range)
+        Assertions.assertNotNull(range)
 
-        assertEquals(2, newAttributes[attributeIncoming]?.size)
-        assertEquals(2, newAttributes[attributeOutgoing]?.size)
+        Assertions.assertEquals(2, newAttributes[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newAttributes[attributeOutgoing]?.size)
 
-        assertEquals(leastRecentTimestamp.plusMinutes(1).plusSeconds(59), range!!.second)
-        assertEquals(timeAt, range.first)
+        Assertions.assertEquals(leastRecentTimestamp.plusMinutes(1).plusSeconds(59), range!!.second)
+        Assertions.assertEquals(timeAt, range.first)
     }
 }

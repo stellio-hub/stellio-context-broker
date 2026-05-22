@@ -289,6 +289,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "propertyWithMetadata.unitCode==\"MTR\", 1, urn:ngsi-ld:BeeHive:02",
         "propertyWithMetadata.license==\"GPL\", 1, urn:ngsi-ld:BeeHive:02",
         "propertyWithMetadata.license.since==\"2023\", 1, urn:ngsi-ld:BeeHive:02",
+        "propertyWithMetadata.source[author]==\"EGM\", 1, urn:ngsi-ld:BeeHive:01",
+        "propertyWithMetadata.source[author]==\"Dummy Company\", 0, ",
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:01, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:02, 1, urn:ngsi-ld:BeeHive:01",
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:10, 0, ",

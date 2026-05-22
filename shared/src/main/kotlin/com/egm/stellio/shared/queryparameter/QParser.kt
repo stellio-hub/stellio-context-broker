@@ -32,7 +32,7 @@ private class QParserImpl(private val raw: String) {
     private var pos = 0
 
     companion object {
-        private const val OPERATOR_SNIPPET_LENGTH = 3
+        private const val OPERATOR_MAX_LENGTH = 3
     }
 
     fun parse(): Either<String, QNode> = either {
@@ -138,7 +138,7 @@ private class QParserImpl(private val raw: String) {
             tryConsume("<") -> ComparisonOperator.LT
             else -> raise(
                 "Unknown operator at position $pos: " +
-                    "'${raw.substring(pos, minOf(pos + OPERATOR_SNIPPET_LENGTH, raw.length))}'"
+                    "'${raw.substring(pos, minOf(pos + OPERATOR_MAX_LENGTH, raw.length))}'"
             )
         }
     }

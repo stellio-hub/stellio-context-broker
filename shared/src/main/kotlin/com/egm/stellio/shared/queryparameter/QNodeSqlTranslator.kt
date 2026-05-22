@@ -95,7 +95,7 @@ private fun languageTagComparisonSql(
             """NOT (jsonb_path_exists($targetExpr, '$langFilterPath ? """ +
                 """(@."$JSONLD_LANGUAGE_KW" == ${"$"}lang && @."$JSONLD_VALUE_KW" like_regex $pattern)', '$langParams'))"""
         else -> {
-            val sqlOp = operator.toJsonPathOperator()
+            val sqlOp = operator.sqlOp
             val valueExpr = value.toJsonValue()
             val params = """{"lang": "$lang", "value": $valueExpr}"""
             """jsonb_path_exists($targetExpr, '$langFilterPath ? """ +
@@ -249,7 +249,7 @@ private fun singlePathFilter(
     return when {
         value.type == ValueType.BOOLEAN -> {
             val literal = value.raw
-            val sqlOp = operator.toJsonPathOperator()
+            val sqlOp = operator.sqlOp
             """jsonb_path_exists($targetExpr, '$jsonPath ? (@ $sqlOp $literal)')"""
         }
         operator == ComparisonOperator.LIKE_REGEX -> {
@@ -261,7 +261,7 @@ private fun singlePathFilter(
             """NOT (jsonb_path_exists($targetExpr, '$jsonPath ? (@ like_regex $pattern)'))"""
         }
         else -> {
-            val sqlOp = operator.toJsonPathOperator()
+            val sqlOp = operator.sqlOp
             val params = value.toJsonParameterizedValue().escapeSingleQuotes()
             """jsonb_path_exists($targetExpr, '$jsonPath ? (@ $sqlOp ${"$"}value)', '$params')"""
         }
@@ -312,15 +312,4 @@ private fun SingleValue.toJsonValue(): String = when (type) {
         val unquoted = raw.replace("\"", "")
         "\"$unquoted\""
     }
-}
-
-private fun ComparisonOperator.toJsonPathOperator(): String = when (this) {
-    ComparisonOperator.EQ -> "=="
-    ComparisonOperator.NEQ -> "<>"
-    ComparisonOperator.GTE -> ">="
-    ComparisonOperator.GT -> ">"
-    ComparisonOperator.LTE -> "<="
-    ComparisonOperator.LT -> "<"
-    ComparisonOperator.LIKE_REGEX -> "like_regex"
-    ComparisonOperator.NOT_LIKE_REGEX -> "like_regex"
 }

@@ -105,6 +105,13 @@
     "license": {
       "type": "Property",
       "value": "APL"
+    },
+    "source": {
+      "type": "Property",
+      "value": {
+        "repository": "https://github.com/stellio-context/stellio-context",
+        "author": "EGM"
+      }
     }
   },
   "multiInstanceProperty": [

@@ -40,9 +40,9 @@ jobs:
         run: ./gradlew build
       - name: Publish unit test results
         uses: EnricoMi/publish-unit-test-result-action@c950f6fb443cb5af20a377fd0dfaa78838901040
-        if: always()
+        if: (!cancelled())
         with:
-          junit_files: '**/test-results/**/TEST-*.xml'
+          files: '**/test-results/**/TEST-*.xml'
       - name: Perform SonarQube analysis
         if: github.actor != 'dependabot[bot]'
         env:

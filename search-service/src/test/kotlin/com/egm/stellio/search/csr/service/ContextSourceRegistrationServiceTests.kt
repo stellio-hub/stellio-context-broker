@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertInstanceOf
+import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -365,6 +366,22 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
             CSRFilters(idPattern = "INVALID")
         )
         assertEquals(0, countEmpty.getOrNull())
+    }
+
+    @Test
+    fun `update the status of a CSR should succeed`() = runTest {
+        val contextSourceRegistration =
+            loadAndDeserializeContextSourceRegistration("csr/contextSourceRegistration_minimal_entities.json")
+        contextSourceRegistrationService.upsert(contextSourceRegistration).shouldSucceed()
+
+        contextSourceRegistrationService.updateContextSourceStatus(contextSourceRegistration, false)
+
+        contextSourceRegistrationService.getById(contextSourceRegistration.id).shouldSucceedWith {
+            assertEquals(ContextSourceRegistration.StatusType.FAILED, it.status)
+            assertEquals(1, it.timesSent)
+            assertEquals(1, it.timesFailed)
+            assertNotNull(it.lastFailure)
+        }
     }
 
     @Test

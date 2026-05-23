@@ -8,6 +8,7 @@
     <ID>ComplexCondition:EntitiesQueryUtils.kt$typeSelection.isNullOrEmpty() &amp;&amp; keep.isEmpty() &amp;&amp; drop.isEmpty() &amp;&amp; q.isNullOrEmpty() &amp;&amp; geoQuery == null &amp;&amp; !local</ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
+    <ID>LongMethod:ContextSourceRegistrationService.kt$ContextSourceRegistrationService$@Transactional suspend fun upsert( csr: ContextSourceRegistration ): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EntitiesQueryUtilsTests.kt$EntitiesQueryUtilsTests$@Test fun `it should parse a valid complete Query datatype`()</ID>
     <ID>LongMethod:EntityEventService.kt$EntityEventService$private fun publishAttributeChangeEvent( sub: String?, tenantName: String, originalEntity: ExpandedEntity, updatedEntity: ExpandedEntity, attributeOperationResult: SucceededAttributeOperationResult )</ID>
     <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_UPDATE events if a multi-attribute is replaced`()</ID>

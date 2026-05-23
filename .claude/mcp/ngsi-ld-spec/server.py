@@ -4,7 +4,7 @@
 import re
 from mcp.server.fastmcp import FastMCP
 
-PDF_PATH = "/Users/bobeal/Documents/NGSI-LD/gs_CIM009v010901p.pdf"
+PDF_PATH = "./docs/specification/gs_CIM009v010901p.pdf"
 
 mcp = FastMCP("ngsi-ld-spec")
 

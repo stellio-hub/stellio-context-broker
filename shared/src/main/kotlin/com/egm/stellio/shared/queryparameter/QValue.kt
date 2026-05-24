@@ -16,7 +16,7 @@ enum class ValueType {
 
     companion object {
         fun detect(raw: String): ValueType {
-            val unquoted = raw.replace("\"", "")
+            val unquoted = raw.removeSurrounding("\"")
             return when {
                 raw == "true" || raw == "false" -> BOOLEAN
                 unquoted.toDoubleOrNull() != null -> NUMBER

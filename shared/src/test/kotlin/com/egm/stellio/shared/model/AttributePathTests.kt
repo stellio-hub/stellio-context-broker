@@ -167,7 +167,7 @@ class AttributePathTests {
     fun `it should build relationship path for a simple attribute`() = runTest {
         val attrPath = AttributePath(INCOMING_TERM, APIC_COMPOUND_CONTEXTS)
         assertEquals(
-            """$."$INCOMING_IRI"."$NGSILD_RELATIONSHIP_OBJECT"."$JSONLD_ID_KW"""",
+            """$."$INCOMING_IRI"."$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW"""",
             attrPath.buildJsonBRelationshipPath()
         )
     }
@@ -176,7 +176,7 @@ class AttributePathTests {
     fun `it should build relationship path with wildcard traversal for a composed attribute`() = runTest {
         val attrPath = AttributePath("$INCOMING_TERM.$TEMPERATURE_TERM", APIC_COMPOUND_CONTEXTS)
         assertEquals(
-            """$."$INCOMING_IRI"."$TEMPERATURE_IRI".**{0 to 2}."$JSONLD_ID_KW"""",
+            """$."$INCOMING_IRI"."$TEMPERATURE_IRI".**{0 to 2}."$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW"""",
             attrPath.buildJsonBRelationshipPath()
         )
     }
@@ -194,7 +194,7 @@ class AttributePathTests {
     fun `it should build vocab path for a composed attribute`() = runTest {
         val attrPath = AttributePath("$INCOMING_TERM.$TEMPERATURE_TERM", APIC_COMPOUND_CONTEXTS)
         assertEquals(
-            """$."$INCOMING_IRI"."$TEMPERATURE_IRI"."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW"""",
+            """$."$INCOMING_IRI"."$TEMPERATURE_IRI".**{0 to 2}."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW"""",
             attrPath.buildJsonBVocabPath()
         )
     }
@@ -212,7 +212,8 @@ class AttributePathTests {
     fun `it should build language map path for a composed attribute`() = runTest {
         val attrPath = AttributePath("$INCOMING_TERM.$TEMPERATURE_TERM", APIC_COMPOUND_CONTEXTS)
         assertEquals(
-            """$."$INCOMING_IRI"."$TEMPERATURE_IRI"."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW"""",
+            """$."$INCOMING_IRI"."$TEMPERATURE_IRI".**{0 to 2}.""" +
+                """"$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW"""",
             attrPath.buildJsonBLanguageMapPath()
         )
     }
@@ -230,7 +231,7 @@ class AttributePathTests {
     fun `it should build language map filter path for a composed attribute`() = runTest {
         val attrPath = AttributePath("$INCOMING_TERM.$TEMPERATURE_TERM", APIC_COMPOUND_CONTEXTS)
         assertEquals(
-            """$."$INCOMING_IRI"."$TEMPERATURE_IRI"."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]""",
+            """$."$INCOMING_IRI"."$TEMPERATURE_IRI".**{0 to 2}."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]""",
             attrPath.buildJsonBLanguageMapFilterPath()
         )
     }

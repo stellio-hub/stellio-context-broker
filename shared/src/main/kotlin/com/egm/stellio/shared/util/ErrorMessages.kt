@@ -270,7 +270,7 @@ object ErrorMessages {
 
     object QueryParameter {
         fun unparsableQueryMessage(message: String?) = "Query could not be parsed: $message"
-        fun invalidQQueryMessage(detail: String) = "Q query is invalid: $detail"
+        fun invalidQQueryMessage(message: String) = "Q query is invalid: $message"
 
         const val MISSING_REQUIRED_QUERY_PARAMETER_MESSAGE =
             "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query unless local is true"

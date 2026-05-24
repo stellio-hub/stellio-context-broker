@@ -6,8 +6,6 @@
     <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `it should simplify relationships for inlined entities`()</ID>
     <ID>LongParameterList:ApiResponses.kt$( body: String, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:ApiResponses.kt$( entities: Any, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
-    <ID>MaxLineLength:QNodeSqlTranslator.kt$"""(@."$JSONLD_LANGUAGE_KW" == ${"$"}lang &amp;&amp; @."$JSONLD_VALUE_KW" like_regex $pattern)', '$langParams')"""</ID>
-    <ID>MaxLineLength:QNodeSqlTranslator.kt$"""(@."$JSONLD_LANGUAGE_KW" == ${"$"}lang &amp;&amp; @."$JSONLD_VALUE_KW" like_regex $pattern)', '$langParams'))"""</ID>
     <ID>NestedBlockDepth:JsonLdUtils.kt$JsonLdUtils$fun expandJsonLdTerm(term: String, contexts: List&lt;String&gt;): String</ID>
     <ID>TooManyFunctions:JsonLdUtils.kt$JsonLdUtils</ID>
   </CurrentIssues>

@@ -291,6 +291,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "propertyWithMetadata.license.since==\"2023\", 1, urn:ngsi-ld:BeeHive:02",
         "propertyWithMetadata.source[author]==\"EGM\", 1, urn:ngsi-ld:BeeHive:01",
         "propertyWithMetadata.source[author]==\"Dummy Company\", 0, ",
+        "propertyWithMetadata.author==urn:ngsi-ld:Person:01, 1, urn:ngsi-ld:BeeHive:01",
+        """'propertyWithMetadata.author==urn:ngsi-ld:Person:01,urn:ngsi-ld:Person:02', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'""",
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:01, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:02, 1, urn:ngsi-ld:BeeHive:01",
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:10, 0, ",
@@ -315,6 +317,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "localizedName[en]==\"Bee Hive One\", 1, urn:ngsi-ld:BeeHive:01",
         "localizedName[en]~=\"Bee.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "localizedName[de]==\"something\", 0, ",
+        "localizedUrl[en]==http://localhost/en/beehive, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "localizedUrl[en]==http://localhost/fr/ruche, 0, ",
         "propWithLangSub.langSub[en]==\"sub lang one\", 1, urn:ngsi-ld:BeeHive:01",
         "propWithLangSub.langSub[en]~=\"sub lang.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "propWithLangSub.langSub[de]==\"anything\", 0, "
@@ -608,8 +612,10 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "jsonProp[aNumber]==93.93, jsonProp, 1, urn:ngsi-ld:BeeHive:02",
         "jsonProp[aNumber]>90, jsonProp, 1, urn:ngsi-ld:BeeHive:02",
         "jsonProp[aNumber]==12..14, jsonProp, 1, urn:ngsi-ld:BeeHive:01",
+        "jsonProp[aNumber]!=12..14, jsonProp, 1, urn:ngsi-ld:BeeHive:02",
         "jsonProp[anObject.name]==\"City\", jsonProp, 1, urn:ngsi-ld:BeeHive:01",
         "jsonProp[anObject.name]==\"Sea\", jsonProp, 0, ",
+        "jsonProp==\"flow monitoring\", jsonProp, 0, ",
         "propWithJsonSub.jsonSub[sensor]==\"S01\", propWithJsonSub, 1, urn:ngsi-ld:BeeHive:01",
         "propWithJsonSub.jsonSub[reading]==7.3, propWithJsonSub, 1, urn:ngsi-ld:BeeHive:01",
         "propWithJsonSub.jsonSub[reading]==3..8, propWithJsonSub, 2, "

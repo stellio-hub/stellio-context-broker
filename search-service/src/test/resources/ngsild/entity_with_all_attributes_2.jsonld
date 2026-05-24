@@ -79,6 +79,13 @@
       "es": "Colmena Dos"
     }
   },
+  "localizedUrl": {
+    "type": "LanguageProperty",
+    "languageMap": {
+      "en": "http://localhost/en/beehive",
+      "fr": "http://localhost/es/colmena"
+    }
+  },
   "observedProperty": {
     "type": "Property",
     "value": 93.0,
@@ -95,6 +102,10 @@
         "type": "Property",
         "value": "2023"
       }
+    },
+    "author": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Person:02"
     }
   },
   "multiInstanceProperty": [

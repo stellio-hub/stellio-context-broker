@@ -80,26 +80,32 @@ private fun languageTagComparisonSql(
     value: QValue
 ): String {
     val langFilterPath = attrPath.buildJsonBLanguageMapFilterPath()
-    val lang = attrPath.languageTag!!
+    val lang = attrPath.languageTag ?: return "false"
 
-    // LanguageProperty and ListValue is not specified, return empty string
-    if (value !is SingleValue) return ""
+    // LanguageProperty with range or list value is not specified by the NGSI-LD spec
+    if (value !is SingleValue) return "false"
 
     val pattern = value.raw.escapeSingleQuotes()
     val langParams = """{"lang": "$lang"}"""
     return when (operator) {
         ComparisonOperator.LIKE_REGEX ->
-            """jsonb_path_exists($targetExpr, '$langFilterPath ? """ +
-                """(@."$JSONLD_LANGUAGE_KW" == ${"$"}lang && @."$JSONLD_VALUE_KW" like_regex $pattern)', '$langParams')"""
+            """
+                jsonb_path_exists($targetExpr, '$langFilterPath ?
+                    (@."$JSONLD_LANGUAGE_KW" == ${"$"}lang && @."$JSONLD_VALUE_KW" like_regex $pattern)', '$langParams')
+            """
         ComparisonOperator.NOT_LIKE_REGEX ->
-            """NOT (jsonb_path_exists($targetExpr, '$langFilterPath ? """ +
-                """(@."$JSONLD_LANGUAGE_KW" == ${"$"}lang && @."$JSONLD_VALUE_KW" like_regex $pattern)', '$langParams'))"""
+            """
+                NOT (jsonb_path_exists($targetExpr, '$langFilterPath ? 
+                    (@."$JSONLD_LANGUAGE_KW" == ${"$"}lang && @."$JSONLD_VALUE_KW" like_regex $pattern)', '$langParams'))
+            """
         else -> {
             val sqlOp = operator.sqlOp
             val valueExpr = value.toJsonValue()
             val params = """{"lang": "$lang", "value": $valueExpr}"""
-            """jsonb_path_exists($targetExpr, '$langFilterPath ? """ +
-                """(@."$JSONLD_LANGUAGE_KW" == ${"$"}lang && @."$JSONLD_VALUE_KW" $sqlOp ${"$"}value)', '$params')"""
+            """
+                jsonb_path_exists($targetExpr, '$langFilterPath ? 
+                    (@."$JSONLD_LANGUAGE_KW" == ${"$"}lang && @."$JSONLD_VALUE_KW" $sqlOp ${"$"}value)', '$params')
+            """
         }
     }
 }
@@ -113,7 +119,7 @@ private fun jsonPropertyComparisonSql(
     val jsonPath = attrPath.buildJsonBJsonPropertyPath()
     return when (value) {
         is SingleValue -> singlePathFilter(targetExpr, jsonPath, operator, value)
-        is RangeValue -> rangeFilter(targetExpr, jsonPath, value)
+        is RangeValue -> rangeFilter(targetExpr, jsonPath, value, operator)
         is ListValue -> listFilter(targetExpr, jsonPath, operator, value)
     }
 }
@@ -126,7 +132,7 @@ private fun singleValueComparisonSql(
     contexts: List<String>
 ): String {
     val effectiveValue = if (attrPath.isExpandValuesAttribute && value.type == ValueType.STRING) {
-        val expanded = JsonLdUtils.expandJsonLdTerm(value.raw.replace("\"", ""), contexts)
+        val expanded = JsonLdUtils.expandJsonLdTerm(value.raw.removeSurrounding("\""), contexts)
         SingleValue(expanded, ValueType.URI)
     } else value
 
@@ -155,17 +161,21 @@ private fun uriValueSql(
     operator: ComparisonOperator,
     value: SingleValue
 ): String {
-    val preparedValue = if (value.raw.isURI()) value.raw else value.raw.replace("\"", "")
+    val preparedValue = if (value.raw.isURI()) value.raw else value.raw.removeSurrounding("\"")
     val uriValue = SingleValue(preparedValue, ValueType.URI)
     val relPath = attrPath.buildJsonBRelationshipPath()
     val propPath = attrPath.buildJsonBPropertyPath()
     val vocabPath = attrPath.buildJsonBVocabPath()
+    val langMapPath = attrPath.buildJsonBLanguageMapPath()
 
     // For NEQ operator, it should be an AND between clauses, but if a path does not exist, PG returns an empty result.
     // So since an attribute name is unique within an entity, it works with an OR.
-    return """(${singlePathFilter(targetExpr, relPath, operator, uriValue)} OR """ +
-        """${singlePathFilter(targetExpr, propPath, operator, uriValue)} OR """ +
-        """${singlePathFilter(targetExpr, vocabPath, operator, uriValue)})"""
+    return """
+        (${singlePathFilter(targetExpr, relPath, operator, uriValue)} OR
+        ${singlePathFilter(targetExpr, propPath, operator, uriValue)} OR
+        ${singlePathFilter(targetExpr, vocabPath, operator, uriValue)} OR
+        ${singlePathFilter(targetExpr, langMapPath, operator, uriValue)})
+    """
 }
 
 private fun stringValueSql(
@@ -179,8 +189,10 @@ private fun stringValueSql(
 
     // For NEQ operator, it should be an AND between clauses, but if a path does not exist, PG returns an empty result.
     // So since an attribute name is unique within an entity, it works with an OR.
-    return """(${singlePathFilter(targetExpr, propPath, operator, value)} OR """ +
-        """${singlePathFilter(targetExpr, langMapPath, operator, value)})"""
+    return """
+        (${singlePathFilter(targetExpr, propPath, operator, value)} OR
+            ${singlePathFilter(targetExpr, langMapPath, operator, value)})
+        """
 }
 
 private fun likeRegexMultiPathSql(
@@ -194,11 +206,15 @@ private fun likeRegexMultiPathSql(
     val pattern = value.toJsonValue().escapeSingleQuotes()
 
     return if (operator == ComparisonOperator.NOT_LIKE_REGEX) {
-        """NOT ((jsonb_path_exists($targetExpr, '$propPath ? (@ like_regex $pattern)') OR """ +
-            """jsonb_path_exists($targetExpr, '$langMapPath ? (@ like_regex $pattern)')))"""
+        """
+            NOT ((jsonb_path_exists($targetExpr, '$propPath ? (@ like_regex $pattern)') OR 
+                jsonb_path_exists($targetExpr, '$langMapPath ? (@ like_regex $pattern)')))
+        """
     } else {
-        """(jsonb_path_exists($targetExpr, '$propPath ? (@ like_regex $pattern)') OR """ +
-            """jsonb_path_exists($targetExpr, '$langMapPath ? (@ like_regex $pattern)'))"""
+        """
+            (jsonb_path_exists($targetExpr, '$propPath ? (@ like_regex $pattern)') OR
+                jsonb_path_exists($targetExpr, '$langMapPath ? (@ like_regex $pattern)'))
+        """
     }
 }
 
@@ -290,8 +306,9 @@ private fun listFilter(
     operator: ComparisonOperator,
     value: ListValue
 ): String {
-    val sqlOp = if (operator == ComparisonOperator.NEQ) "<>" else "=="
-    val joinOp = if (operator == ComparisonOperator.NEQ) " && " else " || "
+    val (sqlOp, joinOp) =
+        if (operator == ComparisonOperator.NEQ) "<>" to " && "
+        else "==" to " || "
     val filter = value.items.joinToString(joinOp) { item ->
         "@ $sqlOp ${item.toJsonValue()}"
     }
@@ -305,11 +322,11 @@ private fun SingleValue.toJsonValue(): String = when (type) {
     ValueType.NUMBER -> raw
     ValueType.BOOLEAN -> raw
     ValueType.STRING, ValueType.DATETIME, ValueType.DATE, ValueType.TIME -> {
-        val unquoted = raw.removePrefix("\"").removeSuffix("\"")
+        val unquoted = raw.removeSurrounding("\"")
         "\"$unquoted\""
     }
     ValueType.URI -> {
-        val unquoted = raw.replace("\"", "")
+        val unquoted = raw.removeSurrounding("\"")
         "\"$unquoted\""
     }
 }

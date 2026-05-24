@@ -89,6 +89,13 @@
       "fr": "Ruche Une"
     }
   },
+  "localizedUrl": {
+    "type": "LanguageProperty",
+    "languageMap": {
+      "en": "http://localhost/en/beehive",
+      "fr": "http://localhost/fr/ruche"
+    }
+  },
   "category": {
     "type": "VocabProperty",
     "vocab": "BeeHive"
@@ -112,6 +119,10 @@
         "repository": "https://github.com/stellio-context/stellio-context",
         "author": "EGM"
       }
+    },
+    "author": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Person:01"
     }
   },
   "multiInstanceProperty": [

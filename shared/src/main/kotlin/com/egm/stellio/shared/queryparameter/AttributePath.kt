@@ -4,6 +4,7 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
@@ -14,7 +15,6 @@ import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils
 import java.util.Locale
-import kotlin.collections.joinToString
 
 data class AttributePath(
     val term: String,
@@ -80,16 +80,19 @@ data class AttributePath(
 
     fun buildJsonBRelationshipPath(): String {
         val mainPathString = mainPath.toQuotedJsonPath()
-        return if (mainPath.size > 1)
+        // datasetId targets a URI value but has no hasObject path and cannot have a trailing path
+        return if (mainPath.size > 1 && mainPath.last() != NGSILD_DATASET_ID_IRI)
+            """$.$mainPathString.**{0 to 2}."$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
+        else if (mainPath.size > 1)
             """$.$mainPathString.**{0 to 2}."$JSONLD_ID_KW""""
         else
-            """$."${mainPath[0]}"."$NGSILD_RELATIONSHIP_OBJECT"."$JSONLD_ID_KW""""
+            """$."${mainPath[0]}"."$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
     }
 
     fun buildJsonBVocabPath(): String {
         val mainPathString = mainPath.toQuotedJsonPath()
         return if (mainPath.size > 1)
-            """$.$mainPathString."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW""""
+            """$.$mainPathString.**{0 to 2}."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW""""
         else
             """$."${mainPath[0]}"."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW""""
     }
@@ -97,7 +100,7 @@ data class AttributePath(
     fun buildJsonBLanguageMapPath(): String {
         val mainPathString = mainPath.toQuotedJsonPath()
         return if (mainPath.size > 1)
-            """$.$mainPathString."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW""""
+            """$.$mainPathString.**{0 to 2}."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW""""
         else
             """$."${mainPath[0]}"."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW""""
     }
@@ -105,7 +108,7 @@ data class AttributePath(
     fun buildJsonBLanguageMapFilterPath(): String {
         val mainPathString = mainPath.toQuotedJsonPath()
         return if (mainPath.size > 1)
-            """$.$mainPathString."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]"""
+            """$.$mainPathString.**{0 to 2}."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]"""
         else
             """$."${mainPath[0]}"."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]"""
     }

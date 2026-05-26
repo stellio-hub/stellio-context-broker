@@ -1,6 +1,5 @@
 package com.egm.stellio.search.temporal.util
 
-import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
@@ -16,18 +15,13 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.toUri
-import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-import org.springframework.boot.context.properties.EnableConfigurationProperties
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.ZonedDateTime
 import java.util.UUID
 
 @ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [TemporalPaginationService::class])
-@EnableConfigurationProperties(SearchProperties::class)
 class TemporalPaginationUtilsTests {
 
     private val timeAt = ZonedDateTime.parse("2019-01-01T00:00:00Z")
@@ -139,7 +133,7 @@ class TemporalPaginationUtilsTests {
     )
 
     @Test
-    fun `range calculation with timerel between should return range-start = timeAt`() = runTest {
+    fun `range calculation with timerel between should return range-start = timeAt`() {
         val query = getQuery(
             buildDefaultTestTemporalQuery(
                 instanceLimit = 5,
@@ -148,7 +142,7 @@ class TemporalPaginationUtilsTests {
                 endTimeAt = endTimeAt
             )
         )
-        val (newTeas, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+        val (newTeas, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
             attributesWithInstances,
             query
         )
@@ -162,7 +156,7 @@ class TemporalPaginationUtilsTests {
     }
 
     @Test
-    fun `range calculation with timerel after should return range-start = timeAt`() = runTest {
+    fun `range calculation with timerel after should return range-start = timeAt`() {
         val query = getQuery(
             buildDefaultTestTemporalQuery(
                 instanceLimit = 5,
@@ -170,7 +164,7 @@ class TemporalPaginationUtilsTests {
                 timeAt = timeAt,
             )
         )
-        val (newTeas, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+        val (newTeas, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
             attributesWithInstances,
             query
         )
@@ -185,7 +179,7 @@ class TemporalPaginationUtilsTests {
     }
 
     @Test
-    fun `range calculation with timerel before should return range-start = least recent timestamp`() = runTest {
+    fun `range calculation with timerel before should return range-start = least recent timestamp`() {
         val query = getQuery(
             buildDefaultTestTemporalQuery(
                 instanceLimit = 5,
@@ -193,7 +187,7 @@ class TemporalPaginationUtilsTests {
                 timeAt = endTimeAt,
             )
         )
-        val (newTeas, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+        val (newTeas, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
             attributesWithInstances,
             query
         )
@@ -208,7 +202,7 @@ class TemporalPaginationUtilsTests {
     }
 
     @Test
-    fun `range calculation with lastN and timerel between should return range-start = endTimeAt`() = runTest {
+    fun `range calculation with lastN and timerel between should return range-start = endTimeAt`() {
         val query = getQuery(
             buildDefaultTestTemporalQuery(
                 instanceLimit = 5,
@@ -218,7 +212,7 @@ class TemporalPaginationUtilsTests {
                 lastN = 100
             )
         )
-        val (newTeas, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+        val (newTeas, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
             attributesWithInstancesForLastN,
             query
         )
@@ -233,7 +227,7 @@ class TemporalPaginationUtilsTests {
     }
 
     @Test
-    fun `range calculation with lastN and timerel after should return range-start = most recent timestamp`() = runTest {
+    fun `range calculation with lastN and timerel after should return range-start = most recent timestamp`() {
         val query = getQuery(
             buildDefaultTestTemporalQuery(
                 instanceLimit = 5,
@@ -242,7 +236,7 @@ class TemporalPaginationUtilsTests {
                 lastN = 100
             )
         )
-        val (newTeas, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+        val (newTeas, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
             attributesWithInstancesForLastN,
             query
         )
@@ -257,7 +251,7 @@ class TemporalPaginationUtilsTests {
     }
 
     @Test
-    fun `range calculation with lastN and timerel before should return range-start = timeAt`() = runTest {
+    fun `range calculation with lastN and timerel before should return range-start = timeAt`() {
         val query = getQuery(
             buildDefaultTestTemporalQuery(
                 instanceLimit = 5,
@@ -266,7 +260,7 @@ class TemporalPaginationUtilsTests {
                 lastN = 100
             )
         )
-        val (newAttributes, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+        val (newAttributes, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
             attributesWithInstancesForLastN,
             query
         )
@@ -281,7 +275,7 @@ class TemporalPaginationUtilsTests {
     }
 
     @Test
-    fun `range calculation with aggregatedValues`() = runTest {
+    fun `range calculation with aggregatedValues`() {
         val query = TemporalEntitiesQueryFromGet(
             temporalQuery = buildDefaultTestTemporalQuery(
                 instanceLimit = 2,
@@ -301,7 +295,7 @@ class TemporalPaginationUtilsTests {
 
         val attributesWithInstances: AttributesWithInstances =
             mapOf(attributeIncoming to aggregationInstances, attributeOutgoing to aggregationInstances)
-        val (newAttributes, range) = TemporalPaginationService.getPaginatedAttributeWithInstancesAndRange(
+        val (newAttributes, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
             attributesWithInstances,
             query
         )

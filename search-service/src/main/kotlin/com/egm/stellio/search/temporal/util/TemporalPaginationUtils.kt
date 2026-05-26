@@ -8,7 +8,7 @@ import java.time.ZonedDateTime
 
 typealias Range = Pair<ZonedDateTime, ZonedDateTime>
 
-object TemporalPaginationService {
+object TemporalPaginationUtils {
 
     fun getPaginatedAttributeWithInstancesAndRange(
         attributesWithInstances: AttributesWithInstances,
@@ -81,9 +81,9 @@ object TemporalPaginationService {
         range: Range,
     ): AttributesWithInstances =
         attributesWithInstances.mapValues { (_, value) ->
-            value.filter { range.contain(it.getComparableTime()) }
+            value.filter { range.contains(it.getComparableTime()) }
         }
 
-    private fun Range.contain(time: ZonedDateTime): Boolean =
+    private fun Range.contains(time: ZonedDateTime): Boolean =
         this.first >= time && time >= this.second || this.first <= time && time <= this.second
 }

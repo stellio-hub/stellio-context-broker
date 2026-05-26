@@ -683,6 +683,59 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
     }
 
+    @Test
+    fun `mergeAttribute should return an error when the entity does not exist`() = runTest {
+        entityService.mergeAttribute(
+            entity01Uri,
+            INCOMING_IRI,
+            mapOf(JSONLD_TYPE_KW to listOf("https://uri.etsi.org/ngsi-ld/Property")),
+            now
+        ).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+        }
+
+        coVerify(exactly = 0) {
+            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `mergeAttribute should merge the attribute when entity exists`() = runTest {
+        coEvery {
+            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any())
+        } returns listOf(
+            SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.UPDATED, emptyMap())
+        ).right()
+        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        val expandedAttributes = expandAttributes(
+            loadSampleData("fragments/beehive_mergeAttribute.json"),
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        entityService.mergeAttribute(
+            entity01Uri,
+            INCOMING_IRI,
+            expandedAttributes[INCOMING_IRI]!![0],
+            now
+        ).shouldSucceed()
+
+        coVerify {
+            entityAttributeService.mergeAttributes(
+                eq(entity01Uri),
+                any(),
+                any(),
+                any(),
+                eq(now)
+            )
+            entityAttributeService.getAllForEntity(eq(entity01Uri))
+        }
+    }
+
     private fun buildTypeQuery(typeIri: String) = EntitiesQueryFromGet(
         typeSelection = typeIri,
         paginationQuery = PaginationQuery(limit = 100, offset = 0),

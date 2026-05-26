@@ -963,9 +963,9 @@ Stellio will automatically trigger the temporal pagination and returns a 206 par
 containing a range header describing the temporal range of the data returned.
 
 Caveats : 
-- In the distributed scenario the pagination is only applied locally meaning that data
+- In the distributed scenario the pagination is only applied locally, meaning that data
 from remote broker can be from outside the returned range.
-- In futur version of NGSI-LD yhe behavior of temporal pagination will be aligned with the behavior of the query entities pagination. 
+- In future version of NGSI-LD, the behavior of temporal pagination will be aligned with the behavior of the query entities pagination. 
 By adding of the firstN offsetN parameter.
 
 

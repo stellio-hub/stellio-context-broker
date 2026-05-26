@@ -1,4 +1,5 @@
 ---
+name: pr_reviewer
 description: Review a GitHub PR with full context
 ---
 

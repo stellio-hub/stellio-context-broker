@@ -1,4 +1,5 @@
 ---
+name: stellio-spec-checker
 description: Use for verifying NGSI-LD spec compliance of endpoints, HTTP status codes, error types, response headers,
  content negotiation, and federation behaviour.
 ---

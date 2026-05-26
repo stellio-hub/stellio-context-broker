@@ -1,4 +1,5 @@
 ---
+name: stellio-test-writer
 description: Use for writing JUnit 5 / MockK / Testcontainers test classes for any layer of the Stellio stack.
 ---
 

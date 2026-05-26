@@ -1,4 +1,5 @@
 ---
+name: stellio-kotlin-dev
 description: Develop Kotlin code in Stellio
 ---
 

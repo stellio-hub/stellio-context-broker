@@ -955,6 +955,20 @@ Note 2: You must provide a time filter (`timerel`, `timeAt`) and an entity filte
 The list contains multiple values if multiple entities match the request.
 </details>
 
+### Pagination of temporal data
+
+When retrieving a huge number of temporal instances (default max = 10 000 by attribute). 
+
+Stellio will automatically trigger the temporal pagination and returns a 206 partial-content
+containing a range header describing the temporal range of the data returned.
+
+Caveats : 
+- In the distributed scenario the pagination is only applied locally meaning that data
+from remote broker can be from outside the returned range.
+- In futur version of NGSI-LD yhe behavior of temporal pagination will be aligned with the behavior of the query entities pagination. 
+By adding of the firstN offsetN parameter.
+
+
 ## Modify temporal data
 ### Permanently delete an entity
 Delete an entity and all its history with:

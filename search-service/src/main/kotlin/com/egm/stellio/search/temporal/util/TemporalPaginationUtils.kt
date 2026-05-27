@@ -55,7 +55,7 @@ object TemporalPaginationUtils {
                 }
         }
 
-        if (temporalQuery.hasLastN()) {
+        return if (temporalQuery.hasLastN()) {
             val discriminatingTimeRange = attributesTimeRanges.maxOf { it.second } to
                 attributesTimeRanges.maxOf { it.first }
             val rangeStart = when (temporalQuery.timerel) {
@@ -63,7 +63,7 @@ object TemporalPaginationUtils {
                 TemporalQuery.Timerel.BETWEEN -> temporalQuery.endTimeAt!!
                 else -> discriminatingTimeRange.first
             }
-            return rangeStart to discriminatingTimeRange.second
+            rangeStart to discriminatingTimeRange.second
         } else {
             val discriminatingTimeRange = attributesTimeRanges.minOf { it.first } to
                 attributesTimeRanges.minOf { it.second }
@@ -72,7 +72,7 @@ object TemporalPaginationUtils {
                 TemporalQuery.Timerel.BETWEEN -> temporalQuery.timeAt!!
                 else -> discriminatingTimeRange.first
             }
-            return rangeStart to discriminatingTimeRange.second
+            rangeStart to discriminatingTimeRange.second
         }
     }
 

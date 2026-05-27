@@ -34,7 +34,9 @@ data class Query private constructor(
     val join: String? = null,
     val joinLevel: Int? = null,
     val containedBy: List<String>? = null,
-    val ordering: UnparsedOrderingParams? = null
+    val ordering: UnparsedOrderingParams? = null,
+    val jsonKeys: Set<String>? = null,
+    val expandValues: Set<String>? = null
 ) {
     companion object {
         operator fun invoke(queryBody: String): Either<APIException, Query> = either {

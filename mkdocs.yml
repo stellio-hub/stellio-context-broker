@@ -18,11 +18,12 @@ nav:
   - User & Programmers Manual:
       - Information model : 'user/information_model.md'
       - API Walkthrough: 'user/API_walkthrough.md'
+      - NGSI-LD Query Language support: 'user/query_language.md'
       - Authentication and authorization: 'user/authentication_and_authorization.md'
-      - Multitenancy: 'user/multitenancy.md'
   - Installation & Administration Manual:
       - Architecture: 'admin/architecture.md'
       - Production deployment: 'admin/production_deployment.md'
+      - Multitenancy: 'user/multitenancy.md'
       - Monitoring and logging: 'admin/monitoring_and_logging.md'
       - Backup and restore: 'admin/backup_and_restore.md'
       - Enabling temporal data compression: 'admin/enabling_timescale_compression.md'

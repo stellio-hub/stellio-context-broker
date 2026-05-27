@@ -8,10 +8,11 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery
 import com.egm.stellio.shared.queryparameter.PaginationQuery
+import com.egm.stellio.shared.queryparameter.QNode
 import java.net.URI
 
 sealed class EntitiesQuery(
-    open val q: String?,
+    open val q: QNode?,
     open val scopeQ: String?,
     open val paginationQuery: PaginationQuery,
     open val attrs: Set<ExpandedTerm>,
@@ -22,14 +23,16 @@ sealed class EntitiesQuery(
     open val linkedEntityQuery: LinkedEntityQuery?,
     open val local: Boolean = false,
     open val ordering: OrderingParams = OrderingParams(),
-    open val contexts: List<String>
+    open val contexts: List<String>,
+    open val jsonKeys: Set<String>,
+    open val expandValues: Set<String>
 )
 
 data class EntitiesQueryFromGet(
     val ids: Set<URI> = emptySet(),
     val typeSelection: EntityTypeSelection? = null,
     val idPattern: String? = null,
-    override val q: String? = null,
+    override val q: QNode? = null,
     override val scopeQ: String? = null,
     override val paginationQuery: PaginationQuery,
     override val attrs: Set<ExpandedTerm> = emptySet(),
@@ -41,6 +44,8 @@ data class EntitiesQueryFromGet(
     override val local: Boolean = false,
     override val ordering: OrderingParams = OrderingParams(),
     override val contexts: List<String>,
+    override val jsonKeys: Set<String> = emptySet(),
+    override val expandValues: Set<String> = emptySet()
 ) : EntitiesQuery(
     q,
     scopeQ,
@@ -53,12 +58,14 @@ data class EntitiesQueryFromGet(
     linkedEntityQuery,
     local,
     ordering,
-    contexts
+    contexts,
+    jsonKeys,
+    expandValues
 )
 
 data class EntitiesQueryFromPost(
     val entitySelectors: List<EntitySelector>? = null,
-    override val q: String? = null,
+    override val q: QNode? = null,
     override val scopeQ: String? = null,
     override val paginationQuery: PaginationQuery,
     override val attrs: Set<ExpandedTerm> = emptySet(),
@@ -69,7 +76,9 @@ data class EntitiesQueryFromPost(
     override val linkedEntityQuery: LinkedEntityQuery? = null,
     override val local: Boolean = false,
     override val ordering: OrderingParams = OrderingParams(),
-    override val contexts: List<String>
+    override val contexts: List<String>,
+    override val jsonKeys: Set<String> = emptySet(),
+    override val expandValues: Set<String> = emptySet()
 ) : EntitiesQuery(
     q,
     scopeQ,
@@ -82,5 +91,7 @@ data class EntitiesQueryFromPost(
     linkedEntityQuery,
     local,
     ordering,
-    contexts
+    contexts,
+    jsonKeys,
+    expandValues
 )

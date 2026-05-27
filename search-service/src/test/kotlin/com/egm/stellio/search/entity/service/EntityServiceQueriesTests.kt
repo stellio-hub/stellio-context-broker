@@ -13,6 +13,7 @@ import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.PaginationQuery
+import com.egm.stellio.shared.queryparameter.parseQQuery
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
@@ -271,7 +272,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "integer==213;boolean==true, 1, urn:ngsi-ld:BeeHive:01",
         "(integer>200|integer<100);observedProperty.observedAt<2023-02-25T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
         "string~=\"(?i)another.*\", 1, urn:ngsi-ld:BeeHive:02",
-        "string!~=\"(?i)another.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:MultiTypes:03'",
+        "string!~=\"(?i)another.*\";string, 1, 'urn:ngsi-ld:BeeHive:01'",
         "(string!~=\"(?i)another.*\";integer==213), 1, urn:ngsi-ld:BeeHive:01",
         "simpleQuoteString~=\"(?i).*It's a name.*\", 1, urn:ngsi-ld:BeeHive:01",
         "simpleQuoteString~=\"(?i)^it's.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
@@ -288,6 +289,10 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "propertyWithMetadata.unitCode==\"MTR\", 1, urn:ngsi-ld:BeeHive:02",
         "propertyWithMetadata.license==\"GPL\", 1, urn:ngsi-ld:BeeHive:02",
         "propertyWithMetadata.license.since==\"2023\", 1, urn:ngsi-ld:BeeHive:02",
+        "propertyWithMetadata.source[author]==\"EGM\", 1, urn:ngsi-ld:BeeHive:01",
+        "propertyWithMetadata.source[author]==\"Dummy Company\", 0, ",
+        "propertyWithMetadata.author==urn:ngsi-ld:Person:01, 1, urn:ngsi-ld:BeeHive:01",
+        """'propertyWithMetadata.author==urn:ngsi-ld:Person:01,urn:ngsi-ld:Person:02', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'""",
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:01, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:02, 1, urn:ngsi-ld:BeeHive:01",
         "multiInstanceProperty.datasetId==urn:ngsi-ld:Dataset:10, 0, ",
@@ -296,6 +301,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "jsonObject[aSimpleQuote]==\"precipitation's measures\", 1, urn:ngsi-ld:BeeHive:01",
         "jsonObject[anObject.name]==\"River\", 1, urn:ngsi-ld:BeeHive:02",
         "jsonObject[anObject.name]==\"Sea\", 0, ",
+        "!name;integer==143, 1, urn:ngsi-ld:BeeHive:02",
+        "!name;integer==213, 0, ",
         "integer==143..213, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "integer==144..213, 1, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "integer==100..120, 0, ",
@@ -306,7 +313,15 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         """'listOfString=="fiware","egm"', 0, """,
         "'listOfInt==12,14', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "'listOfInt==12', 1, urn:ngsi-ld:BeeHive:01",
-        "date, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'"
+        "date, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "localizedName[en]==\"Bee Hive One\", 1, urn:ngsi-ld:BeeHive:01",
+        "localizedName[en]~=\"Bee.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "localizedName[de]==\"something\", 0, ",
+        "localizedUrl[en]==http://localhost/en/beehive, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "localizedUrl[en]==http://localhost/fr/ruche, 0, ",
+        "propWithLangSub.langSub[en]==\"sub lang one\", 1, urn:ngsi-ld:BeeHive:01",
+        "propWithLangSub.langSub[en]~=\"sub lang.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "propWithLangSub.langSub[de]==\"anything\", 0, "
     )
     fun `it should retrieve entities according to q parameter`(
         q: String,
@@ -316,8 +331,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
-                    q = q,
-                    paginationQuery = PaginationQuery(limit = 2, offset = 0),
+                    q = parseQQuery(q).shouldSucceedAndResult(),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
                 null
@@ -589,5 +604,190 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
             )
 
         assertThat(entitiesIds).isEmpty()
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "jsonProp[aString]==\"flow monitoring\", jsonProp, 1, urn:ngsi-ld:BeeHive:02",
+        "jsonProp[aNumber]==93.93, jsonProp, 1, urn:ngsi-ld:BeeHive:02",
+        "jsonProp[aNumber]>90, jsonProp, 1, urn:ngsi-ld:BeeHive:02",
+        "jsonProp[aNumber]==12..14, jsonProp, 1, urn:ngsi-ld:BeeHive:01",
+        "jsonProp[aNumber]!=12..14, jsonProp, 1, urn:ngsi-ld:BeeHive:02",
+        "jsonProp[anObject.name]==\"City\", jsonProp, 1, urn:ngsi-ld:BeeHive:01",
+        "jsonProp[anObject.name]==\"Sea\", jsonProp, 0, ",
+        "jsonProp==\"flow monitoring\", jsonProp, 0, ",
+        "propWithJsonSub.jsonSub[sensor]==\"S01\", propWithJsonSub, 1, urn:ngsi-ld:BeeHive:01",
+        "propWithJsonSub.jsonSub[reading]==7.3, propWithJsonSub, 1, urn:ngsi-ld:BeeHive:01",
+        "propWithJsonSub.jsonSub[reading]==3..8, propWithJsonSub, 2, "
+    )
+    fun `it should retrieve entities according to q parameter with a JsonProperty attribute and sub-attribute`(
+        q: String,
+        jsonKeys: String,
+        expectedCount: Int,
+        expectedListOfEntities: String?
+    ) = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromGet(
+                    typeSelection = BEEHIVE_IRI,
+                    q = parseQQuery(q).shouldSucceedAndResult(),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS,
+                    jsonKeys = setOf(jsonKeys)
+                ),
+                null
+            )
+
+        assertEquals(expectedCount, entitiesIds.size)
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "category==\"BeeHive\", category, 1, urn:ngsi-ld:BeeHive:01",
+        "category==\"Apiary\", category, 0, ",
+        "propWithVocabSub.vocabSub==\"BeeHive\", propWithVocabSub, 1, urn:ngsi-ld:BeeHive:01",
+        "propWithVocabSub.vocabSub==\"Apiary\", propWithVocabSub, 1, urn:ngsi-ld:BeeHive:02",
+        "propWithVocabSub.vocabSub==\"Beekeeper\", propWithVocabSub, 0, ",
+    )
+    fun `it should retrieve entities according to q parameter with a VocabProperty attribute and sub-attribute`(
+        q: String,
+        expandValues: String,
+        expectedCount: Int,
+        expectedListOfEntities: String?
+    ) = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromGet(
+                    typeSelection = BEEHIVE_IRI,
+                    q = parseQQuery(q).shouldSucceedAndResult(),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS,
+                    expandValues = setOf(expandValues)
+                ),
+                null
+            )
+
+        assertEquals(expectedCount, entitiesIds.size)
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
+    }
+
+    @Test
+    fun `it should not match entities when expandValues is not set for a vocab attribute`() = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromGet(
+                    typeSelection = BEEHIVE_IRI,
+                    q = parseQQuery("category==\"BeeHive\"").shouldSucceedAndResult(),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                null
+            )
+
+        // Without expandValues, "BeeHive" is treated as a plain string, not matched against the stored IRI
+        assertThat(entitiesIds).isEmpty()
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "integer==213, 1, urn:ngsi-ld:BeeHive:01",
+        "integer==143, 1, urn:ngsi-ld:BeeHive:02",
+        "boolean==true, 1, urn:ngsi-ld:BeeHive:01",
+        "!name;integer==143, 1, urn:ngsi-ld:BeeHive:02"
+    )
+    fun `it should retrieve entities according to q parameter via POST query`(
+        q: String,
+        expectedCount: Int,
+        expectedListOfEntities: String?
+    ) = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromPost(
+                    entitySelectors = listOf(
+                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI)
+                    ),
+                    q = parseQQuery(q).shouldSucceedAndResult(),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                null
+            )
+
+        assertEquals(expectedCount, entitiesIds.size)
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
+    }
+
+    @Test
+    fun `it should retrieve entities according to jsonKeys via POST query`() = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromPost(
+                    entitySelectors = listOf(
+                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI)
+                    ),
+                    q = parseQQuery("jsonProp[aString]==\"flow monitoring\"").shouldSucceedAndResult(),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS,
+                    jsonKeys = setOf("jsonProp")
+                ),
+                null
+            )
+
+        assertEquals(1, entitiesIds.size)
+        assertThat(entitiesIds).contains(entity02Uri)
+    }
+
+    @Test
+    fun `it should retrieve entities according to expandValues via POST query`() = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromPost(
+                    entitySelectors = listOf(
+                        EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI)
+                    ),
+                    q = parseQQuery("category==\"BeeHive\"").shouldSucceedAndResult(),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS,
+                    expandValues = setOf("category")
+                ),
+                null
+            )
+
+        assertEquals(1, entitiesIds.size)
+        assertThat(entitiesIds).contains(entity01Uri)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "propWithJsonSub.jsonSub[sensor]==\"S01\", 1, urn:ngsi-ld:BeeHive:01",
+        "propWithJsonSub.jsonSub[sensor]==\"S02\", 1, urn:ngsi-ld:BeeHive:02",
+        "propWithJsonSub.jsonSub[reading]==7.3, 1, urn:ngsi-ld:BeeHive:01",
+        "propWithJsonSub.jsonSub[reading]==3.1, 1, urn:ngsi-ld:BeeHive:02",
+        "propWithJsonSub.jsonSub[sensor]==\"S99\", 0, "
+    )
+    fun `it should retrieve entities according to q parameter with json property sub-attribute`(
+        q: String,
+        expectedCount: Int,
+        expectedListOfEntities: String?
+    ) = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromGet(
+                    typeSelection = BEEHIVE_IRI,
+                    q = parseQQuery(q).shouldSucceedAndResult(),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS,
+                    jsonKeys = setOf("propWithJsonSub")
+                ),
+                null
+            )
+
+        assertEquals(expectedCount, entitiesIds.size)
+        if (expectedListOfEntities != null)
+            assertThat(expectedListOfEntities.split(",")).containsAll(entitiesIds.toListOfString())
     }
 }

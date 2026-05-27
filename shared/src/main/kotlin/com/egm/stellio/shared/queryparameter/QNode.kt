@@ -12,13 +12,13 @@ data class ComparisonNode(
     val value: QValue
 ) : QNode()
 
-enum class ComparisonOperator(val sqlOp: String) {
-    EQ("=="),
-    NEQ("<>"),
-    GTE(">="),
-    GT(">"),
-    LTE("<="),
-    LT("<"),
-    LIKE_REGEX("like_regex"),
-    NOT_LIKE_REGEX("not_like_regex")
+enum class ComparisonOperator(val ngsildOp: String, val sqlOp: String) {
+    EQ("==", "=="),
+    NEQ("!=", "<>"),
+    GTE(">=", ">="),
+    GT(">", ">"),
+    LTE("<=", "<="),
+    LT("<", "<"),
+    LIKE_REGEX("~=", "like_regex"),
+    NOT_LIKE_REGEX("!~=", "not_like_regex")
 }

@@ -127,20 +127,11 @@ private class QParserImpl(private val raw: String) {
 
     private fun parseOperator(): Either<String, ComparisonOperator?> = either {
         if (pos >= raw.length || !isOperatorChar(raw[pos])) return@either null
-        when {
-            tryConsume("!~=") -> ComparisonOperator.NOT_LIKE_REGEX
-            tryConsume("~=") -> ComparisonOperator.LIKE_REGEX
-            tryConsume("==") -> ComparisonOperator.EQ
-            tryConsume("!=") -> ComparisonOperator.NEQ
-            tryConsume(">=") -> ComparisonOperator.GTE
-            tryConsume("<=") -> ComparisonOperator.LTE
-            tryConsume(">") -> ComparisonOperator.GT
-            tryConsume("<") -> ComparisonOperator.LT
-            else -> raise(
+        ComparisonOperator.entries.find { tryConsume(it.ngsildOp) }
+            ?: raise(
                 "Unknown operator at position $pos: " +
                     "'${raw.substring(pos, minOf(pos + OPERATOR_MAX_LENGTH, raw.length))}'"
             )
-        }
     }
 
     private fun tryConsume(s: String): Boolean {

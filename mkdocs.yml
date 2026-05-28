@@ -19,6 +19,7 @@ nav:
       - Information model : 'user/information_model.md'
       - API Walkthrough: 'user/API_walkthrough.md'
       - NGSI-LD Query Language support: 'user/query_language.md'
+      - Kafka telemetry ingestion: 'user/kafka_telemetry_ingestion.md'
       - Authentication and authorization: 'user/authentication_and_authorization.md'
   - Installation & Administration Manual:
       - Architecture: 'admin/architecture.md'

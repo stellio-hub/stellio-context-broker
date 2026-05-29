@@ -78,6 +78,22 @@ class LinkedEntityServiceTests {
         }
     """.trimIndent().deserializeAsMap()
 
+    private val linkingEntityWithMultiInstanceRelationships: CompactedEntity = """
+        {
+            "id": "urn:ngsi-ld:LinkingEntity:01",
+            "type": "LinkingEntity",
+            "rel1": [{
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:LinkedEntity:01",
+                "datasetId": "urn:ngsi-ld:Dataset:01"
+            }, {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:LinkedEntity:02",
+                "datasetId": "urn:ngsi-ld:Dataset:02"
+            }]
+        }
+    """.trimIndent().deserializeAsMap()
+
     @Test
     fun `it should return the input entity if no join is specified`() = runTest {
         val compactedEntities = linkedEntityService.processLinkedEntities(
@@ -235,6 +251,104 @@ class LinkedEntityServiceTests {
                 {
                     "id": "urn:ngsi-ld:LinkedEntity:02",
                     "type": "LinkedEntity"
+                }]
+            """.trimIndent(),
+            serializeObject(flattenedEntities)
+        )
+    }
+
+    @Test
+    fun `it should flatten a linking entity with multi-instance relationship and linked entities`() = runTest {
+        val linkedEntity01 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:01",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+        val linkedEntity02 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:02",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val flattenedEntities =
+            linkedEntityService.flattenLinkedEntities(
+                listOf(linkingEntityWithMultiInstanceRelationships),
+                listOf(linkedEntity01, linkedEntity02)
+            )
+
+        assertJsonPayloadsAreEqual(
+            """
+                [{
+                    "id": "urn:ngsi-ld:LinkingEntity:01",
+                    "type": "LinkingEntity",
+                    "rel1": [{
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:01",
+                        "datasetId": "urn:ngsi-ld:Dataset:01"
+                    }, {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:02",
+                        "datasetId": "urn:ngsi-ld:Dataset:02"
+                    }]
+                },
+                {
+                    "id": "urn:ngsi-ld:LinkedEntity:01",
+                    "type": "LinkedEntity"
+                },
+                {
+                    "id": "urn:ngsi-ld:LinkedEntity:02",
+                    "type": "LinkedEntity"
+                }]
+            """.trimIndent(),
+            serializeObject(flattenedEntities)
+        )
+    }
+
+    @Test
+    fun `it should inline a linking entity with multi-instance relationship and linked entities`() = runTest {
+        val linkedEntity01 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:01",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+        val linkedEntity02 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:02",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val flattenedEntities =
+            linkedEntityService.inlineLinkedEntities(
+                listOf(linkingEntityWithMultiInstanceRelationships),
+                listOf(linkedEntity01, linkedEntity02)
+            )
+
+        assertJsonPayloadsAreEqual(
+            """
+                [{
+                    "id": "urn:ngsi-ld:LinkingEntity:01",
+                    "type": "LinkingEntity",
+                    "rel1": [{
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:01",
+                        "datasetId": "urn:ngsi-ld:Dataset:01",
+                        "entity": {
+                            "id": "urn:ngsi-ld:LinkedEntity:01",
+                            "type": "LinkedEntity"
+                        }
+                    }, {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:02",
+                        "datasetId": "urn:ngsi-ld:Dataset:02",
+                        "entity": {
+                            "id": "urn:ngsi-ld:LinkedEntity:02",
+                            "type": "LinkedEntity"
+                        }
+                    }]
                 }]
             """.trimIndent(),
             serializeObject(flattenedEntities)

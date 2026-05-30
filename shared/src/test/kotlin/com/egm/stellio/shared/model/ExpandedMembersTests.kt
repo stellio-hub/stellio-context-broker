@@ -136,7 +136,7 @@ class ExpandedMembersTests {
     fun `it should return an error if a relationship has no object field`() {
         val relationshipValues = buildExpandedPropertyValue("something")[0]
 
-        val result = relationshipValues.getRelationshipObject("isARelationship")
+        val result = relationshipValues.getRelationshipObjects("isARelationship")
         assertTrue(result.isLeft())
         result.mapLeft {
             assertEquals("Relationship isARelationship does not have an object field", it.message)
@@ -149,7 +149,7 @@ class ExpandedMembersTests {
             NGSILD_RELATIONSHIP_OBJECT to emptyList<Any>()
         )
 
-        val result = relationshipValues.getRelationshipObject("isARelationship")
+        val result = relationshipValues.getRelationshipObjects("isARelationship")
         assertTrue(result.isLeft())
         result.mapLeft {
             assertEquals("Relationship isARelationship is empty", it.message)
@@ -162,7 +162,7 @@ class ExpandedMembersTests {
             NGSILD_RELATIONSHIP_OBJECT to listOf("invalid")
         )
 
-        val result = relationshipValues.getRelationshipObject("isARelationship")
+        val result = relationshipValues.getRelationshipObjects("isARelationship")
         assertTrue(result.isLeft())
         result.mapLeft {
             assertEquals(
@@ -180,7 +180,7 @@ class ExpandedMembersTests {
             )
         )
 
-        relationshipValues.getRelationshipObject("isARelationship")
+        relationshipValues.getRelationshipObjects("isARelationship")
             .shouldFail {
                 assertEquals("Relationship isARelationship has an invalid or no object id: null", it.message)
             }
@@ -191,7 +191,7 @@ class ExpandedMembersTests {
         val relationshipObjectId = "urn:ngsi-ld:T:1"
         val relationshipValues = buildExpandedRelationshipValue(relationshipObjectId.toUri())
 
-        relationshipValues[0].getRelationshipObject("isARelationship")
+        relationshipValues[0].getRelationshipObjects("isARelationship")
             .shouldSucceedWith {
                 assertEquals(relationshipObjectId.toUri(), it)
             }
@@ -206,7 +206,7 @@ class ExpandedMembersTests {
             )
         )
 
-        relationshipValues.getRelationshipObject("isARelationship")
+        relationshipValues.getRelationshipObjects("isARelationship")
             .shouldSucceedWith {
                 assertEquals(
                     listOf("urn:ngsi-ld:T:1".toUri(), "urn:ngsi-ld:T:2".toUri()),

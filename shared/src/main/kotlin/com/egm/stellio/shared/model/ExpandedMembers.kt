@@ -2,6 +2,7 @@ package com.egm.stellio.shared.model
 
 import arrow.core.Either
 import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import com.egm.stellio.shared.util.ErrorMessages.Entity.CANNOT_ADD_SUBATTRIBUTE_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.EXPECTED_SINGLE_ENTRY_MESSAGE
@@ -171,21 +172,24 @@ fun ExpandedAttributeInstance.getMemberValueAsDateTime(memberName: ExpandedTerm)
 fun ExpandedAttributeInstance.getMemberValueAsString(memberName: ExpandedTerm): String? =
     String::class.safeCast(this.getMemberValue(memberName).getOrNull())
 
-fun ExpandedAttributeInstance.getRelationshipObject(name: String): Either<BadRequestDataException, Any> {
+fun ExpandedAttributeInstance.getRelationshipObjects(name: String): Either<BadRequestDataException, Any> {
     val attributeInstance = this
     return either {
-        if (!attributeInstance.containsKey(NGSILD_RELATIONSHIP_OBJECT))
-            raise(BadRequestDataException(relationshipMissingObjectMessage(name)))
-        if (attributeInstance.isEmpty())
-            raise(BadRequestDataException(relationshipEmptyMessage(name)))
-        val idList = attributeInstance[NGSILD_RELATIONSHIP_OBJECT]!!.map {
-            if (it !is Map<*, *>)
-                raise(BadRequestDataException(relationshipInvalidObjectTypeMessage(name, it.javaClass)))
-            else if (it[JSONLD_ID_KW] !is String)
-                raise(BadRequestDataException(relationshipInvalidObjectIdMessage(name, it[JSONLD_ID_KW])))
-            else (it[JSONLD_ID_KW] as String).toUri()
+        ensure(attributeInstance.containsKey(NGSILD_RELATIONSHIP_OBJECT)) {
+            BadRequestDataException(relationshipMissingObjectMessage(name))
         }
-        if (idList.isEmpty()) raise(BadRequestDataException(relationshipEmptyMessage(name)))
+        ensure(attributeInstance.isNotEmpty()) {
+            BadRequestDataException(relationshipEmptyMessage(name))
+        }
+        val idList = attributeInstance[NGSILD_RELATIONSHIP_OBJECT]!!.map {
+            ensure(it is Map<*, *>) {
+                BadRequestDataException(relationshipInvalidObjectTypeMessage(name, it.javaClass))
+            }
+            ensure(it[JSONLD_ID_KW] is String) {
+                BadRequestDataException(relationshipInvalidObjectIdMessage(name, it[JSONLD_ID_KW]))
+            }
+            (it[JSONLD_ID_KW] as String).toUri()
+        }
         if (idList.size == 1) idList.first() else idList
     }
 }

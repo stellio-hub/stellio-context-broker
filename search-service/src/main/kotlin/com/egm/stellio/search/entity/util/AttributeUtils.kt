@@ -27,6 +27,7 @@ import com.egm.stellio.shared.model.NgsiLdLanguagePropertyInstance
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.NgsiLdVocabPropertyInstance
+import com.egm.stellio.shared.model.RelationshipObjects
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
@@ -150,12 +151,14 @@ fun guessPropertyValueType(
     }
 
 fun guessRelationShipValueType(
-    objectId: Any // Uri or List<Uri>
+    objectId: RelationshipObjects
 ): Pair<Attribute.AttributeValueType, Triple<Json?, Double?, WKTCoordinates?>> =
-    if (objectId is List<*>)
-        Pair(Attribute.AttributeValueType.ARRAY, Triple(objectId.asJsonB(), null, null))
-    else
-        Pair(Attribute.AttributeValueType.URI, Triple(objectId.asJsonB(), null, null))
+    when (objectId) {
+        is RelationshipObjects.Single ->
+            Pair(Attribute.AttributeValueType.URI, Triple(objectId.id.asJsonB(), null, null))
+        is RelationshipObjects.Multiple ->
+            Pair(Attribute.AttributeValueType.ARRAY, Triple(objectId.ids.asJsonB(), null, null))
+    }
 
 /**
  * Returns whether the expanded attribute instance holds a NGSI-LD Null value

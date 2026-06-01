@@ -268,8 +268,13 @@ class NgsiLdPropertyInstance private constructor(
     override fun toString(): String = "NgsiLdPropertyInstance(value=$value)"
 }
 
+sealed class RelationshipObjects {
+    data class Single(val id: URI) : RelationshipObjects()
+    data class Multiple(val ids: List<URI>) : RelationshipObjects()
+}
+
 class NgsiLdRelationshipInstance private constructor(
-    val objectId: Any, // URI or list of URIs
+    val objectId: RelationshipObjects,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
     attributes: List<NgsiLdAttribute>

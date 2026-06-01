@@ -384,7 +384,10 @@ class NgsiLdEntityTests {
         assertEquals("https://uri.etsi.org/ngsi-ld/default-context/refDeviceModel", ngsiLdRelationship.name)
         assertEquals(1, ngsiLdRelationship.instances.size)
         val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
-        assertEquals("urn:ngsi-ld:DeviceModel:09876".toUri(), ngsiLdRelationshipInstance.objectId)
+        assertEquals(
+            RelationshipObjects.Single("urn:ngsi-ld:DeviceModel:09876".toUri()),
+            ngsiLdRelationshipInstance.objectId
+        )
     }
 
     @Test
@@ -407,7 +410,10 @@ class NgsiLdEntityTests {
             .shouldSucceedAndResult()
 
         val ngsiLdRelationshipInstance = ngsiLdEntity.relationships[0].instances[0]
-        assertEquals("urn:ngsi-ld:DeviceModel:09876".toUri(), ngsiLdRelationshipInstance.objectId)
+        assertEquals(
+            RelationshipObjects.Single("urn:ngsi-ld:DeviceModel:09876".toUri()),
+            ngsiLdRelationshipInstance.objectId
+        )
         assertEquals("urn:ngsi-ld:Dataset:01234".toUri(), ngsiLdRelationshipInstance.datasetId)
         assertEquals(ZonedDateTime.parse("2020-07-19T00:00:00Z"), ngsiLdRelationshipInstance.observedAt)
     }
@@ -467,9 +473,11 @@ class NgsiLdEntityTests {
         assertEquals(1, ngsiLdRelationship.instances.size)
         val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
         assertEquals(
-            listOf(
-                "urn:ngsi-ld:DeviceModel:09876".toUri(),
-                "urn:ngsi-ld:DeviceModel:12345".toUri()
+            RelationshipObjects.Multiple(
+                listOf(
+                    "urn:ngsi-ld:DeviceModel:09876".toUri(),
+                    "urn:ngsi-ld:DeviceModel:12345".toUri()
+                )
             ),
             ngsiLdRelationshipInstance.objectId
         )

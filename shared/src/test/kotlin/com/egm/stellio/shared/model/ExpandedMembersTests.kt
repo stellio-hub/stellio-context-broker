@@ -193,7 +193,7 @@ class ExpandedMembersTests {
 
         relationshipValues[0].getRelationshipObjects("isARelationship")
             .shouldSucceedWith {
-                assertEquals(relationshipObjectId.toUri(), it)
+                assertEquals(RelationshipObjects.Single(relationshipObjectId.toUri()), it)
             }
     }
 
@@ -209,7 +209,7 @@ class ExpandedMembersTests {
         relationshipValues.getRelationshipObjects("isARelationship")
             .shouldSucceedWith {
                 assertEquals(
-                    listOf("urn:ngsi-ld:T:1".toUri(), "urn:ngsi-ld:T:2".toUri()),
+                    RelationshipObjects.Multiple(listOf("urn:ngsi-ld:T:1".toUri(), "urn:ngsi-ld:T:2".toUri())),
                     it
                 )
             }

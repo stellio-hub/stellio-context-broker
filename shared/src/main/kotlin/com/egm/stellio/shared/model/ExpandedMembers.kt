@@ -190,6 +190,7 @@ fun ExpandedAttributeInstance.getRelationshipObjects(name: String): Either<BadRe
             }
             (it[JSONLD_ID_KW] as String).toUri()
         }
+        ensure(idList.isNotEmpty()) { BadRequestDataException(relationshipEmptyMessage(name)) }
         if (idList.size == 1) idList.first() else idList
     }
 }

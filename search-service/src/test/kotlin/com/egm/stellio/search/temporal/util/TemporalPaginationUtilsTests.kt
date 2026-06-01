@@ -1,21 +1,25 @@
 package com.egm.stellio.search.temporal.util
 
+import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
+import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
+import com.egm.stellio.search.temporal.model.AttributeInstanceResult
+import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
-import com.egm.stellio.shared.model.NGSILD_ID_TERM
-import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
-import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
-import com.egm.stellio.shared.util.INCOMING_TERM
-import com.egm.stellio.shared.util.OUTGOING_TERM
+import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.OUTGOING_IRI
+import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
 import java.time.ZonedDateTime
+import java.util.UUID
 
 @ActiveProfiles("test")
 class TemporalPaginationUtilsTests {
@@ -24,94 +28,112 @@ class TemporalPaginationUtilsTests {
     private val endTimeAt = ZonedDateTime.parse("2021-01-01T00:00:00Z")
     private val leastRecentTimestamp = ZonedDateTime.parse("2020-01-01T00:01:00Z")
     private val mostRecentTimestamp = leastRecentTimestamp.plusMinutes(4) // from discrimination attribute
-    private val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+    private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
-    private fun getQuery(
-        temporalQuery: TemporalQuery,
-        temporalRepresentation: TemporalRepresentation = TemporalRepresentation.NORMALIZED
-    ): TemporalEntitiesQuery =
-        TemporalEntitiesQueryFromGet(
-            temporalQuery = temporalQuery,
-            entitiesQuery = EntitiesQueryFromGet(
-                paginationQuery = PaginationQuery(limit = 0, offset = 50),
-                contexts = APIC_COMPOUND_CONTEXTS
-            ),
-            temporalRepresentation = temporalRepresentation,
-            withAudit = false
-        )
+    private val attributeIncoming = Attribute(
+        entityId = entityUri,
+        attributeName = INCOMING_IRI,
+        attributeValueType = Attribute.AttributeValueType.NUMBER,
+        createdAt = ZonedDateTime.now(),
+        payload = EMPTY_JSON_PAYLOAD
+    )
 
-    private fun normalizedInstance(timestamp: ZonedDateTime): Map<String, Any> =
-        mapOf(NGSILD_TYPE_TERM to "Property", NGSILD_OBSERVED_AT_TERM to timestamp.toString())
+    private val attributeOutgoing = Attribute(
+        entityId = entityUri,
+        attributeName = OUTGOING_IRI,
+        attributeValueType = Attribute.AttributeValueType.NUMBER,
+        createdAt = ZonedDateTime.now(),
+        payload = EMPTY_JSON_PAYLOAD
+    )
 
-    private fun simplifiedInstance(timestamp: ZonedDateTime): List<Any> =
-        listOf(1, timestamp.toString())
-
-    private fun aggregatedInstance(start: ZonedDateTime, end: ZonedDateTime): List<Any> =
-        listOf(1, start.toString(), end.toString())
-
-    @Test
-    fun `calculateRangeFromCompactedEntity should return null when lastN is the limit`() {
-        val entity = mapOf(
-            NGSILD_ID_TERM to entityId,
-            INCOMING_TERM to (0..4).map { normalizedInstance(leastRecentTimestamp.plusMinutes(it.toLong())) }
-        )
-        val query = getQuery(buildDefaultTestTemporalQuery(instanceLimit = 5, lastN = 5))
-        Assertions.assertNull(TemporalPaginationUtils.calculateRangeFromEntity(entity, query))
+    private fun getInstance(time: ZonedDateTime): AttributeInstanceResult {
+        return SimplifiedAttributeInstanceResult(value = 1, time = time, attributeUuid = UUID.randomUUID())
     }
 
-    @Test
-    fun `calculateRangeFromCompactedEntity should return null when no attribute reaches instanceLimit`() {
-        val entity = mapOf(
-            NGSILD_ID_TERM to entityId,
-            INCOMING_TERM to listOf(normalizedInstance(leastRecentTimestamp))
+    private val attributesWithInstances: AttributesWithInstances = mapOf(
+        attributeIncoming to listOf(
+            getInstance(leastRecentTimestamp),
+            getInstance(leastRecentTimestamp.plusMinutes(1)),
+            getInstance(leastRecentTimestamp.plusMinutes(2)),
+            getInstance(leastRecentTimestamp.plusMinutes(3)),
+            getInstance(leastRecentTimestamp.plusMinutes(4)),
+        ),
+        attributeOutgoing to listOf(
+            getInstance(leastRecentTimestamp.plusMinutes(3)),
+            getInstance(leastRecentTimestamp.plusMinutes(4)),
+            getInstance(leastRecentTimestamp.plusMinutes(5)),
+            getInstance(leastRecentTimestamp.plusMinutes(6)),
+            getInstance(leastRecentTimestamp.plusMinutes(7)),
         )
-        val query = getQuery(buildDefaultTestTemporalQuery(instanceLimit = 5))
-        Assertions.assertNull(TemporalPaginationUtils.calculateRangeFromEntity(entity, query))
-    }
+    )
+
+    private val attributesWithInstancesForLastN: AttributesWithInstances = mapOf(
+        attributeIncoming to listOf(
+            getInstance(leastRecentTimestamp),
+            getInstance(leastRecentTimestamp.plusMinutes(1)),
+            getInstance(leastRecentTimestamp.plusMinutes(2)),
+            getInstance(leastRecentTimestamp.plusMinutes(3)),
+            getInstance(leastRecentTimestamp.plusMinutes(4)),
+        ),
+        attributeOutgoing to listOf(
+            getInstance(leastRecentTimestamp.minusMinutes(3)),
+            getInstance(leastRecentTimestamp.minusMinutes(2)),
+            getInstance(leastRecentTimestamp.minusMinutes(1)),
+            getInstance(leastRecentTimestamp),
+            getInstance(leastRecentTimestamp.plusMinutes(1))
+        )
+    )
+
+    private val aggregationInstances = listOf(
+        AggregatedAttributeInstanceResult(
+            attributeUuid = UUID.randomUUID(),
+            values = listOf(
+                AggregatedAttributeInstanceResult.AggregateResult(
+                    TemporalQuery.Aggregate.SUM,
+                    1,
+                    leastRecentTimestamp,
+                    leastRecentTimestamp.plusSeconds(59)
+                ),
+                AggregatedAttributeInstanceResult.AggregateResult(
+                    TemporalQuery.Aggregate.AVG,
+                    2,
+                    leastRecentTimestamp,
+                    leastRecentTimestamp.plusSeconds(59)
+                )
+            )
+        ),
+        AggregatedAttributeInstanceResult(
+            attributeUuid = UUID.randomUUID(),
+            values = listOf(
+                AggregatedAttributeInstanceResult.AggregateResult(
+                    TemporalQuery.Aggregate.SUM,
+                    1,
+                    leastRecentTimestamp.plusMinutes(1),
+                    leastRecentTimestamp.plusMinutes(1).plusSeconds(59)
+                ),
+                AggregatedAttributeInstanceResult.AggregateResult(
+                    TemporalQuery.Aggregate.AVG,
+                    2,
+                    leastRecentTimestamp.plusMinutes(1),
+                    leastRecentTimestamp.plusMinutes(1).plusSeconds(59)
+                )
+            )
+        )
+    )
+
+    private fun getQuery(temporalQuery: TemporalQuery): TemporalEntitiesQuery = TemporalEntitiesQueryFromGet(
+        temporalQuery = temporalQuery,
+        entitiesQuery = EntitiesQueryFromGet(
+            paginationQuery = PaginationQuery(limit = 0, offset = 50),
+            attrs = setOf(INCOMING_IRI, OUTGOING_IRI),
+            contexts = APIC_COMPOUND_CONTEXTS
+        ),
+        temporalRepresentation = TemporalRepresentation.NORMALIZED,
+        withAudit = false
+    )
 
     @Test
-    fun `calculateRangeFromCompactedEntity should return null for an empty entity`() {
-        val entity = mapOf(NGSILD_ID_TERM to entityId, NGSILD_TYPE_TERM to "BeeHive")
-        val query = getQuery(buildDefaultTestTemporalQuery(instanceLimit = 5))
-        Assertions.assertNull(TemporalPaginationUtils.calculateRangeFromEntity(entity, query))
-    }
-
-    @Test
-    fun `calculateRangeFromCompactedEntity should return range for NORMALIZED when instanceLimit is reached`() {
-        val entity = mapOf(
-            NGSILD_ID_TERM to entityId,
-            INCOMING_TERM to (0..4).map { normalizedInstance(leastRecentTimestamp.plusMinutes(it.toLong())) }
-        )
-        val query = getQuery(buildDefaultTestTemporalQuery(instanceLimit = 5))
-        val range = TemporalPaginationUtils.calculateRangeFromEntity(entity, query)
-
-        Assertions.assertNotNull(range)
-        Assertions.assertEquals(leastRecentTimestamp, range!!.first)
-        Assertions.assertEquals(mostRecentTimestamp, range.second)
-    }
-
-    @Test
-    fun `calculateRangeFromCompactedEntity should return timeAt as range-start for AFTER timerel`() {
-        val entity = mapOf(
-            NGSILD_ID_TERM to entityId,
-            INCOMING_TERM to (0..4).map { normalizedInstance(leastRecentTimestamp.plusMinutes(it.toLong())) }
-        )
-        val query = getQuery(
-            buildDefaultTestTemporalQuery(instanceLimit = 5, timerel = TemporalQuery.Timerel.AFTER, timeAt = timeAt)
-        )
-        val range = TemporalPaginationUtils.calculateRangeFromEntity(entity, query)
-
-        Assertions.assertNotNull(range)
-        Assertions.assertEquals(timeAt, range!!.first)
-        Assertions.assertEquals(mostRecentTimestamp, range.second)
-    }
-
-    @Test
-    fun `calculateRangeFromCompactedEntity should return timeAt as range-start for BETWEEN timerel`() {
-        val entity = mapOf(
-            NGSILD_ID_TERM to entityId,
-            INCOMING_TERM to (0..4).map { normalizedInstance(leastRecentTimestamp.plusMinutes(it.toLong())) }
-        )
+    fun `range calculation with timerel between should return range-start = timeAt`() {
         val query = getQuery(
             buildDefaultTestTemporalQuery(
                 instanceLimit = 5,
@@ -120,155 +142,170 @@ class TemporalPaginationUtilsTests {
                 endTimeAt = endTimeAt
             )
         )
-        val range = TemporalPaginationUtils.calculateRangeFromEntity(entity, query)
-
+        val (newTeas, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstances,
+            query
+        )
         Assertions.assertNotNull(range)
+
+        Assertions.assertEquals(5, newTeas[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newTeas[attributeOutgoing]?.size)
+
         Assertions.assertEquals(timeAt, range!!.first)
         Assertions.assertEquals(mostRecentTimestamp, range.second)
     }
 
     @Test
-    fun `calculateRangeFromCompactedEntity should return min timestamp as range-start for BEFORE timerel`() {
-        val entity = mapOf(
-            NGSILD_ID_TERM to entityId,
-            INCOMING_TERM to (0..4).map { normalizedInstance(leastRecentTimestamp.plusMinutes(it.toLong())) }
-        )
+    fun `range calculation with timerel after should return range-start = timeAt`() {
         val query = getQuery(
-            buildDefaultTestTemporalQuery(instanceLimit = 5, timerel = TemporalQuery.Timerel.BEFORE, timeAt = endTimeAt)
+            buildDefaultTestTemporalQuery(
+                instanceLimit = 5,
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = timeAt,
+            )
         )
-        val range = TemporalPaginationUtils.calculateRangeFromEntity(entity, query)
+        val (newTeas, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstances,
+            query
+        )
 
         Assertions.assertNotNull(range)
+
+        Assertions.assertEquals(5, newTeas[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newTeas[attributeOutgoing]?.size)
+
+        Assertions.assertEquals(timeAt, range!!.first)
+        Assertions.assertEquals(mostRecentTimestamp, range.second)
+    }
+
+    @Test
+    fun `range calculation with timerel before should return range-start = least recent timestamp`() {
+        val query = getQuery(
+            buildDefaultTestTemporalQuery(
+                instanceLimit = 5,
+                timerel = TemporalQuery.Timerel.BEFORE,
+                timeAt = endTimeAt,
+            )
+        )
+        val (newTeas, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstances,
+            query
+        )
+
+        Assertions.assertNotNull(range)
+
+        Assertions.assertEquals(5, newTeas[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newTeas[attributeOutgoing]?.size)
+
         Assertions.assertEquals(leastRecentTimestamp, range!!.first)
         Assertions.assertEquals(mostRecentTimestamp, range.second)
     }
 
     @Test
-    fun `calculateRangeFromCompactedEntity should derive range from the attribute that reached the limit`() {
-        val entity = mapOf(
-            NGSILD_ID_TERM to entityId,
-            INCOMING_TERM to (0..4).map { normalizedInstance(leastRecentTimestamp.plusMinutes(it.toLong())) },
-            OUTGOING_TERM to listOf(normalizedInstance(leastRecentTimestamp))
-        )
-        val query = getQuery(buildDefaultTestTemporalQuery(instanceLimit = 5))
-        val range = TemporalPaginationUtils.calculateRangeFromEntity(entity, query)
-
-        Assertions.assertNotNull(range)
-        // range is (min of all timestamps, max of all timestamps)
-        Assertions.assertEquals(leastRecentTimestamp, range!!.first)
-        Assertions.assertEquals(mostRecentTimestamp, range.second)
-    }
-
-    @Test
-    fun `calculateRangeFromCompactedEntity should return range for TEMPORAL_VALUES when instanceLimit is reached`() {
-        val entity = mapOf(
-            NGSILD_ID_TERM to entityId,
-            INCOMING_TERM to mapOf(
-                NGSILD_TYPE_TERM to "Property",
-                "values" to (0..4).map { simplifiedInstance(leastRecentTimestamp.plusMinutes(it.toLong())) }
+    fun `range calculation with lastN and timerel between should return range-start = endTimeAt`() {
+        val query = getQuery(
+            buildDefaultTestTemporalQuery(
+                instanceLimit = 5,
+                timerel = TemporalQuery.Timerel.BETWEEN,
+                timeAt = timeAt,
+                endTimeAt = endTimeAt,
+                lastN = 100
             )
         )
-        val query = getQuery(buildDefaultTestTemporalQuery(instanceLimit = 5), TemporalRepresentation.TEMPORAL_VALUES)
-        val range = TemporalPaginationUtils.calculateRangeFromEntity(entity, query)
+        val (newTeas, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstancesForLastN,
+            query
+        )
 
         Assertions.assertNotNull(range)
-        Assertions.assertEquals(leastRecentTimestamp, range!!.first)
-        Assertions.assertEquals(mostRecentTimestamp, range.second)
+
+        Assertions.assertEquals(5, newTeas[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newTeas[attributeOutgoing]?.size)
+
+        Assertions.assertEquals(endTimeAt, range!!.first)
+        Assertions.assertEquals(leastRecentTimestamp, range.second)
     }
 
     @Test
-    fun `calculateRangeFromCompactedEntity should return range for TEMPORAL_VALUES with multiple datasetIds`() {
-        val entity = mapOf(
-            NGSILD_ID_TERM to entityId,
-            INCOMING_TERM to listOf(
-                mapOf(
-                    NGSILD_TYPE_TERM to "Property",
-                    "datasetId" to "urn:ngsi-ld:Dataset:A",
-                    "values" to (0..4).map { simplifiedInstance(leastRecentTimestamp.plusMinutes(it.toLong())) }
-                ),
-                mapOf(
-                    NGSILD_TYPE_TERM to "Property",
-                    "datasetId" to "urn:ngsi-ld:Dataset:B",
-                    "values" to listOf(simplifiedInstance(leastRecentTimestamp))
-                )
+    fun `range calculation with lastN and timerel after should return range-start = most recent timestamp`() {
+        val query = getQuery(
+            buildDefaultTestTemporalQuery(
+                instanceLimit = 5,
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = timeAt,
+                lastN = 100
             )
         )
-        val query = getQuery(buildDefaultTestTemporalQuery(instanceLimit = 5), TemporalRepresentation.TEMPORAL_VALUES)
-        val range = TemporalPaginationUtils.calculateRangeFromEntity(entity, query)
+        val (newTeas, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstancesForLastN,
+            query
+        )
 
         Assertions.assertNotNull(range)
-        Assertions.assertEquals(leastRecentTimestamp, range!!.first)
-        Assertions.assertEquals(mostRecentTimestamp, range.second)
+
+        Assertions.assertEquals(5, newTeas[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newTeas[attributeOutgoing]?.size)
+
+        Assertions.assertEquals(mostRecentTimestamp, range!!.first)
+        Assertions.assertEquals(leastRecentTimestamp, range.second)
     }
 
     @Test
-    fun `calculateRangeFromCompactedEntity should return range for AGGREGATED_VALUES when instanceLimit is reached`() {
-        val entity = mapOf(
-            NGSILD_ID_TERM to entityId,
-            INCOMING_TERM to mapOf(
-                NGSILD_TYPE_TERM to "Property",
-                "min" to (0..4).map {
-                    aggregatedInstance(
-                        leastRecentTimestamp.plusMinutes(it.toLong()),
-                        leastRecentTimestamp.plusMinutes(it.toLong() + 1)
-                    )
-                }
+    fun `range calculation with lastN and timerel before should return range-start = timeAt`() {
+        val query = getQuery(
+            buildDefaultTestTemporalQuery(
+                instanceLimit = 5,
+                timerel = TemporalQuery.Timerel.BEFORE,
+                timeAt = endTimeAt,
+                lastN = 100
             )
         )
-        val query = getQuery(buildDefaultTestTemporalQuery(instanceLimit = 5), TemporalRepresentation.AGGREGATED_VALUES)
-        val range = TemporalPaginationUtils.calculateRangeFromEntity(entity, query)
+        val (newAttributes, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstancesForLastN,
+            query
+        )
 
         Assertions.assertNotNull(range)
-        Assertions.assertEquals(leastRecentTimestamp, range!!.first)
-        Assertions.assertEquals(mostRecentTimestamp, range.second)
+
+        Assertions.assertEquals(5, newAttributes[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newAttributes[attributeOutgoing]?.size)
+
+        Assertions.assertEquals(endTimeAt, range!!.first)
+        Assertions.assertEquals(leastRecentTimestamp, range.second)
     }
 
     @Test
-    fun `calculateRangeFromCompactedEntities should return null when lastN is the limit`() {
-        val entities = listOf(
-            mapOf(
-                NGSILD_ID_TERM to entityId,
-                INCOMING_TERM to (0..4).map { normalizedInstance(leastRecentTimestamp.plusMinutes(it.toLong())) }
-            )
+    fun `range calculation with aggregatedValues`() {
+        val query = TemporalEntitiesQueryFromGet(
+            temporalQuery = buildDefaultTestTemporalQuery(
+                instanceLimit = 2,
+                timerel = TemporalQuery.Timerel.AFTER,
+                timeAt = timeAt,
+                aggrMethods = listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.AVG),
+                aggrPeriodDuration = "P1M"
+            ),
+            entitiesQuery = EntitiesQueryFromGet(
+                paginationQuery = PaginationQuery(limit = 0, offset = 50),
+                attrs = setOf(INCOMING_IRI, OUTGOING_IRI),
+                contexts = APIC_COMPOUND_CONTEXTS
+            ),
+            temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+            withAudit = false
         )
-        val query = getQuery(buildDefaultTestTemporalQuery(instanceLimit = 5, lastN = 5))
 
-        Assertions.assertNull(TemporalPaginationUtils.calculateRangeFromEntities(entities, query))
-    }
-
-    @Test
-    fun `calculateRangeFromCompactedEntities should return null when no attribute reaches instanceLimit`() {
-        val entities = listOf(
-            mapOf(NGSILD_ID_TERM to entityId, INCOMING_TERM to listOf(normalizedInstance(leastRecentTimestamp)))
+        val attributesWithInstances: AttributesWithInstances =
+            mapOf(attributeIncoming to aggregationInstances, attributeOutgoing to aggregationInstances)
+        val (newAttributes, range) = TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange(
+            attributesWithInstances,
+            query
         )
-        val query = getQuery(buildDefaultTestTemporalQuery(instanceLimit = 5))
-
-        Assertions.assertNull(TemporalPaginationUtils.calculateRangeFromEntities(entities, query))
-    }
-
-    @Test
-    fun `calculateRangeFromCompactedEntities should use earliest rangeEnd across entities`() {
-        val earlierTimestamp = leastRecentTimestamp.minusMinutes(10)
-        val laterTimestamp = mostRecentTimestamp.plusMinutes(10)
-        val entity1 = mapOf(
-            NGSILD_ID_TERM to entityId,
-            INCOMING_TERM to (0..4).map { normalizedInstance(leastRecentTimestamp.plusMinutes(it.toLong())) }
-        )
-        val entity2 = mapOf(
-            NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTD",
-            INCOMING_TERM to listOf(
-                normalizedInstance(earlierTimestamp),
-                normalizedInstance(leastRecentTimestamp),
-                normalizedInstance(leastRecentTimestamp.plusMinutes(1)),
-                normalizedInstance(leastRecentTimestamp.plusMinutes(2)),
-                normalizedInstance(laterTimestamp),
-            )
-        )
-        val query = getQuery(buildDefaultTestTemporalQuery(instanceLimit = 5))
-        val range = TemporalPaginationUtils.calculateRangeFromEntities(listOf(entity1, entity2), query)
 
         Assertions.assertNotNull(range)
-        Assertions.assertEquals(earlierTimestamp, range!!.first)
-        Assertions.assertEquals(mostRecentTimestamp, range.second)
+
+        Assertions.assertEquals(2, newAttributes[attributeIncoming]?.size)
+        Assertions.assertEquals(2, newAttributes[attributeOutgoing]?.size)
+
+        Assertions.assertEquals(leastRecentTimestamp.plusMinutes(1).plusSeconds(59), range!!.second)
+        Assertions.assertEquals(timeAt, range.first)
     }
 }

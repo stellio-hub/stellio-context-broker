@@ -77,7 +77,7 @@ class TemporalEntityHandlerDistributionTests : TemporalEntityHandlerTestCommon()
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns (emptyList<ExpandedEntity>() to 0).right()
+        } returns Triple(emptyList<ExpandedEntity>(), 0, null).right()
 
         coEvery {
             distributedTemporalEntityConsumptionService.distributeQueryTemporalEntitiesOperation(

@@ -172,7 +172,7 @@ fun ExpandedAttributeInstance.getMemberValueAsDateTime(memberName: ExpandedTerm)
 fun ExpandedAttributeInstance.getMemberValueAsString(memberName: ExpandedTerm): String? =
     String::class.safeCast(this.getMemberValue(memberName).getOrNull())
 
-fun ExpandedAttributeInstance.getRelationshipObjects(name: String): Either<BadRequestDataException, Any> {
+fun ExpandedAttributeInstance.getRelationshipObjects(name: String = ""): Either<BadRequestDataException, Any> {
     val attributeInstance = this
     return either {
         ensure(attributeInstance.containsKey(NGSILD_RELATIONSHIP_OBJECT)) {

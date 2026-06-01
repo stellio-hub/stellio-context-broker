@@ -31,6 +31,7 @@ import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.getRelationshipId
+import com.egm.stellio.shared.model.getRelationshipObjects
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeCannotGetValueMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
@@ -63,11 +64,10 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
             }
 
         is NgsiLdRelationshipInstance ->
-            Triple(
-                AttributeType.Relationship,
-                Attribute.AttributeValueType.URI,
-                Triple(this.objectId.asJsonB(), null, null)
-            )
+            guessRelationShipValueType(this.objectId).let {
+                Triple(AttributeType.Relationship, it.first, it.second)
+            }
+
         is NgsiLdGeoPropertyInstance ->
             Triple(
                 AttributeType.GeoProperty,
@@ -116,7 +116,8 @@ fun guessAttributeValueType(
     when (attributeType) {
         AttributeType.Property ->
             guessPropertyValueType(expandedAttributeInstance.getPropertyValue().bind()).first
-        AttributeType.Relationship -> Attribute.AttributeValueType.URI
+        AttributeType.Relationship ->
+            guessRelationShipValueType(expandedAttributeInstance.getRelationshipObjects().bind()).first
         AttributeType.GeoProperty -> Attribute.AttributeValueType.GEOMETRY
         AttributeType.JsonProperty -> Attribute.AttributeValueType.JSON
         AttributeType.LanguageProperty -> Attribute.AttributeValueType.ARRAY
@@ -147,6 +148,14 @@ fun guessPropertyValueType(
         is LocalTime -> Pair(Attribute.AttributeValueType.TIME, Triple(value.toString().asJsonB(), null, null))
         else -> Pair(Attribute.AttributeValueType.STRING, Triple(value.toString().asJsonB(), null, null))
     }
+
+fun guessRelationShipValueType(
+    objectId: Any // Uri or List<Uri>
+): Pair<Attribute.AttributeValueType, Triple<Json?, Double?, WKTCoordinates?>> =
+    if (objectId is List<*>)
+        Pair(Attribute.AttributeValueType.ARRAY, Triple(objectId.asJsonB(), null, null))
+    else
+        Pair(Attribute.AttributeValueType.URI, Triple(objectId.asJsonB(), null, null))
 
 /**
  * Returns whether the expanded attribute instance holds a NGSI-LD Null value

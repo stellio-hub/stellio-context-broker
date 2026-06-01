@@ -5,6 +5,7 @@ import com.egm.stellio.search.entity.model.Attribute.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -25,7 +26,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.STRING,
-            guessAttributeValueType(AttributeType.Property, expandedStringProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedStringProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
@@ -38,7 +39,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.NUMBER,
-            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
@@ -51,7 +52,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.NUMBER,
-            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
@@ -64,7 +65,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.BOOLEAN,
-            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
@@ -77,7 +78,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.OBJECT,
-            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
@@ -90,7 +91,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.ARRAY,
-            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
@@ -103,7 +104,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.TIME,
-            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
@@ -116,7 +117,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.DATETIME,
-            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
@@ -132,7 +133,7 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.GEOMETRY,
-            guessAttributeValueType(AttributeType.GeoProperty, expandedGeoProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.GeoProperty, expandedGeoProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
@@ -148,23 +149,43 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.JSON,
-            guessAttributeValueType(AttributeType.JsonProperty, expandedJsonProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.JsonProperty, expandedJsonProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
     @Test
     fun `it should guess the value type of a relationship`() = runTest {
-        val expandedGeoRelationship = expandAttribute(
+        val expandedRelationship = expandAttribute(
             "relationship",
-            mapOf("type" to "Relationship", "value" to URI("urn:ngsi-ld")),
+            mapOf("type" to "Relationship", "object" to URI("urn:ngsi-ld")),
             NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             Attribute.AttributeValueType.URI,
             guessAttributeValueType(
                 AttributeType.Relationship,
-                expandedGeoRelationship.second[0]
-            ).getOrNull()
+                expandedRelationship.second[0]
+            ).shouldSucceedAndResult()
+        )
+    }
+
+    @Test
+    fun `it should guess the value type of a multivalued relationship`() = runTest {
+        val expandedRelationship = expandAttribute(
+            "relationship",
+            mapOf(
+                "type" to "Relationship",
+                "object" to listOf(URI("urn:ngsi-ld"), URI("urn:ngsi-ld:2"))
+            ),
+            NGSILD_TEST_CORE_CONTEXTS
+        )
+
+        assertEquals(
+            Attribute.AttributeValueType.ARRAY,
+            guessAttributeValueType(
+                AttributeType.Relationship,
+                expandedRelationship.second[0]
+            ).shouldSucceedAndResult()
         )
     }
 

@@ -8,7 +8,7 @@ import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.common.util.allToMappedList
-import com.egm.stellio.search.common.util.asJsonObject
+import com.egm.stellio.search.common.util.asJsonB
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
@@ -354,7 +354,7 @@ class EntityAttributeService(
         )
             .bind(
                 "values",
-                attributesToDeleteWithPayload.map { arrayOf(it.first.id, deletedAt, it.second.asJsonObject()) }
+                attributesToDeleteWithPayload.map { arrayOf(it.first.id, deletedAt, it.second.asJsonB()) }
             )
             .allToMappedList { row ->
                 mapOf(
@@ -369,7 +369,7 @@ class EntityAttributeService(
         attributesToDeleteWithPayload.forEach { (attribute, expandedAttributePayload) ->
             attributeInstanceService.addDeletedAttributeInstance(
                 attributeUuid = attribute.id,
-                value = attribute.attributeType.toNullValue().asJsonObject(),
+                value = attribute.attributeType.toNullValue().asJsonB(),
                 deletedAt = deletedAt,
                 attributeValues = expandedAttributePayload
             ).bind()
@@ -917,7 +917,7 @@ class EntityAttributeService(
                 guessPropertyValueType(attributePayload.getPropertyValue().bind()).second
             Attribute.AttributeType.Relationship ->
                 Triple(
-                    attributePayload.getMemberValue(NGSILD_RELATIONSHIP_OBJECT).bind().asJsonObject(),
+                    attributePayload.getMemberValue(NGSILD_RELATIONSHIP_OBJECT).bind().asJsonB(),
                     null,
                     null
                 )
@@ -929,19 +929,19 @@ class EntityAttributeService(
                 )
             Attribute.AttributeType.JsonProperty ->
                 Triple(
-                    attributePayload.getMemberValue(NGSILD_JSONPROPERTY_JSON).bind().asJsonObject(),
+                    attributePayload.getMemberValue(NGSILD_JSONPROPERTY_JSON).bind().asJsonB(),
                     null,
                     null
                 )
             Attribute.AttributeType.LanguageProperty ->
                 Triple(
-                    attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).bind().asJsonObject(),
+                    attributePayload.getMemberValue(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).bind().asJsonB(),
                     null,
                     null
                 )
             Attribute.AttributeType.VocabProperty ->
                 Triple(
-                    attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VOCAB).bind().asJsonObject(),
+                    attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VOCAB).bind().asJsonB(),
                     null,
                     null
                 )

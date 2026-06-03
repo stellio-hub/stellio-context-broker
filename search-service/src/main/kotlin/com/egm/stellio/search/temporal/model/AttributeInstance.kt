@@ -3,7 +3,7 @@ package com.egm.stellio.search.temporal.model
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.search.common.util.asJsonObject
+import com.egm.stellio.search.common.util.asJsonB
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -50,7 +50,7 @@ data class AttributeInstance private constructor(
             value = attributeMetadata.value,
             measuredValue = attributeMetadata.measuredValue,
             geoValue = attributeMetadata.geoValue,
-            payload = payload.addInstanceId(instanceId).addModifiedAt(modifiedAt).asJsonObject(),
+            payload = payload.addInstanceId(instanceId).addModifiedAt(modifiedAt).asJsonB(),
             sub = sub
         )
 
@@ -69,7 +69,7 @@ data class AttributeInstance private constructor(
             value = value.first,
             measuredValue = value.second,
             geoValue = value.third,
-            payload = payload.addInstanceId(instanceId).asJsonObject(),
+            payload = payload.addInstanceId(instanceId).asJsonB(),
             sub = sub
         )
 

@@ -1,6 +1,6 @@
 package com.egm.stellio.search.support
 
-import com.egm.stellio.search.common.util.asJsonObject
+import com.egm.stellio.search.common.util.asJsonB
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
@@ -59,7 +59,7 @@ fun gimmeNumericPropertyAttributeInstance(
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = measuredValue,
-        value = value?.asJsonObject(),
+        value = value?.asJsonB(),
         geoValue = null,
         valueType = Attribute.AttributeValueType.NUMBER,
         datasetId = null,
@@ -86,7 +86,7 @@ fun gimmeJsonPropertyAttributeInstance(
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = null,
-        value = SAMPLE_JSON_PROPERTY_PAYLOAD.asString().asJsonObject(),
+        value = SAMPLE_JSON_PROPERTY_PAYLOAD.asString().asJsonB(),
         geoValue = null,
         valueType = Attribute.AttributeValueType.JSON,
         datasetId = null,
@@ -112,7 +112,7 @@ fun gimmeLanguagePropertyAttributeInstance(
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = null,
-        value = SAMPLE_LANGUAGE_PROPERTY_PAYLOAD.asString().asJsonObject(),
+        value = SAMPLE_LANGUAGE_PROPERTY_PAYLOAD.asString().asJsonB(),
         geoValue = null,
         valueType = Attribute.AttributeValueType.OBJECT,
         datasetId = null,
@@ -138,7 +138,7 @@ fun gimmeVocabPropertyAttributeInstance(
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = null,
-        value = SAMPLE_VOCAB_PROPERTY_PAYLOAD.asString().asJsonObject(),
+        value = SAMPLE_VOCAB_PROPERTY_PAYLOAD.asString().asJsonB(),
         geoValue = null,
         valueType = Attribute.AttributeValueType.ARRAY,
         datasetId = null,
@@ -167,7 +167,7 @@ fun gimmePropertyAttributeInstance(
 ): AttributeInstance {
     val attributeMetadata = AttributeMetadata(
         measuredValue = null,
-        value = value.asJsonObject(),
+        value = value.asJsonB(),
         geoValue = null,
         valueType = valueType,
         datasetId = null,
@@ -202,7 +202,7 @@ fun gimmeGeoPropertyAttributeInstance(
         type = Attribute.AttributeType.GeoProperty,
         observedAt = time
     )
-    val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.geoValue!!.value.asJsonObject())
+    val payload = JsonLdUtils.buildExpandedPropertyValue(attributeMetadata.geoValue!!.value.asJsonB())
         .addNonReifiedTemporalProperty(NGSILD_OBSERVED_AT_IRI, attributeMetadata.observedAt!!)
         .getSingleEntry()
 

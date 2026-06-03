@@ -31,7 +31,7 @@ fun Json.deserializeExpandedPayload(): Map<String, List<Any>> = this.asString().
 fun Json.deserializeAsMap(): Map<String, Any> = this.asString().deserializeAsMap()
 fun Json.deserializeTemporalValue(): Any = deserializeAs<Any>(this.asString())
 
-fun Any.asJsonObject(): Json = Json.of(serializeObject(this))
+fun Any.asJsonB(): Json = Json.of(serializeObject(this))
 
 fun valueToDoubleOrNull(value: Any): Double? =
     when (value) {

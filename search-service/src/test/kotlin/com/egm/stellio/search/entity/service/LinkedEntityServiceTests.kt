@@ -357,6 +357,65 @@ class LinkedEntityServiceTests {
     }
 
     @Test
+    fun `it should inline a linking entity with multivalued relationship and linked entities`() = runTest {
+        val linkingEntity = """
+            {
+                "id": "urn:ngsi-ld:LinkingEntity:01",
+                "type": "LinkingEntity",
+                "rel1": {
+                    "type": "Relationship",
+                    "object": [
+                        "urn:ngsi-ld:LinkedEntity:01",
+                        "urn:ngsi-ld:LinkedEntity:02"
+                    ]
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+        val linkedEntity01 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:01",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+        val linkedEntity02 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:02",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val inlinedEntities =
+            linkedEntityService.inlineLinkedEntities(
+                listOf(linkingEntity),
+                listOf(linkedEntity01, linkedEntity02)
+            )
+
+        assertJsonPayloadsAreEqual(
+            """
+                [{
+                    "id": "urn:ngsi-ld:LinkingEntity:01",
+                    "type": "LinkingEntity",
+                    "rel1": {
+                        "type": "Relationship",
+                        "object": [
+                            "urn:ngsi-ld:LinkedEntity:01",
+                            "urn:ngsi-ld:LinkedEntity:02"
+                        ],
+                        "entity": [{
+                            "id": "urn:ngsi-ld:LinkedEntity:01",
+                            "type": "LinkedEntity"
+                        }, {
+                            "id": "urn:ngsi-ld:LinkedEntity:02",
+                            "type": "LinkedEntity"
+                        }]
+                    }
+                }]
+            """.trimIndent(),
+            serializeObject(inlinedEntities)
+        )
+    }
+
+    @Test
     fun `it should flatten an entity with a multivalued relationship`() = runTest {
         val linkingEntity = """
             {

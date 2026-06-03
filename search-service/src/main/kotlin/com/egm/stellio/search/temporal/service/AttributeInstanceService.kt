@@ -274,7 +274,7 @@ class AttributeInstanceService(
             "SELECT temporal_entity_attribute, min(time) as start, max(time) as end, $allAggregates "
     } else {
         val valueColumn = when {
-            // for deletedAt, the NGSI-LD Null representation is always stored as string in value column
+            // for deletedAt, the NGSI-LD Null representation is always stored as jsonb in value column
             temporalQuery.timeproperty == DELETED_AT -> "value"
             attributes[0].attributeValueType == AttributeValueType.NUMBER -> "to_jsonb(measured_value) as value"
             attributes[0].attributeValueType == AttributeValueType.GEOMETRY -> "to_jsonb(geo_value) as value"

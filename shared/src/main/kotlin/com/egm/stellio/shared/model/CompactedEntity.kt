@@ -214,8 +214,12 @@ private fun filterLanguageProperty(value: Map<String, Any>, transformationParame
             .plus(NGSILD_LANG_TERM to bestLocaleMatch)
     } else value.map { entry ->
         when {
-            entry.key == NGSILD_ENTITY_TERM ->
+            entry.key == NGSILD_ENTITY_TERM && entry.value is Map<*, *> ->
                 entry.key to (entry.value as CompactedEntity).toFilteredLanguageProperties(languageFilter)
+            entry.key == NGSILD_ENTITY_TERM && entry.value is List<*> ->
+                entry.key to (entry.value as List<CompactedEntity>).map {
+                    it.toFilteredLanguageProperties(languageFilter)
+                }
             !JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(entry.key) ->
                 entry.key to filterLanguageProperty(entry.value as Map<String, Any>, transformationParameters)
             else -> entry.key to entry.value
@@ -246,9 +250,15 @@ fun CompactedEntity.withoutSysAttrs(sysAttrToKeep: String?): Map<String, Any> {
     val removeSysAttrsFromAttrInstance = { attrValue: Map<*, *> ->
         attrValue.minus(sysAttrsToRemove)
             .mapValues { entry ->
-                if (entry.key == NGSILD_ENTITY_TERM)
-                    (entry.value as CompactedEntity).withoutSysAttrs(sysAttrToKeep)
-                else entry.value
+                if (entry.key == NGSILD_ENTITY_TERM) {
+                    when (val linkedEntity = entry.value) {
+                        is Map<*, *> -> (linkedEntity as CompactedEntity).withoutSysAttrs(sysAttrToKeep)
+                        is List<*> -> linkedEntity.map {
+                            (it as CompactedEntity).withoutSysAttrs(sysAttrToKeep)
+                        }
+                        else -> linkedEntity
+                    }
+                } else entry.value
             }
     }
 

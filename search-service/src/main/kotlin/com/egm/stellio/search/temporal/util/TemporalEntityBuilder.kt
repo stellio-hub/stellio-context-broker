@@ -178,7 +178,12 @@ object TemporalEntityBuilder {
                         else -> {
                             if (attributeInstanceResult.value is List<*>)
                                 listOf(
-                                    mapOf(JSONLD_LIST_KW to attributeInstanceResult.value),
+                                    mapOf(
+                                        JSONLD_LIST_KW to
+                                            attributeInstanceResult.value.map { value ->
+                                                mapOf(JSONLD_VALUE_KW to value)
+                                            }
+                                    ),
                                     mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
                                 )
                             else {

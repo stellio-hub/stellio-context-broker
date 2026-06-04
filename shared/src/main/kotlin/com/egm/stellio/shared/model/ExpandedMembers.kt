@@ -179,7 +179,7 @@ fun ExpandedAttributeInstance.getRelationshipObjects(name: String = ""):
         ensure(attributeInstance.containsKey(NGSILD_RELATIONSHIP_OBJECT)) {
             BadRequestDataException(relationshipMissingObjectMessage(name))
         }
-        ensure(attributeInstance.isNotEmpty()) {
+        ensure(attributeInstance[NGSILD_RELATIONSHIP_OBJECT]!!.isNotEmpty()) {
             BadRequestDataException(relationshipEmptyMessage(name))
         }
         val idList = attributeInstance[NGSILD_RELATIONSHIP_OBJECT]!!.map {

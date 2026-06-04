@@ -65,7 +65,7 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
             }
 
         is NgsiLdRelationshipInstance ->
-            guessRelationShipValueType(this.objectId).let {
+            guessRelationshipValueType(this.objectId).let {
                 Triple(AttributeType.Relationship, it.first, it.second)
             }
 
@@ -118,7 +118,7 @@ fun guessAttributeValueType(
         AttributeType.Property ->
             guessPropertyValueType(expandedAttributeInstance.getPropertyValue().bind()).first
         AttributeType.Relationship ->
-            guessRelationShipValueType(expandedAttributeInstance.getRelationshipObjects().bind()).first
+            guessRelationshipValueType(expandedAttributeInstance.getRelationshipObjects().bind()).first
         AttributeType.GeoProperty -> Attribute.AttributeValueType.GEOMETRY
         AttributeType.JsonProperty -> Attribute.AttributeValueType.JSON
         AttributeType.LanguageProperty -> Attribute.AttributeValueType.ARRAY
@@ -150,7 +150,7 @@ fun guessPropertyValueType(
         else -> Pair(Attribute.AttributeValueType.STRING, Triple(value.toString().asJsonB(), null, null))
     }
 
-fun guessRelationShipValueType(
+fun guessRelationshipValueType(
     objectId: RelationshipObjects
 ): Pair<Attribute.AttributeValueType, Triple<Json?, Double?, WKTCoordinates?>> =
     when (objectId) {

@@ -276,6 +276,7 @@ class AttributeInstanceService(
         val valueColumn = when {
             // for deletedAt, the NGSI-LD Null representation is always stored as jsonb in value column
             temporalQuery.timeproperty == DELETED_AT -> "value"
+            // to_jsonb return the geo json representation
             attributes[0].attributeValueType == AttributeValueType.NUMBER -> "to_jsonb(measured_value) as value"
             attributes[0].attributeValueType == AttributeValueType.GEOMETRY -> "to_jsonb(geo_value) as value"
             else -> "value"

@@ -4,7 +4,7 @@ ALTER TABLE attribute_instance
 
 ALTER TABLE attribute_instance_audit
     ALTER COLUMN value TYPE JSONB
-        USING to_jsonb(value::jsonb);
+        USING to_jsonb(value);
 
 
 -- field who already had a json value

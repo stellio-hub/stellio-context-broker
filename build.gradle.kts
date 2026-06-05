@@ -72,7 +72,7 @@ subprojects {
         implementation("com.github.stellio-hub:json-merge:0.1.0")
         implementation("org.json:json:20260522")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:2.2.2.1")
+        implementation("io.arrow-kt:arrow-fx-coroutines:2.2.3")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.20.0")
 

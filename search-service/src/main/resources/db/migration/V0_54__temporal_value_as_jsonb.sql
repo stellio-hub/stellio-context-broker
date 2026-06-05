@@ -11,17 +11,17 @@ ALTER TABLE attribute_instance_audit
 UPDATE attribute_instance
 SET value = (value #>> '{}')::jsonb
 WHERE payload #>> '{@type, 0}' in (
-      'https://uri.etsi.org/ngsi-ld/LanguageProperty',
-      'https://uri.etsi.org/ngsi-ld/JsonProperty',
-      'https://uri.etsi.org/ngsi-ld/VocabProperty'
-  )
+    'https://uri.etsi.org/ngsi-ld/LanguageProperty',
+    'https://uri.etsi.org/ngsi-ld/JsonProperty',
+    'https://uri.etsi.org/ngsi-ld/VocabProperty'
+)
 AND LEFT(value #>> '{}', 1) in ('{', '['); -- avoid transforming 'urn:ngsi-ld:null' or other non json
 
 UPDATE attribute_instance_audit
 SET value = (value #>> '{}')::jsonb
 WHERE payload #>> '{@type, 0}' in (
-      'https://uri.etsi.org/ngsi-ld/LanguageProperty',
-      'https://uri.etsi.org/ngsi-ld/JsonProperty',
-      'https://uri.etsi.org/ngsi-ld/VocabProperty'
-  )
+    'https://uri.etsi.org/ngsi-ld/LanguageProperty',
+    'https://uri.etsi.org/ngsi-ld/JsonProperty',
+    'https://uri.etsi.org/ngsi-ld/VocabProperty'
+)
 AND LEFT(value #>> '{}', 1) in ('{', '[');

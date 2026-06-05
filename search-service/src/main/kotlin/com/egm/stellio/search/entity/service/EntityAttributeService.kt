@@ -68,6 +68,7 @@ import com.egm.stellio.shared.model.isAttributeOfType
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.ErrorMessages.Entity.ATTRIBUTE_TYPE_MISMATCH_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeWithDatasetIdNotFoundMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
@@ -192,13 +193,16 @@ class EntityAttributeService(
                     attributeMetadata.datasetId
                 )!!
 
-                addOrReplaceAttribute(
-                    ngsiLdEntity.id,
-                    expandedAttributeName,
-                    attributeMetadata,
-                    createdAt,
-                    attributePayload
-                ).bind()
+                if (hasNgsiLdNullValue(attributePayload, attributeMetadata.type))
+                    BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE).left().bind()
+                else
+                    addOrReplaceAttribute(
+                        ngsiLdEntity.id,
+                        expandedAttributeName,
+                        attributeMetadata,
+                        createdAt,
+                        attributePayload
+                    ).bind()
             }
     }
 
@@ -281,7 +285,7 @@ class EntityAttributeService(
             observedAt
         )
         val (jsonTargetObject, updatedAttributeInstance) =
-            mergePatch(attribute.payload.toExpandedAttributeInstance(), processedAttributePayload)
+            mergePatch(attribute.payload.toExpandedAttributeInstance(), processedAttributePayload).bind()
         val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance).bind()
         update(attribute.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject).bind()
 
@@ -641,7 +645,9 @@ class EntityAttributeService(
                 ngsiLdAttributeInstance.datasetId
             )!!
 
-            if (disallowOverwrite && currentAttribute != null && currentAttribute.deletedAt == null) {
+            if (hasNgsiLdNullValue(attributePayload, attributeMetadata.type)) {
+                BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE).left().bind()
+            } else if (disallowOverwrite && currentAttribute != null && currentAttribute.deletedAt == null) {
                 FailedAttributeOperationResult(
                     ngsiLdAttribute.name,
                     ngsiLdAttributeInstance.datasetId,
@@ -751,7 +757,7 @@ class EntityAttributeService(
             }
         }
         val (jsonTargetObject, updatedAttributeInstance) =
-            partialUpdatePatch(attribute.payload.toExpandedAttributeInstance(), attributeValues)
+            partialUpdatePatch(attribute.payload.toExpandedAttributeInstance(), attributeValues).bind()
         val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance).bind()
         val attributeValueType = guessAttributeValueType(attribute.attributeType, updatedAttributeInstance).bind()
         update(attribute.id, attributeValueType, modifiedAt, jsonTargetObject).bind()
@@ -834,7 +840,11 @@ class EntityAttributeService(
                 ngsiLdAttributeInstance.datasetId
             )!!
 
-            if (currentAttribute == null || currentAttribute.deletedAt != null)
+            val isNull = hasNgsiLdNullValue(attributePayload, attributeMetadata.type)
+
+            if (isNull && (currentAttribute == null || currentAttribute.deletedAt != null))
+                null
+            else if (currentAttribute == null || currentAttribute.deletedAt != null)
                 addOrReplaceAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -849,7 +859,7 @@ class EntityAttributeService(
                         attributePayload
                     )
                 }.bind()
-            else if (hasNgsiLdNullValue(attributePayload, currentAttribute.attributeType))
+            else if (isNull)
                 deleteAttribute(
                     entityUri,
                     ngsiLdAttribute.name,
@@ -865,7 +875,7 @@ class EntityAttributeService(
                     observedAt,
                     attributePayload
                 ).bind()
-        }
+        }.filterNotNull()
     }.fold({ it.left() }, { it.right() })
 
     @Transactional
@@ -888,6 +898,8 @@ class EntityAttributeService(
                     OperationStatus.FAILED,
                     "Unknown attribute $attributeName with datasetId $datasetId in entity $entityId"
                 )
+            } else if (hasNgsiLdNullValue(expandedAttribute.second.first(), attributeMetadata.type)) {
+                BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE).left().bind()
             } else {
                 addOrReplaceAttribute(
                     entityId,

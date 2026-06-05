@@ -13,10 +13,15 @@ import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_NULL
+import com.egm.stellio.shared.model.NGSILD_PREFIX
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NgsiLdAttributeInstance
@@ -33,6 +38,8 @@ import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.getRelationshipId
 import com.egm.stellio.shared.model.getRelationshipObjects
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MEMBER
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_TYPE_MEMBER
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeCannotGetValueMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
@@ -160,6 +167,62 @@ fun guessRelationshipValueType(
             Pair(Attribute.AttributeValueType.ARRAY, Triple(objectId.ids.asJsonB(), null, null))
     }
 
+private fun isNgsiLdNullType(attrValue: Any): Boolean =
+    (attrValue as? List<*>)?.contains(NGSILD_NULL) == true
+
+private fun isNgsiLdNullSubAttribute(attrValue: Any): Boolean {
+    val instance = (attrValue as? List<*>)?.firstOrNull() as? ExpandedAttributeInstance ?: return false
+    val typeUri = (instance[JSONLD_TYPE_KW] as? List<*>)?.firstOrNull() as? String ?: return false
+    val attributeType = AttributeType.entries.find { typeUri == "$NGSILD_PREFIX${it.name}" } ?: return false
+    return hasNgsiLdNullValue(instance, attributeType)
+}
+
+private fun isNgsiLdNullId(attrValue: Any): Boolean =
+    ((attrValue as? List<*>)?.firstOrNull() as? Map<*, *>)?.get(JSONLD_ID_KW) == NGSILD_NULL
+
+private fun isNgsiLdNullValue(attrValue: Any): Boolean =
+    ((attrValue as? List<*>)?.firstOrNull() as? Map<*, *>)?.get(JSONLD_VALUE_KW) == NGSILD_NULL
+
+private fun mergeLanguageMap(
+    source: ExpandedAttributeInstance,
+    attrName: String,
+    attrValue: List<Any>
+): List<Any> {
+    val sourceLangEntries = source[attrName] as List<Map<String, String>>
+    val targetLangEntries = sourceLangEntries.toMutableList()
+    (attrValue as List<Map<String, String>>).forEach { langEntry ->
+        targetLangEntries.removeIf { it[JSONLD_LANGUAGE_KW] == langEntry[JSONLD_LANGUAGE_KW] }
+        if (langEntry[JSONLD_VALUE_KW] != NGSILD_NULL)
+            targetLangEntries.add(langEntry)
+    }
+    return targetLangEntries
+}
+
+/**
+ * Removes from the merged map any keys that have an NGSI-LD Null value in the update.
+ *
+ * Two representations are handled:
+ * - JsonProperty: value is `{"@value": {...raw JSON...}, "@type": "@json"}` — null keys are inside the @value map
+ * - Property with object value: expanded as nested JSON-LD with IRI keys — null keys are top-level entries whose
+ *   single expanded value is `[{"@value": "urn:ngsi-ld:null"}]`
+ */
+private fun applyNgsiLdNullRemoval(merged: Map<String, Any>, update: Any): Map<String, Any> {
+    val updateMap = update as? Map<*, *> ?: return merged
+
+    val jsonContent = updateMap[JSONLD_VALUE_KW] as? Map<String, Any>
+    if (jsonContent != null) {
+        val nullKeys = jsonContent.filter { (_, v) -> v == NGSILD_NULL }.keys
+        val mergedContent = merged[JSONLD_VALUE_KW] as? Map<String, Any>
+        return if (nullKeys.isEmpty() || mergedContent == null) merged
+        else merged + (JSONLD_VALUE_KW to mergedContent.filterKeys { it !in nullKeys })
+    }
+
+    val nullKeys = updateMap.filter { (_, v) ->
+        (v as? List<*>)?.singleOrNull()?.let { it as? Map<*, *> }?.get(JSONLD_VALUE_KW) == NGSILD_NULL
+    }.keys
+    return if (nullKeys.isEmpty()) merged else merged.filterKeys { it !in nullKeys }
+}
+
 /**
  * Returns whether the expanded attribute instance holds a NGSI-LD Null value
  */
@@ -182,54 +245,63 @@ fun Json.toExpandedAttributeInstance(): ExpandedAttributeInstance =
 fun partialUpdatePatch(
     source: ExpandedAttributeInstance,
     update: ExpandedAttributeInstance
-): Pair<String, ExpandedAttributeInstance> {
-    val target = source.plus(update)
-    return Pair(JsonUtils.serializeObject(target), target)
+): Either<APIException, Pair<String, ExpandedAttributeInstance>> = either {
+    val target = source.toMutableMap()
+    update.forEach { (attrName, attrValue) ->
+        when {
+            attrName == JSONLD_TYPE_KW && isNgsiLdNullType(attrValue) ->
+                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_TYPE_MEMBER))
+            attrName == NGSILD_DATASET_ID_IRI && isNgsiLdNullId(attrValue) ->
+                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MEMBER))
+            isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrValue) ->
+                target.remove(attrName)
+            else -> target[attrName] = attrValue
+        }
+    }
+    Pair(JsonUtils.serializeObject(target), target)
 }
 
 fun mergePatch(
     source: ExpandedAttributeInstance,
     update: ExpandedAttributeInstance
-): Pair<String, ExpandedAttributeInstance> {
+): Either<APIException, Pair<String, ExpandedAttributeInstance>> = either {
     val target = source.toMutableMap()
     update.forEach { (attrName, attrValue) ->
-        if (!source.containsKey(attrName)) {
-            target[attrName] = attrValue
-        } else if (
+        when {
+            attrName == JSONLD_TYPE_KW && isNgsiLdNullType(attrValue) ->
+                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_TYPE_MEMBER))
+            attrName == NGSILD_DATASET_ID_IRI && isNgsiLdNullId(attrValue) ->
+                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MEMBER))
+            listOf(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).contains(attrName) ->
+                target[attrName] = mergeLanguageMap(source, attrName, attrValue)
+            isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrValue) ->
+                target.remove(attrName)
+            !source.containsKey(attrName) ->
+                target[attrName] = attrValue
             listOf(
                 NGSILD_JSONPROPERTY_JSON,
                 NGSILD_VOCABPROPERTY_VOCAB,
                 NGSILD_PROPERTY_VALUE
-            ).contains(attrName)
-        ) {
-            if (attrValue.size > 1) {
-                // a Property holding an array of value or a JsonPropery holding an array of JSON objects
-                // cannot be safely merged patch, so copy the whole value from the update
-                target[attrName] = attrValue
-            } else {
-                target[attrName] = listOf(
-                    JsonMerger().merge(
+            ).contains(attrName) -> {
+                if (attrValue.size > 1) {
+                    // a Property holding an array of value or a JsonProperty holding an array of JSON objects
+                    // cannot be safely merged patch, so copy the whole value from the update
+                    target[attrName] = attrValue
+                } else {
+                    val mergedElement = JsonMerger().merge(
                         JsonUtils.serializeObject(source[attrName]!![0]),
                         JsonUtils.serializeObject(attrValue[0])
                     ).deserializeAsMap()
-                )
-            }
-        } else if (listOf(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).contains(attrName)) {
-            val sourceLangEntries = source[attrName] as List<Map<String, String>>
-            val targetLangEntries = sourceLangEntries.toMutableList()
-            (attrValue as List<Map<String, String>>).forEach { langEntry ->
-                // remove any previously existing entry for this language
-                targetLangEntries.removeIf {
-                    it[JSONLD_LANGUAGE_KW] == langEntry[JSONLD_LANGUAGE_KW]
+                    target[attrName] = listOf(
+                        if (attrName == NGSILD_JSONPROPERTY_JSON || attrName == NGSILD_PROPERTY_VALUE)
+                            applyNgsiLdNullRemoval(mergedElement, attrValue[0])
+                        else
+                            mergedElement
+                    )
                 }
-                targetLangEntries.add(langEntry)
             }
-
-            target[attrName] = targetLangEntries
-        } else {
-            target[attrName] = attrValue
+            else -> target[attrName] = attrValue
         }
     }
-
-    return Pair(JsonUtils.serializeObject(target), target)
+    Pair(JsonUtils.serializeObject(target), target)
 }

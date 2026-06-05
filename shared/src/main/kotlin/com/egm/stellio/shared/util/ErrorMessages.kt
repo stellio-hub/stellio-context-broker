@@ -126,6 +126,12 @@ object ErrorMessages {
         const val ENTITY_MISSING_TYPE_PROPERTY_MESSAGE = "The provided NGSI-LD entity does not contain a type property"
         const val ENTITY_MISSING_ID_PROPERTY_MESSAGE = "The provided NGSI-LD entity does not contain an id property"
 
+        const val NGSI_LD_NULL_NOT_ALLOWED_MESSAGE = "NGSI-LD Null is not allowed in this operation"
+        const val NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MEMBER =
+            "NGSI-LD Null is not allowed as the value of the datasetId member"
+        const val NGSI_LD_NULL_NOT_ALLOWED_IN_TYPE_MEMBER =
+            "NGSI-LD Null is not allowed as the value of the type member"
+
         fun entityOrAttrsNotFoundMessage(entityId: URI, attrs: Set<String>) =
             "Entity $entityId does not exist or has none of the requested attributes: $attrs"
         fun attributeNotFoundMessage(attrId: String, entityId: URI) =

@@ -16,6 +16,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -23,6 +24,7 @@ import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_MESSAGE
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
@@ -309,6 +311,50 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         val attributes = entityAttributeService.getAllForEntity("urn:ngsi-ld:BeeHive:TESTC".toUri())
         assertTrue(attributes.isEmpty())
+    }
+
+    @Test
+    fun `it should raise a BadRequestData error when creating property with a NGSI-LD Null value`() = runTest {
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        val entityWithNullAttribute = """
+            {
+                "id": "urn:ngsi-ld:BeeHive:TESTC",
+                "type": "BeeHive",
+                "incoming": {
+                    "type": "Property",
+                    "value": "urn:ngsi-ld:null"
+                }
+            }
+        """.trimIndent()
+
+        entityAttributeService.createAttributes(entityWithNullAttribute, APIC_COMPOUND_CONTEXTS)
+            .shouldFail { exception ->
+                assertInstanceOf(BadRequestDataException::class.java, exception)
+                assertEquals(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE, exception.message)
+            }
+    }
+
+    @Test
+    fun `it should raise a BadRequestData error when creating relationship with a NGSI-LD Null value`() = runTest {
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        val entityWithNullAttribute = """
+            {
+                "id": "urn:ngsi-ld:BeeHive:TESTC",
+                "type": "BeeHive",
+                "incoming": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:null"
+                }
+            }
+        """.trimIndent()
+
+        entityAttributeService.createAttributes(entityWithNullAttribute, APIC_COMPOUND_CONTEXTS)
+            .shouldFail { exception ->
+                assertInstanceOf(BadRequestDataException::class.java, exception)
+                assertEquals(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE, exception.message)
+            }
     }
 
     @Test
@@ -870,6 +916,65 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceedWith { operationResult ->
             assertInstanceOf(FailedAttributeOperationResult::class.java, operationResult)
             assertEquals(INCOMING_IRI, operationResult.attributeName)
+        }
+    }
+
+    @Test
+    fun `it should raise a BadRequestData error when replacing an attribute with a NGSI-LD Null value`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val nullAttribute = """
+            {
+                "type": "Property",
+                "value": "urn:ngsi-ld:null"
+            }
+        """.trimIndent()
+        val expandedAttribute = expandAttribute(INCOMING_IRI, nullAttribute, APIC_COMPOUND_CONTEXTS)
+        val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
+
+        entityAttributeService.replaceAttribute(
+            beehiveTestCId,
+            ngsiLdAttribute,
+            expandedAttribute,
+            ngsiLdDateTime()
+        ).shouldFail { exception ->
+            assertInstanceOf(BadRequestDataException::class.java, exception)
+            assertEquals(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE, exception.message)
+        }
+    }
+
+    @Test
+    fun `it should raise a BadRequestData error when appending an attribute with a NGSI-LD Null value`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val nullAttribute = """
+            {
+                "incoming": {
+                    "type": "Property",
+                    "value": "urn:ngsi-ld:null"
+                }
+            }
+        """.trimIndent()
+        val expandedAttributes = JsonLdUtils.expandAttributes(nullAttribute, APIC_COMPOUND_CONTEXTS)
+        val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
+
+        entityAttributeService.appendAttributes(
+            beehiveTestCId,
+            ngsiLdAttributes,
+            expandedAttributes,
+            false,
+            ngsiLdDateTime()
+        ).shouldFail { exception ->
+            assertInstanceOf(BadRequestDataException::class.java, exception)
+            assertEquals(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE, exception.message)
         }
     }
 

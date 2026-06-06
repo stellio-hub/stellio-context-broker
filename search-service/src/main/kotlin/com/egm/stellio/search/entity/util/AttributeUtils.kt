@@ -38,8 +38,7 @@ import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.getRelationshipId
 import com.egm.stellio.shared.model.getRelationshipObjects
-import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MEMBER
-import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_TYPE_MEMBER
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeCannotGetValueMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
@@ -167,9 +166,6 @@ fun guessRelationshipValueType(
             Pair(Attribute.AttributeValueType.ARRAY, Triple(objectId.ids.asJsonB(), null, null))
     }
 
-private fun isNgsiLdNullType(attrValue: Any): Boolean =
-    (attrValue as? List<*>)?.contains(NGSILD_NULL) == true
-
 private fun isNgsiLdNullSubAttribute(attrValue: Any): Boolean {
     val instance = (attrValue as? List<*>)?.firstOrNull() as? ExpandedAttributeInstance ?: return false
     val typeUri = (instance[JSONLD_TYPE_KW] as? List<*>)?.firstOrNull() as? String ?: return false
@@ -249,10 +245,8 @@ fun partialUpdatePatch(
     val target = source.toMutableMap()
     update.forEach { (attrName, attrValue) ->
         when {
-            attrName == JSONLD_TYPE_KW && isNgsiLdNullType(attrValue) ->
-                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_TYPE_MEMBER))
             attrName == NGSILD_DATASET_ID_IRI && isNgsiLdNullId(attrValue) ->
-                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MEMBER))
+                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE))
             isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrValue) ->
                 target.remove(attrName)
             else -> target[attrName] = attrValue
@@ -268,10 +262,8 @@ fun mergePatch(
     val target = source.toMutableMap()
     update.forEach { (attrName, attrValue) ->
         when {
-            attrName == JSONLD_TYPE_KW && isNgsiLdNullType(attrValue) ->
-                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_TYPE_MEMBER))
             attrName == NGSILD_DATASET_ID_IRI && isNgsiLdNullId(attrValue) ->
-                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MEMBER))
+                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE))
             listOf(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).contains(attrName) ->
                 target[attrName] = mergeLanguageMap(source, attrName, attrValue)
             isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrValue) ->

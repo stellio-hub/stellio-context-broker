@@ -48,6 +48,7 @@ import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PREFIX
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
@@ -68,6 +69,7 @@ import com.egm.stellio.shared.model.isAttributeOfType
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.ErrorMessages.Entity.ATTRIBUTE_TYPE_MISMATCH_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeWithDatasetIdNotFoundMessage
@@ -716,6 +718,9 @@ class EntityAttributeService(
         logger.debug("Partial updating attribute {} in entity {}", attributeName, entityId)
 
         val datasetId = attributeValues.getDatasetId()
+        ensure(datasetId.toString() != NGSILD_NULL) {
+            BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE)
+        }
         val currentAttribute = getForEntityAndAttribute(entityId, attributeName, datasetId).fold({ null }, { it })
         val attributeOperationResult =
             if (currentAttribute == null || currentAttribute.deletedAt != null) {

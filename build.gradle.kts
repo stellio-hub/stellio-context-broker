@@ -11,7 +11,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2025.1.0"
+extra["springCloudVersion"] = "2025.1.1"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
@@ -19,10 +19,10 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "4.0.6" apply false
+    id("org.springframework.boot") version "4.1.0-RC1" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
-    kotlin("jvm") version "2.3.10" apply false
-    kotlin("plugin.spring") version "2.3.10" apply false
+    kotlin("jvm") version "2.3.20" apply false
+    kotlin("plugin.spring") version "2.3.20" apply false
     id("com.google.cloud.tools.jib") version "3.5.3" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
     id("org.sonarqube") version "7.3.1.8318"
@@ -35,13 +35,13 @@ subprojects {
         maven { url = uri("https://jitpack.io") }
     }
 
-    apply(plugin = "io.spring.dependency-management")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.kotlin.plugin.spring")
+    apply(plugin = "io.spring.dependency-management")
     apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "jacoco")
 
-    java.sourceCompatibility = JavaVersion.VERSION_21
+    java.sourceCompatibility = JavaVersion.VERSION_25
 
     the<DependencyManagementExtension>().apply {
         imports {
@@ -92,20 +92,23 @@ subprojects {
 
     kotlin {
         compilerOptions {
-            // https://kotlinlang.org/docs/whatsnew2020.html#data-class-copy-function-to-have-the-same-visibility-as-constructor
-            // https://youtrack.jetbrains.com/issue/KT-73255
+            // -Xconsistent-data-class-copy-visibility was stabilised (became default) in Kotlin 2.1; removed here.
+            // -Xannotation-default-target=param-property is still opt-in in Kotlin 2.3.x; kept until promoted to default.
             freeCompilerArgs.addAll(
                 "-Xjsr305=strict",
-                "-Xconsistent-data-class-copy-visibility",
                 "-Xannotation-default-target=param-property"
             )
+            // Keep KOTLIN_2_2 language/API level for source compatibility; the compiler toolchain is 2.3.20.
             apiVersion.set(KotlinVersion.KOTLIN_2_2)
-            jvmTarget.set(JvmTarget.JVM_21)
+            jvmTarget.set(JvmTarget.JVM_25)
         }
-        jvmToolchain(21)
+        jvmToolchain(25)
     }
     tasks.withType<Test> {
         environment("SPRING_PROFILES_ACTIVE", "test")
+        // Spring Cloud 2025.1.1 only declares compatibility with Boot 4.0.x; disable the verifier
+        // on this experimental branch until a Spring Cloud BOM for Boot 4.1.x is released.
+        systemProperty("spring.cloud.compatibility-verifier.enabled", "false")
         useJUnitPlatform()
         testLogging {
             events("passed", "skipped", "failed")
@@ -114,6 +117,8 @@ subprojects {
     }
 
     // see https://github.com/detekt/detekt/issues/6198
+    // detekt 1.23.x ships with Kotlin 1.9 internals; pin its kotlin dependencies to the version it declares
+    // so that Gradle's transform infrastructure does not pick up the project's Kotlin 2.4.0 artifacts.
     configurations.matching { it.name == "detekt" }.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
@@ -127,6 +132,9 @@ subprojects {
         buildUponDefaultConfig = true
         baseline.set(file("$projectDir/config/detekt/baseline.xml"))
         source("src/main/kotlin", "src/test/kotlin", "src/testFixtures/kotlin")
+        // detekt 1.23.x ships Kotlin 1.9 internals which only support JVM targets up to 22;
+        // override here so detekt does not inherit the project-wide JVM 25 target.
+        jvmTarget = "22"
 
         reports {
             xml.required.set(true)
@@ -141,8 +149,9 @@ subprojects {
     }
 
     // see https://docs.gradle.org/current/userguide/jacoco_plugin.html for configuration instructions
+    // 0.8.12+ is required for Java 25 support
     jacoco {
-        toolVersion = "0.8.9"
+        toolVersion = "0.8.13"
     }
     tasks.test {
         finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
@@ -159,7 +168,7 @@ subprojects {
         notCompatibleWithConfigurationCache("Jib does not support configuration cache")
     }
 
-    project.ext.set("jibFromImage", "eclipse-temurin:21-jre")
+    project.ext.set("jibFromImage", "eclipse-temurin:25-jre")
     project.ext.set(
         "jibFromPlatforms",
         listOf(
@@ -189,7 +198,7 @@ subprojects {
                     NGSI-LD is an Open API and data model specification for context management published by ETSI.
                 """.trimIndent(),
             "org.opencontainers.image.source" to "https://github.com/stellio-hub/stellio-context-broker",
-            "com.java.version" to "${JavaVersion.VERSION_21}"
+            "com.java.version" to "${JavaVersion.VERSION_25}"
         )
     )
 }

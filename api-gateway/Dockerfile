@@ -1,12 +1,12 @@
 # You can build a Docker image of the module with the following command:
 # docker build --build-arg JAR_FILE=build/libs/api-gateway-{version}.jar -t stellio-api-gateway:{version} .
-FROM eclipse-temurin:21-jre-jammy AS builder
+FROM eclipse-temurin:25-jre-noble AS builder
 WORKDIR /builder
 ARG JAR_FILE=build/libs/*.jar
 COPY ${JAR_FILE} application.jar
 RUN java -Djarmode=tools -jar application.jar extract --layers --destination extracted
 
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:25-jre-noble
 WORKDIR /application
 COPY --from=builder /builder/extracted/dependencies/ ./
 COPY --from=builder /builder/extracted/spring-boot-loader/ ./

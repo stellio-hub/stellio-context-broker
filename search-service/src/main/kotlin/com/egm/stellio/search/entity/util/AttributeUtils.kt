@@ -13,6 +13,7 @@ import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
@@ -21,7 +22,6 @@ import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_NULL
-import com.egm.stellio.shared.model.NGSILD_PREFIX
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NgsiLdAttributeInstance
@@ -166,27 +166,27 @@ fun guessRelationshipValueType(
             Pair(Attribute.AttributeValueType.ARRAY, Triple(objectId.ids.asJsonB(), null, null))
     }
 
-private fun isNgsiLdNullSubAttribute(attrValue: Any): Boolean {
-    val instance = (attrValue as? List<*>)?.firstOrNull() as? ExpandedAttributeInstance ?: return false
+private fun isNgsiLdNullSubAttribute(attrValue: List<Any>): Boolean {
+    val instance = attrValue.firstOrNull() as? ExpandedAttributeInstance ?: return false
     val typeUri = (instance[JSONLD_TYPE_KW] as? List<*>)?.firstOrNull() as? String ?: return false
-    val attributeType = AttributeType.entries.find { typeUri == "$NGSILD_PREFIX${it.name}" } ?: return false
+    val attributeType = AttributeType.entries.find { typeUri == it.toExpandedName() } ?: return false
     return hasNgsiLdNullValue(instance, attributeType)
 }
 
-private fun isNgsiLdNullId(attrValue: Any): Boolean =
-    ((attrValue as? List<*>)?.firstOrNull() as? Map<*, *>)?.get(JSONLD_ID_KW) == NGSILD_NULL
+private fun isNgsiLdNullDatasetId(attrName: ExpandedTerm, attrValue: List<Any>): Boolean =
+    attrName == NGSILD_DATASET_ID_IRI &&
+        (attrValue.firstOrNull() as? Map<*, *>)?.get(JSONLD_ID_KW) == NGSILD_NULL
 
-private fun isNgsiLdNullValue(attrValue: Any): Boolean =
-    ((attrValue as? List<*>)?.firstOrNull() as? Map<*, *>)?.get(JSONLD_VALUE_KW) == NGSILD_NULL
+private fun isNgsiLdNullValue(attrValue: List<Any>): Boolean =
+    (attrValue.firstOrNull() as? Map<*, *>)?.get(JSONLD_VALUE_KW) == NGSILD_NULL
 
 private fun mergeLanguageMap(
     source: ExpandedAttributeInstance,
-    attrName: String,
-    attrValue: List<Any>
+    updatedLanguageMap: List<Map<String, String>>
 ): List<Any> {
-    val sourceLangEntries = source[attrName] as List<Map<String, String>>
+    val sourceLangEntries = source[NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP] as List<Map<String, String>>
     val targetLangEntries = sourceLangEntries.toMutableList()
-    (attrValue as List<Map<String, String>>).forEach { langEntry ->
+    updatedLanguageMap.forEach { langEntry ->
         targetLangEntries.removeIf { it[JSONLD_LANGUAGE_KW] == langEntry[JSONLD_LANGUAGE_KW] }
         if (langEntry[JSONLD_VALUE_KW] != NGSILD_NULL)
             targetLangEntries.add(langEntry)
@@ -202,21 +202,22 @@ private fun mergeLanguageMap(
  * - Property with object value: expanded as nested JSON-LD with IRI keys — null keys are top-level entries whose
  *   single expanded value is `[{"@value": "urn:ngsi-ld:null"}]`
  */
-private fun applyNgsiLdNullRemoval(merged: Map<String, Any>, update: Any): Map<String, Any> {
-    val updateMap = update as? Map<*, *> ?: return merged
-
-    val jsonContent = updateMap[JSONLD_VALUE_KW] as? Map<String, Any>
+private fun applyNgsiLdNullRemoval(merged: Map<String, Any>, update: Map<String, Any>): Map<String, Any> {
+    val jsonContent = update[JSONLD_VALUE_KW] as? Map<String, Any>
     if (jsonContent != null) {
         val nullKeys = jsonContent.filter { (_, v) -> v == NGSILD_NULL }.keys
         val mergedContent = merged[JSONLD_VALUE_KW] as? Map<String, Any>
+
         return if (nullKeys.isEmpty() || mergedContent == null) merged
         else merged + (JSONLD_VALUE_KW to mergedContent.filterKeys { it !in nullKeys })
-    }
+    } else {
+        val nullKeys = update.filter { (_, v) ->
+            (v as? List<*>)?.singleOrNull()?.let { it as? Map<*, *> }?.get(JSONLD_VALUE_KW) == NGSILD_NULL
+        }.keys
 
-    val nullKeys = updateMap.filter { (_, v) ->
-        (v as? List<*>)?.singleOrNull()?.let { it as? Map<*, *> }?.get(JSONLD_VALUE_KW) == NGSILD_NULL
-    }.keys
-    return if (nullKeys.isEmpty()) merged else merged.filterKeys { it !in nullKeys }
+        return if (nullKeys.isEmpty()) merged
+        else merged.filterKeys { it !in nullKeys }
+    }
 }
 
 /**
@@ -245,7 +246,7 @@ fun partialUpdatePatch(
     val target = source.toMutableMap()
     update.forEach { (attrName, attrValue) ->
         when {
-            attrName == NGSILD_DATASET_ID_IRI && isNgsiLdNullId(attrValue) ->
+            isNgsiLdNullDatasetId(attrName, attrValue) ->
                 raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE))
             isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrValue) ->
                 target.remove(attrName)
@@ -262,10 +263,10 @@ fun mergePatch(
     val target = source.toMutableMap()
     update.forEach { (attrName, attrValue) ->
         when {
-            attrName == NGSILD_DATASET_ID_IRI && isNgsiLdNullId(attrValue) ->
+            isNgsiLdNullDatasetId(attrName, attrValue) ->
                 raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE))
-            listOf(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).contains(attrName) ->
-                target[attrName] = mergeLanguageMap(source, attrName, attrValue)
+            attrName == NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP ->
+                target[attrName] = mergeLanguageMap(source, attrValue as List<Map<String, String>>)
             isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrValue) ->
                 target.remove(attrName)
             !source.containsKey(attrName) ->
@@ -286,7 +287,7 @@ fun mergePatch(
                     ).deserializeAsMap()
                     target[attrName] = listOf(
                         if (attrName == NGSILD_JSONPROPERTY_JSON || attrName == NGSILD_PROPERTY_VALUE)
-                            applyNgsiLdNullRemoval(mergedElement, attrValue[0])
+                            applyNgsiLdNullRemoval(mergedElement, attrValue[0] as Map<String, Any>)
                         else
                             mergedElement
                     )

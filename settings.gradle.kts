@@ -7,8 +7,8 @@ pluginManagement {
         maven { url = uri("https://repo.spring.io/milestone") }
     }
     plugins {
-        kotlin("jvm") version "2.3.20"
-        kotlin("plugin.spring") version "2.3.20"
+        kotlin("jvm") version "2.4.0"
+        kotlin("plugin.spring") version "2.4.0"
     }
 }
 

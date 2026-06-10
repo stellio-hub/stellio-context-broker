@@ -433,6 +433,32 @@ class PatchAttributeTests {
                     """
                     {
                         "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": ["stellio"]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": ["egm", "nantes"]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": ["egm", "nantes"]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
                             "type": "Property",
                             "value": 12.5,
                             "subAttribute": {

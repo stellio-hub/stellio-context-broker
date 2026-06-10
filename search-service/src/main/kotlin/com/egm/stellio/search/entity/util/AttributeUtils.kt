@@ -13,6 +13,7 @@ import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.model.ExpandedLanguageMapValue
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
@@ -182,11 +183,11 @@ private fun isNgsiLdNullValue(attrValue: List<Any>): Boolean =
 
 private fun mergeLanguageMap(
     source: ExpandedAttributeInstance,
-    updatedLanguageMap: List<Map<String, String>>
+    updateLanguageMap: ExpandedLanguageMapValue
 ): List<Any> {
-    val sourceLangEntries = source[NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP] as List<Map<String, String>>
+    val sourceLangEntries = source[NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP] as ExpandedLanguageMapValue
     val targetLangEntries = sourceLangEntries.toMutableList()
-    updatedLanguageMap.forEach { langEntry ->
+    updateLanguageMap.forEach { langEntry ->
         targetLangEntries.removeIf { it[JSONLD_LANGUAGE_KW] == langEntry[JSONLD_LANGUAGE_KW] }
         if (langEntry[JSONLD_VALUE_KW] != NGSILD_NULL)
             targetLangEntries.add(langEntry)
@@ -202,23 +203,28 @@ private fun mergeLanguageMap(
  * - Property with object value: expanded as nested JSON-LD with IRI keys — null keys are top-level entries whose
  *   single expanded value is `[{"@value": "urn:ngsi-ld:null"}]`
  */
-private fun applyNgsiLdNullRemoval(merged: Map<String, Any>, update: Map<String, Any>): Map<String, Any> {
-    val jsonContent = update[JSONLD_VALUE_KW] as? Map<String, Any>
-    if (jsonContent != null) {
+private fun applyNgsiLdNullRemoval(
+    attrName: String,
+    merged: Map<String, Any>,
+    update: Map<String, Any>
+): Map<String, Any> =
+    if (attrName == NGSILD_JSONPROPERTY_JSON) {
+        val jsonContent = update[JSONLD_VALUE_KW] as Map<String, Any>
         val nullKeys = jsonContent.filter { (_, v) -> v == NGSILD_NULL }.keys
         val mergedContent = merged[JSONLD_VALUE_KW] as? Map<String, Any>
 
-        return if (nullKeys.isEmpty() || mergedContent == null) merged
+        if (nullKeys.isEmpty() || mergedContent == null) merged
         else merged + (JSONLD_VALUE_KW to mergedContent.filterKeys { it !in nullKeys })
-    } else {
+    }
+    // else branch covers Properties with object value
+    else {
         val nullKeys = update.filter { (_, v) ->
             (v as? List<*>)?.singleOrNull()?.let { it as? Map<*, *> }?.get(JSONLD_VALUE_KW) == NGSILD_NULL
         }.keys
 
-        return if (nullKeys.isEmpty()) merged
+        if (nullKeys.isEmpty()) merged
         else merged.filterKeys { it !in nullKeys }
     }
-}
 
 /**
  * Returns whether the expanded attribute instance holds a NGSI-LD Null value
@@ -277,8 +283,8 @@ fun mergePatch(
                 NGSILD_PROPERTY_VALUE
             ).contains(attrName) -> {
                 if (attrValue.size > 1) {
-                    // a Property holding an array of value or a JsonProperty holding an array of JSON objects
-                    // cannot be safely merged patch, so copy the whole value from the update
+                    // a Property or VocabProperty holding an array of values or a JsonProperty holding an array of
+                    // JSON objects cannot be safely merged patch, so copy the whole value from the update
                     target[attrName] = attrValue
                 } else {
                     val mergedElement = JsonMerger().merge(
@@ -287,7 +293,7 @@ fun mergePatch(
                     ).deserializeAsMap()
                     target[attrName] = listOf(
                         if (attrName == NGSILD_JSONPROPERTY_JSON || attrName == NGSILD_PROPERTY_VALUE)
-                            applyNgsiLdNullRemoval(mergedElement, attrValue[0] as Map<String, Any>)
+                            applyNgsiLdNullRemoval(attrName, mergedElement, attrValue[0] as ExpandedAttributeInstance)
                         else
                             mergedElement
                     )

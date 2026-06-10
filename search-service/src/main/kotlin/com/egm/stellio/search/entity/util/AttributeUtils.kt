@@ -272,7 +272,7 @@ fun mergePatch(
             isNgsiLdNullDatasetId(attrName, attrValue) ->
                 raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE))
             attrName == NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP ->
-                target[attrName] = mergeLanguageMap(source, attrValue as List<Map<String, String>>)
+                target[attrName] = mergeLanguageMap(source, attrValue as ExpandedLanguageMapValue)
             isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrValue) ->
                 target.remove(attrName)
             !source.containsKey(attrName) ->

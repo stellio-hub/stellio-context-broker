@@ -387,7 +387,7 @@ class NgsiLdJsonPropertyInstance private constructor(
 }
 
 class NgsiLdLanguagePropertyInstance private constructor(
-    val languageMap: List<Map<String, String>>,
+    val languageMap: ExpandedLanguageMapValue,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
     attributes: List<NgsiLdAttribute>
@@ -414,7 +414,7 @@ class NgsiLdLanguagePropertyInstance private constructor(
             val attributes = parseAttributes(rawAttributes).bind()
 
             NgsiLdLanguagePropertyInstance(
-                languageMap as List<Map<String, String>>,
+                languageMap as ExpandedLanguageMapValue,
                 observedAt,
                 datasetId,
                 attributes

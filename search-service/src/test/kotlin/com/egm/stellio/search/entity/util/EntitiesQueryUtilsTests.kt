@@ -14,9 +14,13 @@ import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.NGSILD_OBSERVATION_SPACE_IRI
 import com.egm.stellio.shared.queryparameter.AttributePath
+import com.egm.stellio.shared.queryparameter.ComparisonNode
+import com.egm.stellio.shared.queryparameter.ComparisonOperator
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.Georel
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinType
+import com.egm.stellio.shared.queryparameter.SingleValue
+import com.egm.stellio.shared.queryparameter.ValueType
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
@@ -59,7 +63,14 @@ class EntitiesQueryUtilsTests {
             entitiesQuery.ids
         )
         assertEquals(".*BeeHive.*", entitiesQuery.idPattern)
-        assertEquals("brandName!=Mercedes", entitiesQuery.q)
+        assertEquals(
+            ComparisonNode(
+                "brandName",
+                ComparisonOperator.NEQ,
+                SingleValue("Mercedes", ValueType.STRING)
+            ),
+            entitiesQuery.q
+        )
         assertEquals(setOf("urn:ngsi-ld:Dataset:Test1", "urn:ngsi-ld:Dataset:Test2"), entitiesQuery.datasetId)
         assertEquals(true, entitiesQuery.paginationQuery.count)
         assertEquals(1, entitiesQuery.paginationQuery.offset)
@@ -70,19 +81,6 @@ class EntitiesQueryUtilsTests {
         )
         assertEquals(JoinType.INLINE, entitiesQuery.linkedEntityQuery?.join)
         assertEquals(1, entitiesQuery.linkedEntityQuery?.joinLevel?.toInt())
-    }
-
-    @Test
-    fun `it should decode q in query parameters`() = runTest {
-        val requestParams = LinkedMultiValueMap<String, String>()
-        requestParams.add("q", "speed%3E50%3BfoodName%3D%3Ddietary+fibres")
-        val entitiesQuery = composeEntitiesQueryFromGet(
-            buildDefaultPagination(30, 100),
-            requestParams,
-            NGSILD_TEST_CORE_CONTEXTS
-        ).shouldSucceedAndResult()
-
-        assertEquals("speed>50;foodName==dietary fibres", entitiesQuery.q)
     }
 
     @Test
@@ -274,7 +272,7 @@ class EntitiesQueryUtilsTests {
             assertEquals("urn:ngsi-ld:BeeHive:*", entitySelector.idPattern)
             assertEquals(BEEHIVE_IRI, entitySelector.typeSelection)
             assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2"), it.attrs)
-            assertEquals("temperature>32", it.q)
+            assertInstanceOf(ComparisonNode::class.java, it.q)
             assertEquals(GeoQuery.GeometryType.POINT, it.geoQuery?.geometry)
             assertEquals("[1.0, 1.0]", it.geoQuery?.coordinates)
             assertEquals(Georel.EQUALS.key, it.geoQuery?.georel)
@@ -313,7 +311,7 @@ class EntitiesQueryUtilsTests {
         ).shouldSucceedWith {
             assertEquals(BEEHIVE_IRI, it.entitySelectors!![0].typeSelection)
             assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1"), it.attrs)
-            assertEquals("temperature>32", it.q)
+            assertInstanceOf(ComparisonNode::class.java, it.q)
         }
     }
 

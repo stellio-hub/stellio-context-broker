@@ -15,6 +15,7 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
@@ -31,6 +32,7 @@ import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.parseAndExpandQueryParameter
 import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.containing
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.notContaining
@@ -460,6 +462,55 @@ class DistributedEntityConsumptionServiceTests : WithTimescaleContainer, WithKaf
                 QueryParameter.ATTRS.key,
                 containing("c")
             )
+        )
+    }
+
+    @Test
+    fun `getDistributedInformation should add contextSourceInfo entries as HTTP headers when retrieving from a CSR`() =
+        runTest {
+            val csr = gimmeRawCSR(
+                contextSourceInfo = listOf(
+                    KeyValuePair("Authorization", "Bearer secret"),
+                    KeyValuePair("X-Extra-Header", "myHeaderValue")
+                )
+            )
+            val path = "/ngsi-ld/v1/entities/$apiaryId"
+            stubFor(get(urlMatching(path)).willReturn(ok()))
+
+            distributedEntityConsumptionService.getDistributedInformation(
+                HttpHeaders.EMPTY,
+                csr,
+                CSRFilters(),
+                path,
+                emptyParams
+            )
+
+            verify(
+                getRequestedFor(urlPathEqualTo(path))
+                    .withHeader("Authorization", equalTo("Bearer secret"))
+                    .withHeader("X-Extra-Header", equalTo("myHeaderValue"))
+            )
+        }
+
+    @Test
+    fun `getDistributedInformation should add tenant as HTTP header when retrieving from a CSR`() = runTest {
+        val csr = gimmeRawCSR(
+            tenant = "urn:ngsi-ld:tenant:01"
+        )
+        val path = "/ngsi-ld/v1/entities/$apiaryId"
+        stubFor(get(urlMatching(path)).willReturn(ok()))
+
+        distributedEntityConsumptionService.getDistributedInformation(
+            HttpHeaders.EMPTY,
+            csr,
+            CSRFilters(),
+            path,
+            emptyParams
+        )
+
+        verify(
+            getRequestedFor(urlPathEqualTo(path))
+                .withHeader("NGSILD-Tenant", equalTo("urn:ngsi-ld:tenant:01"))
         )
     }
 }

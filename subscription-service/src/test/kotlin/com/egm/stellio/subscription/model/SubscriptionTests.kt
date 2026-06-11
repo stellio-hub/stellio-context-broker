@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.model
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_OPERATION_SPACE_IRI
@@ -47,7 +48,7 @@ import org.springframework.http.MediaType
 class SubscriptionTests {
 
     private val endpointReceiverInfo =
-        listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value"))
+        listOf(KeyValuePair(key = "Authorization-token", value = "Authorization-token-value"))
 
     private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
@@ -126,6 +127,24 @@ class SubscriptionTests {
             .shouldFail {
                 assertInstanceOf<BadRequestDataException>(it)
                 assertEquals("Invalid URI: invalidId", it.message)
+            }
+    }
+
+    @Test
+    fun `it should not validate a subscription with an invalid q`() = runTest {
+        val payload = mapOf(
+            "id" to beehiveId,
+            "type" to NGSILD_SUBSCRIPTION_TERM,
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "q" to "temperature==",
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        val subscription = deserialize(payload, emptyList()).shouldSucceedAndResult()
+        subscription.validate()
+            .shouldFail {
+                assertInstanceOf<BadRequestDataException>(it)
+                assertEquals("Q query is invalid: Empty value after operator", it.message)
             }
     }
 

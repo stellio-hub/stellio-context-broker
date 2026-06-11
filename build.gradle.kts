@@ -25,7 +25,7 @@ plugins {
     kotlin("plugin.spring") version "2.3.10" apply false
     id("com.google.cloud.tools.jib") version "3.5.3" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
-    id("org.sonarqube") version "7.3.0.8198"
+    id("org.sonarqube") version "7.3.1.8318"
     jacoco
 }
 
@@ -70,9 +70,9 @@ subprojects {
         implementation("org.glassfish:jakarta.json:2.0.1")
 
         implementation("com.github.stellio-hub:json-merge:0.1.0")
-        implementation("org.json:json:20251224")
+        implementation("org.json:json:20260522")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:2.2.2.1")
+        implementation("io.arrow-kt:arrow-fx-coroutines:2.2.3")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.20.0")
 
@@ -85,7 +85,7 @@ subprojects {
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
         testImplementation("org.springframework.boot:spring-boot-starter-security-test")
         testImplementation("com.ninja-squad:springmockk:5.0.1")
-        testImplementation("io.mockk:mockk:1.14.9")
+        testImplementation("io.mockk:mockk:1.14.11")
         testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }

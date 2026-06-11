@@ -14,7 +14,7 @@ jobs:
       checks: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - name: Set up JDK 21
@@ -30,7 +30,7 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e
+        uses: gradle/actions/setup-gradle@5e2ebd065dc2488b7a6ad670704656cbbe1e8f60
         with:
           cache-provider: basic
       - name: Build
@@ -40,9 +40,9 @@ jobs:
         run: ./gradlew build
       - name: Publish unit test results
         uses: EnricoMi/publish-unit-test-result-action@c950f6fb443cb5af20a377fd0dfaa78838901040
-        if: always()
+        if: (!cancelled())
         with:
-          junit_files: '**/test-results/**/TEST-*.xml'
+          files: '**/test-results/**/TEST-*.xml'
       - name: Perform SonarQube analysis
         if: github.actor != 'dependabot[bot]'
         env:

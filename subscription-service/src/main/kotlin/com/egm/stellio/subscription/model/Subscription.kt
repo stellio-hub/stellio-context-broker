@@ -12,6 +12,7 @@ import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.queryparameter.parseQQuery
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.DataTypes.deserializeAs
 import com.egm.stellio.shared.util.DataTypes.serialize
@@ -88,12 +89,17 @@ data class Subscription(
     @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
     val datasetId: List<String>? = null,
     @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
-    val jsonldContext: URI? = null
+    val jsonldContext: URI? = null,
+    @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
+    val jsonKeys: Set<String>? = null,
+    @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
+    val expandValues: Set<String>? = null
 ) {
     fun validate(): Either<APIException, Subscription> = either {
         checkTypeIsSubscription().bind()
         checkIdIsValid().bind()
         checkEntitiesOrWatchedAttributes().bind()
+        checkQQueryIsValid().bind()
         checkTimeIntervalGreaterThanZero().bind()
         checkThrottlingGreaterThanZero().bind()
         checkSubscriptionValidity().bind()
@@ -125,6 +131,11 @@ data class Subscription(
         if (watchedAttributes == null && entities == null)
             BadRequestDataException(atLeastOneRequiredMessage("entities", "watchedAttributes")).left()
         else Unit.right()
+
+    private fun checkQQueryIsValid(): Either<APIException, Unit> =
+        q?.let {
+            parseQQuery(it).map { }
+        } ?: Unit.right()
 
     private fun checkSubscriptionValidity(): Either<APIException, Unit> =
         when {

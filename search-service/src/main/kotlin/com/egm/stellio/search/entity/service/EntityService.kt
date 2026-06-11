@@ -39,6 +39,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.EXPANDED_ENTITY_SPECIFIC_MEMBERS
 import com.egm.stellio.shared.model.ExpandedAttribute
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -457,6 +458,34 @@ class EntityService(
         handleSuccessOperationActions(entityId, originalEntity, operationResult, modifiedAt).bind()
 
         UpdateResult(operationResult)
+    }
+
+    @Transactional
+    suspend fun mergeAttribute(
+        entityId: URI,
+        expandedAttributeName: ExpandedTerm,
+        attributeFragment: ExpandedAttributeInstance,
+        observedAt: ZonedDateTime
+    ): Either<APIException, List<SucceededAttributeOperationResult>> = either {
+        val mergedAt = ngsiLdDateTime()
+        val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
+        val expandedAttributes: ExpandedAttributes = mapOf(expandedAttributeName to listOf(attributeFragment))
+        val ngsiLdAttributes = expandedAttributes.toNgsiLdAttributes().bind()
+
+        val operationResult = entityAttributeService.mergeAttributes(
+            entityId,
+            ngsiLdAttributes,
+            expandedAttributes,
+            mergedAt,
+            observedAt
+        ).bind()
+
+        if (operationResult.isNotEmpty()) {
+            val updatedEntity = updateState(entityId, mergedAt, entityAttributeService.getAllForEntity(entityId)).bind()
+            entityEventService.publishAttributeChangeEvents(null, originalEntity, updatedEntity, operationResult)
+        }
+
+        operationResult
     }
 
     @Transactional

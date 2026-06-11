@@ -5,9 +5,9 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.csr.model.addWarnings
-import com.egm.stellio.search.csr.service.ContextSourceUtils
 import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
 import com.egm.stellio.search.csr.service.DistributedEntityProvisionService
+import com.egm.stellio.search.csr.util.ContextSourceUtils
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.service.LinkedEntityService
@@ -220,10 +220,10 @@ class EntityHandler(
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.GEOMETRY_PROPERTY,
                 QP.LANG, QP.SCOPEQ, QP.CONTAINED_BY, QP.JOIN, QP.JOIN_LEVEL, QP.DATASET_ID, QP.LOCAL, QP.PICK, QP.OMIT,
-                QP.ORDER_BY
+                QP.ORDER_BY, QP.JSON_KEYS, QP.EXPAND_VALUES
             ],
             notImplemented = [
-                QP.EXPAND_VALUES, QP.CSF, QP.ENTITY_MAP, QP.VIA,
+                QP.CSF, QP.ENTITY_MAP, QP.VIA,
                 QP.COLLATION, QP.ORDER_FROM, QP.ORDER_GEOMETRY
             ]
         )

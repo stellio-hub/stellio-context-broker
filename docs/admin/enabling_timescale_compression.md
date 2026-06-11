@@ -17,6 +17,16 @@ ALTER TABLE attribute_instance SET(
 -- add compression policy
 CALL add_columnstore_policy('attribute_instance', after => INTERVAL '30d');
 
+ALTER TABLE attribute_instance_audit SET(
+    timescaledb.enable_columnstore,
+    timescaledb.orderby = 'time DESC',
+    timescaledb.segmentby = 'temporal_entity_attribute'
+);
+
+-- add compression policy
+CALL add_columnstore_policy('attribute_instance_audit', after => INTERVAL '30d');
+
+
 -- prevent potential "tuple decompression limit exceeded by operation" issue
 SET timescaledb.max_tuples_decompressed_per_dml_transaction = 1000000;
 ```

@@ -9,16 +9,18 @@ import arrow.core.separateEither
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.csr.model.CSRFilters
 import com.egm.stellio.search.csr.model.EntityInfo.Companion.addFilterForEntityInfo
-import com.egm.stellio.search.csr.model.MiscellaneousPersistentWarning
-import com.egm.stellio.search.csr.model.MiscellaneousWarning
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
 import com.egm.stellio.search.csr.model.SingleEntityInfoCSR
+import com.egm.stellio.search.csr.util.CompactedEntitiesWithCSR
+import com.egm.stellio.search.csr.util.CompactedEntityWithCSR
+import com.egm.stellio.search.csr.util.ContextSourceHttpUtils
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceBadlyFormedMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
@@ -26,15 +28,10 @@ import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpMethod
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.util.CollectionUtils
 import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.client.ClientResponse
-import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.reactive.function.client.awaitBodyOrNull
-import org.springframework.web.reactive.function.client.awaitExchange
 import java.net.URI
 
 typealias QueryEntitiesResponse = Pair<List<CompactedEntity>, Int?>
@@ -63,7 +60,7 @@ class DistributedEntityConsumptionService(
         val matchingCSR = contextSourceRegistrationService.getContextSourceRegistrations(csrFilters)
             .flatMap { it.toSingleEntityInfoCSRList(csrFilters) }
 
-        // we can add parMap(concurrency = X) if this trigger too much http connexion at the same time
+        // we can add parMap(concurrency = X) if this triggers too many HTTP connexions at the same time
         return matchingCSR.parMap { csr ->
             val response = retrieveEntityFromContextSource(
                 httpHeaders,
@@ -97,7 +94,7 @@ class DistributedEntityConsumptionService(
             { e ->
                 logger.warn("Badly formed data received from CSR ${csr.id} at $path: ${e.message}")
                 RevalidationFailedWarning(
-                    "${csr.id} at $path returned badly formed data message :'${e.message}'",
+                    contextSourceBadlyFormedMessage(csr.id, path, e.cause.toString(), e.message),
                     csr
                 ).left()
             }
@@ -164,7 +161,7 @@ class DistributedEntityConsumptionService(
             { e ->
                 logger.warn("Badly formed data received from CSR ${csr.id} at $path: ${e.message}")
                 RevalidationFailedWarning(
-                    "${csr.id} at $path returned badly formed data message: \"${e.cause}:${e.message}\"",
+                    contextSourceBadlyFormedMessage(csr.id, path, e.cause.toString(), e.message),
                     csr
                 ).left()
             }
@@ -188,52 +185,7 @@ class DistributedEntityConsumptionService(
         csr.information.first().computeAttrsQueryParam(csrFilters, contexts)?.let {
             queryParams[QueryParameter.ATTRS.key] = it
         }
-        val request = WebClient.create()
-            .method(HttpMethod.GET)
-            .uri { uriBuilder ->
-                uriBuilder.scheme(uri.scheme)
-                    .host(uri.host)
-                    .port(uri.port)
-                    .path(uri.path)
-                    .queryParams(queryParams)
-                    .build()
-            }.headers { newHeaders ->
-                httpHeaders.getFirst(HttpHeaders.LINK)?.let { link -> newHeaders[HttpHeaders.LINK] = link }
-            }
 
-        return catch(
-            {
-                val (statusCode, response, headers) = request.awaitExchange { response ->
-                    Triple(response.statusCode(), response.awaitBodyOrNull<String>(), response.headers())
-                }
-                when {
-                    statusCode.is2xxSuccessful -> {
-                        logger.info("Successfully received data from CSR ${csr.id} at $uri")
-                        (response to headers).right()
-                    }
-
-                    statusCode.isSameCodeAs(HttpStatus.NOT_FOUND) -> {
-                        logger.info("CSR returned 404 at $uri: $response")
-                        (null to headers).right()
-                    }
-
-                    else -> {
-                        logger.warn("CSR returned an error at $uri: $response")
-                        MiscellaneousPersistentWarning(
-                            "$uri returned an error $statusCode with response: $response",
-                            csr
-                        ).left()
-                    }
-                }
-            },
-            { e ->
-                logger.warn("Error connecting to CSR at $uri: ${e.message}")
-                logger.warn(e.stackTraceToString())
-                MiscellaneousWarning(
-                    "Error connecting to CSR at $uri: \"${e.cause}:${e.message}\"",
-                    csr
-                ).left()
-            }
-        )
+        return ContextSourceHttpUtils.callGetOnCsr(uri, httpHeaders, queryParams, csr)
     }
 }

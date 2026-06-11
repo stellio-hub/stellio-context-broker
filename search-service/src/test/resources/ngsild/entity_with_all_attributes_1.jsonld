@@ -72,6 +72,34 @@
       "aSimpleQuote": "precipitation's measures"
     }
   },
+  "jsonProp": {
+    "type": "JsonProperty",
+    "json": {
+      "anObject": {
+        "name": "City"
+      },
+      "aString": "precipitation monitoring",
+      "aNumber": 12.4
+    }
+  },
+  "localizedName": {
+    "type": "LanguageProperty",
+    "languageMap": {
+      "en": "Bee Hive One",
+      "fr": "Ruche Une"
+    }
+  },
+  "localizedUrl": {
+    "type": "LanguageProperty",
+    "languageMap": {
+      "en": "http://localhost/en/beehive",
+      "fr": "http://localhost/fr/ruche"
+    }
+  },
+  "category": {
+    "type": "VocabProperty",
+    "vocab": "BeeHive"
+  },
   "observedProperty": {
     "type": "Property",
     "value": 12.0,
@@ -84,6 +112,17 @@
     "license": {
       "type": "Property",
       "value": "APL"
+    },
+    "source": {
+      "type": "Property",
+      "value": {
+        "repository": "https://github.com/stellio-context/stellio-context",
+        "author": "EGM"
+      }
+    },
+    "author": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Person:01"
     }
   },
   "multiInstanceProperty": [
@@ -110,6 +149,36 @@
         100.0,
         0
       ]
+    }
+  },
+  "propWithVocabSub": {
+    "type": "Property",
+    "value": "ignored",
+    "vocabSub": {
+      "type": "VocabProperty",
+      "vocab": "BeeHive"
+    }
+  },
+  "propWithLangSub": {
+    "type": "Property",
+    "value": "ignored",
+    "langSub": {
+      "type": "LanguageProperty",
+      "languageMap": {
+        "en": "sub lang one",
+        "es": "sub lang uno"
+      }
+    }
+  },
+  "propWithJsonSub": {
+    "type": "Property",
+    "value": "ignored",
+    "jsonSub": {
+      "type": "JsonProperty",
+      "json": {
+        "sensor": "S01",
+        "reading": 7.3
+      }
     }
   },
   "@context": [

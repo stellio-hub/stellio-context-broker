@@ -17,6 +17,7 @@ import com.egm.stellio.shared.model.BadGatewayException
 import com.egm.stellio.shared.model.ContextSourceException
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.GatewayTimeoutException
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_ALL_ENTITIES
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.QP
@@ -30,10 +31,15 @@ import com.egm.stellio.shared.util.toTypeSelection
 import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.badRequest
 import com.github.tomakehurst.wiremock.client.WireMock.delete
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
+import com.github.tomakehurst.wiremock.client.WireMock.ok
 import com.github.tomakehurst.wiremock.client.WireMock.post
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.status
 import com.github.tomakehurst.wiremock.client.WireMock.stubFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.MockkSpyBean
@@ -414,6 +420,47 @@ class DistributedEntityProvisionServiceTests : WithTimescaleContainer, WithKafka
 
         assertTrue(response.isLeft())
         assertInstanceOf(GatewayTimeoutException::class.java, response.leftOrNull())
+    }
+
+    @Test
+    fun `sendDistributedInformation should add contextSourceInfo entries as HTTP headers when provisioning to a CSR`() =
+        runTest {
+            val csr = gimmeRawCSR(
+                contextSourceInfo = listOf(
+                    KeyValuePair("Authorization", "Bearer secret"),
+                    KeyValuePair("X-Extra-Header", "myHeaderValue")
+                )
+            )
+            val path = "/ngsi-ld/v1/entities"
+
+            stubFor(post(urlMatching(path)).willReturn(ok()))
+
+            val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
+            distributedEntityProvisionService.sendDistributedInformation(entity, csr, path, HttpMethod.POST)
+
+            verify(
+                postRequestedFor(urlPathEqualTo(path))
+                    .withHeader("Authorization", equalTo("Bearer secret"))
+                    .withHeader("X-Extra-Header", equalTo("myHeaderValue"))
+            )
+        }
+
+    @Test
+    fun `sendDistributedInformation should add tenant as HTTP header when provisioning to a CSR`() = runTest {
+        val csr = gimmeRawCSR(
+            tenant = "urn:ngsi-ld:tenant:01"
+        )
+        val path = "/ngsi-ld/v1/entities"
+
+        stubFor(post(urlMatching(path)).willReturn(ok()))
+
+        val entity = compactEntity(expandJsonLdEntity(entity), listOf(APIC_COMPOUND_CONTEXT))
+        distributedEntityProvisionService.sendDistributedInformation(entity, csr, path, HttpMethod.POST)
+
+        verify(
+            postRequestedFor(urlPathEqualTo(path))
+                .withHeader("NGSILD-Tenant", equalTo("urn:ngsi-ld:tenant:01"))
+        )
     }
 
     @Test

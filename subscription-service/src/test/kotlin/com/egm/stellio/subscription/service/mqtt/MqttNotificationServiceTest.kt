@@ -1,11 +1,11 @@
 package com.egm.stellio.subscription.service.mqtt
 
+import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.Endpoint.Companion.DEFAULT_TIMEOUT
-import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
@@ -54,8 +54,8 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
                 uri = "mqtt://test@localhost:$mqttContainerPort/notification".toUri(),
                 accept = Endpoint.AcceptType.JSONLD,
                 notifierInfo = listOf(
-                    EndpointInfo(Mqtt.Version.KEY, Mqtt.Version.V3),
-                    EndpointInfo(Mqtt.QualityOfService.KEY, Mqtt.QualityOfService.EXACTLY_ONCE.toString())
+                    KeyValuePair(Mqtt.Version.KEY, Mqtt.Version.V3),
+                    KeyValuePair(Mqtt.QualityOfService.KEY, Mqtt.QualityOfService.EXACTLY_ONCE.toString())
                 )
             )
         ),
@@ -70,8 +70,8 @@ class MqttNotificationServiceTest : WithMosquittoContainer {
             endpoint = Endpoint(
                 uri = "mqtt://test@localhost:$mqttContainerPort/notification".toUri(),
                 notifierInfo = listOf(
-                    EndpointInfo(Mqtt.Version.KEY, Mqtt.Version.V5),
-                    EndpointInfo(Mqtt.QualityOfService.KEY, Mqtt.QualityOfService.EXACTLY_ONCE.toString())
+                    KeyValuePair(Mqtt.Version.KEY, Mqtt.Version.V5),
+                    KeyValuePair(Mqtt.QualityOfService.KEY, Mqtt.QualityOfService.EXACTLY_ONCE.toString())
                 )
             )
         ),

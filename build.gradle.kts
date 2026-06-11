@@ -27,7 +27,7 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "4.1.0-RC1" apply false
+    id("org.springframework.boot") version "4.1.0" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     kotlin("jvm") version "2.4.0" apply false
     kotlin("plugin.spring") version "2.4.0" apply false
@@ -111,9 +111,6 @@ subprojects {
     }
     tasks.withType<Test> {
         environment("SPRING_PROFILES_ACTIVE", "test")
-        // Spring Cloud 2025.1.1 only declares compatibility with Boot 4.0.x; disable the verifier
-        // on this experimental branch until a Spring Cloud BOM for Boot 4.1.x is released.
-        systemProperty("spring.cloud.compatibility-verifier.enabled", "false")
         useJUnitPlatform()
         testLogging {
             events("passed", "skipped", "failed")
@@ -227,7 +224,6 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven { url = uri("https://repo.spring.io/milestone") }
     }
 
     sonarqube {

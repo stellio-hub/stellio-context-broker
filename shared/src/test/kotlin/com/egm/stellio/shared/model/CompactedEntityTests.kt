@@ -371,6 +371,43 @@ class CompactedEntityTests {
     }
 
     @Test
+    fun `it should return a simplified entity with a multivalued Relationship`() {
+        val inputEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "hasOwner": {
+                    "type": "Relationship",
+                    "object": [
+                        "urn:ngsi-ld:Person:John",
+                        "urn:ngsi-ld:Person:Jane"
+                    ]
+                }
+            }
+            """.trimIndent().deserializeAsMap()
+        val expectedEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "hasOwner": [
+                    "urn:ngsi-ld:Person:John",
+                    "urn:ngsi-ld:Person:Jane"
+                ]
+            }
+            """.trimIndent().deserializeAsMap()
+
+        val simplifiedEntity = inputEntity.toFinalRepresentation(
+            NgsiLdDataRepresentation(
+                EntityRepresentation.forMediaType(MediaType.APPLICATION_JSON),
+                AttributeRepresentation.SIMPLIFIED,
+                includeSysAttrs = false
+            )
+        )
+
+        assertEquals(expectedEntity, simplifiedEntity)
+    }
+
+    @Test
     fun `it should return a simplified entity with a multi-attribute JsonProperty`() {
         val inputEntity =
             """

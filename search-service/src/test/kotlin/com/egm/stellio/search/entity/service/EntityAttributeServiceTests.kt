@@ -244,6 +244,52 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
+    fun `it should create entries for a multi-valued-relationships`() = runTest {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:BeeHive:TESTC",
+              "type": "BeeHive",
+              "multiValuedRelationship": {
+                "type": "Relationship",
+                "object": [
+                  "urn:ngsi-ld:LinkedEntity:01",
+                  "urn:ngsi-ld:LinkedEntity:02"
+                ]
+              },
+              "@context": [
+                "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+              ]
+            }
+            """.trimIndent()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(
+            rawEntity,
+            APIC_COMPOUND_CONTEXTS
+        ).shouldSucceed()
+
+        val attributes = entityAttributeService.getAllForEntity(beehiveTestCId)
+
+        assertEquals(1, attributes.size)
+
+        coVerify {
+            attributeInstanceService.create(
+                match {
+                    it.value?.deserializeTemporalValue() == listOf(
+                        "urn:ngsi-ld:LinkedEntity:01",
+                        "urn:ngsi-ld:LinkedEntity:02"
+                    ) &&
+                        it.measuredValue == null &&
+                        it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
+                        it.time.isAfter(ngsiLdDateTime().minusMinutes(1))
+                }
+            )
+        }
+    }
+
+    @Test
     fun `it should rollback the whole operation if one DB update fails`() = runTest {
         val rawEntity = loadSampleData()
 

@@ -724,6 +724,62 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
+    fun `it should partial update a property without providing its value`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val updatedAt = ngsiLdDateTime()
+        val expandedAttribute = expandAttribute(
+            INCOMING_IRI,
+            """
+                {
+                    "type": "Property",
+                    "unitCode": "C62"
+                }
+            """.trimIndent(),
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        entityAttributeService.partialUpdateAttribute(
+            beehiveTestCId,
+            expandedAttribute,
+            updatedAt
+        ).shouldSucceedWith { operationResult ->
+            assertEquals(OperationStatus.UPDATED, operationResult.operationStatus)
+        }
+
+        val expectedPayload = expandAttribute(
+            """
+                {
+                    "incoming": {
+                        "type": "Property",
+                        "value": 1543,
+                        "observedAt": "2020-01-24T14:01:22.066Z",
+                        "unitCode": "C62",
+                        "observedBy": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+                        }
+                    }
+                }
+            """.trimIndent(),
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        entityAttributeService.getForEntityAndAttribute(
+            beehiveTestCId,
+            INCOMING_IRI
+        ).shouldSucceedWith {
+            assertEquals(Attribute.AttributeValueType.NUMBER, it.attributeValueType)
+            assertJsonPayloadsAreEqual(serializeObject(expectedPayload.second[0]), it.payload.asString())
+            assertEquals(updatedAt, it.modifiedAt)
+        }
+    }
+
+    @Test
     fun `it should replace an entity attribute`() = runTest {
         val rawEntity = loadSampleData()
 

@@ -753,7 +753,7 @@ class EntityAttributeService(
         val (jsonTargetObject, updatedAttributeInstance) =
             partialUpdatePatch(attribute.payload.toExpandedAttributeInstance(), attributeValues)
         val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance).bind()
-        val attributeValueType = guessAttributeValueType(attribute.attributeType, attributeValues).bind()
+        val attributeValueType = guessAttributeValueType(attribute.attributeType, updatedAttributeInstance).bind()
         update(attribute.id, attributeValueType, modifiedAt, jsonTargetObject).bind()
 
         // then update attribute instance

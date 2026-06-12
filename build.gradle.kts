@@ -125,9 +125,7 @@ subprojects {
         buildUponDefaultConfig = true
         baseline.set(file("$projectDir/config/detekt/baseline.xml"))
         source("src/main/kotlin", "src/test/kotlin", "src/testFixtures/kotlin")
-        // detekt 1.23.x ships Kotlin 1.9 internals which only support JVM targets up to 22;
-        // override here so detekt does not inherit the project-wide JVM 25 target.
-        jvmTarget = "22"
+        jvmTarget = "21"
 
         reports {
             xml.required.set(true)
@@ -139,6 +137,7 @@ subprojects {
         config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
         buildUponDefaultConfig.set(true)
         baseline.set(file("$projectDir/config/detekt/baseline.xml"))
+        jvmTarget = "21"
     }
 
     // see https://docs.gradle.org/current/userguide/jacoco_plugin.html for configuration instructions

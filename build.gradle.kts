@@ -13,14 +13,6 @@ buildscript {
 
 extra["springCloudVersion"] = "2025.1.1"
 
-// Kotlin artifacts that must be pinned to 2.4.0 in the compiler-facing configurations.
-// kotlin-dsl (Gradle's embedded plugin) brings these at 2.3.20 onto the resolution path.
-val kgpVersion = "2.4.0"
-val kotlinCompilerArtifacts = setOf(
-    "kotlin-compiler-embeddable", "kotlin-daemon-client", "kotlin-daemon-embeddable",
-    "kotlin-compiler-runner", "kotlin-build-tools-impl", "kotlin-build-tools-api"
-)
-
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java
     java
@@ -29,8 +21,8 @@ plugins {
     // and the shared lib is obviously not one
     id("org.springframework.boot") version "4.1.0" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
-    kotlin("jvm") version "2.4.0" apply false
-    kotlin("plugin.spring") version "2.4.0" apply false
+    kotlin("jvm") version "2.3.21" apply false
+    kotlin("plugin.spring") version "2.3.21" apply false
     id("com.google.cloud.tools.jib") version "3.5.3" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
     id("org.sonarqube") version "7.3.1.8318"
@@ -101,10 +93,9 @@ subprojects {
     kotlin {
         compilerOptions {
             // -Xconsistent-data-class-copy-visibility was stabilised (became default) in Kotlin 2.1; removed here.
-            // -Xannotation-default-target=param-property became default in Kotlin 2.4; removed here.
-            freeCompilerArgs.addAll("-Xjsr305=strict")
-            languageVersion.set(KotlinVersion.KOTLIN_2_4)
-            apiVersion.set(KotlinVersion.KOTLIN_2_4)
+            freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
+            languageVersion.set(KotlinVersion.KOTLIN_2_3)
+            apiVersion.set(KotlinVersion.KOTLIN_2_3)
             jvmTarget.set(JvmTarget.JVM_25)
         }
         jvmToolchain(25)
@@ -118,22 +109,9 @@ subprojects {
         jvmArgs("-Dmockk.junit.extension.checkUnnecessaryStub=true")
     }
 
-    // The kotlin-dsl plugin (applied at root level) brings Gradle's embedded Kotlin artifacts (2.3.20) onto
-    // the resolution path for kotlinCompilerClasspath. KGP 2.4.0's build-tools-impl reads
-    // KotlinCompilerVersion.VERSION from kotlin-compiler-embeddable; if it resolves 2.3.20, it wraps itself
-    // in KotlinWrapperPre2_4_0 which has an NPE with plugin classpaths (KT-76485 class of bug).
-    // Force the compiler-facing configurations to the project's KGP version.
-    configurations.matching { it.name.startsWith("kotlinCompilerClasspath") || it.name == "kotlinBuildToolsApiClasspath" }.all {
-        resolutionStrategy.eachDependency {
-            if (requested.group == "org.jetbrains.kotlin" && requested.name in kotlinCompilerArtifacts) {
-                useVersion(kgpVersion)
-            }
-        }
-    }
-
     // see https://github.com/detekt/detekt/issues/6198
     // detekt 1.23.x ships with Kotlin 1.9 internals; pin its kotlin dependencies to the version it declares
-    // so that Gradle's transform infrastructure does not pick up the project's Kotlin 2.4.0 artifacts.
+    // so that Gradle's transform infrastructure does not pick up the project's Kotlin artifacts.
     configurations.matching { it.name == "detekt" }.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {

@@ -6,8 +6,8 @@ pluginManagement {
         mavenCentral()
     }
     plugins {
-        kotlin("jvm") version "2.4.0"
-        kotlin("plugin.spring") version "2.4.0"
+        kotlin("jvm") version "2.3.21"
+        kotlin("plugin.spring") version "2.3.21"
     }
 }
 

@@ -268,8 +268,13 @@ class NgsiLdPropertyInstance private constructor(
     override fun toString(): String = "NgsiLdPropertyInstance(value=$value)"
 }
 
+sealed class RelationshipObjects {
+    data class Single(val id: URI) : RelationshipObjects()
+    data class Multiple(val ids: List<URI>) : RelationshipObjects()
+}
+
 class NgsiLdRelationshipInstance private constructor(
-    val objectId: URI,
+    val objectId: RelationshipObjects,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
     attributes: List<NgsiLdAttribute>
@@ -279,7 +284,7 @@ class NgsiLdRelationshipInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdRelationshipInstance> = either {
-            val objectId = values.getRelationshipObject(name).bind()
+            val objectId = values.getRelationshipObjects(name).bind()
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 

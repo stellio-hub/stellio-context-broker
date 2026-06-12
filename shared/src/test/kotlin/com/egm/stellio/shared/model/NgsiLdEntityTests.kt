@@ -384,7 +384,10 @@ class NgsiLdEntityTests {
         assertEquals("https://uri.etsi.org/ngsi-ld/default-context/refDeviceModel", ngsiLdRelationship.name)
         assertEquals(1, ngsiLdRelationship.instances.size)
         val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
-        assertEquals("urn:ngsi-ld:DeviceModel:09876".toUri(), ngsiLdRelationshipInstance.objectId)
+        assertEquals(
+            RelationshipObjects.Single("urn:ngsi-ld:DeviceModel:09876".toUri()),
+            ngsiLdRelationshipInstance.objectId
+        )
     }
 
     @Test
@@ -407,7 +410,10 @@ class NgsiLdEntityTests {
             .shouldSucceedAndResult()
 
         val ngsiLdRelationshipInstance = ngsiLdEntity.relationships[0].instances[0]
-        assertEquals("urn:ngsi-ld:DeviceModel:09876".toUri(), ngsiLdRelationshipInstance.objectId)
+        assertEquals(
+            RelationshipObjects.Single("urn:ngsi-ld:DeviceModel:09876".toUri()),
+            ngsiLdRelationshipInstance.objectId
+        )
         assertEquals("urn:ngsi-ld:Dataset:01234".toUri(), ngsiLdRelationshipInstance.datasetId)
         assertEquals(ZonedDateTime.parse("2020-07-19T00:00:00Z"), ngsiLdRelationshipInstance.observedAt)
     }
@@ -440,6 +446,41 @@ class NgsiLdEntityTests {
         assertEquals(1, ngsiLdEntity.relationships.size)
         val ngsiLdRelationship = ngsiLdEntity.relationships[0]
         assertEquals(2, ngsiLdRelationship.instances.size)
+    }
+
+    @Test
+    fun `it should parse an entity with a multivalued relationship`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "refDeviceModel": {
+                    "type": "Relationship",
+                    "object": [
+                        "urn:ngsi-ld:DeviceModel:09876",
+                        "urn:ngsi-ld:DeviceModel:12345"
+                    ]
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        assertEquals(1, ngsiLdEntity.relationships.size)
+        val ngsiLdRelationship = ngsiLdEntity.relationships[0]
+        assertEquals(1, ngsiLdRelationship.instances.size)
+        val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
+        assertEquals(
+            RelationshipObjects.Multiple(
+                listOf(
+                    "urn:ngsi-ld:DeviceModel:09876".toUri(),
+                    "urn:ngsi-ld:DeviceModel:12345".toUri()
+                )
+            ),
+            ngsiLdRelationshipInstance.objectId
+        )
     }
 
     @Test

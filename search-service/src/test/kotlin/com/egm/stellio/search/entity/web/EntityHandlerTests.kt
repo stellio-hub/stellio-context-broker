@@ -952,6 +952,48 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entity by id should correctly serialize a multivalued relationship`() {
+        initializeRetrieveEntityMocks()
+        coEvery { entityQueryService.queryEntity(any()) } returns ExpandedEntity(
+            mapOf(
+                "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to listOf(
+                    mapOf(
+                        JSONLD_TYPE_KW to "https://uri.etsi.org/ngsi-ld/Relationship",
+                        NGSILD_RELATIONSHIP_OBJECT to listOf(
+                            mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Beekeeper:1229"),
+                            mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Beekeeper:1230")
+                        )
+                    )
+                ),
+                JSONLD_ID_KW to "urn:ngsi-ld:Beehive:4567",
+                JSONLD_TYPE_KW to listOf("Beehive")
+            )
+        ).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$beehiveId")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                    "id":"urn:ngsi-ld:Beehive:4567",
+                    "type": "Beehive",
+                    "managedBy": {
+                      "type": "Relationship",
+                      "object": [
+                        "urn:ngsi-ld:Beekeeper:1229",
+                        "urn:ngsi-ld:Beekeeper:1230"
+                      ]
+                    },
+                    "@context": "${applicationProperties.contexts.core}"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `get entity by id should include createdAt & modifiedAt if query param sysAttrs is present`() {
         initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any()) } returns ExpandedEntity(

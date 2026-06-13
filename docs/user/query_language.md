@@ -20,6 +20,9 @@ It is available through the `q` query parameter on:
 
 Operator precedence: `;` (AND) binds more tightly than `|` (OR). Use parentheses to override.
 
+Please note that these operators are not always properly encoded by tools like Postman. You may need to manually encode
+them (you can, for instance, use the [URL Encoder](https://www.urlencoder.org/fr/) tool).
+
 ```
 # temperature above 20 AND humidity below 80
 q=temperature>20;humidity<80
@@ -61,15 +64,15 @@ q=!temperature
 
 Values are typed automatically; quoting a value forces it to be treated as a string.
 
-| Type     | Example                 | Notes                                                                           |
-|----------|-------------------------|---------------------------------------------------------------------------------|
-| Number   | `42`, `3.14`, `-5`      | Integer or decimal                                                              |
-| Boolean  | `true`, `false`         | Unquoted only                                                                   |
-| String   | `"active"`, `"open"`    | Must be double-quoted                                                           |
-| DateTime | `2025-01-01T00:00:00Z`  | ISO 8601 with timezone                                                          |
-| Date     | `2025-01-01`            | ISO 8601 date only                                                              |
-| Time     | `12:00:00Z`             | ISO 8601 time only                                                              |
-| URI      | `urn:ngsi-ld:Sensor:01` | Matched against Relationship objects, Property values, and VocabProperty values |
+| Type     | Example                 | Notes                                                                                                             |
+|----------|-------------------------|-------------------------------------------------------------------------------------------------------------------|
+| Number   | `42`, `3.14`, `-5`      | Integer or decimal                                                                                                |
+| Boolean  | `true`, `false`         | Unquoted only                                                                                                     |
+| String   | `"active"`, `"open"`    | Must be double-quoted                                                                                             |
+| DateTime | `2025-01-01T00:00:00Z`  | ISO 8601 with timezone                                                                                            |
+| Date     | `2025-01-01`            | ISO 8601 date only                                                                                                |
+| Time     | `12:00:00Z`             | ISO 8601 time only                                                                                                |
+| URI      | `urn:ngsi-ld:Sensor:01` | Matched against Relationship objects, Property values, and VocabProperty values. Works double-quoted and unquoted |
 
 ```
 q=temperature==22.5

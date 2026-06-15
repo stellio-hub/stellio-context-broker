@@ -18,12 +18,14 @@ import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.MANAGED_BY_IRI
 import com.egm.stellio.shared.util.MANAGED_BY_TERM
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NAME_TERM
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
+import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.shouldSucceed
@@ -392,6 +394,55 @@ class NotificationServiceTests {
             coVerify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
             confirmVerified(subscriptionService)
         }
+
+    @Test
+    fun `it should send a concise payload when format is concise`() = runTest {
+        val subscription = gimmeRawSubscription(
+            withNotifParams = Pair(FormatType.CONCISE, emptyList()),
+            contexts = APIC_COMPOUND_CONTEXTS
+        )
+        val expandedEntity = expandJsonLdEntity(rawEntity)
+
+        coEvery {
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
+        } returns listOf(subscription).right()
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { results ->
+            val notifiedEntity = results[0].second.data[0]
+            val expectedNotifiedEntity = """
+                {
+                    "id": "urn:ngsi-ld:Apiary:XYZ01",
+                    "type": "Apiary",
+                    "name": "ApiarySophia",
+                    "managedBy": {
+                        "object": "urn:ngsi-ld:Beekeeper:01"
+                    },
+                    "location": {
+                        "type": "Point",
+                        "coordinates": [
+                            24.30623,
+                            60.07966
+                        ]
+                    },
+                    "@context": "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+                }
+            """.trimIndent()
+
+            assertJsonPayloadsAreEqual(expectedNotifiedEntity, serializeObject(notifiedEntity))
+        }
+    }
 
     @Test
     fun `it should notify the two subscribers`() = runTest {

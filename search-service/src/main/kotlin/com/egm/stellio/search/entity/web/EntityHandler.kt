@@ -48,6 +48,8 @@ import com.egm.stellio.shared.util.extractPayloadAndContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.missingPathErrorResponse
+import com.egm.stellio.shared.util.normalizeAttributeFragment
+import com.egm.stellio.shared.util.normalizeEntityFragment
 import com.egm.stellio.shared.util.parseAttrsParameter
 import com.egm.stellio.shared.util.parseTimeParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
@@ -98,7 +100,7 @@ class EntityHandler(
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
-        val expandedEntity = expandJsonLdEntity(body, contexts)
+        val expandedEntity = expandJsonLdEntity(normalizeEntityFragment(body), contexts)
         expandedEntity.toNgsiLdEntity().bind()
         val entityId = expandedEntity.id
 
@@ -144,7 +146,7 @@ class EntityHandler(
         val observedAt = queryParams.getFirst(QueryParameter.OBSERVED_AT.key)
             ?.parseTimeParameter("'observedAt' parameter is not a valid date")
             ?.getOrElse { return@either BadRequestDataException(it).left().bind<ResponseEntity<*>>() }
-        val expandedAttributes = expandAttributes(body, contexts)
+        val expandedAttributes = expandAttributes(normalizeEntityFragment(body), contexts)
 
         val updateResult = entityService.mergeEntity(entityId, expandedAttributes, observedAt).bind()
 
@@ -174,7 +176,7 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-        val expandedEntity = expandJsonLdEntity(body, contexts)
+        val expandedEntity = expandJsonLdEntity(normalizeEntityFragment(body), contexts)
 
         if (expandedEntity.id != entityId)
             BadRequestDataException(ENTITY_ID_MISMATCH_MESSAGE).left().bind<ResponseEntity<*>>()
@@ -446,7 +448,7 @@ class EntityHandler(
 
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-        val expandedAttributes = expandAttributes(body, contexts)
+        val expandedAttributes = expandAttributes(normalizeEntityFragment(body), contexts)
 
         val updateResult = entityService.appendAttributes(
             entityId,
@@ -484,7 +486,7 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-        val expandedAttributes = expandAttributes(body, contexts)
+        val expandedAttributes = expandAttributes(normalizeEntityFragment(body), contexts)
 
         val updateResult = entityService.updateAttributes(entityId, expandedAttributes).bind()
 
@@ -521,7 +523,7 @@ class EntityHandler(
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
-        val expandedAttribute = expandAttribute(attrId, body, contexts)
+        val expandedAttribute = expandAttribute(attrId, normalizeAttributeFragment(body), contexts)
 
         entityService.partialUpdateAttribute(entityId, expandedAttribute).bind()
             .let {
@@ -591,7 +593,7 @@ class EntityHandler(
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
-        val expandedAttribute = expandAttribute(attrId, body, contexts)
+        val expandedAttribute = expandAttribute(attrId, normalizeAttributeFragment(body), contexts)
 
         entityService.replaceAttribute(entityId, expandedAttribute).bind()
             .let {

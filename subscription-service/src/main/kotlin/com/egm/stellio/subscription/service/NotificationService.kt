@@ -147,10 +147,11 @@ class NotificationService(
         )
         val entityRepresentation =
             EntityRepresentation.forMediaType(acceptToMediaType(subscription.notification.endpoint.accept.accept))
-        val attributeRepresentation =
-            if (subscription.notification.format in listOf(FormatType.KEY_VALUES, FormatType.SIMPLIFIED))
-                AttributeRepresentation.SIMPLIFIED
-            else AttributeRepresentation.NORMALIZED
+        val attributeRepresentation = when (subscription.notification.format) {
+            FormatType.KEY_VALUES, FormatType.SIMPLIFIED -> AttributeRepresentation.SIMPLIFIED
+            FormatType.CONCISE -> AttributeRepresentation.CONCISE
+            else -> AttributeRepresentation.NORMALIZED
+        }
 
         val compactedEntity = compactEntity(
             filteredEntity,

@@ -17,7 +17,8 @@ enum class OptionsValue(val value: String) {
     AUDIT("audit"),
     NORMALIZED("normalized"),
     KEY_VALUES("keyValues"),
-    SIMPLIFIED("simplified");
+    SIMPLIFIED("simplified"),
+    CONCISE("concise");
     companion object {
         fun fromString(key: String): Either<APIException, OptionsValue> = either {
             OptionsValue.entries.find { it.value == key }

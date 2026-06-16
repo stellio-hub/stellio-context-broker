@@ -17,11 +17,21 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      # JDK 21 runs the Gradle daemon (and thus detekt, which embeds Kotlin 1.9 internals
+      # that cannot parse Java version "25" — see https://github.com/detekt/detekt/issues/6198).
+      # The Kotlin jvmToolchain(25) config causes Gradle to fork a separate JDK 25 process
+      # for compilation and tests; Gradle finds it via the JAVA_HOME_25_X64 env var set below.
       - name: Set up JDK 21
+        id: setup-jdk21
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654
         with:
           distribution: 'temurin'
           java-version: '21'
+      - name: Set up JDK 25
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654
+        with:
+          distribution: 'temurin'
+          java-version: '25'
           cache: 'gradle'
       - name: Cache SonarCloud packages
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
@@ -35,6 +45,7 @@ jobs:
           cache-provider: basic
       - name: Build
         env:
+          JAVA_HOME: ${{ steps.setup-jdk21.outputs.java-home }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew build
@@ -46,6 +57,7 @@ jobs:
       - name: Perform SonarQube analysis
         if: github.actor != 'dependabot[bot]'
         env:
+          JAVA_HOME: ${{ steps.setup-jdk21.outputs.java-home }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew sonarqube --info

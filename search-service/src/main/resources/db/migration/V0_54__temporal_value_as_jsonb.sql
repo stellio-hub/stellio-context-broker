@@ -5,7 +5,9 @@ ALTER TABLE attribute_instance
     ADD COLUMN json_value JSONB;
 
 UPDATE attribute_instance
-SET json_value = to_jsonb(value);
+SET json_value = to_jsonb(value)
+WHERE value IS NOT NULL;
+
 
 ALTER TABLE attribute_instance
     DROP COLUMN value;
@@ -18,7 +20,8 @@ ALTER TABLE attribute_instance_audit
     ADD COLUMN json_value JSONB;
 
 UPDATE attribute_instance_audit
-SET json_value = to_jsonb(value);
+SET json_value = to_jsonb(value)
+WHERE value IS NOT NULL;
 
 ALTER TABLE attribute_instance_audit
     DROP COLUMN value;

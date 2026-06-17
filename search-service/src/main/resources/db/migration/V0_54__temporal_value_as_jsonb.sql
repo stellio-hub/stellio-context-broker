@@ -19,6 +19,7 @@ ALTER TABLE attribute_instance
 ALTER TABLE attribute_instance_audit
     ADD COLUMN json_value JSONB;
 
+
 UPDATE attribute_instance_audit
 SET json_value = to_jsonb(value)
 WHERE value IS NOT NULL;

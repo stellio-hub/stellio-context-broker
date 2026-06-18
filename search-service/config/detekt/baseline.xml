@@ -6,10 +6,10 @@
     <ID>ClassNaming:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration : BaseJavaMigration</ID>
     <ID>ComplexCondition:EntitiesQueryUtils.kt$geoQuery == null &amp;&amp; q == null &amp;&amp; typeSelection.isNullOrEmpty() &amp;&amp; attrs.isEmpty() &amp;&amp; !local</ID>
     <ID>ComplexCondition:EntitiesQueryUtils.kt$typeSelection.isNullOrEmpty() &amp;&amp; keep.isEmpty() &amp;&amp; drop.isEmpty() &amp;&amp; q == null &amp;&amp; geoQuery == null &amp;&amp; !local</ID>
-    <ID>CyclomaticComplexMethod:AttributeUtils.kt$fun mergePatch( source: ExpandedAttributeInstance, update: ExpandedAttributeInstance ): Either&lt;APIException, Pair&lt;String, ExpandedAttributeInstance&gt;&gt;</ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:ContextSourceRegistrationService.kt$ContextSourceRegistrationService$@Transactional suspend fun upsert( csr: ContextSourceRegistration ): Either&lt;APIException, Unit&gt;</ID>
+    <ID>LongMethod:EntitiesQueryUtils.kt$fun composeEntitiesQueryFromPost( defaultPagination: ApplicationProperties.Pagination, query: Query, queryParams: MultiValueMap&lt;String, String&gt;, contexts: List&lt;String&gt; ): Either&lt;APIException, EntitiesQueryFromPost&gt;</ID>
     <ID>LongMethod:EntitiesQueryUtilsTests.kt$EntitiesQueryUtilsTests$@Test fun `it should parse a valid complete Query datatype`()</ID>
     <ID>LongMethod:EntityEventService.kt$EntityEventService$private fun publishAttributeChangeEvent( sub: String?, tenantName: String, originalEntity: ExpandedEntity, updatedEntity: ExpandedEntity, attributeOperationResult: SucceededAttributeOperationResult )</ID>
     <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_UPDATE events if a multi-attribute is replaced`()</ID>

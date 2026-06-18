@@ -10,6 +10,7 @@ import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
+import com.egm.stellio.shared.model.ENTITY_TYPE_WILDCARD
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.queryparameter.PaginationQuery
@@ -403,6 +404,31 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         assertThat(entitiesIds)
             .hasSize(2)
             .contains(entity01Uri, entity02Uri)
+    }
+
+    @Test
+    fun `it should retrieve entities without type restriction for a wildcard entity selector`() = runTest {
+        val entitiesIds =
+            entityQueryService.queryEntities(
+                EntitiesQueryFromPost(
+                    entitySelectors = listOf(
+                        EntitySelector(id = null, idPattern = null, typeSelection = ENTITY_TYPE_WILDCARD)
+                    ),
+                    paginationQuery = PaginationQuery(limit = 30, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                null
+            )
+
+        assertThat(entitiesIds)
+            .hasSize(5)
+            .contains(
+                entity01Uri,
+                entity02Uri,
+                "urn:ngsi-ld:MultiTypes:03".toUri(),
+                entity04Uri,
+                entity05Uri
+            )
     }
 
     @Test

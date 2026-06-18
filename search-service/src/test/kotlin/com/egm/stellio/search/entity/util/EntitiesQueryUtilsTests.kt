@@ -9,6 +9,7 @@ import com.egm.stellio.search.support.buildDefaultPagination
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ENTITY_TYPE_WILDCARD
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
@@ -107,7 +108,6 @@ class EntitiesQueryUtilsTests {
     fun `it should interpret wildcard type as local query without type restriction`() = runTest {
         val requestParams = LinkedMultiValueMap<String, String>().apply {
             add("type", "*")
-            add("local", "false")
         }
         val entitiesQuery = composeEntitiesQueryFromGet(
             buildDefaultPagination(30, 100),
@@ -396,6 +396,46 @@ class EntitiesQueryUtilsTests {
                 )
         }
     }
+
+    @Test
+    fun `it should interpret wildcard type in Query entity selectors as local query without type restriction`() =
+        runTest {
+            val query = """
+                {
+                    "type": "Query",
+                    "entities": [
+                        {
+                            "type": "BeeHive"
+                        },
+                        {
+                            "idPattern": "urn:ngsi-ld:Apiary:*",
+                            "type": "*"
+                        }
+                    ]
+                }
+            """.trimIndent()
+
+            composeEntitiesQueryFromPostRequest(
+                buildDefaultPagination(30, 100),
+                query,
+                LinkedMultiValueMap(),
+                APIC_COMPOUND_CONTEXTS
+            ).shouldSucceedWith {
+                assertEquals(true, it.local)
+                assertThat(it.entitySelectors)
+                    .hasSize(2)
+                    .containsAll(
+                        listOf(
+                            EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI),
+                            EntitySelector(
+                                id = null,
+                                idPattern = "urn:ngsi-ld:Apiary:*",
+                                typeSelection = ENTITY_TYPE_WILDCARD
+                            )
+                        )
+                    )
+            }
+        }
 
     @Test
     fun `it should not validate a Query if the type is not correct`() {

@@ -19,6 +19,7 @@ import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.isWildcardTypeSelection
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
@@ -221,7 +222,9 @@ class EntityQueryService(
                 entitySelector.id?.let { "entity_payload.entity_id = '${entitySelector.id}'" }
             val formattedIdPattern =
                 entitySelector.idPattern?.let { "entity_payload.entity_id ~ '${entitySelector.idPattern}'" }
-            val formattedType = entitySelector.typeSelection.let { "(" + buildTypeQuery(it) + ")" }
+            val formattedType = entitySelector.typeSelection
+                .takeUnless { it.isWildcardTypeSelection() }
+                ?.let { "(" + buildTypeQuery(it) + ")" }
             val formattedAttrs =
                 if (entitiesQuery.attrs.isNotEmpty())
                     entitiesQuery.attrs.joinToString(
@@ -237,7 +240,9 @@ class EntityQueryService(
                 formattedType,
                 formattedAttrs,
                 accessRightFilter
-            ).joinToString(separator = " AND ", prefix = "(", postfix = ")")
+            ).joinToString(separator = " AND ")
+                .ifEmpty { "1 = 1" }
+                .let { "($it)" }
         }
 
         return entitySelectorFilter?.joinToString(separator = " OR ") ?: " 1 = 1 "

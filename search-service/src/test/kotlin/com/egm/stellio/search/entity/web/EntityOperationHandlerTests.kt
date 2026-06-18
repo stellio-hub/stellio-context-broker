@@ -9,6 +9,7 @@ import com.egm.stellio.search.entity.service.LinkedEntityService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.ENTITY_TYPE_WILDCARD
 import com.egm.stellio.shared.model.ErrorType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
@@ -573,6 +574,47 @@ class EntityOperationHandlerTests {
                         it is EntitiesQueryFromPost &&
                         it.entitySelectors!![0].typeSelection == BEEHIVE_IRI &&
                         it.attrs == setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2")
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `query entities should interpret wildcard selector type as a local query`() = runTest {
+        coEvery {
+            entityQueryService.queryEntities(any())
+        } returns Pair(emptyList<ExpandedEntity>(), 0).right()
+        coEvery {
+            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any())
+        } returns emptyList<CompactedEntity>().right()
+
+        val query = """
+            {
+                "type": "Query",
+                "entities": [
+                    {
+                        "type": "$BEEHIVE_IRI"
+                    },
+                    {
+                        "type": "*"
+                    }
+                ]
+            }
+        """.trimIndent()
+
+        webClient.post()
+            .uri(queryEntitiesEndpoint)
+            .bodyValue(query)
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify {
+            entityQueryService.queryEntities(
+                match {
+                    it is EntitiesQueryFromPost &&
+                        it.local &&
+                        it.entitySelectors!![0].typeSelection == BEEHIVE_IRI &&
+                        it.entitySelectors!![1].typeSelection == ENTITY_TYPE_WILDCARD
                 }
             )
         }

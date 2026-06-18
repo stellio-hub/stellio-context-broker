@@ -15,11 +15,11 @@ import com.egm.stellio.shared.model.AttributeProjection
 import com.egm.stellio.shared.model.AttributeProjection.Companion.parsePickOmitParameters
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.isWildcardTypeSelection
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.queryparameter.TYPE_WILDCARD_VALUE
 import com.egm.stellio.shared.queryparameter.parseQQuery
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ATTRIBUTES_WITH_PICK_OR_OMIT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ENTITY_MEMBER_IN_PICK_AND_OMIT_MESSAGE
@@ -44,7 +44,7 @@ fun composeEntitiesQueryFromGet(
     val ids = queryParams.getFirst(QueryParameter.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
     val localParameter = queryParams.getFirst(QueryParameter.LOCAL.key)?.toBoolean()
     val (typeSelection, local) = // type=* mean local=true
-        if (queryParams.getFirst(QueryParameter.TYPE.key)?.trim() == TYPE_WILDCARD_VALUE) {
+        if (queryParams.getFirst(QueryParameter.TYPE.key)?.isWildcardTypeSelection() == true) {
             ensure(localParameter != false) { BadRequestDataException(TYPE_WILDCARD_WITH_LOCAL_EQUAL_FALSE) }
             null to true
         } else
@@ -147,6 +147,13 @@ fun composeEntitiesQueryFromPost(
     queryParams: MultiValueMap<String, String>,
     contexts: List<String>
 ): Either<APIException, EntitiesQueryFromPost> = either {
+    val localParameter = queryParams.getFirst(QueryParameter.LOCAL.key)?.toBoolean()
+    val hasWildcardEntitySelector = query.entities?.any { it.typeSelection.isWildcardTypeSelection() } ?: false
+    val local =
+        if (hasWildcardEntitySelector) {
+            ensure(localParameter != false) { BadRequestDataException(TYPE_WILDCARD_WITH_LOCAL_EQUAL_FALSE) }
+            true
+        } else localParameter ?: false
     val entitySelectors = query.entities?.map { entitySelector ->
         validateIdPattern(entitySelector.idPattern).bind()
         EntitySelector(
@@ -202,6 +209,7 @@ fun composeEntitiesQueryFromPost(
         datasetId = datasetId,
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
+        local = local,
         ordering = ordering,
         contexts = contexts,
         jsonKeys = jsonKeys,

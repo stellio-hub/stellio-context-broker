@@ -104,6 +104,22 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
+    fun `it should interpret wildcard type as local query without type restriction`() = runTest {
+        val requestParams = LinkedMultiValueMap<String, String>().apply {
+            add("type", "*")
+            add("local", "false")
+        }
+        val entitiesQuery = composeEntitiesQueryFromGet(
+            buildDefaultPagination(30, 100),
+            requestParams,
+            NGSILD_TEST_CORE_CONTEXTS
+        ).shouldSucceedAndResult()
+
+        assertEquals(null, entitiesQuery.typeSelection)
+        assertEquals(true, entitiesQuery.local)
+    }
+
+    @Test
     fun `it should return a BadRequest error if join parameter is not recognized`() = runTest {
         composeEntitiesQueryFromGet(
             buildDefaultPagination(30, 100),

@@ -2,6 +2,8 @@ package com.egm.stellio.shared.queryparameter
 
 typealias QP = QueryParameter
 
+const val TYPE_WILDCARD_VALUE = "*"
+
 enum class QueryParameter(
     val key: String,
 ) {

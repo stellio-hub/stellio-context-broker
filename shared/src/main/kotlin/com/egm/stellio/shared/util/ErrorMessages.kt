@@ -331,6 +331,7 @@ object ErrorMessages {
         const val PROJECTION_UNCLOSED_BRACE_MESSAGE = "Expression contains an unclosed brace"
         const val PROJECTION_EMPTY_NESTED_MESSAGE = "Expression contains an empty nested projection"
         const val PROJECTION_CONSECUTIVE_SEPARATORS_MESSAGE = "Expression cannot contain consecutive separators"
+        const val TYPE_WILDCARD_WITH_LOCAL_EQUAL_FALSE = "Cannot use type=* with local=false"
         fun projectionInvalidCharactersMessage(invalidChars: String) = "Invalid characters in the value ($invalidChars)"
     }
 

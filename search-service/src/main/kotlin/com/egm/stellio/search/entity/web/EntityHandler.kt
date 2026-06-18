@@ -523,7 +523,7 @@ class EntityHandler(
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
-        val expandedAttribute = expandAttribute(attrId, normalizeAttributeFragment(body), contexts)
+        val expandedAttribute = expandAttribute(attrId, body, contexts)
 
         entityService.partialUpdateAttribute(entityId, expandedAttribute).bind()
             .let {

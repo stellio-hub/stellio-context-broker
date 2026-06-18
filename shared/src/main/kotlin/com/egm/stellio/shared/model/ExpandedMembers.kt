@@ -26,6 +26,7 @@ typealias ExpandedAttribute = Pair<ExpandedTerm, ExpandedAttributeInstances>
 typealias ExpandedAttributeInstances = List<ExpandedAttributeInstance>
 typealias ExpandedAttributeInstance = Map<String, List<Any>>
 typealias ExpandedNonReifiedPropertyValue = List<Map<String, Any>>
+typealias ExpandedLanguageMapValue = List<Map<String, String>>
 
 fun ExpandedAttributes.addCoreMembers(
     entityId: URI,

@@ -2,12 +2,16 @@ package com.egm.stellio.search.entity.util
 
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Attribute.AttributeType
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
@@ -257,5 +261,72 @@ class AttributeUtilsTests {
         ).second[0]
 
         assertTrue(hasNgsiLdNullValue(expandedProperty, AttributeType.Relationship))
+    }
+
+    @Test
+    fun `partialUpdatePatch should raise a BadRequestData error when the datasetId member value is NGSI-LD Null`() =
+        runTest {
+            val source = expandAttribute(
+                """
+                {
+                    "attribute": {
+                        "type": "Property",
+                        "value": 12.0
+                    }
+                }
+                """.trimIndent(),
+                NGSILD_TEST_CORE_CONTEXTS
+            ).second[0]
+
+            val update = expandAttribute(
+                """
+                {
+                    "attribute": {
+                        "type": "Property",
+                        "value": 12.0,
+                        "datasetId": "urn:ngsi-ld:null"
+                    }
+                }
+                """.trimIndent(),
+                NGSILD_TEST_CORE_CONTEXTS
+            ).second[0]
+
+            partialUpdatePatch(source, update).shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE, it.message)
+            }
+        }
+
+    @Test
+    fun `mergePatch should raise a BadRequestData error when the datasetId member value is NGSI-LD Null`() = runTest {
+        val source = expandAttribute(
+            """
+                {
+                    "attribute": {
+                        "type": "Property",
+                        "value": 12.0
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        val update = expandAttribute(
+            """
+                {
+                    "attribute": {
+                        "type": "Property",
+                        "value": 12.0,
+                        "datasetId": "urn:ngsi-ld:null"
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        mergePatch(source, update).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE, it.message)
+        }
     }
 }

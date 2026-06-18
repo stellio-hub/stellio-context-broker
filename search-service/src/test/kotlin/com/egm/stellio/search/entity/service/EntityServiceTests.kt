@@ -17,6 +17,7 @@ import com.egm.stellio.search.support.gimmeSucceededAttributeOperationResult
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedAttributeInstances
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
@@ -28,6 +29,7 @@ import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIARY_IRI
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.INCOMING_IRI
@@ -182,6 +184,26 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             ngsiLdEntity,
             jsonLdEntity
         ).shouldFail { assertInstanceOf(AlreadyExistsException::class.java, it) }
+    }
+
+    @Test
+    fun `it should not create an entity if it contains an NGSI-LD Null value`() = runTest {
+        val (jsonLdEntity, ngsiLdEntity) = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "BeeHive",
+                "nullProp": {
+                    "type": "Property",
+                    "value": "urn:ngsi-ld:null"
+                },
+                "@context": "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
+
+        entityService.createEntity(
+            ngsiLdEntity,
+            jsonLdEntity
+        ).shouldFail { assertInstanceOf(BadRequestDataException::class.java, it) }
     }
 
     @Test

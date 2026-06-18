@@ -93,6 +93,32 @@ class NgsiLdEntityTests {
     }
 
     @Test
+    fun `it should not parse an entity with a datasetId having an NGSI-LD Null value`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "deviceState": {
+                    "type": "Property",
+                    "value": 23,
+                    "datasetId": "urn:ngsi-ld:null"
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                """
+                    Attribute ${NGSILD_DEFAULT_VOCAB}deviceState has an invalid NGSI-LD Null value for the datasetId member
+                """.trimIndent(),
+                it.message
+            )
+        }
+    }
+
+    @Test
     fun `it should parse an entity with a minimal property`() = runTest {
         val rawEntity =
             """

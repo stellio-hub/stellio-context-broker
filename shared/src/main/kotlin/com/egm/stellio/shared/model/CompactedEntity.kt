@@ -155,22 +155,20 @@ fun CompactedEntity.toConciseAttributes(): Map<String, Any> =
         )
     }
 
-private fun conciseAttribute(value: Map<String, Any>): Any {
-    val attributeCompactedType = AttributeCompactedType.forKey(value[NGSILD_TYPE_TERM] as String)!!
-    return value.minus(NGSILD_TYPE_TERM)
+private fun conciseAttribute(value: Map<String, Any>): Any =
+    value.minus(NGSILD_TYPE_TERM)
         .mapValues { (key, value) ->
             if (!JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(key))
                 conciseAttribute(value as Map<String, Any>)
             else value
         }.let {
-            when (attributeCompactedType) {
-                PROPERTY, GEOPROPERTY ->
+            when (value[NGSILD_TYPE_TERM] as String) {
+                PROPERTY.key, GEOPROPERTY.key ->
                     if (it.keys == setOf(NGSILD_VALUE_TERM)) it[NGSILD_VALUE_TERM]!!
                     else it
                 else -> it
             }
         }
-}
 
 private fun CompactedAttributeInstance.getRelationshipObjectIds(): List<String> =
     when (val relationshipObject = this[NGSILD_OBJECT_TERM]) {

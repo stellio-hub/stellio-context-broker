@@ -31,6 +31,8 @@ import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ConciseRepresentationUtils.normalizeAttributeFragment
+import com.egm.stellio.shared.util.ConciseRepresentationUtils.normalizeEntityFragment
 import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_ID_MISMATCH_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeNotFoundMessage
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
@@ -48,8 +50,6 @@ import com.egm.stellio.shared.util.extractPayloadAndContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.missingPathErrorResponse
-import com.egm.stellio.shared.util.normalizeAttributeFragment
-import com.egm.stellio.shared.util.normalizeEntityFragment
 import com.egm.stellio.shared.util.parseAttrsParameter
 import com.egm.stellio.shared.util.parseTimeParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders

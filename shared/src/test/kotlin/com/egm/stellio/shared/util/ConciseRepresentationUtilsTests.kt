@@ -1,5 +1,7 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.util.ConciseRepresentationUtils.normalizeAttributeFragment
+import com.egm.stellio.shared.util.ConciseRepresentationUtils.normalizeEntityFragment
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.junit.jupiter.api.Test
 

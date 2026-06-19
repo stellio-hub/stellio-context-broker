@@ -76,7 +76,7 @@ WithTimescaleContainer, WithKafkaContainer, WireMock, and Arrow Either assertion
 ## Asserting JSON / map results
 
 When a test verifies the content of a serialized Entity or Attribute fragment, you should use
-`assertJsonPayloadsAreEqual` — never scattered `assertEquals` / `assertTrue` / `assertFalse` calls on individual keys.
+`assertJsonPayloadsAreEqual`.
 
 Pattern to follow:
 1. Declare a `val expected<Something> = """ ... """.trimIndent()` containing the full expected JSON.
@@ -98,7 +98,7 @@ assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result
 
 - `assertJsonPayloadsAreEqual` is in `com.egm.stellio.shared.util`.
 - `serializeObject` is `com.egm.stellio.shared.util.JsonUtils.serializeObject`.
-- Never import `Assertions.assertFalse` or `Assertions.assertTrue` for this purpose — if the assertion can be
+- Never use scattered `assertEquals` / `assertTrue` / `assertFalse` calls on individual keys. If the assertion can be
   expressed as a JSON comparison, it must be.
 
 ## What never to do

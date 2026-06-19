@@ -36,7 +36,7 @@ fun buildTypeQuery(rawQuery: String?, columnName: String = "types", target: List
                 it.replace("#{TARGET}#", target.toSqlArray())
             else
                 it.replace("#{TARGET}#", columnName)
-        }
+        }.let { "($it)" }
 
 /**
  * Transforms an NGSI-LD Query Language parameter as per clause 4.9 to a PostgreSQL SQL expression.

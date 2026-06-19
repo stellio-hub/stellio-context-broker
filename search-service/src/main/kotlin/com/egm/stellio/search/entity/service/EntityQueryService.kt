@@ -190,7 +190,7 @@ class EntityQueryService(
             if (!entitiesQuery.idPattern.isNullOrEmpty())
                 "entity_payload.entity_id ~ '${entitiesQuery.idPattern}'"
             else null
-        val formattedType = buildTypeQuery(entitiesQuery.typeSelection)?.let { "($it)" }
+        val formattedType = buildTypeQuery(entitiesQuery.typeSelection)
         val formattedAttrs =
             if (entitiesQuery.attrs.isNotEmpty())
                 entitiesQuery.attrs.joinToString(
@@ -221,7 +221,7 @@ class EntityQueryService(
                 entitySelector.id?.let { "entity_payload.entity_id = '${entitySelector.id}'" }
             val formattedIdPattern =
                 entitySelector.idPattern?.let { "entity_payload.entity_id ~ '${entitySelector.idPattern}'" }
-            val formattedType = buildTypeQuery(entitySelector.typeSelection)?.let { "($it)" }
+            val formattedType = buildTypeQuery(entitySelector.typeSelection)
             val formattedAttrs =
                 if (entitiesQuery.attrs.isNotEmpty())
                     entitiesQuery.attrs.joinToString(

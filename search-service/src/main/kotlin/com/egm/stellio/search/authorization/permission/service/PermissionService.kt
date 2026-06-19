@@ -520,7 +520,7 @@ class PermissionService(
         val targetTypeFilter = buildTypeQuery(permissionFilters.targetTypeSelection, "target_types")?.let {
             """
                 -- target type selection filter
-                ( $it )
+                $it
 
             """.trimIndent()
         }

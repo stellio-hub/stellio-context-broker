@@ -314,10 +314,10 @@ class ContextSourceRegistrationService(
             val typeFilter = buildTypeQuery(csrFilters.typeSelection, columnName = "type")
                 ?.let { typeQuery ->
                     """
-                (
-                    type is null OR
-                    ( $typeQuery )
-                )
+                    (
+                        type is null OR
+                        $typeQuery
+                    )
                     """.trimIndent()
                 }
 

@@ -21,8 +21,8 @@ fun Iterable<Any>.toSqlList(): String = "(${this.joinToString(",") { "'$it'"} })
 fun Iterable<Any?>.toSqlArray(): String = "ARRAY[${this.joinToString(",") { "'$it'"} }]"
 fun Sequence<String?>.toSqlArray(): String = this.toList().toSqlArray()
 
-fun buildTypeQuery(rawQuery: String, columnName: String = "types", target: List<ExpandedTerm>? = null): String? =
-    if (rawQuery.isBlank() || rawQuery.isWildcardTypeSelection()) null
+fun buildTypeQuery(rawQuery: String?, columnName: String = "types", target: List<ExpandedTerm>? = null): String? =
+    if (rawQuery.isNullOrBlank() || rawQuery.isWildcardTypeSelection()) null
     else rawQuery.replace(typeSelectionRegex) { matchResult ->
         """
         #{TARGET}# && ARRAY['${matchResult.value}']

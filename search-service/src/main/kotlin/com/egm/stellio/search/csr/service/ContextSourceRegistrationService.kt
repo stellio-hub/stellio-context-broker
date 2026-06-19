@@ -311,7 +311,7 @@ class ContextSourceRegistrationService(
             )
                 """.trimIndent()
             else null
-            val typeFilter = csrFilters.typeSelection?.let { buildTypeQuery(it, columnName = "type") }
+            val typeFilter = buildTypeQuery(csrFilters.typeSelection, columnName = "type")
                 ?.let { typeQuery ->
                     """
                 (

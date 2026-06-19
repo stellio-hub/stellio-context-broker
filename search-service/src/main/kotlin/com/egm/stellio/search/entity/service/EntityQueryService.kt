@@ -19,7 +19,6 @@ import com.egm.stellio.search.entity.util.rowToEntity
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.isWildcardTypeSelection
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
@@ -191,7 +190,7 @@ class EntityQueryService(
             if (!entitiesQuery.idPattern.isNullOrEmpty())
                 "entity_payload.entity_id ~ '${entitiesQuery.idPattern}'"
             else null
-        val formattedType = entitiesQuery.typeSelection?.let { "(" + buildTypeQuery(it) + ")" }
+        val formattedType = entitiesQuery.typeSelection?.let { buildTypeQuery(it) }?.let { "($it)" }
         val formattedAttrs =
             if (entitiesQuery.attrs.isNotEmpty())
                 entitiesQuery.attrs.joinToString(
@@ -222,9 +221,7 @@ class EntityQueryService(
                 entitySelector.id?.let { "entity_payload.entity_id = '${entitySelector.id}'" }
             val formattedIdPattern =
                 entitySelector.idPattern?.let { "entity_payload.entity_id ~ '${entitySelector.idPattern}'" }
-            val formattedType = entitySelector.typeSelection
-                .takeUnless { it.isWildcardTypeSelection() }
-                ?.let { "(" + buildTypeQuery(it) + ")" }
+            val formattedType = buildTypeQuery(entitySelector.typeSelection)?.let { "($it)" }
             val formattedAttrs =
                 if (entitiesQuery.attrs.isNotEmpty())
                     entitiesQuery.attrs.joinToString(

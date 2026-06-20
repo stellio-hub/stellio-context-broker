@@ -105,9 +105,9 @@ git commit -am "chore: upgrade version to x.y.z"
 git push origin master
 ```
 
-The CI will then create and publish Docker images tagged with the published version number in https://hub.docker.com/u/stellio.
+The CI will then create and publish Docker images tagged with the published version number in [https://hub.docker.com/u/stellio](https://hub.docker.com/u/stellio).
 
-* On GitHub, check and publish the release notes in https://github.com/stellio-hub/stellio-context-broker/releases
+* On GitHub, check and publish the release notes in [https://github.com/stellio-hub/stellio-context-broker/releases](https://github.com/stellio-hub/stellio-context-broker/releases)
 
 ## Contributing
 

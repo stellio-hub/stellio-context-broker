@@ -45,6 +45,8 @@ data class NgsiLdDataRepresentation(
                     AttributeRepresentation.CONCISE
                 optionsParam.contains(OptionsValue.KEY_VALUES) || optionsParam.contains(OptionsValue.SIMPLIFIED) ->
                     AttributeRepresentation.SIMPLIFIED
+                optionsParam.contains(OptionsValue.CONCISE) ->
+                    AttributeRepresentation.CONCISE
                 else -> AttributeRepresentation.NORMALIZED
             }
             val includeSysAttrs = optionsParam.contains(OptionsValue.SYS_ATTRS)

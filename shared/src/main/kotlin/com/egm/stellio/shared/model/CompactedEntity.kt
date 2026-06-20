@@ -151,11 +151,11 @@ fun CompactedEntity.toConciseAttributes(): Map<String, Any> =
         applyAttributeTransformation(
             entry,
             ::conciseAttribute,
-            { values -> values.map { conciseAttribute(it) } }
+            { values -> values.map { conciseAttribute(it, true) } }
         )
     }
 
-private fun conciseAttribute(value: Map<String, Any>): Any =
+private fun conciseAttribute(value: Map<String, Any>, isMultiInstanceAttribute: Boolean = false): Any =
     value.minus(NGSILD_TYPE_TERM)
         .mapValues { (key, value) ->
             if (!JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(key))
@@ -164,7 +164,8 @@ private fun conciseAttribute(value: Map<String, Any>): Any =
         }.let {
             when (value[NGSILD_TYPE_TERM] as String) {
                 PROPERTY.key, GEOPROPERTY.key ->
-                    if (it.keys == setOf(NGSILD_VALUE_TERM)) it[NGSILD_VALUE_TERM]!!
+                    if (it.keys == setOf(NGSILD_VALUE_TERM) && !isMultiInstanceAttribute)
+                        it[NGSILD_VALUE_TERM]!!
                     else it
                 else -> it
             }

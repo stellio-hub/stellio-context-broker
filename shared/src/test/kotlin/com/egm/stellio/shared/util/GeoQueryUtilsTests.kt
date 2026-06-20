@@ -17,7 +17,7 @@ import org.springframework.test.context.ActiveProfiles
 class GeoQueryUtilsTests {
 
     @Test
-    fun `it should parse geo query parameters`() = runTest {
+    fun `parseGeoQueryParameters should parse geo query parameters`() = runTest {
         val requestParams = gimmeFullParamsMap()
         val geoQueryParams =
             parseGeoQueryParameters(requestParams, NGSILD_TEST_CORE_CONTEXTS).shouldSucceedAndResult()
@@ -33,7 +33,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse URL encoded geo query parameters`() = runTest {
+    fun `parseGeoQueryParameters should parse URL encoded geo query parameters`() = runTest {
         val requestParams = gimmeFullParamsMap(
             georel = "near%3BmaxDistance%3D%3D1500"
         ).plus("coordinates" to "[57.5522%2C%20-20.3484]")
@@ -51,7 +51,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse geo query parameters with geoproperty operation space`() = runTest {
+    fun `parseGeoQueryParameters should parse geo query parameters with geoproperty operation space`() = runTest {
         val requestParams = gimmeFullParamsMap("operationSpace")
 
         val geoQueryParams =
@@ -68,7 +68,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should fail to create a geoquery if georel has an invalid near clause`() = runTest {
+    fun `parseGeoQueryParameters should fail to create a geoquery if georel has an invalid near clause`() = runTest {
         val requestParams = gimmeFullParamsMap(georel = "near;distance<100")
         parseGeoQueryParameters(requestParams, NGSILD_TEST_CORE_CONTEXTS).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
@@ -77,7 +77,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should fail to create a geoquery if georel is not recognized`() = runTest {
+    fun `parseGeoQueryParameters should fail to create a geoquery if georel is not recognized`() = runTest {
         val requestParams = gimmeFullParamsMap(georel = "unrecognized")
         parseGeoQueryParameters(requestParams, NGSILD_TEST_CORE_CONTEXTS).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
@@ -86,7 +86,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should fail to create a geoquery if geometry is not recognized`() = runTest {
+    fun `parseGeoQueryParameters should fail to create a geoquery if geometry is not recognized`() = runTest {
         val requestParams = gimmeFullParamsMap(geometry = "Unrecognized")
         parseGeoQueryParameters(requestParams, NGSILD_TEST_CORE_CONTEXTS).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
@@ -95,7 +95,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should fail to create a geoquery if a required parameter is missing`() = runTest {
+    fun `parseGeoQueryParameters should fail to create a geoquery if a required parameter is missing`() = runTest {
         val geoQueryParameters = mapOf(
             "geometry" to "Point",
             "coordinates" to "[57.5522,%20-20.3484]"
@@ -110,7 +110,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should fail to create a geoquery if coordinates are invalid`() = runTest {
+    fun `parseGeoQueryParameters should fail to create a geoquery if coordinates are invalid`() = runTest {
         val geoQueryParameters = mapOf(
             "georel" to "within",
             "geometry" to "Polygon",
@@ -131,7 +131,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should create a disjoint geoquery statement`() = runTest {
+    fun `buildSqlFilter should create a disjoint geoquery statement`() = runTest {
         val geoQuery = GeoQuery(
             "disjoint",
             GeometryType.POLYGON,
@@ -155,7 +155,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should create a maxDistance geoquery statement`() = runTest {
+    fun `buildSqlFilter should create a maxDistance geoquery statement`() = runTest {
         val geoQuery = GeoQuery(
             "near;maxDistance==2000",
             GeometryType.POINT,
@@ -179,7 +179,7 @@ class GeoQueryUtilsTests {
     }
 
     @Test
-    fun `it should create a minDistance geoquery statement`() = runTest {
+    fun `buildSqlFilter should create a minDistance geoquery statement`() = runTest {
         val geoQuery = GeoQuery(
             "near;minDistance==15",
             GeometryType.POINT,

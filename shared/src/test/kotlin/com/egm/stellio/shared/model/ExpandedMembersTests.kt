@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test
 class ExpandedMembersTests {
 
     @Test
-    fun `it should add createdAt information into an attribute`() {
+    fun `addSysAttrs should add createdAt information into an attribute`() {
         val attrPayload = mapOf("attribute" to buildExpandedPropertyValue(12.0))
 
         val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), null)
@@ -31,7 +31,7 @@ class ExpandedMembersTests {
     }
 
     @Test
-    fun `it should add createdAt and modifiedAt information into an attribute`() {
+    fun `addSysAttrs should add createdAt and modifiedAt information into an attribute`() {
         val attrPayload = mapOf("attribute" to buildExpandedPropertyValue(12.0))
 
         val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), ngsiLdDateTime())
@@ -43,7 +43,7 @@ class ExpandedMembersTests {
     }
 
     @Test
-    fun `it should add createdAt, modifiedAt and deletedAt information into an attribute`() {
+    fun `addSysAttrs should add createdAt, modifiedAt and deletedAt information into an attribute`() {
         val attrPayload = mapOf("attribute" to buildExpandedPropertyValue(12.0))
 
         val attrPayloadWithSysAttrs =
@@ -56,7 +56,7 @@ class ExpandedMembersTests {
     }
 
     @Test
-    fun `it should not find an unknown attribute instance in a list of attributes`() = runTest {
+    fun `getAttributeFromExpandedAttributes should not find an unknown attribute instance`() = runTest {
         val entityFragment =
             """
             {
@@ -71,7 +71,7 @@ class ExpandedMembersTests {
     }
 
     @Test
-    fun `it should find an attribute instance from a list of attributes without multi-attributes`() = runTest {
+    fun `getAttributeFromExpandedAttributes should find an instance without multi-attributes`() = runTest {
         val entityFragment =
             """
             {
@@ -95,7 +95,7 @@ class ExpandedMembersTests {
     }
 
     @Test
-    fun `it should find an attribute instance from a list of attributes with multi-attributes`() = runTest {
+    fun `getAttributeFromExpandedAttributes should find an instance with multi-attributes`() = runTest {
         val entityFragment =
             """
             {
@@ -133,7 +133,7 @@ class ExpandedMembersTests {
     }
 
     @Test
-    fun `it should return an error if a relationship has no object field`() {
+    fun `getRelationshipObjects should return an error if a relationship has no object field`() {
         val relationshipValues = buildExpandedPropertyValue("something")[0]
 
         val result = relationshipValues.getRelationshipObjects("isARelationship")
@@ -144,7 +144,7 @@ class ExpandedMembersTests {
     }
 
     @Test
-    fun `it should return an error if a relationship has an empty object`() {
+    fun `getRelationshipObjects should return an error if a relationship has an empty object`() {
         val relationshipValues = mapOf(
             NGSILD_RELATIONSHIP_OBJECT to emptyList<Any>()
         )
@@ -157,7 +157,7 @@ class ExpandedMembersTests {
     }
 
     @Test
-    fun `it should return an error if a relationship has an invalid object type`() {
+    fun `getRelationshipObjects should return an error if a relationship has an invalid object type`() {
         val relationshipValues = mapOf(
             NGSILD_RELATIONSHIP_OBJECT to listOf("invalid")
         )
@@ -173,7 +173,7 @@ class ExpandedMembersTests {
     }
 
     @Test
-    fun `it should return an error if a relationship has object without id`() {
+    fun `getRelationshipObjects should return an error if a relationship has object without id`() {
         val relationshipValues = mapOf(
             NGSILD_RELATIONSHIP_OBJECT to listOf(
                 mapOf("@value" to "urn:ngsi-ld:T:misplacedRelationshipObject")
@@ -187,7 +187,7 @@ class ExpandedMembersTests {
     }
 
     @Test
-    fun `it should extract the target object of a relationship`() {
+    fun `getRelationshipObjects should extract the target object of a relationship`() {
         val relationshipObjectId = "urn:ngsi-ld:T:1"
         val relationshipValues = buildExpandedRelationshipValue(relationshipObjectId.toUri())
 
@@ -198,7 +198,7 @@ class ExpandedMembersTests {
     }
 
     @Test
-    fun `it should extract the target objects of a multivalued relationship`() {
+    fun `getRelationshipObjects should extract the target objects of a multivalued relationship`() {
         val relationshipValues = mapOf(
             NGSILD_RELATIONSHIP_OBJECT to listOf(
                 mapOf(JSONLD_ID_KW to "urn:ngsi-ld:T:1"),

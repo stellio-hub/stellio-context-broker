@@ -9,25 +9,25 @@ import java.time.ZonedDateTime
 class DateUtilsTests {
 
     @Test
-    fun `it should render a datetime with milliseconds at zero`() {
+    fun `toNgsiLdFormat should render a datetime with milliseconds at zero`() {
         val datetime = ZonedDateTime.parse("2020-12-26T10:54:00.000Z")
         assertEquals("2020-12-26T10:54:00Z", datetime.toNgsiLdFormat())
     }
 
     @Test
-    fun `it should render a datetime with milliseconds`() {
+    fun `toNgsiLdFormat should render a datetime with milliseconds`() {
         val datetime = ZonedDateTime.parse("2020-12-26T10:54:00.123Z")
         assertEquals("2020-12-26T10:54:00.123Z", datetime.toNgsiLdFormat())
     }
 
     @Test
-    fun `it should render a datetime with nanoseconds`() {
+    fun `toNgsiLdFormat should render a datetime with nanoseconds`() {
         val datetime = ZonedDateTime.parse("2020-12-26T10:54:00.000111Z")
         assertEquals("2020-12-26T10:54:00.000111Z", datetime.toNgsiLdFormat())
     }
 
     @Test
-    fun `it shoud return true if the dates or times are correct`() {
+    fun `isDateTime, isDate and isTime should return whether the value matches the expected format`() {
         assertTrue("2020-12-26T10:54:00.000Z".isDateTime())
         assertFalse("2020-12-26U10:54:00.000Z".isDateTime())
 

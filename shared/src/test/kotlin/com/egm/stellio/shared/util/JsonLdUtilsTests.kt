@@ -40,7 +40,7 @@ import org.junit.jupiter.api.extension.RegisterExtension
 class JsonLdUtilsTests {
 
     @Test
-    fun `it should throw a LdContextNotAvailable exception if the provided JSON-LD context is not available`() =
+    fun `expandJsonLdFragment should throw a LdContextNotAvailable exception when the context is not available`() =
         runTest {
             val rawEntity =
                 """
@@ -69,7 +69,7 @@ class JsonLdUtilsTests {
         }
 
     @Test
-    fun `it should throw a BadRequestData exception if the expanded JSON-LD fragment is empty`() = runTest {
+    fun `expandJsonLdFragment should throw a BadRequestData exception when the expanded fragment is empty`() = runTest {
         val rawEntity =
             """
             {
@@ -89,7 +89,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should compact and return an entity`() = runTest {
+    fun `compactEntity should compact and return an entity`() = runTest {
         val entity =
             """
             {
@@ -113,7 +113,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should compact and return a list of one entity`() = runTest {
+    fun `compactEntities should compact and return a list of one entity`() = runTest {
         val entity =
             """
             {
@@ -137,7 +137,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should compact and return a list of entities`() = runTest {
+    fun `compactEntities should compact and return a list of entities`() = runTest {
         val entity =
             """
             {
@@ -165,7 +165,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should expand an attribute from a fragment`() = runTest {
+    fun `expandAttribute should expand an attribute from a fragment`() = runTest {
         val fragment =
             """
                 {
@@ -182,7 +182,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should expand an attribute from a name and a string payload`() = runTest {
+    fun `expandAttribute should expand an attribute from a name and a string payload`() = runTest {
         val payload =
             """
                 {
@@ -197,7 +197,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should expand an attribute from a name and a map payload`() = runTest {
+    fun `expandAttribute should expand an attribute from a name and a map payload`() = runTest {
         val payload = mapOf(
             "type" to "Property",
             "value" to "something"
@@ -209,7 +209,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should correctly transform core geoproperties`() = runTest {
+    fun `expandJsonLdEntitySafe should correctly transform core geoproperties`() = runTest {
         val payload =
             """
                 {
@@ -258,7 +258,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should correctly transform and restore core geoproperties`() = runTest {
+    fun `compactEntity should correctly transform and restore core geoproperties`() = runTest {
         val payload =
             """
                 {
@@ -298,7 +298,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should correctly transform and restore a user defined geoproperty`() = runTest {
+    fun `compactEntity should correctly transform and restore a user defined geoproperty`() = runTest {
         val payload =
             """
                 {
@@ -334,7 +334,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should correctly compact a term if it is in the provided contexts`() = runTest {
+    fun `compactTerm should correctly compact a term when it is in the provided contexts`() = runTest {
         assertEquals(
             INCOMING_TERM,
             compactTerm(INCOMING_IRI, APIC_COMPOUND_CONTEXTS)
@@ -342,7 +342,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should return the input term if it was not able to compact it`() = runTest {
+    fun `compactTerm should return the input term when it cannot compact it`() = runTest {
         assertEquals(
             INCOMING_IRI,
             compactTerm(INCOMING_IRI, NGSILD_TEST_CORE_CONTEXTS)
@@ -350,7 +350,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should correctly compact a Property attribute`() = runTest {
+    fun `compactAttribute should correctly compact a Property attribute`() = runTest {
         val expandedProperty = mapOf(
             INCOMING_IRI to listOf(
                 mapOf(
@@ -375,7 +375,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should correctly compact a JsonProperty attribute`() = runTest {
+    fun `compactAttribute should correctly compact a JsonProperty attribute`() = runTest {
         val expandedAttribute = mapOf(
             LUMINOSITY_IRI to listOf(
                 mapOf(
@@ -411,7 +411,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should return a ResourceNotFound exception if a context is not found into the cache`() = runTest {
+    fun `deleteAndReload should return a ResourceNotFound exception when a context is not in the cache`() = runTest {
         val contextUrl = "http://localhost:8094/jsonld-contexts/never-encountered-context.jsonld"
         deleteAndReload(contextUrl.toUri(), false).shouldFail {
             assertInstanceOf(ResourceNotFoundException::class.java, it)
@@ -423,7 +423,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should delete and reload a context from the cache`() = runTest {
+    fun `deleteAndReload should delete and reload a context from the cache`() = runTest {
         val contextUrl = "http://localhost:8094/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
 
         // expand a term to populate the cache
@@ -438,7 +438,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should delete a context from the cache and use the refreshed one`() = runTest {
+    fun `deleteAndReload should delete a context from the cache and use the refreshed one`() = runTest {
         val contextUrl = "http://localhost:8094/jsonld-contexts/apic.jsonld"
 
         assertEquals(

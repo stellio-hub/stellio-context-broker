@@ -93,7 +93,7 @@ class LanguageFilterTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.shared.model.LanguageFilterTests#normalizedResultsProvider")
-    fun `it should return the normalized representation of a LanguageProperty with a language filter`(
+    fun `toFilteredLanguageProperties should return the normalized representation for a language filter`(
         languageFilter: String,
         expectedAttribute: String
     ) {
@@ -128,7 +128,7 @@ class LanguageFilterTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.shared.model.LanguageFilterTests#simplifiedResultsProvider")
-    fun `it should return the simplfied representation of a LanguageProperty with a language filter`(
+    fun `toFinalRepresentation should return the simplified representation for a language filter`(
         languageFilter: String,
         expectedAttribute: String
     ) {
@@ -168,7 +168,7 @@ class LanguageFilterTests {
     }
 
     @Test
-    fun `it should filter language properties for sub attributes`() = runTest {
+    fun `toFilteredLanguageProperties should filter language properties for sub attributes`() = runTest {
         val entity = """
             {
                 "id": "urn:ngsi-ld:Beehive:01",
@@ -210,7 +210,7 @@ class LanguageFilterTests {
     }
 
     @Test
-    fun `it should filter language properties for an attribute and its sub attributes`() = runTest {
+    fun `toFilteredLanguageProperties should filter an attribute and its sub attributes`() = runTest {
         val entity = """
             {
                 "id": "urn:ngsi-ld:Beehive:01",
@@ -256,7 +256,7 @@ class LanguageFilterTests {
     }
 
     @Test
-    fun `it should filter language properties having other core attribute members`() = runTest {
+    fun `toFilteredLanguageProperties should filter language properties with other core members`() = runTest {
         val entity = """
             {
                 "id": "urn:ngsi-ld:Beehive:01",

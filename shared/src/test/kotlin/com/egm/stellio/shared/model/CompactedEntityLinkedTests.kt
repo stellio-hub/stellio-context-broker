@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test
 class CompactedEntityLinkedTests {
 
     @Test
-    fun `it shoud extract a single-instance relationship`() {
+    fun `getRelationshipsNamesWithObjects should extract a single-instance relationship`() {
         val relationships = normalizedEntity.getRelationshipsNamesWithObjects()
 
         assertThat(relationships)
@@ -23,7 +23,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it shoud extract a multi-instance relationship`() {
+    fun `getRelationshipsNamesWithObjects should extract a multi-instance relationship`() {
         val relationships = normalizedMultiAttributeEntity.getRelationshipsNamesWithObjects()
 
         assertThat(relationships)
@@ -32,7 +32,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it should extract a multivalued relationship`() {
+    fun `getRelationshipsNamesWithObjects should extract a multivalued relationship`() {
         val compactedEntity = """
             {
                 "id": "urn:ngsi-ld:Entity:01",
@@ -58,7 +58,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it should extract a multi-instance relationship with multivalued instances`() {
+    fun `getRelationshipsNamesWithObjects should extract a multi-instance relationship with multivalued instances`() {
         val compactedEntity = """
             {
                 "id": "urn:ngsi-ld:Entity:01",
@@ -106,7 +106,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it shoud extract single and multi-instances of relationships`() {
+    fun `getRelationshipsNamesWithObjects should extract single and multi-instances of relationships`() {
         val compactedEntity = """
             {
                 "id": "urn:ngsi-ld:Entity:01",
@@ -145,7 +145,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it shoud extract all relationships without merging duplicate objects`() {
+    fun `getRelationshipsNamesWithObjects should extract all relationships without merging duplicate objects`() {
         val compactedEntity = """
             {
                 "id": "urn:ngsi-ld:Entity:01",
@@ -174,7 +174,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it shoud extract relationships from multiple entities`() {
+    fun `getRelationshipsNamesWithObjects should extract relationships from multiple entities`() {
         val compactedEntities = """
             [{
                 "id": "urn:ngsi-ld:Entity:01",
@@ -215,7 +215,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it should inline an entity with two single instance relationhips`() = runTest {
+    fun `inlineLinkedEntities should inline an entity with two single instance relationhips`() = runTest {
         val linkingEntity = """
             {
                 "id": "urn:ngsi-ld:LinkingEntity:01",
@@ -278,7 +278,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it should inline an entity with a multi-instance relationhip`() = runTest {
+    fun `inlineLinkedEntities should inline an entity with a multi-instance relationhip`() = runTest {
         val linkingEntity = """
             {
                 "id": "urn:ngsi-ld:LinkingEntity:01",
@@ -339,7 +339,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it should inline an entity with a multivalued relationship`() = runTest {
+    fun `inlineLinkedEntities should inline an entity with a multivalued relationship`() = runTest {
         val linkingEntity = """
             {
                 "id": "urn:ngsi-ld:LinkingEntity:01",
@@ -402,7 +402,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it should inline an entity with a multi-instance multivalued relationship`() = runTest {
+    fun `inlineLinkedEntities should inline an entity with a multi-instance multivalued relationship`() = runTest {
         val linkingEntity = """
             {
                 "id": "urn:ngsi-ld:LinkingEntity:01",
@@ -492,7 +492,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it should inline two entities with their respective relationhips`() = runTest {
+    fun `inlineLinkedEntities should inline two entities with their respective relationhips`() = runTest {
         val linkingEntities = """
             [{
                 "id": "urn:ngsi-ld:LinkingEntity:01",
@@ -582,7 +582,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it should remove sysAttrs from inlined entities`() = runTest {
+    fun `withoutSysAttrs should remove sysAttrs from inlined entities`() = runTest {
         val inlineLinkingEntity = """
             {
                 "id": "urn:ngsi-ld:LinkingEntity:01",
@@ -632,7 +632,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it should filter language properties for inlined entities`() = runTest {
+    fun `toFilteredLanguageProperties should filter language properties for inlined entities`() = runTest {
         val inlineLinkingEntity = """
             {
                 "id": "urn:ngsi-ld:LinkingEntity:01",
@@ -694,7 +694,7 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
-    fun `it should simplify relationships for inlined entities`() = runTest {
+    fun `toSimplifiedAttributes should simplify relationships for inlined entities`() = runTest {
         val inlineLinkingEntity = """
             {
                 "id": "urn:ngsi-ld:LinkingEntity:01",

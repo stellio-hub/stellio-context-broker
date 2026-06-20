@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
 class AttributeProjectionTests {
 
     @Test
-    fun `it should return empty sets when no pick or omit parameters are provided`() {
+    fun `parsePickOmitParameters should return empty sets when no pick or omit parameters are provided`() {
         val (pick, omit) = parsePickOmitParameters(null, null).shouldSucceedAndResult()
 
         assertThat(pick).isEmpty()
@@ -18,7 +18,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should reject empty pick parameter`() {
+    fun `parsePickOmitParameters should reject empty pick parameter`() {
         parsePickOmitParameters("", null).shouldFailWith {
             it is BadRequestDataException &&
                 it.detail == "Value cannot be empty"
@@ -26,7 +26,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should reject invalid attribute names`() {
+    fun `parsePickOmitParameters should reject invalid attribute names`() {
         parsePickOmitParameters("invalid%,temperature", null).shouldFailWith {
             it is BadRequestDataException &&
                 it.detail == "Invalid characters in the value (%)"
@@ -34,7 +34,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should reject invalid attribute projection expression`() {
+    fun `parsePickOmitParameters should reject invalid attribute projection expression`() {
         parsePickOmitParameters("servesDataset{title", null).shouldFailWith {
             it is BadRequestDataException &&
                 it.detail == "Expression contains an unclosed brace"
@@ -42,7 +42,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should reject invalid attribute projection expression missing a sub-parameter`() {
+    fun `parsePickOmitParameters should reject invalid attribute projection expression missing a sub-parameter`() {
         parsePickOmitParameters("servesDataset{}", null).shouldFailWith {
             it is BadRequestDataException &&
                 it.detail == "Expression contains an empty nested projection"
@@ -50,7 +50,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should parse pick or omit parameters only including first level attributes`() {
+    fun `parsePickOmitParameters should parse pick or omit parameters only including first level attributes`() {
         val (pick, omit) = parsePickOmitParameters("temperature,humidity", "title,description")
             .shouldSucceedAndResult()
 
@@ -69,7 +69,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should parse a pick parameter including attributes of a first level relationship`() {
+    fun `parsePickOmitParameters should parse a pick parameter including attributes of a first level relationship`() {
         val (pick, omit) = parsePickOmitParameters("temperature,servesDataset{title,description}", null)
             .shouldSucceedAndResult()
 
@@ -89,7 +89,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should parse a pick parameter including attributes of a second level relationship`() {
+    fun `parsePickOmitParameters should parse a pick parameter including attributes of a second level relationship`() {
         val (pick, _) = parsePickOmitParameters(
             "temperature,servesDataset{title,description,catalog{publisher}}",
             null
@@ -116,7 +116,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should ignore whitespaces in pick or omit parameters`() {
+    fun `parsePickOmitParameters should ignore whitespaces in pick or omit parameters`() {
         val (pick, _) = parsePickOmitParameters("temperature, humidity, servesDataset{ title, description}", null)
             .shouldSucceedAndResult()
 
@@ -136,7 +136,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should get attributes at the root level`() {
+    fun `getRootAttributesToPick should get attributes at the root level`() {
         val (pick, _) = parsePickOmitParameters("temperature,humidity,servesDataset{title}", null)
             .shouldSucceedAndResult()
 
@@ -148,7 +148,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should get attributes at any level in the graph`() {
+    fun `getAttributesToPickFor should get attributes at any level in the graph`() {
         val (pick, _) = parsePickOmitParameters(
             "servesDataset{title,description,catalog{publisher}},belongsTo{name,owner,servesDatatset{location}}",
             null
@@ -171,7 +171,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should get root attributes to omit`() {
+    fun `getRootAttributesToOmit should get root attributes to omit`() {
         val (_, omit) = parsePickOmitParameters(
             null,
             "temperature,humidity,servesDataset{title}"
@@ -185,7 +185,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should get attributes to omit at any level in the graph`() {
+    fun `getAttributesToOmitFor should get attributes to omit at any level in the graph`() {
         val (_, omit) = parsePickOmitParameters(
             null,
             "servesDataset{title,description,catalog{publisher}},belongsTo{name,owner,servesDatatset{location}}"
@@ -208,7 +208,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should handle pipe separator in addition to comma`() {
+    fun `parsePickOmitParameters should handle pipe separator in addition to comma`() {
         val (pick, _) = parsePickOmitParameters("temperature|humidity|servesDataset{title|description}", null)
             .shouldSucceedAndResult()
 
@@ -228,7 +228,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should handle mixed separators`() {
+    fun `parsePickOmitParameters should handle mixed separators`() {
         val (pick, _) = parsePickOmitParameters("temperature,humidity|servesDataset{title,description}", null)
             .shouldSucceedAndResult()
 
@@ -248,7 +248,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should reject multiple consecutive separators`() {
+    fun `parsePickOmitParameters should reject multiple consecutive separators`() {
         parsePickOmitParameters("temperature,,humidity", null).shouldFailWith {
             it is BadRequestDataException &&
                 it.detail == "Expression cannot contain consecutive separators"
@@ -256,7 +256,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should reject leading separators`() {
+    fun `parsePickOmitParameters should reject leading separators`() {
         parsePickOmitParameters(",temperature,humidity", null).shouldFailWith {
             it is BadRequestDataException &&
                 it.detail == "Expression cannot start with a brace, comma or pipe"
@@ -264,7 +264,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should reject trailing separators`() {
+    fun `parsePickOmitParameters should reject trailing separators`() {
         parsePickOmitParameters("temperature,humidity,", null).shouldFailWith {
             it is BadRequestDataException &&
                 it.detail == "Expression cannot end with a separator"
@@ -272,7 +272,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should reject unclosed nested braces`() {
+    fun `parsePickOmitParameters should reject unclosed nested braces`() {
         parsePickOmitParameters("observation{temperature,observedAt{location}", null).shouldFailWith {
             it is BadRequestDataException &&
                 it.detail == "Expression contains an unclosed brace"
@@ -280,7 +280,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should reject a separator immediately following an opening brace`() {
+    fun `parsePickOmitParameters should reject a separator immediately following an opening brace`() {
         parsePickOmitParameters("observation{,temperature}", null).shouldFailWith {
             it is BadRequestDataException &&
                 it.detail == "Expression cannot contain a separator after an opening brace"
@@ -288,7 +288,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should reject empty attribute names in nested projections`() {
+    fun `parsePickOmitParameters should reject empty attribute names in nested projections`() {
         parsePickOmitParameters("observation{temperature,,humidity}", null).shouldFailWith {
             it is BadRequestDataException &&
                 it.detail == "Expression cannot contain consecutive separators"
@@ -296,7 +296,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should handle deeply nested projections`() {
+    fun `parsePickOmitParameters should handle deeply nested projections`() {
         val (pick, _) = parsePickOmitParameters(
             "observation{temperature,observedAt{location,accuracy}},humidity",
             null
@@ -323,7 +323,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `it should handle complex real-world examples`() {
+    fun `parsePickOmitParameters should handle complex real-world examples`() {
         val (pick, _) = parsePickOmitParameters(
             """
                 temperature,humidity,pressure,

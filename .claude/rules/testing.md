@@ -8,8 +8,24 @@
 
 ## Test naming
 
-- Unit tests: `[function] should [expected behavior] when [condition]`
-- Integration tests: `[function] should [test scenario]`
+Two conventions, chosen by the tier of the test. Never use the subject-less `it should …`
+form, and never abbreviate negation as `shouldn't` — always write `should not`.
+
+- **Unit / service / util tests** — name after the function under test:
+  `<functionName> should <expected behavior> [when <condition>]`
+  - Example: `mergeTemporalEntities should merge instances when datasetIds match`
+  - The prefix is the literal Kotlin function being exercised (camelCase), so tests are greppable
+    from the production symbol.
+- **Controller / integration tests** — name after the HTTP operation under test:
+  `<HTTP verb> <path> should <result>`
+  - Example: `GET /entities/{id} should return 200 when the entity exists`
+  - Use the spec-defined verb and route template; describe the observable HTTP outcome.
+
+Banned forms (migrate on sight):
+- `it should …` / `it shouldn't …` — subject-less BDD style; replace with the function- or
+  endpoint-prefixed form above.
+- `shoud` — recurring typo for `should`.
+- Names with no `should` at all — restate the expected behavior with `should`.
 
 ## Coverage
 

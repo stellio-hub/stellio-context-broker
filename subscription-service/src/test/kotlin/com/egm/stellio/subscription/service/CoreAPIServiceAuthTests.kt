@@ -59,7 +59,7 @@ class CoreAPIServiceAuthTests {
     }
 
     @Test
-    fun `it should attach bearer token for tenant when calling entity service`() {
+    fun `getEntities should attach bearer token for tenant when calling entity service`() {
         // stub token endpoint for tenant 01
         stubFor(
             post(urlEqualTo("/realms/default/protocol/openid-connect/token"))
@@ -101,7 +101,7 @@ class CoreAPIServiceAuthTests {
     }
 
     @Test
-    fun `it should raise error when tenant is unknown`() {
+    fun `getEntities should raise an error when tenant is unknown`() {
         // stub entity service endpoint (but no token endpoint for unknown tenant)
         stubFor(
             get(urlEqualTo("/ngsi-ld/v1/entities?type=BeeHive"))

@@ -101,7 +101,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not allow a subscription with an invalid join value`() = runTest {
+    fun `deserialize should reject a subscription with an invalid join value`() = runTest {
         val rawSubscription =
             """
                 {
@@ -128,7 +128,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should load a subscription with minimal required info - entities`() = runTest {
+    fun `upsert should load a subscription with minimal required info - entities`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
@@ -149,7 +149,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should load a subscription with minimal required info - watchedAttributes`() = runTest {
+    fun `upsert should load a subscription with minimal required info - watchedAttributes`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_watched_attributes.json")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
@@ -167,7 +167,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should load a subscription with all possible members`() = runTest {
+    fun `upsert should load a subscription with all possible members`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_full.json")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
@@ -219,7 +219,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should load a subscription with extra info on last notification`() = runTest {
+    fun `updateSubscriptionNotification should load a subscription with extra info on last notification`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(
@@ -250,7 +250,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should delete an existing subscription`() = runTest {
+    fun `delete should delete an existing subscription`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
@@ -258,13 +258,13 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not fail when trying to delete an unknown subscription`() = runTest {
+    fun `delete should not fail when trying to delete an unknown subscription`() = runTest {
         subscriptionService.delete("urn:ngsi-ld:Subscription:UnknownSubscription".toUri())
             .shouldSucceed()
     }
 
     @Test
-    fun `it should not retrieve an expired subscription`() = runTest {
+    fun `getMatchingSubscriptions should not retrieve an expired subscription`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_TERM)),
@@ -288,7 +288,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve a subscription whose expiration date has not been reached`() = runTest {
+    fun `getMatchingSubscriptions should retrieve a subscription before its expiration date`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_TERM)),
@@ -307,7 +307,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve a subscription matching an idPattern`() = runTest {
+    fun `getMatchingSubscriptions should retrieve a subscription matching an idPattern`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(
@@ -328,7 +328,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not retrieve a subscription if idPattern does not match`() = runTest {
+    fun `getMatchingSubscriptions should not retrieve a subscription if idPattern does not match`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(
@@ -349,7 +349,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve a subscription matching an exact type`() = runTest {
+    fun `getMatchingSubscriptions should retrieve a subscription matching an exact type`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(
@@ -370,7 +370,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve a subscription matching a type selection`() = runTest {
+    fun `getMatchingSubscriptions should retrieve a subscription matching a type selection`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(
@@ -391,7 +391,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve a subscription matching a type and an id`() = runTest {
+    fun `getMatchingSubscriptions should retrieve a subscription matching a type and an id`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(
@@ -412,7 +412,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve a subscription matching a type and id pattern`() = runTest {
+    fun `getMatchingSubscriptions should retrieve a subscription matching a type and id pattern`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf("entities" to listOf(mapOf("idPattern" to "urn:ngsi-ld:Beehive:*", "type" to BEEHIVE_TERM)))
         )
@@ -429,7 +429,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not retrieve a subscription if type does not match`() = runTest {
+    fun `getMatchingSubscriptions should not retrieve a subscription if type does not match`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(
@@ -450,7 +450,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not retrieve a deactivated subscription matching an id`() = runTest {
+    fun `getMatchingSubscriptions should not retrieve a deactivated subscription matching an id`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(
@@ -472,7 +472,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve a subscription matching one of the watched attributes`() = runTest {
+    fun `getMatchingSubscriptions should retrieve a subscription matching one of the watched attributes`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(INCOMING_TERM, OUTGOING_TERM)
@@ -491,7 +491,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not retrieve a subscription not matching one of the watched attributes`() = runTest {
+    fun `getMatchingSubscriptions should not retrieve when no watched attribute matches`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(INCOMING_TERM, OUTGOING_TERM)
@@ -510,7 +510,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not retrieve a subscription matching on type and not on one of the watched attributes`() = runTest {
+    fun `getMatchingSubscriptions should not retrieve when type matches but no watched attribute does`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("type" to BEEHIVE_TERM)),
@@ -530,7 +530,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve a subscription with exact match on the notification trigger`() = runTest {
+    fun `getMatchingSubscriptions should retrieve on exact notification trigger match`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("type" to BEEHIVE_TERM)),
@@ -550,7 +550,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not fail to match a subscription if the input entity contains a single quote`() = runTest {
+    fun `getMatchingSubscriptions should match when the input entity contains a single quote`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("type" to BEEHIVE_TERM)),
@@ -570,7 +570,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve a subscription with entityUpdated trigger matched with an attribute event`() = runTest {
+    fun `getMatchingSubscriptions should match an entityUpdated trigger on an attribute event`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("type" to BEEHIVE_TERM)),
@@ -590,7 +590,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not retrieve a subscription with entityUpdated trigger matched with an entity delete event`() =
+    fun `getMatchingSubscriptions should not match an entityUpdated trigger on an entity delete event`() =
         runTest {
             val subscription = gimmeSubscriptionFromMembers(
                 mapOf(
@@ -611,7 +611,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
 
     @Test
-    fun `it should retrieve a subscription with entityDeleted trigger matched with an entity delete event`() =
+    fun `getMatchingSubscriptions should match an entityDeleted trigger on an entity delete event`() =
         runTest {
             val subscription = gimmeSubscriptionFromMembers(
                 mapOf(
@@ -632,7 +632,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
 
     @Test
-    fun `it should update a subscription`() = runTest {
+    fun `upsert should update a subscription`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
@@ -675,7 +675,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should update a subscription entities`() = runTest {
+    fun `upsert should update a subscription entities`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
@@ -719,7 +719,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should activate a subscription`() = runTest {
+    fun `upsert should activate a subscription`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_TERM)),
@@ -741,7 +741,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should deactivate a subscription`() = runTest {
+    fun `upsert should deactivate a subscription`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_TERM))
@@ -763,7 +763,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should update and expand watched attributes of a subscription`() = runTest {
+    fun `upsert should update and expand watched attributes of a subscription`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to arrayListOf(INCOMING_TERM)
@@ -790,7 +790,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should update notification trigger of a subscription`() = runTest {
+    fun `upsert should update notification trigger of a subscription`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to BEEKEEPER_TERM)),
@@ -821,7 +821,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a BadRequestData exception if the subscription has an unknown attribute`() = runTest {
+    fun `mergeWithFragment should return a BadRequestData exception on an unknown attribute`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
@@ -834,7 +834,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a NotImplemented exception if the subscription has an unsupported attribute`() = runTest {
+    fun `mergeWithFragment should return a NotImplemented exception on an unsupported attribute`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
@@ -859,7 +859,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         "'($BEEKEEPER_IRI;$APIARY_IRI),$DEVICE_IRI', '$BEEKEEPER_IRI,$APIARY_IRI,$BEEHIVE_IRI', 1",
         "'($BEEKEEPER_IRI;$APIARY_IRI),$DEVICE_IRI', '$BEEKEEPER_IRI,$BEEHIVE_IRI', 0"
     )
-    fun `it should return result according types selection languages`(
+    fun `getMatchingSubscriptions should return result according types selection languages`(
         typesQuery: String,
         types: String,
         expectedSize: Int
@@ -878,7 +878,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not return a subscription if q query is invalid`() = runTest {
+    fun `getMatchingSubscriptions should not return a subscription if q query is invalid`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -896,7 +896,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if entity matches q query`() = runTest {
+    fun `getMatchingSubscriptions should return a subscription if entity matches q query`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -914,7 +914,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not return a subscription if entity doesn't match q query`() = runTest {
+    fun `getMatchingSubscriptions should not return a subscription if entity doesn't match q query`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -932,7 +932,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if entity matches a complex q query`() = runTest {
+    fun `getMatchingSubscriptions should return a subscription if entity matches a complex q query`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -950,7 +950,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if entity matches a complex q query with AND logical operator`() = runTest {
+    fun `getMatchingSubscriptions should match a complex q query with an AND operator`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -968,7 +968,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if entity matches a complex q query with OR logical operator`() = runTest {
+    fun `getMatchingSubscriptions should match a complex q query with an OR operator`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -986,7 +986,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if entity matched a q query with a boolean inequality`() = runTest {
+    fun `getMatchingSubscriptions should match a q query with a boolean inequality`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -1004,7 +1004,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if entity matched a q query with a boolean equality`() = runTest {
+    fun `getMatchingSubscriptions should match a q query with a boolean equality`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -1022,7 +1022,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if entity matches a scope query`() = runTest {
+    fun `getMatchingSubscriptions should return a subscription if entity matches a scope query`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -1040,7 +1040,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not return a subscription if entity does not match a scope query`() = runTest {
+    fun `getMatchingSubscriptions should not return a subscription if entity does not match a scope query`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -1058,7 +1058,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if entity matched a q query with a regular expression`() = runTest {
+    fun `getMatchingSubscriptions should match a q query with a regular expression`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -1076,7 +1076,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if entity matched a q query with a NOT EXISTS filter`() = runTest {
+    fun `getMatchingSubscriptions should match a q query with a NOT EXISTS filter`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -1094,7 +1094,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not return a subscription if entity has the attribute excluded by a NOT EXISTS filter`() = runTest {
+    fun `getMatchingSubscriptions should not match when an attribute is excluded by a NOT EXISTS filter`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
@@ -1112,7 +1112,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should handle jsonKeys when matching subscriptions`() = runTest {
+    fun `getMatchingSubscriptions should handle jsonKeys when matching subscriptions`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
@@ -1146,7 +1146,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should handle expandValues when matching subscriptions`() = runTest {
+    fun `getMatchingSubscriptions should handle expandValues when matching subscriptions`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
@@ -1180,7 +1180,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not return a subscription if throttling has not elapsed yet`() = runTest {
+    fun `getMatchingSubscriptions should not return a subscription if throttling has not elapsed yet`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
 
         val payload = mapOf(
@@ -1212,7 +1212,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if throttling has elapsed`() = runTest {
+    fun `getMatchingSubscriptions should return a subscription if throttling has elapsed`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
 
         val payload = mapOf(
@@ -1249,7 +1249,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if throttling is not null and last_notification is null`() = runTest {
+    fun `getMatchingSubscriptions should match when throttling is set and last_notification is null`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
 
         val payload = mapOf(
@@ -1275,7 +1275,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not return a subscription if cooldown has not elapsed after a failure`() = runTest {
+    fun `getMatchingSubscriptions should not match when cooldown has not elapsed after a failure`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
 
         val payload = mapOf(
@@ -1309,7 +1309,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if cooldown has elapsed`() = runTest {
+    fun `getMatchingSubscriptions should return a subscription if cooldown has elapsed`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
 
         val payload = mapOf(
@@ -1348,7 +1348,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a subscription if cooldown is not null and last notification was not failed`() = runTest {
+    fun `getMatchingSubscriptions should match when cooldown is set and last notification did not fail`() = runTest {
         val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
 
         val payload = mapOf(
@@ -1394,7 +1394,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         "disjoint, Point, '[101.0, 0.0]', 1",
         "disjoint, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', 0"
     )
-    fun `it shoud correctly matches the geoquery provided with a subscription`(
+    fun `getMatchingSubscriptions should correctly matches the geoquery provided with a subscription`(
         georel: String,
         geometry: String,
         coordinates: String,
@@ -1421,7 +1421,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return all subscriptions whose 'timeInterval' is reached `() = runTest {
+    fun `getRecurringSubscriptionsToNotify should return subscriptions whose timeInterval is reached`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("type" to BEEKEEPER_TERM)),
@@ -1452,7 +1452,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return all subscriptions whose 'timeInterval' is reached with a time of 5s`() = runTest {
+    fun `getRecurringSubscriptionsToNotify should return subscriptions reached after a 5s delay`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("type" to BEEKEEPER_TERM)),
@@ -1491,7 +1491,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve the JSON-LD contexts of subscription`() = runTest {
+    fun `getContextsForSubscription should retrieve the JSON-LD contexts of subscription`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription.jsonld")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
@@ -1502,7 +1502,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a link to contexts endpoint if subscription has more than one context`() = runTest {
+    fun `getContextsLink should return a link when the subscription has more than one context`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json").copy(
             contexts = APIC_COMPOUND_CONTEXTS.plus(NGSILD_TEST_CORE_CONTEXT)
         )

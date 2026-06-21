@@ -100,7 +100,7 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should return an API exception if the entity does not exist`() = runTest {
+    fun `queryTemporalEntity should return an API exception when the entity does not exist`() = runTest {
         coEvery {
             entityQueryService.retrieve(any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
@@ -122,7 +122,7 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should query a temporal entity as requested by query params`() = runTest {
+    fun `queryTemporalEntity should query a temporal entity as requested by query params`() = runTest {
         val attributes =
             listOf(INCOMING_IRI, OUTGOING_IRI).map {
                 Attribute(
@@ -180,7 +180,7 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should retrieve a temporal entity as requested by pick and omit params`() = runTest {
+    fun `queryTemporalEntity should retrieve a temporal entity as requested by pick and omit params`() = runTest {
         val attributes =
             listOf(INCOMING_IRI, OUTGOING_IRI).map {
                 Attribute(
@@ -235,7 +235,7 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should not return an oldest timestamp if not in an aggregation query`() = runTest {
+    fun `calculateOldestTimestamp should not return an oldest timestamp outside an aggregation query`() = runTest {
         val origin = temporalQueryService.calculateOldestTimestamp(
             entityUri,
             TemporalEntitiesQueryFromGet(
@@ -254,7 +254,7 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should return timeAt as the oldest timestamp if it is provided in the temporal query`() = runTest {
+    fun `calculateOldestTimestamp should return timeAt as the oldest timestamp when provided`() = runTest {
         val origin = temporalQueryService.calculateOldestTimestamp(
             entityUri,
             TemporalEntitiesQueryFromGet(
@@ -277,7 +277,7 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should return the oldest timestamp from the DB if none is provided in the temporal query`() = runTest {
+    fun `calculateOldestTimestamp should return the oldest timestamp from the DB when none is provided`() = runTest {
         coEvery {
             attributeInstanceService.selectOldestDate(any(), any())
         } returns ZonedDateTime.parse("2023-09-03T12:34:56Z")
@@ -315,7 +315,7 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should query temporal entities as requested by query params`() = runTest {
+    fun `queryTemporalEntities should query temporal entities as requested by query params`() = runTest {
         val attribute = Attribute(
             entityId = entityUri,
             attributeName = INCOMING_IRI,
@@ -377,7 +377,7 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should query temporal entities as requested by pick and omit params`() = runTest {
+    fun `queryTemporalEntities should query temporal entities as requested by pick and omit params`() = runTest {
         val attribute = Attribute(
             entityId = entityUri,
             attributeName = INCOMING_IRI,
@@ -429,7 +429,7 @@ class TemporalQueryServiceTests {
     }
 
     @Test
-    fun `it should not return any entity if no attribute is matching the temporal query`() = runTest {
+    fun `queryTemporalEntities should not return any entity when no attribute matches the temporal query`() = runTest {
         val attribute = Attribute(
             entityId = entityUri,
             attributeName = INCOMING_IRI,

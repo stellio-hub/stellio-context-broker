@@ -366,7 +366,7 @@ class PermissionHandlerTests {
     }
 
     @Test
-    fun `query Permissions instantiate filter based on query parameters`() = runTest {
+    fun `query Permissions should instantiate the filter based on query parameters`() = runTest {
         val permission = gimmeRawPermission()
 
         coEvery {

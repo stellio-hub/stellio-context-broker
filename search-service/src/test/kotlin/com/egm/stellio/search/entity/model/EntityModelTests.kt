@@ -26,7 +26,7 @@ class EntityModelTests {
     )
 
     @Test
-    fun `it should serialize entityPayload with createdAt and modifiedAt`() {
+    fun `serializeProperties should serialize entityPayload with createdAt and modifiedAt`() {
         val serializedEntity = entity.serializeProperties()
         assertTrue(serializedEntity.contains(NGSILD_CREATED_AT_IRI))
         assertTrue(serializedEntity.contains(NGSILD_MODIFIED_AT_IRI))
@@ -34,7 +34,7 @@ class EntityModelTests {
     }
 
     @Test
-    fun `it should serialize entityPayload with SAP if present`() {
+    fun `serializeProperties should serialize entityPayload with SAP if present`() {
         val entityPayloadWithSAP =
             entity.copy(specificAccessPolicy = Action.WRITE)
         val serializedEntity = entityPayloadWithSAP.serializeProperties()

@@ -22,7 +22,7 @@ class TemporalScopeBuilderTests {
     private val entityId = "urn:ngsi-ld:Beehive:1234".toUri()
 
     @Test
-    fun `it should build an aggregated temporal representation of scopes`() {
+    fun `buildScopeAttributeInstances should build an aggregated temporal representation of scopes`() {
         val scopeInstances = listOf(
             AggregatedScopeInstanceResult(
                 entityId = entityId,
@@ -83,7 +83,7 @@ class TemporalScopeBuilderTests {
     }
 
     @Test
-    fun `it should build a temporal values representation of scopes`() {
+    fun `buildScopeAttributeInstances should build a temporal values representation of scopes`() {
         val scopeInstances = listOf(
             SimplifiedScopeInstanceResult(
                 entityId = entityId,
@@ -118,7 +118,7 @@ class TemporalScopeBuilderTests {
     }
 
     @Test
-    fun `it should build a full representation of scopes`() {
+    fun `buildScopeAttributeInstances should build a full representation of scopes`() {
         val scopeInstances = listOf(
             FullScopeInstanceResult(
                 entityId = entityId,

@@ -63,7 +63,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a JSON-LD entity when querying by id`() = runTest {
+    fun `queryEntity should return a JSON-LD entity when querying by id`() = runTest {
         coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
 
         loadAndPrepareSampleData("beehive.jsonld")
@@ -84,7 +84,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return an API exception if no entity exists with the given id`() = runTest {
+    fun `queryEntity should return an API exception when no entity exists with the given id`() = runTest {
         entityQueryService.queryEntity(entity01Uri)
             .shouldFail {
                 assertTrue(it is ResourceNotFoundException)
@@ -92,7 +92,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a list of JSON-LD entities when querying entities`() = runTest {
+    fun `queryEntities should return a list of JSON-LD entities when querying entities`() = runTest {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
         coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
@@ -115,7 +115,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return an empty list if no entity matched the query`() = runTest {
+    fun `queryEntities should return an empty list when no entity matched the query`() = runTest {
         coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
 
         entityQueryService.queryEntities(buildDefaultQueryParams().copy(ids = setOf(entity01Uri)))
@@ -126,7 +126,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve an entity payload`() = runTest {
+    fun `retrieve should retrieve an entity payload`() = runTest {
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
@@ -149,7 +149,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve a list of entity payloads`() = runTest {
+    fun `retrieve should retrieve a list of entity payloads`() = runTest {
         val entityPayload = loadSampleData("beehive.jsonld")
         val createdAt = ZonedDateTime.parse("2023-08-20T15:44:10.381090Z")
         entityPayload.sampleDataToNgsiLdEntity().map {
@@ -167,7 +167,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should filter existing entities from a list of ids`() = runTest {
+    fun `filterExistingEntitiesAsIds should filter existing entities from a list of ids`() = runTest {
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
@@ -184,13 +184,13 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return an empty list if no ids are provided to the filter on existence`() = runTest {
+    fun `filterExistingEntitiesAsIds should return an empty list when no ids are provided`() = runTest {
         val existingEntities = entityQueryService.filterExistingEntitiesAsIds(emptyList())
         assertTrue(existingEntities.isEmpty())
     }
 
     @Test
-    fun `it should check the existence of an entity`() = runTest {
+    fun `checkEntityExistence should check the existence of an entity`() = runTest {
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
@@ -207,7 +207,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should check the state of an entity`() = runTest {
+    fun `isMarkedAsDeleted should check the state of an entity`() = runTest {
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {

@@ -721,7 +721,7 @@ class PatchAttributeTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.entity.util.PatchAttributeTests#partialUpdatePatchProvider")
-    fun `it should apply a partial update patch behavior to attribute instance`(
+    fun `partialUpdatePatch should apply a partial update patch behavior to attribute instance`(
         source: String,
         target: String,
         expected: String
@@ -739,7 +739,7 @@ class PatchAttributeTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.entity.util.PatchAttributeTests#mergePatchProvider")
-    fun `it should apply a merge patch behavior to attribute instance`(
+    fun `mergePatch should apply a merge patch behavior to attribute instance`(
         source: String,
         target: String,
         expected: String

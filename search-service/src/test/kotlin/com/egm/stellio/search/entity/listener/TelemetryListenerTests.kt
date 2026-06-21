@@ -49,7 +49,7 @@ class TelemetryListenerTests {
     )
 
     @Test
-    fun `it should ingest a valid telemetry message`() = runTest {
+    fun `handleTelemetryMessage should ingest a valid telemetry message`() = runTest {
         coEvery {
             entityService.mergeAttribute(any(), any(), any(), any())
         } returns listOf(
@@ -64,7 +64,7 @@ class TelemetryListenerTests {
     }
 
     @Test
-    fun `it should ingest a valid telemetry message having a datasetId`() = runTest {
+    fun `handleTelemetryMessage should ingest a valid telemetry message having a datasetId`() = runTest {
         coEvery {
             entityService.mergeAttribute(any(), any(), any(), any())
         } returns listOf(
@@ -79,7 +79,7 @@ class TelemetryListenerTests {
     }
 
     @Test
-    fun `it should not call ingestAttribute when message is malformed JSON`() = runTest {
+    fun `handleTelemetryMessage should not call ingestAttribute when message is malformed JSON`() = runTest {
         telemetryListener.handleTelemetryMessage("not valid json{")
 
         coVerify(exactly = 0) {

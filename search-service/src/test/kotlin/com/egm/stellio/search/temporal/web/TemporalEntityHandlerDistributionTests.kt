@@ -27,7 +27,7 @@ class TemporalEntityHandlerDistributionTests : TemporalEntityHandlerTestCommon()
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     @Test
-    fun `it should return 200 when entity is not found locally but found in a remote CSR`() = runTest {
+    fun `query temporal entity should return 200 when not found locally but found in a remote CSR`() = runTest {
         val csr = gimmeRawCSR()
         val remoteEntity = mapOf(
             "id" to entityUri.toString(),
@@ -53,7 +53,7 @@ class TemporalEntityHandlerDistributionTests : TemporalEntityHandlerTestCommon()
     }
 
     @Test
-    fun `it should return 404 when entity is not found locally nor in any remote CSR`() {
+    fun `query temporal entity should return 404 when not found locally nor in any remote CSR`() {
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityUri.toString())).left()
@@ -71,7 +71,7 @@ class TemporalEntityHandlerDistributionTests : TemporalEntityHandlerTestCommon()
     }
 
     @Test
-    fun `it should surface NGSILD-Warning headers when distributed query raises warnings`() = runTest {
+    fun `query temporal entities should surface NGSILD-Warning headers on distributed warnings`() = runTest {
         val csr = gimmeRawCSR()
         val warning = MiscellaneousWarning("CSR unavailable", csr)
 

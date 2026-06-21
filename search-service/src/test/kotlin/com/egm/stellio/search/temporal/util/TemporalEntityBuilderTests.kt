@@ -36,7 +36,7 @@ class TemporalEntityBuilderTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.temporal.util.TemporalEntityParameterizedSource#rawResultsProvider")
-    fun `it should correctly build a temporal entity`(
+    fun `buildTemporalEntity should correctly build a temporal entity`(
         scopeHistory: List<ScopeInstanceResult>,
         attributeAndResultsMap: AttributesWithInstances,
         temporalRepresentation: TemporalRepresentation,
@@ -69,7 +69,7 @@ class TemporalEntityBuilderTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.temporal.util.TemporalEntitiesParameterizedSource#rawResultsProvider")
-    fun `it should correctly build temporal entities`(
+    fun `buildTemporalEntities should correctly build temporal entities`(
         entityTemporalResults: List<EntityTemporalResult>,
         temporalRepresentation: TemporalRepresentation,
         withAudit: Boolean,
@@ -94,7 +94,7 @@ class TemporalEntityBuilderTests {
 
     @SuppressWarnings("LongMethod")
     @Test
-    fun `it should return a temporal entity with values aggregated`() {
+    fun `buildTemporalEntity should return a temporal entity with values aggregated`() {
         val attribute = Attribute(
             entityId = "urn:ngsi-ld:Beehive:1234".toUri(),
             attributeName = OUTGOING_IRI,

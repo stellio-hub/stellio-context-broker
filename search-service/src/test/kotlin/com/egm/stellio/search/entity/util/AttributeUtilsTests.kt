@@ -22,7 +22,7 @@ import java.time.LocalTime
 class AttributeUtilsTests {
 
     @Test
-    fun `it should guess the value type of a string property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a string property`() = runTest {
         val expandedStringProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to "A string"),
@@ -35,7 +35,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should guess the value type of a double property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a double property`() = runTest {
         val expandedBooleanProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to 20.0),
@@ -48,7 +48,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should guess the value type of an int property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of an int property`() = runTest {
         val expandedBooleanProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to 20),
@@ -61,7 +61,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should guess the value type of a boolean property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a boolean property`() = runTest {
         val expandedBooleanProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to true),
@@ -74,7 +74,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should guess the value type of an object property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of an object property`() = runTest {
         val expandedListProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to mapOf("key1" to "value1", "key2" to "value3")),
@@ -87,7 +87,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should guess the value type of an array property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of an array property`() = runTest {
         val expandedListProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to listOf("A", "B")),
@@ -100,7 +100,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should guess the value type of a time property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a time property`() = runTest {
         val expandedTimeProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to mapOf("@type" to "Time", "@value" to LocalTime.now())),
@@ -113,7 +113,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should guess the value type of a datetime property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a datetime property`() = runTest {
         val expandedTimeProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to mapOf("@type" to "DateTime", "@value" to ngsiLdDateTime())),
@@ -126,7 +126,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should guess the value type of a geo-property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a geo-property`() = runTest {
         val expandedGeoProperty = expandAttribute(
             "location",
             mapOf(
@@ -142,7 +142,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should guess the value type of a JSON property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a JSON property`() = runTest {
         val expandedJsonProperty = expandAttribute(
             "jsonProperty",
             mapOf(
@@ -158,7 +158,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should guess the value type of a relationship`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a relationship`() = runTest {
         val expandedRelationship = expandAttribute(
             "relationship",
             mapOf("type" to "Relationship", "object" to URI("urn:ngsi-ld")),
@@ -174,7 +174,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should guess the value type of a multivalued relationship`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a multivalued relationship`() = runTest {
         val expandedRelationship = expandAttribute(
             "relationship",
             mapOf(
@@ -194,7 +194,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should find a Property whose value is NGSI-LD Null`() = runTest {
+    fun `hasNgsiLdNullValue should find a Property whose value is NGSI-LD Null`() = runTest {
         val expandedProperty = expandAttribute(
             """
                 {
@@ -211,7 +211,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should find a LanguageProperty whose value is NGSI-LD Null`() = runTest {
+    fun `hasNgsiLdNullValue should find a LanguageProperty whose value is NGSI-LD Null`() = runTest {
         val expandedProperty = expandAttribute(
             """
                 {
@@ -230,7 +230,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should find a JsonProperty whose value is NGSI-LD Null`() = runTest {
+    fun `hasNgsiLdNullValue should find a JsonProperty whose value is NGSI-LD Null`() = runTest {
         val expandedProperty = expandAttribute(
             """
                 {
@@ -247,7 +247,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should find a Relationship whose value is NGSI-LD Null`() = runTest {
+    fun `hasNgsiLdNullValue should find a Relationship whose value is NGSI-LD Null`() = runTest {
         val expandedProperty = expandAttribute(
             """
                 {

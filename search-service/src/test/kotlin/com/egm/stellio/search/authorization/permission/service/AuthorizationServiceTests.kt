@@ -16,7 +16,7 @@ class AuthorizationServiceTests {
     private val entityUri = "urn:ngsi-ld:Entity:01".toUri()
 
     @Test
-    fun `it should authorize access to read`() = runTest {
+    fun `userCanReadEntity should authorize access to read`() = runTest {
         authorizationService.userCanReadEntity(entityUri)
             .mapLeft {
                 fail("it should not have failed")

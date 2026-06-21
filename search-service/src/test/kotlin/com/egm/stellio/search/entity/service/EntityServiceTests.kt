@@ -588,7 +588,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun `deleteAttribute should remove the scopes from an entity`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
-            entityAttributeService.addOrReplaceAttribute(any(), any(), any(), any(), any())
+            entityAttributeService.addOrReplaceAttribute(any(), any(), any(), any(), any(), any())
         } returns gimmeSucceededAttributeOperationResult().right()
         coEvery {
             entityAttributeService.getAllForEntity(any())

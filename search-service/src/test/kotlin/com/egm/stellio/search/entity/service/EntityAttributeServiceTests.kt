@@ -385,7 +385,8 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                 ZonedDateTime.parse("2022-12-24T14:01:22.066Z")
             ),
             createdAt,
-            expandedAttribute.second[0]
+            expandedAttribute.second[0],
+            true
         ).shouldSucceed()
 
         entityAttributeService.getForEntityAndAttribute(
@@ -717,7 +718,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceedWith { operationResults ->
             val successfulOperations = operationResults.getSucceededAttributesOperations()
             assertEquals(1, successfulOperations.size)
-            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.UPDATED }.size)
+            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.CREATED }.size)
         }
 
         entityAttributeService.getForEntityAndAttribute(

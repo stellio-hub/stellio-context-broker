@@ -345,3 +345,63 @@ Then it can be added in the environment section of `search-service`:
 ```
 SEARCH_ON_OWNER_DELETE_CASCADE_ENTITIES = ${ON_OWNER_DELETE_CASCADE_ENTITIES}
 ```
+
+## Temporal audit trail
+
+> **Note:** This is a Stellio-specific extension, not part of the NGSI-LD specification. It requires authentication to be enabled.
+
+Stellio records the identity (JWT `sub` claim) of the user who performed each write operation alongside the temporal
+audit properties `createdAt`, `modifiedAt`, and `deletedAt`.
+
+### Enabling audit information in temporal queries
+
+Add `options=audit` to any temporal entity query. This works with:
+
+- `GET /ngsi-ld/v1/temporal/entities/{entityId}`
+- `GET /ngsi-ld/v1/temporal/entities`
+- `POST /ngsi-ld/v1/temporal/entityOperations/query`
+
+The `options=audit` flag is only meaningful when `timeproperty` is set to `createdAt`, `modifiedAt`, or `deletedAt`
+(i.e., not `observedAt`, which does not record a subject). It also requires the normalized temporal representation 
+(the default); it has no effect with `options=temporalValues` or `options=aggregatedValues`.
+
+**Example request:**
+
+```shell
+http GET http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01 \
+  Link:$CONTEXT_LINK \
+  Authorization:"Bearer my.token" \
+  timeproperty==modifiedAt \
+  options==audit
+```
+
+### Response format
+
+When `options=audit` is set and a `sub` was recorded for an attribute instance, a `sub` property is added to each
+instance in the response. The property is defined in the [EGM authorization ontology](https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization.jsonld)
+(`https://ontology.eglobalmark.com/authorization#sub`); it compacts to `sub` when that context is included.
+
+```json
+{
+  "id": "urn:ngsi-ld:BeeHive:01",
+  "type": "BeeHive",
+  "name": [
+    {
+      "type": "Property",
+      "value": "My Beehive",
+      "modifiedAt": "2026-06-15T10:00:00Z",
+      "sub": {
+        "type": "Property",
+        "value": "urn:ngsi-ld:User:<uuid>"
+      }
+    }
+  ],
+  "@context": [
+    "https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization.jsonld",
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.9.jsonld"
+  ]
+}
+```
+
+If no `sub` was recorded for an instance (e.g., the write was performed without authentication), the property is
+omitted for that instance.

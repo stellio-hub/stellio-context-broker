@@ -43,7 +43,7 @@ fun composeEntitiesQueryFromGet(
 ): Either<APIException, EntitiesQueryFromGet> = either {
     val ids = queryParams.getFirst(QueryParameter.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
     val localParameter = queryParams.getFirst(QueryParameter.LOCAL.key)?.toBoolean()
-    val (typeSelection, local) = // type=* mean local=true
+    val (typeSelection, local) = // type=* implies local=true
         if (queryParams.getFirst(QueryParameter.TYPE.key)?.isWildcardTypeSelection() == true) {
             ensure(localParameter != false) { BadRequestDataException(TYPE_WILDCARD_WITH_LOCAL_EQUAL_FALSE) }
             null to true

@@ -136,7 +136,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `getRootAttributesToPick should get attributes at the root level`() {
+    fun `getRootAttributesToPick should return attributes at the root level`() {
         val (pick, _) = parsePickOmitParameters("temperature,humidity,servesDataset{title}", null)
             .shouldSucceedAndResult()
 
@@ -148,7 +148,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `getAttributesToPickFor should get attributes at any level in the graph`() {
+    fun `getAttributesToPickFor should return attributes at any depth in the graph`() {
         val (pick, _) = parsePickOmitParameters(
             "servesDataset{title,description,catalog{publisher}},belongsTo{name,owner,servesDatatset{location}}",
             null
@@ -171,7 +171,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `getRootAttributesToOmit should get root attributes to omit`() {
+    fun `getRootAttributesToOmit should return the root-level attributes to omit`() {
         val (_, omit) = parsePickOmitParameters(
             null,
             "temperature,humidity,servesDataset{title}"
@@ -185,7 +185,7 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `getAttributesToOmitFor should get attributes to omit at any level in the graph`() {
+    fun `getAttributesToOmitFor should return attributes to omit at any depth in the graph`() {
         val (_, omit) = parsePickOmitParameters(
             null,
             "servesDataset{title,description,catalog{publisher}},belongsTo{name,owner,servesDatatset{location}}"

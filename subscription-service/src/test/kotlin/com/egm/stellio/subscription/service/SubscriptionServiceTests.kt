@@ -219,7 +219,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `updateSubscriptionNotification should load a subscription with extra info on last notification`() = runTest {
+    fun `updateSubscriptionNotification should persist last notification info on the subscription`() = runTest {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(
@@ -250,7 +250,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `delete should delete an existing subscription`() = runTest {
+    fun `delete should remove an existing subscription`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
 
@@ -1394,7 +1394,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         "disjoint, Point, '[101.0, 0.0]', 1",
         "disjoint, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', 0"
     )
-    fun `getMatchingSubscriptions should correctly matches the geoquery provided with a subscription`(
+    fun `getMatchingSubscriptions should correctly match the geoquery provided with a subscription`(
         georel: String,
         geometry: String,
         coordinates: String,

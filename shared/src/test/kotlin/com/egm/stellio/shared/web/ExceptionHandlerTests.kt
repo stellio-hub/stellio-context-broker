@@ -13,7 +13,7 @@ class ExceptionHandlerTests {
     ).build()
 
     @Test
-    fun `POST should return a BadRequestData error when the payload is not a valid JSON fragment`() {
+    fun `POST requests should return a BadRequestData error when the payload is not a valid JSON fragment`() {
         val invalidJsonLdPayload =
             """
             {
@@ -35,7 +35,7 @@ class ExceptionHandlerTests {
     }
 
     @Test
-    fun `POST should return an LdContextNotAvailable error when the context is not resolvable`() {
+    fun `POST requests should return an LdContextNotAvailable error when the context is not resolvable`() {
         val invalidJsonPayload =
             """
             {

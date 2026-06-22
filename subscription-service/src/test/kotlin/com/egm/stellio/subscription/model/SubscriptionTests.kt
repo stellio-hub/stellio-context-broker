@@ -83,7 +83,7 @@ class SubscriptionTests {
     )
 
     @Test
-    fun `deserialize should correctly deserialize a subscription`() = runTest {
+    fun `deserialize should parse a complete subscription payload`() = runTest {
         val subscription = mapOf(
             "id" to beehiveId,
             "type" to "Subscription",
@@ -567,7 +567,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `expand should expand a subscription`() {
+    fun `expand should return an expanded subscription`() {
         val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
         assertThat(subscription)
@@ -583,7 +583,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `expand should expand a subscription with a complex type selection`() {
+    fun `expand should handle a complex type selection`() {
         val subscription = subscription.copy(
             entities = setOf(
                 EntitySelector(
@@ -600,7 +600,7 @@ class SubscriptionTests {
     }
 
     @Test
-    fun `compact should compact a subscription`() {
+    fun `compact should return a compacted subscription`() {
         val subscription = subscription.copy().expand(APIC_COMPOUND_CONTEXTS)
 
         val compactedSubscription = subscription.compact(APIC_COMPOUND_CONTEXTS)

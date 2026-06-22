@@ -140,7 +140,7 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `getAttributesMatchingCSFAndEntity should get the matching attributes`() = runTest {
+    fun `getAttributesMatchingCSFAndEntity should return the matching attributes`() = runTest {
         val entity = expandJsonLdEntity(entityPayload)
         val registrationInfoFilter = CSRFilters(
             ids = setOf(entity.id),
@@ -235,7 +235,7 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `deserialize should deserialize a CSR payload containing contextSourceInfo`() = runTest {
+    fun `deserialize should parse a CSR payload containing contextSourceInfo`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "endpoint" to endpoint,

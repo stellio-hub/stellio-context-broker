@@ -67,7 +67,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `dispatchIamMessage should handle a create event with unknwon properties for an user`() = runTest {
+    fun `dispatchIamMessage should handle a create event with unknown properties for a user`() = runTest {
         val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEventUnknownProperties.json")
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()

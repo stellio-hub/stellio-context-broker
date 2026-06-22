@@ -53,7 +53,7 @@ class AnonymousUserHandlerTests {
 
     @Test
     @WithAnonymousUser
-    fun `GET should return 401 for an anonymous user`() {
+    fun `GET requests should return 401 for an anonymous user`() {
         webClient
             .get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")

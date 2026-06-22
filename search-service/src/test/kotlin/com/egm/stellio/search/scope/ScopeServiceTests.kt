@@ -98,7 +98,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @ParameterizedTest
     @MethodSource("generateScopes")
-    fun `update should update scopes as requested by the type of the operation`(
+    fun `update should persist scopes according to the requested operation type`(
         initialEntity: String,
         inputScopes: List<String>,
         operationType: OperationType,
@@ -145,7 +145,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `retrieveHistory should retrieve the history of scopes`() = runTest {
+    fun `retrieveHistory should return the history of scopes`() = runTest {
         createScopeHistory()
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
@@ -170,7 +170,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `retrieveHistory should retrieve the history of scopes with a time interval`() = runTest {
+    fun `retrieveHistory should return the history of scopes with a time interval`() = runTest {
         createScopeHistory()
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
@@ -199,7 +199,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `retrieveHistory should retrieve the history of scopes with aggregated values`() = runTest {
+    fun `retrieveHistory should return the history of scopes with aggregated values`() = runTest {
         createScopeHistory()
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
@@ -232,7 +232,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `retrieveHistory should retrieve the history of scopes with aggregated values on whole time range`() = runTest {
+    fun `retrieveHistory should return the history of scopes with aggregated values on whole time range`() = runTest {
         createScopeHistory()
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
@@ -265,7 +265,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `retrieveHistory should retrieve aggregated scopes over the whole time range without interval`() =
+    fun `retrieveHistory should return aggregated scopes over the whole time range without interval`() =
         runTest {
             createScopeHistory()
 
@@ -297,7 +297,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
 
     @Test
-    fun `retrieveHistory should retrieve the last n instances of history of scopes with aggregated values`() = runTest {
+    fun `retrieveHistory should return the last n instances of history of scopes with aggregated values`() = runTest {
         createScopeHistory()
 
         val scopeHistoryEntries = scopeService.retrieveHistory(
@@ -421,7 +421,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `delete should delete scope and its history`() = runTest {
+    fun `delete should remove the scope and its history`() = runTest {
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
             .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }

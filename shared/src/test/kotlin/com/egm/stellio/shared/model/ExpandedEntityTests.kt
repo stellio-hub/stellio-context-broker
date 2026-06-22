@@ -55,7 +55,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `getAttributes should get the attributes from a JSON-LD entity`() = runTest {
+    fun `getAttributes should return all attributes of a JSON-LD entity`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -75,7 +75,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `getAttribute should get an attribute by name without datasetId`() = runTest {
+    fun `getAttribute should return the matching attribute when no datasetId is specified`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -94,7 +94,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `getAttribute should get an attribute by name with datasetId`() = runTest {
+    fun `getAttribute should return the attribute matching both name and datasetId`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -376,7 +376,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `getScopes should get the scopes from a JSON-LD entity`() = runTest {
+    fun `getScopes should return the scopes from a JSON-LD entity`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",

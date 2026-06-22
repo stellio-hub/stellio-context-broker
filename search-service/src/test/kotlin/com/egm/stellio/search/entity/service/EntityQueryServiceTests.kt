@@ -126,7 +126,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `retrieve should retrieve an entity payload`() = runTest {
+    fun `retrieve should return the stored entity payload`() = runTest {
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
@@ -149,7 +149,7 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `retrieve should retrieve a list of entity payloads`() = runTest {
+    fun `retrieve should return all requested entity payloads`() = runTest {
         val entityPayload = loadSampleData("beehive.jsonld")
         val createdAt = ZonedDateTime.parse("2023-08-20T15:44:10.381090Z")
         entityPayload.sampleDataToNgsiLdEntity().map {

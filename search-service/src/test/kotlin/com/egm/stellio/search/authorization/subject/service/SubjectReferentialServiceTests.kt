@@ -110,7 +110,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `retrieve should retrieve a subject referential`() = runTest {
+    fun `retrieve should return a SubjectReferential for a known subject`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -129,7 +129,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `retrieve should retrieve a subject referential with subject info`() = runTest {
+    fun `retrieve should include SubjectInfo in the returned referential`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -183,7 +183,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `getGroups should get the groups memberships of an user`() = runTest {
+    fun `getGroups should return the group memberships for a user`() = runTest {
         val allGroupsUuids = List(3) {
             val groupUuid = UUID.randomUUID().toString()
             subjectReferentialService.create(
@@ -220,7 +220,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `getAllGroups should get all groups for an admin`() = runTest {
+    fun `getAllGroups should return all groups when caller has the admin role`() = runTest {
         val allGroupsUuids = List(3) {
             val groupUuid = UUID.randomUUID().toString()
             subjectReferentialService.create(
@@ -259,7 +259,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `getUsers should get all users`() = runTest {
+    fun `getUsers should return all users`() = runTest {
         val allUsersUuids = List(3) {
             val userUuid = UUID.randomUUID().toString()
             subjectReferentialService.create(
@@ -287,7 +287,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `getUsers should get an user with all available information`() = runTest {
+    fun `getUsers should return a user with all available fields`() = runTest {
         val userUuid = UUID.randomUUID().toString()
         subjectReferentialService.create(
             SubjectReferential(
@@ -468,7 +468,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `delete should delete a subject referential`() = runTest {
+    fun `delete should remove the subject referential from persistence`() = runTest {
         val userAccessRights = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -490,7 +490,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `delete should delete a subject referential when it is a client`() = runTest {
+    fun `delete should remove the referential for a service-account subject`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = SERVICE_ACCOUNT_UUID,
             subjectType = SubjectType.CLIENT,

@@ -275,7 +275,7 @@ class TemporalPaginationUtilsTests {
     }
 
     @Test
-    fun `range calculation with aggregatedValues should return the computed range`() {
+    fun `getPaginatedAttributeWithInstancesAndRange should return the computed range for aggregatedValues`() {
         val query = TemporalEntitiesQueryFromGet(
             temporalQuery = buildDefaultTestTemporalQuery(
                 instanceLimit = 2,

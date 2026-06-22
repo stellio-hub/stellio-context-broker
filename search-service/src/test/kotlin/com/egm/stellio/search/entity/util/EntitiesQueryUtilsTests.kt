@@ -105,7 +105,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should interpret wildcard type as local query without type restriction`() = runTest {
+    fun `composeEntitiesQueryFromGet should make query local without type restriction when type is wildcard`() = runTest {
         val requestParams = LinkedMultiValueMap<String, String>().apply {
             add("type", "*")
         }
@@ -398,7 +398,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should interpret wildcard type in Query entity selectors as local query without type restriction`() =
+    fun `composeEntitiesQueryFromPost should make query local without type restriction when entity selector type is wildcard`() =
         runTest {
             val query = """
                 {

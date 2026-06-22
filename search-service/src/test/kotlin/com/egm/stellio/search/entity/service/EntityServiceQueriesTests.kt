@@ -407,7 +407,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities without type restriction for a wildcard entity selector`() = runTest {
+    fun `queryEntities should retrieve entities without type restriction when entity selector type is wildcard`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(

@@ -580,7 +580,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `query entities should interpret wildcard selector type as a local query`() = runTest {
+    fun `query entities should interpret request as a local query when entity selector type is wildcard`() = runTest {
         coEvery {
             entityQueryService.queryEntities(any())
         } returns Pair(emptyList<ExpandedEntity>(), 0).right()

@@ -1525,7 +1525,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entities with wildcard type should query local entities without type restriction`() {
+    fun `get entities should query local entities without type restriction when type is wildcard`() {
         initializeQueryEntitiesMocks()
         coEvery {
             entityQueryService.queryEntities(
@@ -2915,7 +2915,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `purge entities with wildcard type should skip CSR distribution and have no type restriction`() {
+    fun `purge entities should skip CSR distribution and have no type restriction when type is wildcard`() {
         coEvery {
             entityService.purgeEntities(any(), any(), any())
         } returns BatchOperationResult().right()

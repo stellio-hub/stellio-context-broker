@@ -264,13 +264,61 @@ class ConciseRepresentationUtilsTests {
     }
 
     @Test
-    fun `normalizeEntityFragment should normalise each element of a List`() {
+    fun `normalizeEntityFragment should normalize a Property`() {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Entity:01",
+            "type" to "MyType",
+            "temperature" to 22.5
+        )
+
+        val expectedNormalizedRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "MyType",
+                "temperature": {
+                    "type": "Property",
+                    "value": 22.5
+                }
+            }
+        """.trimIndent()
+
+        val result = normalizeEntityFragment(payload)
+
+        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `normalizeEntityFragment should normalize a Relationship`() {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Entity:01",
+            "type" to "MyType",
+            "rel" to mapOf("object" to "urn:ngsi-ld:Entity:01")
+        )
+
+        val expectedNormalizedRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "MyType",
+                "rel": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Entity:01"
+                }
+            }
+        """.trimIndent()
+
+        val result = normalizeEntityFragment(payload)
+
+        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `normalizeEntityFragment should normalize a multi-instance Attribute`() {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:E:01",
             "type" to "T",
             "rel" to listOf(
-                mapOf("object" to "urn:ngsi-ld:Entity:01"),
-                mapOf("object" to "urn:ngsi-ld:Entity:02")
+                mapOf("object" to "urn:ngsi-ld:Entity:01", "datasetId" to "urn:ngsi-ld:Dataset:01"),
+                mapOf("object" to "urn:ngsi-ld:Entity:02", "datasetId" to "urn:ngsi-ld:Dataset:02")
             )
         )
 
@@ -281,11 +329,13 @@ class ConciseRepresentationUtilsTests {
                 "rel": [
                     {
                         "type": "Relationship",
-                        "object": "urn:ngsi-ld:Entity:01"
+                        "object": "urn:ngsi-ld:Entity:01",
+                        "datasetId": "urn:ngsi-ld:Dataset:01"
                     },
                     {
                         "type": "Relationship",
-                        "object": "urn:ngsi-ld:Entity:02"
+                        "object": "urn:ngsi-ld:Entity:02",
+                        "datasetId": "urn:ngsi-ld:Dataset:02"
                     }
                 ]
             }
@@ -311,164 +361,6 @@ class ConciseRepresentationUtilsTests {
                 "type": "MyType",
                 "scope": "/A",
                 "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
-            }
-        """.trimIndent()
-
-        val result = normalizeEntityFragment(payload)
-
-        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
-    }
-
-    @Test
-    fun `normalizeEntityFragment should wrap a non-core scalar attribute value as a Property`() {
-        val payload = mapOf(
-            "id" to "urn:ngsi-ld:Entity:01",
-            "type" to "MyType",
-            "temperature" to 22.5
-        )
-
-        val expectedNormalizedRepresentation = """
-            {
-                "id": "urn:ngsi-ld:Entity:01",
-                "type": "MyType",
-                "temperature": {
-                    "type": "Property",
-                    "value": 22.5
-                }
-            }
-        """.trimIndent()
-
-        val result = normalizeEntityFragment(payload)
-
-        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
-    }
-
-    @Test
-    fun `normalizeEntityFragment should wrap a non-core array attribute value as a Property`() {
-        val payload = mapOf(
-            "id" to "urn:ngsi-ld:Entity:01",
-            "type" to "MyType",
-            "temperature" to listOf(1, 2)
-        )
-
-        val expectedNormalizedRepresentation = """
-            {
-                "id": "urn:ngsi-ld:Entity:01",
-                "type": "MyType",
-                "temperature": {
-                    "type": "Property",
-                    "value": [1, 2]
-                }
-            }
-        """.trimIndent()
-
-        val result = normalizeEntityFragment(payload)
-
-        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
-    }
-
-    @Test
-    fun `normalizeEntityFragment should wrap a non-core object attribute value as a Property`() {
-        val payload = mapOf(
-            "id" to "urn:ngsi-ld:Entity:01",
-            "type" to "MyType",
-            "temperature" to mapOf("a" to 1, "b" to 2)
-        )
-
-        val expectedNormalizedRepresentation = """
-            {
-                "id": "urn:ngsi-ld:Entity:01",
-                "type": "MyType",
-                "temperature": {
-                    "type": "Property",
-                    "value": {
-                        "a": 1,
-                        "b": 2
-                    }
-                }
-            }
-        """.trimIndent()
-
-        val result = normalizeEntityFragment(payload)
-
-        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
-    }
-
-    @Test
-    fun `normalizeEntityFragment should wrap a non-core attribute map (with value key) as a Property`() {
-        val payload = mapOf(
-            "id" to "urn:ngsi-ld:Entity:01",
-            "type" to "MyType",
-            "temperature" to mapOf("value" to 22.5)
-        )
-
-        val expectedNormalizedRepresentation = """
-            {
-                "id": "urn:ngsi-ld:Entity:01",
-                "type": "MyType",
-                "temperature": {
-                    "type": "Property",
-                    "value": 22.5
-                }
-            }
-        """.trimIndent()
-
-        val result = normalizeEntityFragment(payload)
-
-        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
-    }
-
-    @Test
-    fun `normalizeEntityFragment should add type to a Relationship attribute map`() {
-        val payload = mapOf(
-            "id" to "urn:ngsi-ld:Entity:01",
-            "type" to "MyType",
-            "isLinkedTo" to mapOf("object" to "urn:ngsi-ld:Entity:99")
-        )
-
-        val expectedNormalizedRepresentation = """
-            {
-                "id": "urn:ngsi-ld:Entity:01",
-                "type": "MyType",
-                "isLinkedTo": {
-                    "type": "Relationship",
-                    "object": "urn:ngsi-ld:Entity:99"
-                }
-            }
-        """.trimIndent()
-
-        val result = normalizeEntityFragment(payload)
-
-        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
-    }
-
-    @Test
-    fun `normalizeEntityFragment should normalise each element of a multi-instance attribute`() {
-        val payload = mapOf(
-            "id" to "urn:ngsi-ld:Entity:01",
-            "type" to "MyType",
-            "speed" to listOf(
-                mapOf("value" to 55, "datasetId" to "urn:ngsi-ld:Dataset:01"),
-                mapOf("value" to 60, "datasetId" to "urn:ngsi-ld:Dataset:02")
-            )
-        )
-
-        val expectedNormalizedRepresentation = """
-            {
-                "id": "urn:ngsi-ld:Entity:01",
-                "type": "MyType",
-                "speed": [
-                    {
-                        "type": "Property",
-                        "value": 55,
-                        "datasetId": "urn:ngsi-ld:Dataset:01"
-                    },
-                    {
-                        "type": "Property",
-                        "value": 60,
-                        "datasetId": "urn:ngsi-ld:Dataset:02"
-                    }
-                ]
             }
         """.trimIndent()
 

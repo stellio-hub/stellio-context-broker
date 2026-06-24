@@ -15,6 +15,7 @@ import com.egm.stellio.shared.model.AttributeProjection
 import com.egm.stellio.shared.model.AttributeProjection.Companion.parsePickOmitParameters
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.isWildcardTypeSelection
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
@@ -22,6 +23,7 @@ import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePagi
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.queryparameter.parseQQuery
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ATTRIBUTES_WITH_PICK_OR_OMIT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.DISTRIBUTION_NOT_IMPLEMENTED
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ENTITY_MEMBER_IN_PICK_AND_OMIT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.KEEP_AND_DROP_BOTH_PROVIDED_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.MISSING_REQUIRED_PURGE_QUERY_PARAMETER_MESSAGE
@@ -154,6 +156,7 @@ fun composeEntitiesQueryFromPost(
             ensure(localParameter != false) { BadRequestDataException(TYPE_WILDCARD_WITH_LOCAL_EQUAL_FALSE) }
             true
         } else localParameter ?: false
+    ensure(localParameter != false) { NotImplementedException(DISTRIBUTION_NOT_IMPLEMENTED) }
     val entitySelectors = query.entities?.map { entitySelector ->
         validateIdPattern(entitySelector.idPattern).bind()
         EntitySelector(

@@ -58,6 +58,7 @@ import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_TERM
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.expandJsonLdEntity
+import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -184,6 +185,38 @@ class EntityHandlerTests {
                 match<NgsiLdEntity> {
                     it.id == breedingServiceId
                 },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun `create entity should accept a concise body`() {
+        val conciseBody = """
+            {
+                "id": "urn:ngsi-ld:Beehive:concise01",
+                "type": "Beehive",
+                "temperature": {
+                    "value": 25.0
+                }
+            }
+        """.trimIndent()
+
+        coEvery {
+            entityService.createEntity(any(), any())
+        } returns Unit.right()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .bodyValue(conciseBody)
+            .exchange()
+            .expectStatus().isCreated
+
+        coVerify {
+            entityService.createEntity(
+                match { it.id == "urn:ngsi-ld:Beehive:concise01".toUri() },
                 any()
             )
         }
@@ -585,6 +618,44 @@ class EntityHandlerTests {
                     "prop1": "some value",
                     "rel1": "urn:ngsi-ld:Entity:1234",
                     "@context": "${applicationProperties.contexts.core}"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `get entity by id should correctly return the concise representation of an entity`() = runTest {
+        initializeRetrieveEntityMocks()
+        coEvery { entityQueryService.queryEntity(any()) } returns loadAndExpandSampleData().right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$beehiveId?format=concise")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .json(
+                """
+                {
+                    "id": "urn:ngsi-ld:BeeHive:TESTC",
+                    "type": "BeeHive",
+                    "name": "ParisBeehive12",
+                    "dateOfFirstBee": {
+                        "type": "DateTime",
+                        "@value": "2018-12-04T12:00:00.00Z"
+                    },
+                    "incoming": {
+                        "value": 1543,
+                        "observedAt": "2020-01-24T14:01:22.066Z",
+                        "observedBy": {
+                            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+                        }
+                    },
+                    "connectsTo": {
+                        "object": "urn:ngsi-ld:Beekeeper:Pascal"
+                    },
+                    "@context": "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
                 }
                 """.trimIndent()
             )
@@ -1772,6 +1843,39 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `append entity attributes should accept a concise body`() {
+        val entityId = "urn:ngsi-ld:Beehive:concise01".toUri()
+        val appendResult = UpdateResult(
+            updated = listOf("https://uri.etsi.org/ngsi-ld/default-context/isParkedIn"),
+            notUpdated = emptyList()
+        )
+
+        coEvery {
+            entityService.appendAttributes(any(), any(), any())
+        } returns appendResult.right()
+
+        val conciseAttrsBody = """
+            {
+                "isParkedIn": {
+                    "object": "urn:ngsi-ld:Parking:01"
+                }
+            }
+        """.trimIndent()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .bodyValue(conciseAttrsBody)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify {
+            entityService.appendAttributes(eq(entityId), any(), eq(false))
+        }
+    }
+
+    @Test
     fun `append entity attribute should return a 207 if types or attributes could not be appended`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newInvalidTypeAndAttribute.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
@@ -1913,6 +2017,39 @@ class EntityHandlerTests {
             .header("Link", AQUAC_HEADER_LINK)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify {
+            entityService.partialUpdateAttribute(eq(entityId), any())
+        }
+    }
+
+    @Test
+    fun `partial attribute update should accept a concise fragment`() {
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val attrId = "fishNumber"
+        val updateResult = UpdateResult(
+            updated = listOf(fishNumberAttribute),
+            notUpdated = emptyList()
+        )
+
+        coEvery {
+            entityService.partialUpdateAttribute(any(), any())
+        } returns updateResult.right()
+
+        val conciseFragment = """
+            {
+                "value": 42.0,
+                "subAttribute": "subAttributeValue"
+            }
+        """.trimIndent()
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .bodyValue(conciseFragment)
             .exchange()
             .expectStatus().isNoContent
 

@@ -890,4 +890,422 @@ class CompactedEntityTests {
             assertEquals(2, (it.second as Map<*, *>).size)
         }
     }
+
+    @Test
+    fun `toConciseAttributes should collapse a simple Property to a bare scalar`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "speed": {
+                    "type": "Property",
+                    "value": 120
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "speed": 120
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should keep map with observedAt for a Property`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "speed": {
+                    "type": "Property",
+                    "value": 120,
+                    "observedAt": "2024-01-01T00:00:00Z"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "speed": {
+                    "value": 120,
+                    "observedAt": "2024-01-01T00:00:00Z"
+                }
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should remove type from Property and recurse into sub-attributes`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "temperature": {
+                    "type": "Property",
+                    "value": 22.5,
+                    "observedAt": "2024-01-01T00:00:00Z",
+                    "measuredBy": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:Sensor:01"
+                    }
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "temperature": {
+                    "value": 22.5,
+                    "observedAt": "2024-01-01T00:00:00Z",
+                    "measuredBy": {
+                        "object": "urn:ngsi-ld:Sensor:01"
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should collapse a simple GeoProperty to a bare GeoJSON object`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "location": {
+                    "type": "GeoProperty",
+                    "value": {
+                        "type": "Point",
+                        "coordinates": [24.30623, 60.07966]
+                    }
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "location": {
+                    "type": "Point",
+                    "coordinates": [24.30623, 60.07966]
+                }
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should keep map with observedAt for a GeoProperty`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "location": {
+                    "type": "GeoProperty",
+                    "value": {
+                        "type": "Point",
+                        "coordinates": [24.30623, 60.07966]
+                    },
+                    "observedAt": "2024-01-01T00:00:00Z"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "location": {
+                    "value": {
+                        "type": "Point",
+                        "coordinates": [24.30623, 60.07966]
+                    },
+                    "observedAt": "2024-01-01T00:00:00Z"
+                }
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should keep Relationship as map with object key and no type`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "isParkedIn": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Parking:01"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "isParkedIn": {
+                    "object": "urn:ngsi-ld:Parking:01"
+                }
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should keep Relationship with observedAt and no type`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "isParkedIn": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Parking:01",
+                    "observedAt": "2024-01-01T00:00:00Z"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "isParkedIn": {
+                    "object": "urn:ngsi-ld:Parking:01",
+                    "observedAt": "2024-01-01T00:00:00Z"
+                }
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should keep JsonProperty as map with json key and no type`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "metadata": {
+                    "type": "JsonProperty",
+                    "json": {
+                        "key": "value"
+                    }
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "metadata": {
+                    "json": {
+                        "key": "value"
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should keep LanguageProperty as map with languageMap key and no type`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "name": {
+                    "type": "LanguageProperty",
+                    "languageMap": {
+                        "fr": "Tour Eiffel",
+                        "en": "Eiffel Tower"
+                    }
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "name": {
+                    "languageMap": {
+                        "fr": "Tour Eiffel",
+                        "en": "Eiffel Tower"
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should keep VocabProperty as map with vocab key and no type`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "status": {
+                    "type": "VocabProperty",
+                    "vocab": "Open"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "status": {
+                    "vocab": "Open"
+                }
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should return a list of concise instances for multi-instance attributes`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "speed": [
+                    {
+                        "type": "Property",
+                        "value": 55,
+                        "datasetId": "urn:ngsi-ld:Dataset:01"
+                    },
+                    {
+                        "type": "Property",
+                        "value": 54.5,
+                        "datasetId": "urn:ngsi-ld:Dataset:02"
+                    }
+                ]
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "speed": [
+                    {
+                        "value": 55,
+                        "datasetId": "urn:ngsi-ld:Dataset:01"
+                    },
+                    {
+                        "value": 54.5,
+                        "datasetId": "urn:ngsi-ld:Dataset:02"
+                    }
+                ]
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should leave entity core keys untouched`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld"
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toFinalRepresentation should apply concise transformation when CONCISE is requested`() {
+        val inputEntity = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "speed": {
+                    "type": "Property",
+                    "value": 100
+                },
+                "isParkedIn": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Parking:01"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:01",
+                "type": "Vehicle",
+                "speed": 100,
+                "isParkedIn": {
+                    "object": "urn:ngsi-ld:Parking:01"
+                }
+            }
+        """.trimIndent()
+
+        val result = inputEntity.toFinalRepresentation(
+            NgsiLdDataRepresentation(
+                EntityRepresentation.JSON,
+                AttributeRepresentation.CONCISE,
+                includeSysAttrs = false
+            )
+        )
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
 }

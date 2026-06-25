@@ -14,11 +14,13 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -32,6 +34,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
@@ -573,6 +576,48 @@ class EntityOperationHandlerTests {
                 }
             )
         }
+    }
+
+    @Test
+    fun `query entities should return the concise representation of entities`() = runTest {
+        coEvery {
+            entityQueryService.queryEntities(any())
+        } returns Pair(listOf(loadAndExpandSampleData("beehive_for_replacement.jsonld")), 1).right()
+        coEvery {
+            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any())
+        } answers { firstArg<List<CompactedEntity>>().right() }
+
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{ "type": "$BEEHIVE_IRI" }]
+            }
+        """.trimIndent()
+
+        webClient.post()
+            .uri("$queryEntitiesEndpoint?format=concise")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .bodyValue(query)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .json(
+                """
+                [
+                    {
+                        "id": "urn:ngsi-ld:BeeHive:TESTC",
+                        "type": "BeeHive",
+                        "name": "ParisBeehive12",
+                        "incoming": {
+                            "value": 1234,
+                            "observedAt": "2020-01-24T14:01:22.066Z",
+                            "datasetId": "urn:ngsi-ld:Dataset:123"
+                        },
+                        "@context": "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+                    }
+                ]
+                """.trimIndent()
+            )
     }
 
     @Test

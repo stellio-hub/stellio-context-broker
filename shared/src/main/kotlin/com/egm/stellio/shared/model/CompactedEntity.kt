@@ -146,6 +146,31 @@ private fun simplifyAttribute(value: Map<String, Any>): Any {
     }
 }
 
+fun CompactedEntity.toConciseAttributes(): Map<String, Any> =
+    this.mapValues { entry ->
+        applyAttributeTransformation(
+            entry,
+            ::conciseAttribute,
+            { values -> values.map { conciseAttribute(it, true) } }
+        )
+    }
+
+private fun conciseAttribute(value: Map<String, Any>, isMultiInstanceAttribute: Boolean = false): Any =
+    value.minus(NGSILD_TYPE_TERM)
+        .mapValues { (key, value) ->
+            if (!JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(key))
+                conciseAttribute(value as Map<String, Any>)
+            else value
+        }.let {
+            when (value[NGSILD_TYPE_TERM] as String) {
+                PROPERTY.key, GEOPROPERTY.key ->
+                    if (it.keys == setOf(NGSILD_VALUE_TERM) && !isMultiInstanceAttribute)
+                        it[NGSILD_VALUE_TERM]!!
+                    else it
+                else -> it
+            }
+        }
+
 private fun CompactedAttributeInstance.getRelationshipObjectIds(): List<String> =
     when (val relationshipObject = this[NGSILD_OBJECT_TERM]) {
         is String -> listOf(relationshipObject)
@@ -295,9 +320,11 @@ fun CompactedEntity.toFinalRepresentation(
             it.toFilteredLanguageProperties(ngsiLdDataRepresentation.languageFilter)
         else it
     }.let {
-        if (ngsiLdDataRepresentation.attributeRepresentation == AttributeRepresentation.SIMPLIFIED)
-            it.toSimplifiedAttributes()
-        else it
+        when (ngsiLdDataRepresentation.attributeRepresentation) {
+            AttributeRepresentation.SIMPLIFIED -> it.toSimplifiedAttributes()
+            AttributeRepresentation.CONCISE -> it.toConciseAttributes()
+            AttributeRepresentation.NORMALIZED -> it
+        }
     }.let {
         when (ngsiLdDataRepresentation.entityRepresentation) {
             EntityRepresentation.GEO_JSON ->

@@ -31,6 +31,8 @@ import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ConciseRepresentationUtils.normalizeAttributeFragment
+import com.egm.stellio.shared.util.ConciseRepresentationUtils.normalizeEntityFragment
 import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_ID_MISMATCH_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeNotFoundMessage
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
@@ -98,7 +100,7 @@ class EntityHandler(
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
-        val expandedEntity = expandJsonLdEntity(body, contexts)
+        val expandedEntity = expandJsonLdEntity(normalizeEntityFragment(body), contexts)
         expandedEntity.toNgsiLdEntity().bind()
         val entityId = expandedEntity.id
 
@@ -144,7 +146,7 @@ class EntityHandler(
         val observedAt = queryParams.getFirst(QueryParameter.OBSERVED_AT.key)
             ?.parseTimeParameter("'observedAt' parameter is not a valid date")
             ?.getOrElse { return@either BadRequestDataException(it).left().bind<ResponseEntity<*>>() }
-        val expandedAttributes = expandAttributes(body, contexts)
+        val expandedAttributes = expandAttributes(normalizeEntityFragment(body), contexts)
 
         val updateResult = entityService.mergeEntity(entityId, expandedAttributes, observedAt).bind()
 
@@ -174,7 +176,7 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-        val expandedEntity = expandJsonLdEntity(body, contexts)
+        val expandedEntity = expandJsonLdEntity(normalizeEntityFragment(body), contexts)
 
         if (expandedEntity.id != entityId)
             BadRequestDataException(ENTITY_ID_MISMATCH_MESSAGE).left().bind<ResponseEntity<*>>()
@@ -446,7 +448,7 @@ class EntityHandler(
 
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-        val expandedAttributes = expandAttributes(body, contexts)
+        val expandedAttributes = expandAttributes(normalizeEntityFragment(body), contexts)
 
         val updateResult = entityService.appendAttributes(
             entityId,
@@ -484,7 +486,7 @@ class EntityHandler(
     ): ResponseEntity<*> = either {
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
-        val expandedAttributes = expandAttributes(body, contexts)
+        val expandedAttributes = expandAttributes(normalizeEntityFragment(body), contexts)
 
         val updateResult = entityService.updateAttributes(entityId, expandedAttributes).bind()
 
@@ -591,7 +593,7 @@ class EntityHandler(
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
-        val expandedAttribute = expandAttribute(attrId, body, contexts)
+        val expandedAttribute = expandAttribute(attrId, normalizeAttributeFragment(body), contexts)
 
         entityService.replaceAttribute(entityId, expandedAttribute).bind()
             .let {

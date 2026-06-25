@@ -28,6 +28,7 @@ import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QP
+import com.egm.stellio.shared.util.ConciseRepresentationUtils.normalizeEntityFragment
 import com.egm.stellio.shared.util.ErrorMessages.BatchOperation.BATCH_PAYLOAD_EMPTY_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.BatchOperation.CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
@@ -256,7 +257,7 @@ class EntityOperationHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(
-            implemented = [QP.LIMIT, QP.OFFSET, QP.COUNT, QP.OPTIONS],
+            implemented = [QP.LIMIT, QP.OFFSET, QP.COUNT, QP.OPTIONS, QP.FORMAT],
             notImplemented = [QP.LOCAL, QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
@@ -318,13 +319,17 @@ class EntityOperationHandler(
                     it.checkContentType(httpHeaders)
                 }.flatMap {
                     val coreContext = applicationProperties.contexts.core
+                    val normalizedEntity = normalizeEntityFragment(it)
                     if (httpHeaders.contentType == JSON_LD_MEDIA_TYPE)
-                        addCoreContextIfMissingSafe(it.extractContexts(), coreContext).flatMap { contexts ->
-                            expandJsonLdEntitySafe(it.minus(JSONLD_CONTEXT_KW), contexts)
+                        addCoreContextIfMissingSafe(
+                            normalizedEntity.extractContexts(),
+                            coreContext
+                        ).flatMap { contexts ->
+                            expandJsonLdEntitySafe(normalizedEntity.minus(JSONLD_CONTEXT_KW), contexts)
                         }
                     else
                         addCoreContextIfMissingSafe(listOfNotNull(context), coreContext).flatMap { contexts ->
-                            expandJsonLdEntitySafe(it, contexts)
+                            expandJsonLdEntitySafe(normalizedEntity, contexts)
                         }
                 }
                 .mapLeft { apiException -> Pair(compactedEntity[NGSILD_ID_TERM] as String, apiException) }

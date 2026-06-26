@@ -12,7 +12,7 @@ import org.junit.jupiter.params.provider.CsvSource
 class DataRepresentationUtilsTests {
 
     @Test
-    fun `it should not validate an entity with an invalid type name`() = runTest {
+    fun `checkNamesAreNgsiLdSupported should reject an invalid type name`() = runTest {
         val rawEntity =
             """
             {
@@ -32,7 +32,7 @@ class DataRepresentationUtilsTests {
     }
 
     @Test
-    fun `it should not validate an entity with one invalid type name in a list of many`() = runTest {
+    fun `checkNamesAreNgsiLdSupported should reject one invalid type name in a list of many`() = runTest {
         val rawEntity =
             """
             {
@@ -52,7 +52,7 @@ class DataRepresentationUtilsTests {
     }
 
     @Test
-    fun `it should validate an entity with allowed characters for attribute name`() = runTest {
+    fun `checkNamesAreNgsiLdSupported should accept allowed characters in an attribute name`() = runTest {
         val rawEntity =
             """
             {
@@ -69,7 +69,7 @@ class DataRepresentationUtilsTests {
     }
 
     @Test
-    fun `it should validate an entity with special characters in the value of a property`() = runTest {
+    fun `checkNamesAreNgsiLdSupported should accept special characters in the value of a property`() = runTest {
         val rawEntity =
             """
             {
@@ -89,7 +89,7 @@ class DataRepresentationUtilsTests {
     }
 
     @Test
-    fun `it should validate an entity with special characters in the value of a JsonProperty`() = runTest {
+    fun `checkNamesAreNgsiLdSupported should accept special characters in the value of a JsonProperty`() = runTest {
         val rawEntity =
             """
             {
@@ -109,7 +109,7 @@ class DataRepresentationUtilsTests {
     }
 
     @Test
-    fun `it should not validate an entity with an invalid attribute name`() = runTest {
+    fun `checkNamesAreNgsiLdSupported should reject an invalid attribute name`() = runTest {
         val rawEntity =
             """
             {
@@ -133,7 +133,7 @@ class DataRepresentationUtilsTests {
     }
 
     @Test
-    fun `it should not validate an entity with an invalid sub-attribute name`() = runTest {
+    fun `checkNamesAreNgsiLdSupported should reject an invalid sub-attribute name`() = runTest {
         val rawEntity =
             """
             {
@@ -161,7 +161,7 @@ class DataRepresentationUtilsTests {
     }
 
     @Test
-    fun `it should not validate an entity with an invalid sub-attribute name in a multi-attribute`() = runTest {
+    fun `checkNamesAreNgsiLdSupported should reject an invalid sub-attribute name in a multi-attribute`() = runTest {
         val rawEntity =
             """
             {
@@ -201,7 +201,7 @@ class DataRepresentationUtilsTests {
         "/3Scope",
         "/Scope#Another"
     )
-    fun `it should not validate an invalid scope name`(scope: String) = runTest {
+    fun `checkScopesNamesAreNgsiLdSupported should reject an invalid scope name`(scope: String) = runTest {
         scope.checkScopesNamesAreNgsiLdSupported().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
@@ -212,7 +212,7 @@ class DataRepresentationUtilsTests {
     }
 
     @Test
-    fun `it should not validate invalid scopes names`() = runTest {
+    fun `checkScopesNamesAreNgsiLdSupported should reject invalid scopes names`() = runTest {
         listOf("/Scope/#Scope", "/A,/B").checkScopesNamesAreNgsiLdSupported().shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
@@ -233,17 +233,17 @@ class DataRepresentationUtilsTests {
         "/Scope/Sub_scope",
         "/Scope/Subscope/Subsubscope"
     )
-    fun `it should validate valid scope name`(scope: String) = runTest {
+    fun `checkScopesNamesAreNgsiLdSupported should accept a valid scope name`(scope: String) = runTest {
         scope.checkScopesNamesAreNgsiLdSupported().shouldSucceed()
     }
 
     @Test
-    fun `it should validate valid scopes names`() = runTest {
+    fun `checkScopesNamesAreNgsiLdSupported should accept valid scopes names`() = runTest {
         listOf("/A/B", "A/B", "A/B_C").checkScopesNamesAreNgsiLdSupported().shouldSucceed()
     }
 
     @Test
-    fun `it should not validate an entity with an invalid scope name`() = runTest {
+    fun `checkContentIsNgsiLdSupported should reject an entity with an invalid scope name`() = runTest {
         val rawEntity =
             """
             {
@@ -264,7 +264,7 @@ class DataRepresentationUtilsTests {
     }
 
     @Test
-    fun `it should not validate an entity with invalid scopes names`() = runTest {
+    fun `checkContentIsNgsiLdSupported should reject an entity with invalid scopes names`() = runTest {
         val rawEntity =
             """
             {
@@ -285,7 +285,7 @@ class DataRepresentationUtilsTests {
     }
 
     @Test
-    fun `it should not validate an entity with a null value`() = runTest {
+    fun `checkContentIsNgsiLdSupported should reject an entity with a null value`() = runTest {
         val rawEntity =
             """
             {

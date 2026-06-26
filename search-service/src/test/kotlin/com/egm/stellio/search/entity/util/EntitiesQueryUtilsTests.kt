@@ -49,7 +49,7 @@ import java.net.URI
 class EntitiesQueryUtilsTests {
 
     @Test
-    fun `it should parse query parameters`() = runTest {
+    fun `composeEntitiesQueryFromGet should parse query parameters`() = runTest {
         val requestParams = gimmeEntitiesQueryParams()
         val entitiesQuery = composeEntitiesQueryFromGet(
             buildDefaultPagination(1, 20),
@@ -85,7 +85,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should set default values in query parameters`() = runTest {
+    fun `composeEntitiesQueryFromGet should set default values in query parameters`() = runTest {
         val requestParams = LinkedMultiValueMap<String, String>()
         val entitiesQuery = composeEntitiesQueryFromGet(
             buildDefaultPagination(30, 100),
@@ -120,7 +120,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should return a BadRequest error if join parameter is not recognized`() = runTest {
+    fun `composeEntitiesQueryFromGet should return a BadRequest error when join is not recognized`() = runTest {
         composeEntitiesQueryFromGet(
             buildDefaultPagination(30, 100),
             LinkedMultiValueMap<String, String>().apply {
@@ -137,7 +137,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should return a BadRequest error if joinLevel parameter is not a positive integer`() = runTest {
+    fun `composeEntitiesQueryFromGet should fail when joinLevel is not a positive integer`() = runTest {
         composeEntitiesQueryFromGet(
             buildDefaultPagination(30, 100),
             LinkedMultiValueMap<String, String>().apply {
@@ -155,7 +155,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should return a BadRequest error if join is not specified and joinLevel is specified`() = runTest {
+    fun `composeEntitiesQueryFromGet should return a BadRequest error when joinLevel is set without join`() = runTest {
         composeEntitiesQueryFromGet(
             buildDefaultPagination(30, 100),
             LinkedMultiValueMap<String, String>().apply {
@@ -172,7 +172,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should return a BadRequest error if join is not specified and containedBy is specified`() = runTest {
+    fun `composeEntitiesQueryFromGet should fail when containedBy is set without join`() = runTest {
         composeEntitiesQueryFromGet(
             buildDefaultPagination(30, 100),
             LinkedMultiValueMap<String, String>().apply {
@@ -189,7 +189,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should return a BadRequest error if an entity member is in pick and omit parameters`() = runTest {
+    fun `composeEntitiesQueryFromGet should return a BadRequest error when a member is in pick and omit`() = runTest {
         composeEntitiesQueryFromGet(
             buildDefaultPagination(30, 100),
             LinkedMultiValueMap<String, String>().apply {
@@ -207,7 +207,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should return a BadRequest error if attrs and pick parameters are specified`() = runTest {
+    fun `composeEntitiesQueryFromGet should return a BadRequest error when attrs and pick are specified`() = runTest {
         composeEntitiesQueryFromGet(
             buildDefaultPagination(30, 100),
             LinkedMultiValueMap<String, String>().apply {
@@ -240,7 +240,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a valid complete Query datatype`() = runTest {
+    fun `composeEntitiesQueryFromPostRequest should parse a valid complete Query datatype`() = runTest {
         val query = """
             {
                 "type": "Query",
@@ -307,7 +307,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a valid simple Query datatype`() = runTest {
+    fun `composeEntitiesQueryFromPostRequest should parse a valid simple Query datatype`() = runTest {
         val query = """
             {
                 "type": "Query",
@@ -332,7 +332,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should default to location geoproperty if not provided in the GeoQuery`() = runTest {
+    fun `composeEntitiesQueryFromPostRequest should default to location geoproperty if not provided`() = runTest {
         val query = """
             {
                 "type": "Query",
@@ -355,7 +355,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a Query datatype with more than one entity selectors`() = runTest {
+    fun `composeEntitiesQueryFromPostRequest should parse a Query datatype with multiple entity selectors`() = runTest {
         val query = """
             {
                 "type": "Query",
@@ -438,7 +438,7 @@ class EntitiesQueryUtilsTests {
         }
 
     @Test
-    fun `it should not validate a Query if the type is not correct`() {
+    fun `composeEntitiesQueryFromPostRequest should not validate a Query if the type is not correct`() {
         val query = """
             {
                 "type": "NotAQuery",
@@ -458,7 +458,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should not validate a Query if the payload could not be parsed because the JSON is invalid`() {
+    fun `composeEntitiesQueryFromPostRequest should not validate a Query if the JSON payload is invalid`() {
         val query = """
             {
                 "type": "Query",,
@@ -478,7 +478,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should not validate a Query if the payload contains unexpected parameters`() {
+    fun `composeEntitiesQueryFromPostRequest should not validate a Query with unexpected parameters`() {
         val query = """
             {
                 "type": "Query",
@@ -498,7 +498,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should not validate a Query if an entity selector has no type member`() {
+    fun `composeEntitiesQueryFromPostRequest should not validate a Query if an entity selector has no type member`() {
         val query = """
             {
                 "type": "Query",
@@ -522,7 +522,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should not validate a Query if joinLevel is invalid`() {
+    fun `composeEntitiesQueryFromPostRequest should not validate a Query if joinLevel is invalid`() {
         val query = """
             {
                 "type": "Query",
@@ -545,7 +545,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should not validate a Query if join is invalid`() {
+    fun `composeEntitiesQueryFromPostRequest should not validate a Query if join is invalid`() {
         val query = """
             {
                 "type": "Query",
@@ -568,7 +568,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should not validate a Query if pick and omit are invalid`() {
+    fun `composeEntitiesQueryFromPostRequest should not validate a Query if pick and omit are invalid`() {
         val query = """
             {
                 "type": "Query",
@@ -589,7 +589,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a Query with multiple orderBy`() {
+    fun `composeEntitiesQueryFromPostRequest should parse a Query with multiple orderBy`() {
         val query = """
             {
                 "type": "Query",

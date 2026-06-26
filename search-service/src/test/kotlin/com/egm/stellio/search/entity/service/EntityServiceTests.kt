@@ -104,7 +104,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should create an entity payload from string if none existed yet`() = runTest {
+    fun `createEntityPayload should create an entity payload from string if none existed yet`() = runTest {
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
@@ -117,7 +117,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should create an entity payload from an NGSI-LD Entity if none existed yet`() = runTest {
+    fun `createEntityPayload should create an entity payload from an NGSI-LD Entity if none existed yet`() = runTest {
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityService.createEntityPayload(ngsiLdEntity, jsonLdEntity, now)
             .shouldSucceed()
@@ -132,7 +132,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `it should only create an entity payload for a minimal entity`() = runTest {
+    fun `createEntity should only create an entity payload for a minimal entity`() = runTest {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery { entityEventService.publishEntityCreateEvent(any(), any()) } returns Job()
         coEvery {
@@ -171,7 +171,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not create an entity payload if one already exists`() = runTest {
+    fun `createEntity should not create an entity when one already exists`() = runTest {
         val (jsonLdEntity, ngsiLdEntity) =
             loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI)).sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityService.createEntityPayload(
@@ -187,7 +187,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not create an entity if it contains an NGSI-LD Null value`() = runTest {
+    fun `createEntity should not create an entity if it contains an NGSI-LD Null value`() = runTest {
         val (jsonLdEntity, ngsiLdEntity) = """
             {
                 "id": "urn:ngsi-ld:Entity:01",
@@ -207,7 +207,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should allow to create an entity over a deleted one if authorized`() = runTest {
+    fun `createEntity should allow creating an entity over a deleted one if authorized`() = runTest {
         coEvery {
             entityAttributeService.deleteAttributes(any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
@@ -238,7 +238,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not allow to create an entity over a deleted one if not authorized`() = runTest {
+    fun `createEntity should not allow creating an entity over a deleted one if not authorized`() = runTest {
         coEvery {
             entityAttributeService.deleteAttributes(any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()
@@ -268,7 +268,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should create the deleted representation of an entity when deleting it`() = runTest {
+    fun `deleteEntityPayload should create the deleted representation when deleting an entity`() = runTest {
         val (expandedEntity, ngsiLdEntity) =
             loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
                 .sampleDataToNgsiLdEntity()
@@ -293,7 +293,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should merge an entity`() = runTest {
+    fun `mergeEntity should merge an entity`() = runTest {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
@@ -352,7 +352,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should merge an entity with new types`() = runTest {
+    fun `mergeEntity should merge an entity with new types`() = runTest {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
@@ -392,7 +392,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should merge an entity with new types and scopes`() = runTest {
+    fun `mergeEntity should merge an entity with new types and scopes`() = runTest {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
@@ -434,7 +434,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should replace an entity payload if entity previously existed`() = runTest {
+    fun `replaceEntityPayload should replace an entity payload if entity previously existed`() = runTest {
         val (jsonLdEntity, ngsiLdEntity) = loadSampleData().sampleDataToNgsiLdEntity().shouldSucceedAndResult()
         entityService.createEntityPayload(ngsiLdEntity, jsonLdEntity, now).shouldSucceed()
 
@@ -442,7 +442,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should replace an entity`() = runTest {
+    fun `replaceEntity should replace an entity`() = runTest {
         // called when creating the initial entity
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery {
@@ -505,7 +505,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should replace an attribute`() = runTest {
+    fun `replaceAttribute should replace an attribute`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
         coEvery {
@@ -533,7 +533,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should add a type to an entity`() = runTest {
+    fun `updateTypes should add a type to an entity`() = runTest {
         val entityPayload = loadSampleData("beehive.jsonld")
         entityPayload.sampleDataToNgsiLdEntity().map {
             entityService.createEntityPayload(
@@ -561,7 +561,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should add a type to an entity even if existing types are not in the list of types to add`() = runTest {
+    fun `updateTypes should add a type even if existing types are not in the list to add`() = runTest {
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
             .map {
@@ -585,7 +585,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should remove the scopes from an entity`() = runTest {
+    fun `deleteAttribute should remove the scopes from an entity`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
             entityAttributeService.addOrReplaceAttribute(any(), any(), any(), any(), any())
@@ -614,7 +614,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should permanently delete an entity`() = runTest {
+    fun `permanentlyDeleteEntity should permanently delete an entity`() = runTest {
         coEvery { authorizationService.userCanAdminEntity(any()) } returns Unit.right()
         coEvery { entityAttributeService.permanentlyDeleteAttributes(any()) } returns Unit.right()
         coEvery { authorizationService.removeRightsOnEntity(any()) } returns Unit.right()
@@ -638,7 +638,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should permanently delete an attribute`() = runTest {
+    fun `permanentlyDeleteAttribute should permanently delete an attribute`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
             entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
@@ -671,7 +671,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a ResourceNotFound error if trying to permanently delete an unknown attribute`() = runTest {
+    fun `permanentlyDeleteAttribute should return a ResourceNotFound error for an unknown attribute`() = runTest {
         coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
         coEvery {
             entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())

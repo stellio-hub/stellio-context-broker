@@ -100,7 +100,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should correctly handle an attribute with one instance`() {
+    fun `add temporal entity attributes should correctly handle an attribute with one instance`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_one_instance.jsonld")
 
@@ -125,7 +125,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should correctly handle an attribute with many instances`() {
+    fun `add temporal entity attributes should correctly handle an attribute with many instances`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_many_instances.jsonld")
 
@@ -150,7 +150,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should correctly handle many attributes with one instance`() {
+    fun `add temporal entity attributes should correctly handle many attributes with one instance`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_one_instance.jsonld")
 
@@ -175,7 +175,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should correctly handle many attributes with many instances`() {
+    fun `add temporal entity attributes should correctly handle many attributes with many instances`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
 
@@ -200,7 +200,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return a 400 if temporal entity fragment is badly formed`() {
+    fun `add temporal entity attributes should return a 400 if the fragment is badly formed`() {
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
             .header("Link", APIC_HEADER_LINK)
@@ -219,7 +219,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return a 403 is user is not authorized to write on the entity`() {
+    fun `add temporal entity attributes should return a 403 if user cannot write on the entity`() {
         val entityTemporalFragment =
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
 
@@ -237,7 +237,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if timerel is present without time query param`() {
+    fun `query temporal entity should return 400 if timerel is present without time`() {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=before")
             .exchange()
@@ -253,7 +253,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if time is present without timerel query param`() {
+    fun `query temporal entity should return 400 if time is present without timerel`() {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timeAt=2020-10-29T18:00:00Z")
             .exchange()
@@ -269,7 +269,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should give a 200 if no timerel and no time query params are in the request`() = runTest {
+    fun `query temporal entity should return 200 if no timerel and time params are provided`() = runTest {
         val expandedTemporalEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
@@ -282,7 +282,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if timerel is between and no endTimeAt provided`() {
+    fun `query temporal entity should return 400 if timerel is between and no endTimeAt`() {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=between&timeAt=2020-10-29T18:00:00Z")
             .exchange()
@@ -298,7 +298,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if time is not parsable`() {
+    fun `query temporal entity should return 400 if time is not parsable`() {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=before&timeAt=badTime")
             .exchange()
@@ -314,7 +314,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if timerel is not a valid value`() {
+    fun `query temporal entity should return 400 if timerel is not a valid value`() {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=befor&timeAt=badTime")
             .exchange()
@@ -330,7 +330,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if timerel is between and endTimeAt is not parseable`() {
+    fun `query temporal entity should return 400 if timerel is between and endTimeAt is not parseable`() {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
@@ -349,7 +349,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if one of time bucket or aggregate is missing`() {
+    fun `query temporal entity should return 400 if time bucket or aggregate is missing`() {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
@@ -368,7 +368,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if aggregate function is unknown`() {
+    fun `query temporal entity should return 400 if aggregate function is unknown`() {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
@@ -387,7 +387,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if aggrPeriodDuration is not in the correct format`() {
+    fun `query temporal entity should return 400 if aggrPeriodDuration format is invalid`() {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
@@ -406,7 +406,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if temporalValues and aggregatedValues exist in options query param`() {
+    fun `query temporal entity should return 400 if temporalValues and aggregatedValues both set`() {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
@@ -426,7 +426,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if format query param has an invalid value`() {
+    fun `query temporal entity should return 400 if format query param is invalid`() {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
@@ -446,7 +446,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 if options query param has an invalid value`() {
+    fun `query temporal entity should return 400 if options query param is invalid`() {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
@@ -466,7 +466,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return a 404 if temporal entity attribute does not exist`() {
+    fun `query temporal entity should return 404 if the attribute does not exist`() {
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
         } returns ResourceNotFoundException("Entity urn:ngsi-ld:BeeHive:TESTC does not exist").left()
@@ -489,7 +489,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return a 404 if no temporal entity member matches pick and omit parameters`() = runTest {
+    fun `query temporal entity should return 404 if no member matches pick and omit`() = runTest {
         val expandedTemporalEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
@@ -510,7 +510,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return a 200 if minimal required parameters are valid`() = runTest {
+    fun `query temporal entity should return 200 if minimal required parameters are valid`() = runTest {
         val expandedTemporalEntity = loadAndExpandSampleData("temporal/beehive_create_temporal_entity.jsonld")
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
@@ -542,7 +542,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return an entity with two temporal properties evolution`() = runTest {
+    fun `query temporal entity should return an entity with two temporal properties evolution`() = runTest {
         mockWithIncomingAndOutgoingTemporalProperties(false)
 
         webClient.get()
@@ -562,7 +562,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return a json entity with two temporal properties evolution`() = runTest {
+    fun `query temporal entity should return a json entity with two temporal properties evolution`() = runTest {
         mockWithIncomingAndOutgoingTemporalProperties(false)
 
         webClient.get()
@@ -584,7 +584,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return an entity with two temporal properties evolution with temporalValues option`() = runTest {
+    fun `query temporal entity should return temporal properties with the temporalValues option`() = runTest {
         mockWithIncomingAndOutgoingTemporalProperties(true)
 
         webClient.get()
@@ -604,7 +604,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should wrap single instance normalized attributes to a list of one instance`() = runTest {
+    fun `query temporal entity should wrap single instance normalized attributes in a list`() = runTest {
         val temporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_one_evolution.jsonld")
         coEvery {
             temporalQueryService.queryTemporalEntity(any(), any())
@@ -636,7 +636,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should raise a 400 and return an error response`() {
+    fun `query temporal entities should return a 400 and an error response`() {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?type=Beehive&timerel=before")
             .exchange()
@@ -652,7 +652,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return a 200 with empty payload if no temporal attribute is found`() {
+    fun `query temporal entity should return 200 with an empty payload if no attribute is found`() {
         val temporalQuery = buildDefaultTestTemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
             timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
@@ -689,7 +689,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return 200 with jsonld response body for query temporal entities`() = runTest {
+    fun `query temporal entities should return 200 with a JSON-LD response body`() = runTest {
         val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
         val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 
@@ -714,7 +714,7 @@ class TemporalEntityHandlerTests : TemporalEntityHandlerTestCommon() {
     }
 
     @Test
-    fun `it should return 200 with json response body for query temporal entities`() = runTest {
+    fun `query temporal entities should return 200 with a JSON response body`() = runTest {
         val firstTemporalEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
         val secondTemporalEntity = loadAndExpandSampleData("beehive.jsonld")
 

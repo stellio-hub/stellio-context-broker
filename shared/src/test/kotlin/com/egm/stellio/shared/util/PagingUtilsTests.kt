@@ -9,7 +9,7 @@ class PagingUtilsTests {
     private val subscriptionResourceUrl = "/ngsi-ld/v1/subscriptions"
 
     @Test
-    fun `it should not return the links`() {
+    fun `getPagingLinks should not return the links`() {
         val links = PagingUtils.getPagingLinks(
             subscriptionResourceUrl,
             LinkedMultiValueMap(),
@@ -22,7 +22,7 @@ class PagingUtilsTests {
     }
 
     @Test
-    fun `it should return the prev link`() {
+    fun `getPagingLinks should return the prev link`() {
         val links = PagingUtils.getPagingLinks(
             subscriptionResourceUrl,
             LinkedMultiValueMap(),
@@ -38,7 +38,7 @@ class PagingUtilsTests {
     }
 
     @Test
-    fun `it should return the next link`() {
+    fun `getPagingLinks should return the next link`() {
         val links = PagingUtils.getPagingLinks(
             subscriptionResourceUrl,
             LinkedMultiValueMap(),
@@ -54,7 +54,7 @@ class PagingUtilsTests {
     }
 
     @Test
-    fun `it should return the prev and the next links`() {
+    fun `getPagingLinks should return the prev and the next links`() {
         val links = PagingUtils.getPagingLinks(
             subscriptionResourceUrl,
             LinkedMultiValueMap(),

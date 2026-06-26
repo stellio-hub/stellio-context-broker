@@ -44,7 +44,7 @@ class IAMListenerTests {
     private val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     @Test
-    fun `it should handle a create event for an user`() = runTest {
+    fun `dispatchIamMessage should handle a create event for an user`() = runTest {
         val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEvent.json")
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
@@ -67,7 +67,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a create event with unknwon properties for an user`() = runTest {
+    fun `dispatchIamMessage should handle a create event with unknown properties for a user`() = runTest {
         val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEventUnknownProperties.json")
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
@@ -90,7 +90,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a create event with the default tenant for an user`() = runTest {
+    fun `dispatchIamMessage should handle a create event with the default tenant for an user`() = runTest {
         val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEventWithDefaultTenant.json")
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
@@ -113,7 +113,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a create event for a group`() = runTest {
+    fun `dispatchIamMessage should handle a create event for a group`() = runTest {
         val subjectCreateEvent = loadSampleData("events/authorization/GroupCreateEvent.json")
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
@@ -136,7 +136,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a create event for a subject with a default role`() = runTest {
+    fun `dispatchIamMessage should handle a create event for a subject with a default role`() = runTest {
         val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEventDefaultRole.json")
 
         coEvery { subjectReferentialService.create(any()) } returns Unit.right()
@@ -155,7 +155,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a delete event for a subject`() = runTest {
+    fun `dispatchIamMessage should handle a delete event for a subject`() = runTest {
         val subjectDeleteEvent = loadSampleData("events/authorization/UserDeleteEvent.json")
 
         coEvery { subjectReferentialService.delete(any()) } returns Unit.right()
@@ -172,7 +172,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle an append event adding a stellio-admin role for a group`() = runTest {
+    fun `dispatchIamMessage should handle an append event adding a stellio-admin role for a group`() = runTest {
         val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventOneRole.json")
 
         coEvery { subjectReferentialService.setGlobalRoles(any(), any()) } returns Unit.right()
@@ -190,7 +190,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle an append event adding a stellio-admin role for a client`() = runTest {
+    fun `dispatchIamMessage should handle an append event adding a stellio-admin role for a client`() = runTest {
         val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendToClient.json")
 
         coEvery { subjectReferentialService.setGlobalRoles(any(), any()) } returns Unit.right()
@@ -208,7 +208,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle an append event adding a stellio-admin role within two roles`() = runTest {
+    fun `dispatchIamMessage should handle an append event adding a stellio-admin role within two roles`() = runTest {
         val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventTwoRoles.json")
 
         coEvery { subjectReferentialService.setGlobalRoles(any(), any()) } returns Unit.right()
@@ -226,7 +226,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle an append event removing a stellio-admin role for a group`() = runTest {
+    fun `dispatchIamMessage should handle an append event removing a stellio-admin role for a group`() = runTest {
         val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventNoRole.json")
 
         coEvery { subjectReferentialService.resetGlobalRoles(any()) } returns Unit.right()
@@ -243,7 +243,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle an append event adding an user to a group`() = runTest {
+    fun `dispatchIamMessage should handle an append event adding an user to a group`() = runTest {
         val roleAppendEvent = loadSampleData("events/authorization/GroupMembershipAppendEvent.json")
 
         coEvery { subjectReferentialService.addGroupMembershipToUser(any(), any()) } returns Unit.right()
@@ -263,7 +263,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a delete event removing an user from a group`() = runTest {
+    fun `dispatchIamMessage should handle a delete event removing an user from a group`() = runTest {
         val roleAppendEvent = loadSampleData("events/authorization/GroupMembershipDeleteEvent.json")
 
         coEvery { subjectReferentialService.removeGroupMembershipToUser(any(), any()) } returns Unit.right()
@@ -283,7 +283,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a replace event changing the name of a group`() = runTest {
+    fun `dispatchIamMessage should handle a replace event changing the name of a group`() = runTest {
         val roleAppendEvent = loadSampleData("events/authorization/GroupUpdateEvent.json")
 
         coEvery { subjectReferentialService.updateSubjectInfo(any(), any()) } returns Unit.right()
@@ -301,7 +301,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a replace event changing the given name of an user`() = runTest {
+    fun `dispatchIamMessage should handle a replace event changing the given name of an user`() = runTest {
         val roleAppendEvent = loadSampleData("events/authorization/UserUpdateEvent.json")
 
         coEvery { subjectReferentialService.updateSubjectInfo(any(), any()) } returns Unit.right()
@@ -319,7 +319,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should handle a replace event changing the clientId of a client`() = runTest {
+    fun `dispatchIamMessage should handle a replace event changing the clientId of a client`() = runTest {
         val clientIdReplaceEvent = loadSampleData("events/authorization/ClientIdAppendToClient.json")
 
         coEvery { subjectReferentialService.updateSubjectInfo(any(), any()) } returns Unit.right()
@@ -337,7 +337,7 @@ class IAMListenerTests {
     }
 
     @Test
-    fun `it should delete all entities owned by a user if user is deleted`() = runTest {
+    fun `dispatchIamMessage should delete all entities owned by a user if user is deleted`() = runTest {
         val subjectDeleteEvent = loadSampleData("events/authorization/UserDeleteEvent.json")
         coEvery {
             permissionService.create(

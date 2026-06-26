@@ -146,14 +146,14 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a list of all known entity types`() = runTest {
+    fun `getEntityTypeList should return a list of all known entity types`() = runTest {
         val entityTypes = entityTypeService.getEntityTypeList(APIC_COMPOUND_CONTEXTS)
 
         assertEquals(listOf(APIARY_TERM, BEEHIVE_TERM, SENSOR_TERM), entityTypes.typeList)
     }
 
     @Test
-    fun `it should return an empty list of types if no entity exists`() = runTest {
+    fun `getEntityTypeList should return an empty list of types if no entity exists`() = runTest {
         clearPreviousAttributesAndObservations()
 
         val entityTypes = entityTypeService.getEntityTypeList(listOf(AQUAC_COMPOUND_CONTEXT))
@@ -161,7 +161,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return all known entity types with details`() = runTest {
+    fun `getEntityTypes should return all known entity types with details`() = runTest {
         val entityTypes = entityTypeService.getEntityTypes(APIC_COMPOUND_CONTEXTS)
 
         assertThat(entityTypes)
@@ -202,7 +202,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return an empty list of detailed entity types if no entity exists`() = runTest {
+    fun `getEntityTypes should return an empty list of detailed entity types if no entity exists`() = runTest {
         clearPreviousAttributesAndObservations()
 
         val entityTypes = entityTypeService.getEntityTypes(listOf(AQUAC_COMPOUND_CONTEXT))
@@ -210,7 +210,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return entity type info for a specific type`() = runTest {
+    fun `getEntityTypeInfoByType should return entity type info for a specific type`() = runTest {
         val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(SENSOR_IRI, APIC_COMPOUND_CONTEXTS)
 
         entityTypeInfo.shouldSucceedWith {
@@ -253,7 +253,7 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return an error when entity type doesn't exist`() = runTest {
+    fun `getEntityTypeInfoByType should return an error when the entity type does not exist`() = runTest {
         entityTypeService.getEntityTypeInfoByType(TEMPERATURE_IRI, APIC_COMPOUND_CONTEXTS)
             .shouldFail {
                 assertEquals(ResourceNotFoundException(typeNotFoundMessage(TEMPERATURE_IRI)), it)

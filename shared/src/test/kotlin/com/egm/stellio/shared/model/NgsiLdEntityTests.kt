@@ -19,7 +19,7 @@ import java.time.ZonedDateTime
 class NgsiLdEntityTests {
 
     @Test
-    fun `it should parse a minimal entity`() = runTest {
+    fun `expandJsonLdEntity should parse a minimal entity`() = runTest {
         val rawEntity =
             """
             {
@@ -35,7 +35,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity without an id`() = runTest {
+    fun `toNgsiLdEntity should not parse an entity without an id`() = runTest {
         val rawEntity =
             """
             {
@@ -50,7 +50,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity without a type`() = runTest {
+    fun `toNgsiLdEntity should not parse an entity without a type`() = runTest {
         val rawEntity =
             """
             {
@@ -69,7 +69,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity without an unknown attribute type`() = runTest {
+    fun `toNgsiLdEntity should not parse an entity without an unknown attribute type`() = runTest {
         val rawEntity =
             """
             {
@@ -93,7 +93,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with a datasetId having an NGSI-LD Null value`() = runTest {
+    fun `toNgsiLdEntity should not parse an entity with a datasetId having an NGSI-LD Null value`() = runTest {
         val rawEntity =
             """
             {
@@ -119,7 +119,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a minimal property`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a minimal property`() = runTest {
         val rawEntity =
             """
             {
@@ -144,7 +144,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a property having a JSON object value`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a property having a JSON object value`() = runTest {
         val rawEntity =
             """
             {
@@ -185,7 +185,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a property having all core fields`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a property having all core fields`() = runTest {
         val rawEntity =
             """
             {
@@ -212,7 +212,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with a property without a value`() = runTest {
+    fun `toNgsiLdEntity should not parse an entity with a property without a value`() = runTest {
         val rawEntity =
             """
             {
@@ -234,7 +234,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a multi-attribute property`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a multi-attribute property`() = runTest {
         val rawEntity =
             """
             {
@@ -266,7 +266,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a property with different type instances`() = runTest {
+    fun `toNgsiLdAttributes should not parse a property with different type instances`() = runTest {
         val rawProperty =
             """
             {
@@ -292,7 +292,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a property with a duplicated datasetId`() = runTest {
+    fun `toNgsiLdAttributes should not parse a property with a duplicated datasetId`() = runTest {
         val rawProperty =
             """
             {
@@ -331,7 +331,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a property with more than one default instance`() = runTest {
+    fun `toNgsiLdAttributes should not parse a property with more than one default instance`() = runTest {
         val rawProperty =
             """
             {
@@ -363,7 +363,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse a property with a datasetId`() = runTest {
+    fun `toNgsiLdAttributes should parse a property with a datasetId`() = runTest {
         val rawProperty =
             """
             {
@@ -389,7 +389,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a minimal relationship`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a minimal relationship`() = runTest {
         val rawEntity =
             """
             {
@@ -417,7 +417,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a relationship having all core fields`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a relationship having all core fields`() = runTest {
         val rawEntity =
             """
             {
@@ -445,7 +445,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a multi-attribute relationship`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a multi-attribute relationship`() = runTest {
         val rawEntity =
             """
             {
@@ -475,7 +475,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a multivalued relationship`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a multivalued relationship`() = runTest {
         val rawEntity =
             """
             {
@@ -510,7 +510,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a relationship with more than one default instance`() = runTest {
+    fun `toNgsiLdAttributes should not parse a relationship with more than one default instance`() = runTest {
         val rawRelationship =
             """
             {
@@ -539,7 +539,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse a relationship with a duplicated datasetId`() = runTest {
+    fun `toNgsiLdAttributes should not parse a relationship with a duplicated datasetId`() = runTest {
         val rawRelationship =
             """
             {
@@ -569,7 +569,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an attribute with different type instances`() = runTest {
+    fun `toNgsiLdAttributes should not parse an attribute with different type instances`() = runTest {
         val rawRelationship =
             """
             {
@@ -602,7 +602,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a Polygon location`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a Polygon location`() = runTest {
         val rawEntity =
             """
             {
@@ -636,7 +636,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a MultiPolygon location`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a MultiPolygon location`() = runTest {
         val rawEntity =
             """
             {
@@ -687,7 +687,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a Point location`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a Point location`() = runTest {
         val rawEntity =
             """
             {
@@ -718,7 +718,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a JsonProperty having a JSON object as a value`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a JsonProperty having a JSON object as a value`() = runTest {
         val rawEntity =
             """
             {
@@ -752,7 +752,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a JsonProperty having an array of JSON objects as a value`() = runTest {
+    fun `toNgsiLdEntity should parse a JsonProperty having an array of JSON objects as value`() = runTest {
         val rawEntity =
             """
             {
@@ -786,7 +786,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a multi-attribute JsonProperty`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a multi-attribute JsonProperty`() = runTest {
         val rawEntity =
             """
             {
@@ -818,7 +818,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a JsonProperty having JSON-LD reserved names as keys`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a JsonProperty having JSON-LD reserved names as keys`() = runTest {
         val rawEntity =
             """
             {
@@ -848,7 +848,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a JsonProperty having a null value in its JSON map`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a JsonProperty having a null value in its JSON map`() = runTest {
         val rawEntity =
             """
             {
@@ -878,7 +878,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with a JsonProperty without a json member`() = runTest {
+    fun `toNgsiLdEntity should not parse an entity with a JsonProperty without a json member`() = runTest {
         val rawEntity =
             """
             {
@@ -904,7 +904,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with a JsonProperty having a forbidden JSON type as value`() = runTest {
+    fun `toNgsiLdEntity should not parse a JsonProperty with a forbidden JSON type value`() = runTest {
         val rawEntity =
             """
             {
@@ -929,7 +929,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a LanguageProperty`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a LanguageProperty`() = runTest {
         val rawEntity =
             """
             {
@@ -977,7 +977,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with a LanguageProperty without a languageMap member`() = runTest {
+    fun `toNgsiLdEntity should not parse an entity with a LanguageProperty without a languageMap member`() = runTest {
         val rawEntity =
             """
             {
@@ -1004,7 +1004,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with a LanguageProperty with an invalid languageMap member`() = runTest {
+    fun `toNgsiLdEntity should not parse a LanguageProperty with an invalid languageMap member`() = runTest {
         val rawEntity =
             """
             {
@@ -1031,7 +1031,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with a LanguageProperty with an invalid language tag`() = runTest {
+    fun `toNgsiLdEntity should not parse an entity with a LanguageProperty with an invalid language tag`() = runTest {
         val rawEntity =
             """
             {
@@ -1057,7 +1057,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with a LanguageProperty with an invalid value for a language`() = runTest {
+    fun `expandJsonLdEntity should fail on a LanguageProperty with an invalid value for a language`() = runTest {
         val rawEntity =
             """
             {
@@ -1080,7 +1080,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a VocabProperty - array of strings value`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a VocabProperty - array of strings value`() = runTest {
         val rawEntity =
             """
             {
@@ -1111,7 +1111,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should parse an entity with a VocabProperty - string value`() = runTest {
+    fun `toNgsiLdEntity should parse an entity with a VocabProperty - string value`() = runTest {
         val rawEntity =
             """
             {
@@ -1141,7 +1141,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with a VocabProperty without a vocab member`() = runTest {
+    fun `toNgsiLdEntity should not parse an entity with a VocabProperty without a vocab member`() = runTest {
         val rawEntity =
             """
             {
@@ -1166,7 +1166,7 @@ class NgsiLdEntityTests {
     }
 
     @Test
-    fun `it should not parse an entity with a VocabProperty with an invalid vocab member`() = runTest {
+    fun `toNgsiLdEntity should not parse an entity with a VocabProperty with an invalid vocab member`() = runTest {
         val rawEntity =
             """
             {

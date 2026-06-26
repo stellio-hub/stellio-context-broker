@@ -58,7 +58,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should persist a subject referential`() = runTest {
+    fun `create should persist a subject referential`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -73,7 +73,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should persist a subject referential for a non-existing client`() = runTest {
+    fun `create should persist a subject referential for a non-existing client`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = SERVICE_ACCOUNT_UUID,
             subjectType = SubjectType.CLIENT,
@@ -87,7 +87,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should upsert a subject referential for an existing client`() = runTest {
+    fun `create should upsert a subject referential for an existing client`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = SERVICE_ACCOUNT_UUID,
             subjectType = SubjectType.CLIENT,
@@ -110,7 +110,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should retrieve a subject referential`() = runTest {
+    fun `retrieve should return a SubjectReferential for a known subject`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -129,7 +129,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should retrieve a subject referential with subject info`() = runTest {
+    fun `retrieve should include SubjectInfo in the returned referential`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -149,7 +149,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User", groupsUUIDs = ["group-uuid-1", "group-uuid-2"])
-    fun `it should retrieve UUID from subject and groups memberships`() = runTest {
+    fun `getCurrentSubjectClaims should retrieve UUID from subject and groups memberships`() = runTest {
         val groups = listOf("group-uuid-1", "group-uuid-2")
 
         subjectReferentialService.getCurrentSubjectClaims()
@@ -161,7 +161,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `it should retrieve UUIDs from subject when it has no groups memberships`() = runTest {
+    fun `getCurrentSubjectClaims should retrieve UUIDs from subject when it has no groups memberships`() = runTest {
         subjectReferentialService.getCurrentSubjectClaims()
             .shouldSucceedWith {
                 assertEquals(3, it.size)
@@ -171,7 +171,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User", roles = ["stellio-admin", "test-role"])
-    fun `it should retrieve UUIDs from subject and roles`() = runTest {
+    fun `getCurrentSubjectClaims should retrieve UUIDs from subject and roles`() = runTest {
         val roles = listOf("stellio-admin", "test-role")
 
         subjectReferentialService.getCurrentSubjectClaims()
@@ -183,7 +183,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `it should get the groups memberships of an user`() = runTest {
+    fun `getGroups should return the group memberships for a user`() = runTest {
         val allGroupsUuids = List(3) {
             val groupUuid = UUID.randomUUID().toString()
             subjectReferentialService.create(
@@ -220,7 +220,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `it should get all groups for an admin`() = runTest {
+    fun `getAllGroups should return all groups when caller has the admin role`() = runTest {
         val allGroupsUuids = List(3) {
             val groupUuid = UUID.randomUUID().toString()
             subjectReferentialService.create(
@@ -259,7 +259,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should get all users`() = runTest {
+    fun `getUsers should return all users`() = runTest {
         val allUsersUuids = List(3) {
             val userUuid = UUID.randomUUID().toString()
             subjectReferentialService.create(
@@ -287,7 +287,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should get an user with all available information`() = runTest {
+    fun `getUsers should return a user with all available fields`() = runTest {
         val userUuid = UUID.randomUUID().toString()
         subjectReferentialService.create(
             SubjectReferential(
@@ -322,7 +322,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should update the global role of a subject`() = runTest {
+    fun `setGlobalRoles should update the global role of a subject`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = USER_UUID,
             subjectInfo = EMPTY_JSON_PAYLOAD,
@@ -346,7 +346,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User", roles = ["stellio-admin"])
-    fun `it should find if an user is a stellio admin`() = runTest {
+    fun `currentSubjectIsAdmin should find if an user is a stellio admin`() = runTest {
         subjectReferentialService.currentSubjectIsAdmin()
             .shouldSucceedWith {
                 assertTrue(it)
@@ -355,7 +355,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `it should find if an user is not a stellio admin`() = runTest {
+    fun `currentSubjectIsAdmin should find if an user is not a stellio admin`() = runTest {
         subjectReferentialService.currentSubjectIsAdmin()
             .shouldSucceedWith {
                 assertFalse(it)
@@ -363,7 +363,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should add a group membership to an user`() = runTest {
+    fun `addGroupMembershipToUser should add a group membership to an user`() = runTest {
         val userAccessRights = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -382,7 +382,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should add a group membership to an user inside an existing list`() = runTest {
+    fun `addGroupMembershipToUser should add a group membership to an user inside an existing list`() = runTest {
         val userAccessRights = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -404,7 +404,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should remove a group membership to an user`() = runTest {
+    fun `removeGroupMembershipToUser should remove a group membership to an user`() = runTest {
         val userAccessRights = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -424,7 +424,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should update an existing subject info for an user`() = runTest {
+    fun `updateSubjectInfo should update an existing subject info for an user`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -445,7 +445,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should add a subject info for an user`() = runTest {
+    fun `updateSubjectInfo should add a subject info for an user`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -468,7 +468,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should delete a subject referential`() = runTest {
+    fun `delete should remove the subject referential from persistence`() = runTest {
         val userAccessRights = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -490,7 +490,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should delete a subject referential when it is a client`() = runTest {
+    fun `delete should remove the referential for a service-account subject`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = SERVICE_ACCOUNT_UUID,
             subjectType = SubjectType.CLIENT,
@@ -513,7 +513,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should return false when user does not have the requested roles`() = runTest {
+    fun `hasOneOfGlobalRoles should return false when user does not have the requested roles`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -525,7 +525,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should return true when user has admin roles`() = runTest {
+    fun `hasOneOfGlobalRoles should return true when user has admin roles`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -538,7 +538,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
-    fun `it should return true when user has creation roles`() = runTest {
+    fun `hasOneOfGlobalRoles should return true when user has creation roles`() = runTest {
         val subjectReferential = SubjectReferential(
             subjectId = USER_UUID,
             subjectType = SubjectType.USER,
@@ -552,7 +552,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User", groupsUUIDs = [GROUP_UUID])
-    fun `it should return true when user has a global role inherited from a group`() = runTest {
+    fun `hasOneOfGlobalRoles should return true when user has a global role inherited from a group`() = runTest {
         subjectReferentialService.create(
             SubjectReferential(
                 subjectId = USER_UUID,

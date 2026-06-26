@@ -57,7 +57,7 @@ class TimeIntervalNotificationJobTest {
     private lateinit var applicationProperties: ApplicationProperties
 
     @Test
-    fun `it should compose the query string used to get matching entities`() {
+    fun `prepareQueryParams should compose the query string used to get matching entities`() {
         val entities = setOf(
             EntitySelector(
                 id = "urn:ngsi-ld:FishContainment:1234567890".toUri(),
@@ -109,7 +109,7 @@ class TimeIntervalNotificationJobTest {
     }
 
     @Test
-    fun `it should not return twice the same entity if there is overlap between 2 entity infos`() {
+    fun `getEntitiesToNotify should not return twice the same entity when there is overlap between 2 entity infos`() {
         val subscription = gimmeRawSubscription(withEndpointReceiverInfo = false).copy(
             entities = setOf(
                 EntitySelector(
@@ -148,7 +148,7 @@ class TimeIntervalNotificationJobTest {
     }
 
     @Test
-    fun `it should call 'notificationService' once`() = runTest {
+    fun `sendNotification should call 'notificationService' once`() = runTest {
         val compactedEntity = mapOf("id" to "urn:ngsi-ld:Entity:01")
         val subscription = mockkClass(Subscription::class)
 
@@ -163,7 +163,7 @@ class TimeIntervalNotificationJobTest {
     }
 
     @Test
-    fun `it should notify the recurring subscriptions that have reached the time interval`() = runTest {
+    fun `sendTimeIntervalNotification should notify recurring subscriptions that reached their interval`() = runTest {
         val entity = loadSampleData("beehive.jsonld")
         val subscription = gimmeRawSubscription(withEndpointReceiverInfo = false).copy(
             entities = setOf(

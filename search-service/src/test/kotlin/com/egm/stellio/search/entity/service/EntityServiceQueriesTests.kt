@@ -110,7 +110,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "$SENSOR_IRI, 1, urn:ngsi-ld:MultiTypes:03",
         "'($BEEKEEPER_IRI;$SENSOR_IRI),$DEVICE_IRI', 1, urn:ngsi-ld:MultiTypes:03"
     )
-    fun `it should retrieve entities according types selection languages`(
+    fun `queryEntities should retrieve entities according types selection languages`(
         types: String,
         expectedCount: Int,
         expectedListOfEntities: String?
@@ -139,7 +139,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "/Madrid/Gardens/ParqueNorte;/CompanyA/OrganizationB/UnitC, 1, urn:ngsi-ld:BeeHive:01",
         "'/Madrid/Gardens/ParqueNorte,/CompanyA/OrganizationB/UnitC',2,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'"
     )
-    fun `it should retrieve entities according to scope query`(
+    fun `queryEntities should retrieve entities according to scope query`(
         scopeQ: String,
         expectedCount: Int,
         expectedListOfEntities: String?
@@ -161,7 +161,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities according to ids and a type`() = runTest {
+    fun `queryEntities should retrieve entities according to ids and a type`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -178,7 +178,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities according to ids and a selection of types`() = runTest {
+    fun `queryEntities should retrieve entities according to ids and a selection of types`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -195,7 +195,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities according to attrs and types`() = runTest {
+    fun `queryEntities should retrieve entities according to attrs and types`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -212,7 +212,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities by a list of ids`() = runTest {
+    fun `queryEntities should retrieve entities by a list of ids`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -229,7 +229,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities with respect to limit and offset`() = runTest {
+    fun `queryEntities should retrieve entities with respect to limit and offset`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -244,7 +244,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities with respect to idPattern`() = runTest {
+    fun `queryEntities should retrieve entities with respect to idPattern`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -326,7 +326,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "propWithLangSub.langSub[en]~=\"sub lang.*\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "propWithLangSub.langSub[de]==\"anything\", 0, "
     )
-    fun `it should retrieve entities according to q parameter`(
+    fun `queryEntities should retrieve entities according to q parameter`(
         q: String,
         expectedCount: Int,
         expectedListOfEntities: String?
@@ -360,7 +360,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "disjoint, Point, '[101.0, 0.0]', 2",
         "disjoint, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, -1.0], [100.0, 0.0]]]', 1"
     )
-    fun `it should retrieve entities according to geoquery parameter`(
+    fun `queryEntities should retrieve entities according to geoquery parameter`(
         georel: String,
         geometry: String,
         coordinates: String,
@@ -388,7 +388,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities according to one entity selector`() = runTest {
+    fun `queryEntities should retrieve entities according to one entity selector`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
@@ -432,7 +432,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities with a query without an entity selector`() = runTest {
+    fun `queryEntities should retrieve entities with a query without an entity selector`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
@@ -449,7 +449,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities according to two entity selectors with type and idPattern`() = runTest {
+    fun `queryEntities should retrieve entities according to two entity selectors with type and idPattern`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
@@ -473,7 +473,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities according to two entity selectors with type and id`() = runTest {
+    fun `queryEntities should retrieve entities according to two entity selectors with type and id`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
@@ -497,7 +497,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities according to two entity selectors with one not matching any entities`() = runTest {
+    fun `queryEntities should retrieve entities for two selectors with one matching nothing`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
@@ -578,7 +578,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve the count of entities`() = runTest {
+    fun `queryEntitiesCount should retrieve the count of entities`() = runTest {
         entityQueryService.queryEntitiesCount(
             EntitiesQueryFromGet(
                 typeSelection = BEEHIVE_IRI,
@@ -590,7 +590,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve the count of entities according to access rights`() = runTest {
+    fun `queryEntitiesCount should retrieve the count of entities according to access rights`() = runTest {
         entityQueryService.queryEntitiesCount(
             EntitiesQueryFromGet(
                 ids = setOf(entity02Uri, entity01Uri),
@@ -604,7 +604,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return an empty list if no entity matches the requested type`() = runTest {
+    fun `queryEntities should return an empty list if no entity matches the requested type`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -620,7 +620,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return an empty list if no entity matches the requested attributes`() = runTest {
+    fun `queryEntities should return an empty list if no entity matches the requested attributes`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -649,7 +649,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "propWithJsonSub.jsonSub[reading]==7.3, propWithJsonSub, 1, urn:ngsi-ld:BeeHive:01",
         "propWithJsonSub.jsonSub[reading]==3..8, propWithJsonSub, 2, "
     )
-    fun `it should retrieve entities according to q parameter with a JsonProperty attribute and sub-attribute`(
+    fun `queryEntities should retrieve entities with q on a JsonProperty attribute and sub-attribute`(
         q: String,
         jsonKeys: String,
         expectedCount: Int,
@@ -680,7 +680,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "propWithVocabSub.vocabSub==\"Apiary\", propWithVocabSub, 1, urn:ngsi-ld:BeeHive:02",
         "propWithVocabSub.vocabSub==\"Beekeeper\", propWithVocabSub, 0, ",
     )
-    fun `it should retrieve entities according to q parameter with a VocabProperty attribute and sub-attribute`(
+    fun `queryEntities should retrieve entities with q on a VocabProperty attribute and sub-attribute`(
         q: String,
         expandValues: String,
         expectedCount: Int,
@@ -704,7 +704,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should not match entities when expandValues is not set for a vocab attribute`() = runTest {
+    fun `queryEntities should not match entities when expandValues is not set for a vocab attribute`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromGet(
@@ -727,7 +727,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "boolean==true, 1, urn:ngsi-ld:BeeHive:01",
         "!name;integer==143, 1, urn:ngsi-ld:BeeHive:02"
     )
-    fun `it should retrieve entities according to q parameter via POST query`(
+    fun `queryEntities should retrieve entities according to q parameter via POST query`(
         q: String,
         expectedCount: Int,
         expectedListOfEntities: String?
@@ -751,7 +751,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities according to jsonKeys via POST query`() = runTest {
+    fun `queryEntities should retrieve entities according to jsonKeys via POST query`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
@@ -771,7 +771,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should retrieve entities according to expandValues via POST query`() = runTest {
+    fun `queryEntities should retrieve entities according to expandValues via POST query`() = runTest {
         val entitiesIds =
             entityQueryService.queryEntities(
                 EntitiesQueryFromPost(
@@ -798,7 +798,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "propWithJsonSub.jsonSub[reading]==3.1, 1, urn:ngsi-ld:BeeHive:02",
         "propWithJsonSub.jsonSub[sensor]==\"S99\", 0, "
     )
-    fun `it should retrieve entities according to q parameter with json property sub-attribute`(
+    fun `queryEntities should retrieve entities according to q parameter with json property sub-attribute`(
         q: String,
         expectedCount: Int,
         expectedListOfEntities: String?

@@ -57,7 +57,7 @@ class QNodeSqlTranslatorTests {
         """jsonb_path_exists(entity_payload.payload, '$path ? ($filter)', '$params')"""
 
     @Test
-    fun `it should generate EXISTS check against entity_payload for a simple attribute`() {
+    fun `toSqlJsonPath should generate EXISTS check against entity_payload for a simple attribute`() {
         assertEquals(
             exists("""$."$INCOMING_IRI""""),
             buildSql(INCOMING_TERM)
@@ -65,7 +65,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate NOT EXISTS for negated attribute`() {
+    fun `toSqlJsonPath should generate NOT EXISTS for negated attribute`() {
         assertEquals(
             """NOT (${exists("""$."$INCOMING_IRI"""")})""",
             buildSql("!$INCOMING_TERM")
@@ -73,7 +73,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate AND clause for semicolon operator`() {
+    fun `toSqlJsonPath should generate AND clause for semicolon operator`() {
         val incomingOpenSql = """
             (${existsWhere(incomingPropertyPath, """@ == $valuePh""", """{"value": "open"}""")} OR
                 ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")})
@@ -86,7 +86,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate OR clause for pipe operator`() {
+    fun `toSqlJsonPath should generate OR clause for pipe operator`() {
         val incomingOpenSql = """
             (${existsWhere(incomingPropertyPath, """@ == $valuePh""", """{"value": "open"}""")} OR
                 ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")})
@@ -99,7 +99,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate numeric comparison using hasValue`() {
+    fun `toSqlJsonPath should generate numeric comparison using hasValue`() {
         assertEquals(
             existsWhere(temperaturePropertyPath, """@ == $valuePh""", """{"value": 42}"""),
             buildSql("$TEMPERATURE_TERM==42")
@@ -107,7 +107,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate string comparison targeting both hasValue and language map`() {
+    fun `toSqlJsonPath should generate string comparison targeting both hasValue and language map`() {
         val expected = """
             (${existsWhere(incomingPropertyPath, """@ == $valuePh""", """{"value": "open"}""")} OR
                 ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")})
@@ -116,7 +116,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate URI comparison targeting relationship, property, and vocab paths`() {
+    fun `toSqlJsonPath should generate URI comparison targeting relationship, property, and vocab paths`() {
         val uri = "urn:ngsi-ld:BeeHive:001"
         val params = """{"value": "$uri"}"""
         val expected = """
@@ -129,7 +129,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate range comparison`() {
+    fun `toSqlJsonPath should generate range comparison`() {
         assertEquals(
             existsWhere(
                 temperaturePropertyPath,
@@ -141,7 +141,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate boolean comparison`() {
+    fun `toSqlJsonPath should generate boolean comparison`() {
         val activePath =
             """$."https://uri.etsi.org/ngsi-ld/default-context/active"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW""""
         assertEquals(
@@ -151,7 +151,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate list comparison using inline filter`() {
+    fun `toSqlJsonPath should generate list comparison using inline filter`() {
         assertEquals(
             exists("""$temperaturePropertyPath ? (@ == 10 || @ == 20 || @ == 30)"""),
             buildSql("$TEMPERATURE_TERM==10,20,30")
@@ -159,7 +159,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate NEQ range as outside-bounds filter`() {
+    fun `toSqlJsonPath should generate NEQ range as outside-bounds filter`() {
         assertEquals(
             existsWhere(
                 temperaturePropertyPath,
@@ -171,7 +171,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate language tag comparison using hasLanguageMap path`() {
+    fun `toSqlJsonPath should generate language tag comparison using hasLanguageMap path`() {
         assertEquals(
             existsWhere(
                 incomingLangFilterPath,
@@ -183,7 +183,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should not expand trailing path for jsonKeys attributes`() {
+    fun `toSqlJsonPath should not expand trailing path for jsonKeys attributes`() {
         assertEquals(
             existsWhere(incomingJsonKeyPath, """@ == $valuePh""", """{"value": 42}"""),
             buildSql("$INCOMING_TERM[$TEMPERATURE_TERM]==42", jsonKeys = setOf(INCOMING_TERM))
@@ -191,7 +191,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should expand comparison value for expandValues attributes`() {
+    fun `toSqlJsonPath should expand comparison value for expandValues attributes`() {
         val params = """{"value": "$BEEHIVE_IRI"}"""
         val expected = """
             (${existsWhere(incomingRelPath, """@ == $valuePh""", params)} OR
@@ -206,14 +206,14 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate like_regex comparison for LIKE_REGEX operator`() {
+    fun `toSqlJsonPath should generate like_regex comparison for LIKE_REGEX operator`() {
         val expected = """(${exists("""$incomingPropertyPath ? (@ like_regex "test.*")""")} OR """ +
             """${exists("""$incomingLangMapPath ? (@ like_regex "test.*")""")})"""
         assertEquals(expected.removeNoise(), buildSql("""$INCOMING_TERM~="test.*"""").removeNoise())
     }
 
     @Test
-    fun `it should generate NOT like_regex for NOT_LIKE_REGEX operator`() {
+    fun `toSqlJsonPath should generate NOT like_regex for NOT_LIKE_REGEX operator`() {
         val expected = """
             NOT ((${exists("""$incomingPropertyPath ? (@ like_regex "test.*")""")} OR
                 ${exists("""$incomingLangMapPath ? (@ like_regex "test.*")""")}))
@@ -222,7 +222,7 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `it should generate NEQ range filter for jsonKeys attribute with bracket key`() {
+    fun `toSqlJsonPath should generate NEQ range filter for jsonKeys attribute with bracket key`() {
         assertEquals(
             existsWhere(incomingJsonKeyPath, """@ < $minPh || @ > $maxPh""", """{"min": 10, "max": 20}"""),
             buildSql("$INCOMING_TERM[$TEMPERATURE_TERM]!=10..20", jsonKeys = setOf(INCOMING_TERM))

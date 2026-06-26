@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 class KeyValuePairTests {
 
     @Test
-    fun `it should correctly deserialize a key value pair`() {
+    fun `deserialize should parse a key-value pair`() {
         val input = """[{"key": "Authorization-token", "value": "Authorization-token-value"}]"""
         val info = KeyValuePair.deserialize(input)
 
@@ -17,7 +17,7 @@ class KeyValuePairTests {
     }
 
     @Test
-    fun `it should correctly deserialize a null a key value pair`() {
+    fun `deserialize should parse a null key value pair`() {
         val input = null
         val info = KeyValuePair.deserialize(input)
 

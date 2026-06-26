@@ -10,10 +10,10 @@
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:ContextSourceRegistrationService.kt$ContextSourceRegistrationService$@Transactional suspend fun upsert( csr: ContextSourceRegistration ): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EntitiesQueryUtils.kt$fun composeEntitiesQueryFromPost( defaultPagination: ApplicationProperties.Pagination, query: Query, queryParams: MultiValueMap&lt;String, String&gt;, contexts: List&lt;String&gt; ): Either&lt;APIException, EntitiesQueryFromPost&gt;</ID>
-    <ID>LongMethod:EntitiesQueryUtilsTests.kt$EntitiesQueryUtilsTests$@Test fun `it should parse a valid complete Query datatype`()</ID>
+    <ID>LongMethod:EntitiesQueryUtilsTests.kt$EntitiesQueryUtilsTests$@Test fun `composeEntitiesQueryFromPostRequest should parse a valid complete Query datatype`()</ID>
     <ID>LongMethod:EntityEventService.kt$EntityEventService$private fun publishAttributeChangeEvent( sub: String?, tenantName: String, originalEntity: ExpandedEntity, updatedEntity: ExpandedEntity, attributeOperationResult: SucceededAttributeOperationResult )</ID>
-    <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_UPDATE events if a multi-attribute is replaced`()</ID>
-    <ID>LongMethod:LinkedEntityServiceTests.kt$LinkedEntityServiceTests$@Test fun `it should inline entities up to the asked 2nd level`()</ID>
+    <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `publishAttributeChangeEvents should publish ATTRIBUTE_UPDATE events on multi-attribute replace`()</ID>
+    <ID>LongMethod:LinkedEntityServiceTests.kt$LinkedEntityServiceTests$@Test fun `processLinkedEntities should inline entities up to the asked 2nd level`()</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun mergePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun partialUpdatePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:PermissionHandlerTests.kt$PermissionHandlerTests$@Test fun `query Permissions with details=true should return entire entity and subject information`()</ID>

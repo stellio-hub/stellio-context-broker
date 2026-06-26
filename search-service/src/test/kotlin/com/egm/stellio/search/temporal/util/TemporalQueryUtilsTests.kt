@@ -39,7 +39,7 @@ import java.time.ZonedDateTime
 class TemporalQueryUtilsTests {
 
     @Test
-    fun `it should not validate the temporal query if type or attrs are not present`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should reject a query without type or attrs`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
@@ -60,7 +60,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should not validate the temporal query if timerel is present without time`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should reject a query with timerel but no time`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "before")
 
@@ -79,7 +79,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should not validate the temporal query if timerel and time are not present`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should reject a query without timerel and time`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("type", "Beehive")
 
@@ -99,7 +99,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it shouldn't validate the temporal query if both temporalValues and aggregatedValues are present`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should reject temporalValues with aggregatedValues`() = runTest {
         val queryParams = gimmeTemporalEntitiesQueryParams()
         queryParams.replace("options", listOf("aggregatedValues,temporalValues"))
         queryParams.add("aggrMethods", "sum")
@@ -122,7 +122,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it shouldn't validate the temporal query if format contains an invalid value`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should reject an invalid format value`() = runTest {
         val queryParams = gimmeTemporalEntitiesQueryParams()
         queryParams.add("format", "invalid")
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
@@ -141,7 +141,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it shouldn't validate the temporal query if options contains an invalid value`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should reject an invalid options value`() = runTest {
         val queryParams = gimmeTemporalEntitiesQueryParams()
         queryParams.replace("options", listOf("invalidOptions"))
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
@@ -160,7 +160,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a valid temporal query`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should parse a valid temporal query`() = runTest {
         val queryParams = gimmeTemporalEntitiesQueryParams()
 
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
@@ -197,7 +197,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse temporal query parameters with audit enabled`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should parse query parameters with audit enabled`() = runTest {
         val queryParams = gimmeTemporalEntitiesQueryParams()
         queryParams["options"] = listOf("audit")
 
@@ -230,7 +230,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a temporal query containing one attrs parameter`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should parse a query with one attrs parameter`() = runTest {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
@@ -250,7 +250,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a temporal query containing two attrs parameter`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should parse a query with two attrs parameters`() = runTest {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
@@ -270,7 +270,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a temporal query containing no attrs parameter`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should parse a query with no attrs parameter`() = runTest {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
@@ -287,7 +287,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse lastN parameter if it is a positive integer`() = runTest {
+    fun `buildTemporalQuery should parse lastN when it is a positive integer`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
@@ -305,7 +305,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should ignore lastN parameter if it is not an integer`() = runTest {
+    fun `buildTemporalQuery should ignore lastN when it is not an integer`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
@@ -323,7 +323,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should ignore lastN parameter if it is not a positive integer`() = runTest {
+    fun `buildTemporalQuery should ignore lastN when it is not a positive integer`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2019-10-17T07:31:39Z")
@@ -342,7 +342,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should treat time and timerel properties as optional in a temporal query`() = runTest {
+    fun `buildTemporalQuery should treat time and timerel as optional`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
 
         val temporalQuery = buildTemporalQuery(
@@ -357,7 +357,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a temporal query containing a timeproperty parameter`() = runTest {
+    fun `buildTemporalQuery should parse a query with a timeproperty parameter`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timeproperty", "createdAt")
 
@@ -372,7 +372,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should set timeproperty to observedAt if no value is provided in query parameters`() = runTest {
+    fun `buildTemporalQuery should default timeproperty to observedAt when not provided`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
 
         val temporalQuery = buildTemporalQuery(
@@ -386,7 +386,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should raise an error if timeproperty provided in query parameters is unknown`() = runTest {
+    fun `buildTemporalQuery should raise an error when timeproperty is unknown`() = runTest {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timeproperty", "unknown")
 
@@ -402,7 +402,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a temporal query containing one datasetId parameter`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should parse a query with one datasetId parameter`() = runTest {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
@@ -421,7 +421,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a temporal query containing two datasetIds parameter`() = runTest {
+    fun `composeTemporalEntitiesQueryFromGet should parse a query with two datasetIds parameters`() = runTest {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
@@ -443,7 +443,7 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `it should parse a Query datatype with a TemporalQuery`() = runTest {
+    fun `composeTemporalEntitiesQueryFromPost should parse a Query datatype with a TemporalQuery`() = runTest {
         val query = """
             {
                 "type": "Query",

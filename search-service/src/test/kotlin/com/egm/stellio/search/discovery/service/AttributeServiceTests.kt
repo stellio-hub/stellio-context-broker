@@ -116,7 +116,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return an AttributeList`() = runTest {
+    fun `getAttributeList should return an AttributeList`() = runTest {
         val attributeNames = attributeService.getAttributeList(APIC_COMPOUND_CONTEXTS)
 
         assertThat(attributeNames.attributeList)
@@ -124,7 +124,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return an empty list of attributes if no attributes was found`() = runTest {
+    fun `getAttributeList should return an empty list when no attribute is found`() = runTest {
         clearPreviousAttributesAndObservations()
 
         val attributeNames = attributeService.getAttributeList(APIC_COMPOUND_CONTEXTS)
@@ -133,7 +133,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return a list of AttributeDetails`() = runTest {
+    fun `getAttributeDetails should return a list of AttributeDetails`() = runTest {
         val attributeDetails = attributeService.getAttributeDetails(APIC_COMPOUND_CONTEXTS)
 
         assertEquals(4, attributeDetails.size)
@@ -165,7 +165,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return an empty list of AttributeDetails if no attribute was found`() = runTest {
+    fun `getAttributeDetails should return an empty list when no AttributeDetails is found`() = runTest {
         clearPreviousAttributesAndObservations()
 
         val attributeDetails = attributeService.getAttributeDetails(APIC_COMPOUND_CONTEXTS)
@@ -174,7 +174,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should return an attribute Information by specific attribute`() = runTest {
+    fun `getAttributeTypeInfoByAttribute should return attribute information for a specific attribute`() = runTest {
         val attributeTypeInfo =
             attributeService.getAttributeTypeInfoByAttribute(INCOMING_IRI, APIC_COMPOUND_CONTEXTS)
                 .shouldSucceedAndResult()
@@ -188,7 +188,7 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `it should error when type doesn't exist`() = runTest {
+    fun `getAttributeTypeInfoByAttribute should error when type does not exist`() = runTest {
         val attributeTypeInfo =
             attributeService.getAttributeTypeInfoByAttribute(TEMPERATURE_IRI, APIC_COMPOUND_CONTEXTS)
 

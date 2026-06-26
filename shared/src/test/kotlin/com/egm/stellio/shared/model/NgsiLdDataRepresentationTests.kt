@@ -15,7 +15,7 @@ import org.springframework.util.LinkedMultiValueMap
 class NgsiLdDataRepresentationTests {
 
     @Test
-    fun `it should return the attribute representation from the format when both format and options exist`() {
+    fun `parseRepresentations should use the format over the options when both exist`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2025-01-03T07:45:24Z")
@@ -29,7 +29,7 @@ class NgsiLdDataRepresentationTests {
     }
 
     @Test
-    fun `it should return the attribute representation in the options query param when no format is given`() {
+    fun `parseRepresentations should use the options when no format is given`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2025-01-03T07:45:24Z")
@@ -42,7 +42,7 @@ class NgsiLdDataRepresentationTests {
     }
 
     @Test
-    fun `it should correctly parse the options query param when it contains more than one value`() {
+    fun `parseRepresentations should parse the options query param with more than one value`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2025-01-03T07:45:24Z")
@@ -56,7 +56,7 @@ class NgsiLdDataRepresentationTests {
     }
 
     @Test
-    fun `it should return the attribute representation in the first format query param`() {
+    fun `parseRepresentations should use the first format query param`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2025-01-03T07:45:24Z")
@@ -70,7 +70,7 @@ class NgsiLdDataRepresentationTests {
     }
 
     @Test
-    fun `it should return an exception if format query param is invalid`() {
+    fun `parseRepresentations should return an exception when the format query param is invalid`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2025-01-03T07:45:24Z")
@@ -83,7 +83,7 @@ class NgsiLdDataRepresentationTests {
     }
 
     @Test
-    fun `it should return an exception if options query param is invalid`() {
+    fun `parseRepresentations should return an exception when the options query param is invalid`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2025-01-03T07:45:24Z")
@@ -96,7 +96,7 @@ class NgsiLdDataRepresentationTests {
     }
 
     @Test
-    fun `it should return an exception if at least one value in options query param is invalid`() {
+    fun `parseRepresentations should return an exception when one options value is invalid`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("timeAt", "2025-01-03T07:45:24Z")

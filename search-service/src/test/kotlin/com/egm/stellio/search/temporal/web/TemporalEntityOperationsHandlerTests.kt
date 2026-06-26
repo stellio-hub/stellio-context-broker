@@ -60,7 +60,7 @@ class TemporalEntityOperationsHandlerTests {
     }
 
     @Test
-    fun `it should return a 200 and retrieve requested temporal attributes`() {
+    fun `query temporal entities should return 200 and retrieve the requested temporal attributes`() {
         val temporalQuery = buildDefaultTestTemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
             timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
@@ -111,7 +111,7 @@ class TemporalEntityOperationsHandlerTests {
     }
 
     @Test
-    fun `it should return a 200 and the number of results if count is asked for`() {
+    fun `query temporal entities should return 200 and the number of results when count is asked`() {
         val temporalQuery = buildDefaultTestTemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
             timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
@@ -166,7 +166,7 @@ class TemporalEntityOperationsHandlerTests {
     }
 
     @Test
-    fun `it should raise a 400 if required parameters are missing`() {
+    fun `query temporal entities should return 400 when required parameters are missing`() {
         val query = """
             {
                 "type": "Query",
@@ -195,7 +195,7 @@ class TemporalEntityOperationsHandlerTests {
     }
 
     @Test
-    fun `it should return entities with only the picked attributes`() = runTest {
+    fun `query temporal entities should return entities with only the picked attributes`() = runTest {
         val expandedEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
 
         coEvery {
@@ -227,7 +227,7 @@ class TemporalEntityOperationsHandlerTests {
     }
 
     @Test
-    fun `it should return entities without the omitted attributes`() = runTest {
+    fun `query temporal entities should return entities without the omitted attributes`() = runTest {
         val expandedEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
 
         coEvery {
@@ -259,7 +259,7 @@ class TemporalEntityOperationsHandlerTests {
     }
 
     @Test
-    fun `it should return an empty list if no entity member matches pick parameter`() = runTest {
+    fun `query temporal entities should return an empty list when no member matches the pick parameter`() = runTest {
         val expandedEntity = loadAndExpandSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
 
         coEvery {

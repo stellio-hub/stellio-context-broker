@@ -49,7 +49,7 @@ class TemporalServiceTests {
     }
 
     @Test
-    fun `it should ask to create a temporal entity if it does not exist yet`() = runTest {
+    fun `createOrUpdateTemporalEntity should create a temporal entity when it does not exist yet`() = runTest {
         mockkAuthorizationForCreation()
         coEvery {
             entityQueryService.isMarkedAsDeleted(entityUri)
@@ -63,7 +63,7 @@ class TemporalServiceTests {
     }
 
     @Test
-    fun `it should ask to create a temporal entity if it already exists but is deleted`() = runTest {
+    fun `createOrUpdateTemporalEntity should create a temporal entity when it exists but is deleted`() = runTest {
         mockkAuthorizationForCreation()
         coEvery { entityQueryService.isMarkedAsDeleted(entityUri) } returns false.right()
         coEvery { entityService.createEntity(any(), any()) } returns Unit.right()
@@ -75,7 +75,7 @@ class TemporalServiceTests {
     }
 
     @Test
-    fun `it should ask to upsert a temporal entity if it already exists but is not deleted`() = runTest {
+    fun `createOrUpdateTemporalEntity should upsert a temporal entity when it exists and is not deleted`() = runTest {
         mockkAuthorizationForCreation()
         coEvery { entityQueryService.isMarkedAsDeleted(entityUri) } returns false.right()
         coEvery { entityService.upsertAttributes(any(), any()) } returns Unit.right()
@@ -86,7 +86,7 @@ class TemporalServiceTests {
     }
 
     @Test
-    fun `it should ask to permanently delete a temporal entity`() = runTest {
+    fun `deleteEntity should permanently delete a temporal entity`() = runTest {
         coEvery { entityService.permanentlyDeleteEntity(any(), any()) } returns Unit.right()
 
         temporalService.deleteEntity(entityUri).shouldSucceed()
@@ -97,7 +97,7 @@ class TemporalServiceTests {
     }
 
     @Test
-    fun `it should ask to permanently delete a temporal attribute`() = runTest {
+    fun `deleteAttribute should permanently delete a temporal attribute`() = runTest {
         coEvery { entityService.permanentlyDeleteAttribute(any(), any(), any(), any()) } returns Unit.right()
 
         temporalService.deleteAttribute(entityUri, INCOMING_IRI, null).shouldSucceed()
@@ -108,7 +108,7 @@ class TemporalServiceTests {
     }
 
     @Test
-    fun `it should ask to permanently delete a temporal attribute instance`() = runTest {
+    fun `deleteAttributeInstance should permanently delete a temporal attribute instance`() = runTest {
         val instanceId = "urn:ngsi-ld:Instance:01".toUri()
 
         coEvery { entityQueryService.checkEntityExistence(entityUri) } returns Unit.right()

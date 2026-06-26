@@ -95,7 +95,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         "stddev, 3.0276503541",
         "sumsq, 385.0"
     )
-    fun `it should correctly aggregate on JSON Number values`(aggrMethod: String, expectedValue: String) = runTest {
+    fun `search should aggregate on JSON Number values`(aggrMethod: String, expectedValue: String) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.NUMBER)
         (1..10).forEach { i ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(
@@ -126,7 +126,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         "stddev, ''",
         "sumsq, ''"
     )
-    fun `it should correctly aggregate on JSON String values`(aggrMethod: String, expectedValue: String?) = runTest {
+    fun `search should aggregate on JSON String values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.STRING)
         (1..10).forEach { i ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(
@@ -157,7 +157,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         "stddev, ''",
         "sumsq, ''"
     )
-    fun `it should correctly aggregate on JSON Object values`(aggrMethod: String, expectedValue: String?) = runTest {
+    fun `search should aggregate on JSON Object values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.OBJECT)
         (1..10).forEach { i ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(
@@ -188,7 +188,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         "stddev, ''",
         "sumsq, ''"
     )
-    fun `it should correctly aggregate on JSON Array values`(aggrMethod: String, expectedValue: String?) = runTest {
+    fun `search should aggregate on JSON Array values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.ARRAY)
         (1..10).forEach { i ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(
@@ -219,7 +219,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         "stddev, 0.52704627669472988867",
         "sumsq, 5.0"
     )
-    fun `it should correctly aggregate on JSON Boolean values`(aggrMethod: String, expectedValue: String?) = runTest {
+    fun `search should aggregate on JSON Boolean values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.BOOLEAN)
         (1..10).forEach { i ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(
@@ -250,7 +250,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         "stddev, ''",
         "sumsq, ''"
     )
-    fun `it should correctly aggregate on DateTime values`(aggrMethod: String, expectedValue: String?) = runTest {
+    fun `search should aggregate on DateTime values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.DATETIME)
         val baseDateTime = ZonedDateTime.parse("2023-03-05T00:01:01Z")
         (1..10).forEach { i ->
@@ -282,7 +282,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         "stddev, ''",
         "sumsq, ''"
     )
-    fun `it should correctly aggregate on Date values`(aggrMethod: String, expectedValue: String?) = runTest {
+    fun `search should aggregate on Date values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.DATE)
         val baseDateTime = LocalDate.parse("2023-03-05")
         (1..10).forEach { i ->
@@ -314,7 +314,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         "stddev, ''",
         "sumsq, ''"
     )
-    fun `it should correctly aggregate on Time values`(aggrMethod: String, expectedValue: String?) = runTest {
+    fun `search should aggregate on Time values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.TIME)
         val baseDateTime = OffsetTime.parse("00:00:01Z")
         (1..10).forEach { i ->
@@ -346,7 +346,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         "stddev, ''",
         "sumsq, ''"
     )
-    fun `it should correctly aggregate on URI values`(aggrMethod: String, expectedValue: String?) = runTest {
+    fun `search should aggregate on URI values`(aggrMethod: String, expectedValue: String?) = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.URI)
         (1..10).forEach { i ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(
@@ -367,7 +367,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
-    fun `it should aggregate on the whole time range if no aggrPeriodDuration is given`() = runTest {
+    fun `search should aggregate on the whole time range if no aggrPeriodDuration is given`() = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.NUMBER)
         (1..10).forEach { i ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(
@@ -402,7 +402,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
         "P2W, 1",
         "P1M, 2"
     )
-    fun `it should aggregate on the asked aggrPeriodDuration`(
+    fun `search should aggregate on the asked aggrPeriodDuration`(
         aggrPeriodDuration: String,
         expectedNumberOfBuckets: Int
     ) = runTest {
@@ -430,7 +430,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
-    fun `it should handle aggregates for an attribute having different types of values in history`() = runTest {
+    fun `search should handle aggregates for an attribute having different types of values in history`() = runTest {
         val attribute = createAttribute(Attribute.AttributeValueType.ARRAY)
         (1..10).forEach { i ->
             val attributeInstanceWithArrayValue = gimmeNumericPropertyAttributeInstance(
@@ -454,7 +454,7 @@ class AggregatedTemporalQueryServiceTests : WithTimescaleContainer, WithKafkaCon
     }
 
     @Test
-    fun `it should aggregate using the specified timezone`() = runTest {
+    fun `search should aggregate using the specified timezone`() = runTest {
         // set the timezone to Europe/Paris to have all the results aggregated on January 2024
         every { searchProperties.timezoneForTimeBuckets } returns "Europe/Paris"
 

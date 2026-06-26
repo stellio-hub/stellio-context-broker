@@ -135,13 +135,13 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should not find a value if there is no options query param`() {
+    fun `hasValueInOptionsParam should not find a value when there is no options query param`() {
         val result = hasValueInOptionsParam(Optional.empty(), TEMPORAL_VALUES).shouldSucceedAndResult()
         assertFalse(result)
     }
 
     @Test
-    fun `it should return an exception if it is given an invalid options query param`() {
+    fun `hasValueInOptionsParam should return an exception when given an invalid options query param`() {
         hasValueInOptionsParam(Optional.of("one"), TEMPORAL_VALUES).shouldFail {
             assertInstanceOf(InvalidRequestException::class.java, it)
             assertEquals("'one' is not a valid value for the options query parameter", it.message)
@@ -149,7 +149,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should return an exception if it is given an invalid multi value options query param`() {
+    fun `hasValueInOptionsParam should return an exception when given invalid multi value options`() {
         hasValueInOptionsParam(Optional.of("one,two"), TEMPORAL_VALUES).shouldFail {
             assertInstanceOf(InvalidRequestException::class.java, it)
             assertEquals("'one' is not a valid value for the options query parameter", it.message)
@@ -157,13 +157,13 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should find a value if it is in a single value options query param`() {
+    fun `hasValueInOptionsParam should find a value when it is in a single value options query param`() {
         val result = hasValueInOptionsParam(Optional.of("temporalValues"), TEMPORAL_VALUES).shouldSucceedAndResult()
         assertTrue(result)
     }
 
     @Test
-    fun `it should return an exception if it is given at least one invalid value in options query param`() {
+    fun `hasValueInOptionsParam should return an exception for at least one invalid options value`() {
         hasValueInOptionsParam(Optional.of("one,temporalValues"), TEMPORAL_VALUES).shouldFail {
             assertInstanceOf(InvalidRequestException::class.java, it)
             assertEquals("'one' is not a valid value for the options query parameter", it.message)
@@ -171,12 +171,12 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should return an empty list if no attrs param is provided`() {
+    fun `parseAttrsParameter should return an empty list when no attrs param is provided`() {
         assertTrue(parseAttrsParameter(null, emptyList()).shouldSucceedAndResult().isEmpty())
     }
 
     @Test
-    fun `it should return an singleton list if there is one provided attrs param`() {
+    fun `parseAttrsParameter should return a singleton list when one attrs param is provided`() {
         assertEquals(
             1,
             parseAttrsParameter("attr1", NGSILD_TEST_CORE_CONTEXTS).shouldSucceedAndResult().size
@@ -184,7 +184,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should return a list with two elements if there are two provided attrs param`() {
+    fun `parseAttrsParameter should return a list with two elements when two attrs params are provided`() {
         assertEquals(
             2,
             parseAttrsParameter("attr1, attr2", NGSILD_TEST_CORE_CONTEXTS).shouldSucceedAndResult().size
@@ -192,7 +192,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should return a BadRequestData error if attrs params contains an entity core member`() {
+    fun `parseAttrsParameter should return a BadRequestData error when attrs contains a core member`() {
         parseAttrsParameter("id", NGSILD_TEST_CORE_CONTEXTS).shouldFailWith {
             it is BadRequestDataException &&
                 it.message == "Entity core members cannot be present in 'attrs' parameter"
@@ -200,7 +200,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should return 411 if Content-Length is null`() {
+    fun `POST should return 411 when Content-Length is null`() {
         webClient.post()
             .uri("/router/mockkedroute")
             .header(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -210,7 +210,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should support Mime-type with parameters`() {
+    fun `POST should support Mime-type with parameters`() {
         webClient.post()
             .uri("/router/mockkedroute")
             .header(HttpHeaders.CONTENT_TYPE, "application/ld+json;charset=UTF-8")
@@ -220,7 +220,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should extract a @context from a valid Link header`() = runTest {
+    fun `getContextFromLinkHeader should extract a @context from a valid Link header`() = runTest {
         getContextFromLinkHeader(listOf(APIC_HEADER_LINK)).shouldSucceedWith {
             assertNotNull(it)
             assertEquals(APIC_COMPOUND_CONTEXT, it)
@@ -228,14 +228,14 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should return a null @context if no Link header was provided`() = runTest {
+    fun `getContextFromLinkHeader should return a null @context when no Link header is provided`() = runTest {
         getContextFromLinkHeader(emptyList()).shouldSucceedWith {
             assertNull(it)
         }
     }
 
     @Test
-    fun `it should return a BadRequestData error if @context provided in Link header is invalid`() = runTest {
+    fun `getContextFromLinkHeader should fail when the @context in the Link header is invalid`() = runTest {
         getContextFromLinkHeader(APIC_COMPOUND_CONTEXTS).shouldFail {
             assertInstanceOf(BadRequestDataException::class.java, it)
             assertEquals(
@@ -246,7 +246,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should return the default @context if no Link header was provided and default is asked`() = runTest {
+    fun `getContextFromLinkHeaderOrDefault should return the default @context when none is provided`() = runTest {
         val httpHeaders = HttpHeaders()
         getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).shouldSucceedWith {
             assertEquals(listOf(applicationProperties.contexts.core), it)
@@ -254,7 +254,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should get a single @context from a JSON-LD input`() = runTest {
+    fun `checkAndGetContext should get a single @context from a JSON-LD input`() = runTest {
         val httpHeaders = HttpHeaders().apply {
             set("Content-Type", "application/ld+json")
         }
@@ -271,7 +271,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should get a list of @context from a JSON-LD input`() = runTest {
+    fun `checkAndGetContext should get a list of @context from a JSON-LD input`() = runTest {
         val httpHeaders = HttpHeaders().apply {
             set("Content-Type", "application/ld+json")
         }
@@ -298,7 +298,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should throw an exception if a JSON-LD input has no @context`() = runTest {
+    fun `checkAndGetContext should throw an exception when a JSON-LD input has no @context`() = runTest {
         val httpHeaders = HttpHeaders().apply {
             set("Content-Type", "application/ld+json")
         }
@@ -317,7 +317,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should find a JSON-LD @context in an input map`() {
+    fun `extractContexts should find a JSON-LD @context in an input map`() {
         val input = mapOf(
             "id" to "urn:ngsi-ld:Entity:1",
             "@context" to "https://some.context"
@@ -327,7 +327,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should find a list of JSON-LD @contexts in an input map`() {
+    fun `extractContexts should find a list of JSON-LD @contexts in an input map`() {
         val input = mapOf(
             "id" to "urn:ngsi-ld:Entity:1",
             "@context" to listOf("https://some.context", "https://some.context.2")
@@ -337,7 +337,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should return an empty list if no JSON-LD @context was found an input map`() {
+    fun `extractContexts should return an empty list when no @context is in the input map`() {
         val input = mapOf(
             "id" to "urn:ngsi-ld:Entity:1"
         )
@@ -346,14 +346,14 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should return the core context if the list of contexts is empty`() {
+    fun `addCoreContextIfMissing should return the core context when the list of contexts is empty`() {
         val contexts = addCoreContextIfMissing(emptyList(), applicationProperties.contexts.core)
         assertEquals(1, contexts.size)
         assertEquals(listOf(applicationProperties.contexts.core), contexts)
     }
 
     @Test
-    fun `it should move the core context at last position if it is not last in the list of contexts`() {
+    fun `addCoreContextIfMissing should move the core context to last position when not last`() {
         val contexts = addCoreContextIfMissing(
             listOf(applicationProperties.contexts.core).plus(APIC_COMPOUND_CONTEXTS),
             applicationProperties.contexts.core
@@ -363,14 +363,14 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should add the core context at last position if it is not in the list of contexts`() {
+    fun `addCoreContextIfMissing should add the core context at last position if not in the list`() {
         val contexts = addCoreContextIfMissing(listOf(APIC_CONTEXT), applicationProperties.contexts.core)
         assertEquals(2, contexts.size)
         assertEquals(listOf(APIC_CONTEXT, applicationProperties.contexts.core), contexts)
     }
 
     @Test
-    fun `it should not add the core context if it resolvable from the provided contexts`() {
+    fun `addCoreContextIfMissing should not add the core context if resolvable from provided contexts`() {
         val contexts = addCoreContextIfMissing(
             listOf("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.4.jsonld"),
             applicationProperties.contexts.core
@@ -380,7 +380,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should parse and expand entity type selection query`() {
+    fun `expandTypeSelection should parse and expand entity type selection query`() {
         val query = "(TypeA|TypeB);(TypeC,TypeD)"
         val defaultExpand = "https://uri.etsi.org/ngsi-ld/default-context/"
         val expandedQuery = expandTypeSelection(query, NGSILD_TEST_CORE_CONTEXTS)
@@ -390,7 +390,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should parse a conform datetime parameter`() {
+    fun `parseTimeParameter should parse a conform datetime parameter`() {
         val parseResult = "2023-10-16T16:18:00Z".parseTimeParameter("Invalid date time")
         parseResult.onLeft {
             fail("it should have parsed the date time")
@@ -398,7 +398,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should return an error if datetime parameter is not conform`() {
+    fun `parseTimeParameter should return an error when datetime parameter is not conform`() {
         val parseResult = "16/10/2023".parseTimeParameter("Invalid date time")
         parseResult.fold(
             { assertEquals("Invalid date time", it) }
@@ -408,7 +408,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should validate a correct idPattern`() {
+    fun `validateIdPattern should validate a correct idPattern`() {
         val validationResult = validateIdPattern("urn:ngsi-ld:Entity:*")
         validationResult.onLeft {
             fail("it should have parsed the date time")
@@ -416,7 +416,7 @@ class ApiUtilsTests {
     }
 
     @Test
-    fun `it should not validate an incorrect idPattern`() {
+    fun `validateIdPattern should not validate an incorrect idPattern`() {
         val validationResult = validateIdPattern("(?x)urn:ngsi-ld:Entity:{*}2")
         validationResult.fold(
             {

@@ -96,7 +96,7 @@ class LinkedEntityServiceTests {
     """.trimIndent().deserializeAsMap()
 
     @Test
-    fun `it should return the input entity if no join is specified`() = runTest {
+    fun `processLinkedEntities should return the input entity if no join is specified`() = runTest {
         val compactedEntities = linkedEntityService.processLinkedEntities(
             linkingEntityWithTwoRelationships,
             EntitiesQueryFromGet(
@@ -117,7 +117,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should return the input entity if @none join is specified`() = runTest {
+    fun `processLinkedEntities should return the input entity if @none join is specified`() = runTest {
         val compactedEntities = linkedEntityService.processLinkedEntities(
             linkingEntityWithTwoRelationships,
             EntitiesQueryFromGet(
@@ -139,7 +139,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should return the input entities if no join is specified`() = runTest {
+    fun `processLinkedEntities should return the input entities if no join is specified`() = runTest {
         val compactedEntities = linkedEntityService.processLinkedEntities(
             listOf(linkingEntityWithTwoRelationships, otherLinkingEntityWithTwoRelationships),
             EntitiesQueryFromGet(
@@ -160,7 +160,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should return only the input entity if it has no relationships`() = runTest {
+    fun `processLinkedEntities should return only the input entity if it has no relationships`() = runTest {
         val compactedEntities = linkedEntityService.processLinkedEntities(
             linkingEntityWithoutRelationships,
             EntitiesQueryFromGet(
@@ -182,7 +182,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should return an empty list if no entities are provided in the input`() = runTest {
+    fun `processLinkedEntities should return an empty list if no entities are provided in the input`() = runTest {
         val compactedEntities = linkedEntityService.processLinkedEntities(
             emptyList(),
             EntitiesQueryFromGet(
@@ -199,7 +199,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should flatten lists of linking and linked entities`() = runTest {
+    fun `flattenLinkedEntities should flatten lists of linking and linked entities`() = runTest {
         val linkedEntity01 = """
             {
                 "id": "urn:ngsi-ld:LinkedEntity:01",
@@ -259,7 +259,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should flatten a linking entity with multi-instance relationship and linked entities`() = runTest {
+    fun `flattenLinkedEntities should flatten a linking entity with multi-instance relationship`() = runTest {
         val linkedEntity01 = """
             {
                 "id": "urn:ngsi-ld:LinkedEntity:01",
@@ -308,7 +308,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should inline a linking entity with multi-instance relationship and linked entities`() = runTest {
+    fun `inlineLinkedEntities should inline a linking entity with multi-instance relationship`() = runTest {
         val linkedEntity01 = """
             {
                 "id": "urn:ngsi-ld:LinkedEntity:01",
@@ -357,7 +357,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should inline a linking entity with multivalued relationship and linked entities`() = runTest {
+    fun `inlineLinkedEntities should inline a linking entity with multivalued relationship`() = runTest {
         val linkingEntity = """
             {
                 "id": "urn:ngsi-ld:LinkingEntity:01",
@@ -416,7 +416,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should flatten an entity with a multivalued relationship`() = runTest {
+    fun `processLinkedEntities should flatten an entity with a multivalued relationship`() = runTest {
         val linkingEntity = """
             {
                 "id": "urn:ngsi-ld:LinkingEntity:01",
@@ -504,7 +504,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should flatten an entity up to the asked 2nd level`() = runTest {
+    fun `processLinkedEntities should flatten an entity up to the asked 2nd level`() = runTest {
         prepareMockedAnswersForJoinLevel2OnEntity()
 
         val flattenedEntities =
@@ -565,7 +565,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should inline an entity up to the asked 2nd level`() = runTest {
+    fun `processLinkedEntities should inline an entity up to the asked 2nd level`() = runTest {
         prepareMockedAnswersForJoinLevel2OnEntity()
 
         val inlinedEntities =
@@ -670,7 +670,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should flatten entities up to the asked 2nd level`() = runTest {
+    fun `processLinkedEntities should flatten entities up to the asked 2nd level`() = runTest {
         prepareMockedAnswersForJoinLevel2OnEntities()
 
         val flattenedEntities =
@@ -699,7 +699,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should inline entities up to the asked 2nd level`() = runTest {
+    fun `processLinkedEntities should inline entities up to the asked 2nd level`() = runTest {
         prepareMockedAnswersForJoinLevel2OnEntities()
 
         val inlinedEntities =
@@ -826,7 +826,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should flatten an entity and apply pick on relationships`() = runTest {
+    fun `processLinkedEntities should flatten an entity and apply pick on relationships`() = runTest {
         prepareMockedAnswersForJoinLevelWithPickOnEntity()
 
         val flattenedEntities =
@@ -876,7 +876,7 @@ class LinkedEntityServiceTests {
     }
 
     @Test
-    fun `it should inline an entity and apply pick on relationships`() = runTest {
+    fun `processLinkedEntities should inline an entity and apply pick on relationships`() = runTest {
         prepareMockedAnswersForJoinLevelWithPickOnEntity()
 
         val inlinedEntities =

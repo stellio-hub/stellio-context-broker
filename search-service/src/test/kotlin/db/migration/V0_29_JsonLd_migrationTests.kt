@@ -15,7 +15,7 @@ class V0_29_JsonLd_migrationTests {
     private val contexts = APIC_COMPOUND_CONTEXTS
 
     @Test
-    fun `it should remove instances when attribute has more than one instance with the same datasetId`() = runTest {
+    fun `keepOnlyOneInstanceByDatasetId should remove duplicate instances with the same datasetId`() = runTest {
         val payload = loadSampleData("fragments/attribute_with_two_instances_and_same_dataset_id.jsonld")
             .deserializeAsMap()
 
@@ -37,7 +37,7 @@ class V0_29_JsonLd_migrationTests {
     }
 
     @Test
-    fun `it should not remove instances when attribute has a default instance and one with a datasetId`() = runTest {
+    fun `keepOnlyOneInstanceByDatasetId should keep a default instance and one with a datasetId`() = runTest {
         val payload = loadSampleData("fragments/attribute_with_default_instance_and_dataset_id.jsonld")
             .deserializeAsMap()
 
@@ -63,7 +63,7 @@ class V0_29_JsonLd_migrationTests {
     }
 
     @Test
-    fun `it should not remove instances when attribute has instances with different values for datasetId`() = runTest {
+    fun `keepOnlyOneInstanceByDatasetId should keep instances with different datasetId values`() = runTest {
         val payload = loadSampleData("fragments/attribute_with_two_instances_and_different_dataset_id.jsonld")
             .deserializeAsMap()
 
@@ -90,7 +90,7 @@ class V0_29_JsonLd_migrationTests {
     }
 
     @Test
-    fun `it should remove instance when attribute has two default instances`() = runTest {
+    fun `keepOnlyOneInstanceByDatasetId should remove one of two default instances`() = runTest {
         val payload = loadSampleData("fragments/attribute_with_two_default_instances.jsonld")
             .deserializeAsMap()
 

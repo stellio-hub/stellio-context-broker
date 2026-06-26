@@ -47,7 +47,7 @@ class CoreAPIServiceTests {
     private val beehiveTestCId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     @Test
-    fun `it should return one entity if the query sent to entity service matches one entity`() {
+    fun `getEntities should return one entity when the query sent to entity service matches one entity`() {
         val encodedQuery = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
         stubFor(
             get(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
@@ -73,7 +73,7 @@ class CoreAPIServiceTests {
     }
 
     @Test
-    fun `it should return a list of 2 entities if the query sent to entity service matches two entities`() {
+    fun `getEntities should return a list of 2 entities when the query sent to entity service matches two entities`() {
         stubFor(
             get(urlEqualTo("/ngsi-ld/v1/entities?type=BeeHive"))
                 .willReturn(
@@ -99,7 +99,7 @@ class CoreAPIServiceTests {
     }
 
     @Test
-    fun `it should ask to retrieve linked entitiies using the notification parameters from the subscription`() {
+    fun `retrieveLinkedEntities should use the notification parameters from the subscription`() {
         stubFor(
             get(urlPathEqualTo("/ngsi-ld/v1/entities/$beehiveTestCId"))
                 .willReturn(

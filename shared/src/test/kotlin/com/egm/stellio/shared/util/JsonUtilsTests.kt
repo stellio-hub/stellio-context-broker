@@ -73,19 +73,19 @@ class JsonUtilsTests {
         """.trimIndent().replace(" ", "").replace("\n", "")
 
     @Test
-    fun `it should parse an event of type ENTITY_CREATE`() {
+    fun `deserializeAs should parse an event of type ENTITY_CREATE`() {
         val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/entityCreateEvent.json"))
         Assertions.assertTrue(parsedEvent is EntityCreateEvent)
     }
 
     @Test
-    fun `it should parse an event of type ENTITY_DELETE`() {
+    fun `deserializeAs should parse an event of type ENTITY_DELETE`() {
         val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/entityDeleteEvent.json"))
         Assertions.assertTrue(parsedEvent is EntityDeleteEvent)
     }
 
     @Test
-    fun `it should parse an event of type ATTRIBUTE_UPDATE`() {
+    fun `deserializeAs should parse an event of type ATTRIBUTE_UPDATE`() {
         val parsedEvent = deserializeAs<EntityEvent>(
             loadSampleData("events/entity/attributeUpdateTextPropEvent.json")
         )
@@ -93,13 +93,13 @@ class JsonUtilsTests {
     }
 
     @Test
-    fun `it should parse an event of type ATTRIBUTE_DELETE`() {
+    fun `deserializeAs should parse an event of type ATTRIBUTE_DELETE`() {
         val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/attributeDeleteEvent.json"))
         Assertions.assertTrue(parsedEvent is AttributeDeleteEvent)
     }
 
     @Test
-    fun `it should serialize an event of type ENTITY_CREATE`() = runTest {
+    fun `mapper should serialize an event of type ENTITY_CREATE`() = runTest {
         val event = mapper.writeValueAsString(
             EntityCreateEvent(
                 "0123456789-1234-5678-987654321",
@@ -113,7 +113,7 @@ class JsonUtilsTests {
     }
 
     @Test
-    fun `it should serialize an event of type ENTITY_DELETE`() = runTest {
+    fun `mapper should serialize an event of type ENTITY_DELETE`() = runTest {
         val event = mapper.writeValueAsString(
             EntityDeleteEvent(
                 null,
@@ -134,7 +134,7 @@ class JsonUtilsTests {
     }
 
     @Test
-    fun `it should throw an InvalidRequest exception if the JSON-LD fragment is not a valid JSON document`() {
+    fun `deserializeAsMap should throw an InvalidRequest exception for an invalid JSON document`() {
         val rawEntity =
             """
             {

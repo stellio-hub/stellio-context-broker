@@ -203,7 +203,8 @@ class EntityAttributeService(
                         expandedAttributeName,
                         attributeMetadata,
                         createdAt,
-                        attributePayload
+                        attributePayload,
+                        false
                     ).bind()
             }
     }
@@ -215,6 +216,7 @@ class EntityAttributeService(
         attributeMetadata: AttributeMetadata,
         createdAt: ZonedDateTime,
         attributePayload: ExpandedAttributeInstance,
+        existedPreviously: Boolean
     ): Either<APIException, SucceededAttributeOperationResult> = either {
         logger.debug("Adding attribute {} to entity {}", attributeName, entityId)
         val attribute = Attribute(
@@ -228,11 +230,11 @@ class EntityAttributeService(
         )
         val attributeUuid = upsert(attribute).bind()
 
-        // if the temporal property existed before, the upsert operation returns a different id than the one
-        // in the attribute object
-        val timeProperty =
-            if (attributeUuid != attribute.id) AttributeInstance.TemporalProperty.MODIFIED_AT
-            else AttributeInstance.TemporalProperty.CREATED_AT
+        val (timeProperty, operationStatus) =
+            if (existedPreviously)
+                AttributeInstance.TemporalProperty.MODIFIED_AT to OperationStatus.UPDATED
+            else
+                AttributeInstance.TemporalProperty.CREATED_AT to OperationStatus.CREATED
 
         val attributeInstance = AttributeInstance(
             attributeUuid = attributeUuid,
@@ -253,10 +255,6 @@ class EntityAttributeService(
             )
             attributeInstanceService.create(attributeObservedAtInstance).bind()
         }
-
-        val operationStatus =
-            if (timeProperty == AttributeInstance.TemporalProperty.CREATED_AT) OperationStatus.CREATED
-            else OperationStatus.UPDATED
 
         SucceededAttributeOperationResult(
             attributeName,
@@ -662,7 +660,8 @@ class EntityAttributeService(
                     ngsiLdAttribute.name,
                     attributeMetadata,
                     createdAt,
-                    attributePayload
+                    attributePayload,
+                    currentAttribute != null && currentAttribute.deletedAt == null
                 ).bind()
             }
         }
@@ -701,7 +700,8 @@ class EntityAttributeService(
                     ngsiLdAttribute.name,
                     attributeMetadata,
                     createdAt,
-                    attributePayload
+                    attributePayload,
+                    currentAttribute != null && currentAttribute.deletedAt == null
                 ).bind()
             }
         }
@@ -813,7 +813,8 @@ class EntityAttributeService(
                 ngsiLdAttribute.name,
                 attributeMetadata,
                 createdAt,
-                attributePayload
+                attributePayload,
+                false
             ).bind()
         } else {
             logger.debug("Adding instance to attribute {} to entity {}", currentAttribute.attributeName, entityUri)
@@ -855,7 +856,8 @@ class EntityAttributeService(
                     ngsiLdAttribute.name,
                     attributeMetadata,
                     createdAt,
-                    attributePayload
+                    attributePayload,
+                    false
                 ).map {
                     SucceededAttributeOperationResult(
                         ngsiLdAttribute.name,
@@ -911,7 +913,8 @@ class EntityAttributeService(
                     attributeName,
                     attributeMetadata,
                     replacedAt,
-                    expandedAttribute.second.first()
+                    expandedAttribute.second.first(),
+                    true
                 ).bind()
 
                 SucceededAttributeOperationResult(

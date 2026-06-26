@@ -190,7 +190,7 @@ class EntityQueryService(
             if (!entitiesQuery.idPattern.isNullOrEmpty())
                 "entity_payload.entity_id ~ '${entitiesQuery.idPattern}'"
             else null
-        val formattedType = entitiesQuery.typeSelection?.let { "(" + buildTypeQuery(it) + ")" }
+        val formattedType = buildTypeQuery(entitiesQuery.typeSelection)
         val formattedAttrs =
             if (entitiesQuery.attrs.isNotEmpty())
                 entitiesQuery.attrs.joinToString(
@@ -221,7 +221,7 @@ class EntityQueryService(
                 entitySelector.id?.let { "entity_payload.entity_id = '${entitySelector.id}'" }
             val formattedIdPattern =
                 entitySelector.idPattern?.let { "entity_payload.entity_id ~ '${entitySelector.idPattern}'" }
-            val formattedType = entitySelector.typeSelection.let { "(" + buildTypeQuery(it) + ")" }
+            val formattedType = buildTypeQuery(entitySelector.typeSelection)
             val formattedAttrs =
                 if (entitiesQuery.attrs.isNotEmpty())
                     entitiesQuery.attrs.joinToString(
@@ -237,10 +237,12 @@ class EntityQueryService(
                 formattedType,
                 formattedAttrs,
                 accessRightFilter
-            ).joinToString(separator = " AND ", prefix = "(", postfix = ")")
+            ).joinToString(separator = " AND ")
+                .ifEmpty { "true" }
+                .let { "($it)" }
         }
 
-        return entitySelectorFilter?.joinToString(separator = " OR ") ?: " 1 = 1 "
+        return entitySelectorFilter?.joinToString(separator = " OR ") ?: " true "
     }
 
     suspend fun retrieve(entityId: URI, excludeDeleted: Boolean = true): Either<APIException, Entity> =

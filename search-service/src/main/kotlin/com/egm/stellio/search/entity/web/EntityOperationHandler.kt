@@ -257,8 +257,8 @@ class EntityOperationHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(
-            implemented = [QP.LIMIT, QP.OFFSET, QP.COUNT, QP.OPTIONS, QP.FORMAT],
-            notImplemented = [QP.LOCAL, QP.VIA]
+            implemented = [QP.LIMIT, QP.OFFSET, QP.COUNT, QP.OPTIONS, QP.FORMAT, QP.LOCAL],
+            notImplemented = [QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {

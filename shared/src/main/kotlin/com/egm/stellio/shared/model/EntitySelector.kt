@@ -5,6 +5,10 @@ import java.net.URI
 
 // an entity type selection as per clause 4.17
 typealias EntityTypeSelection = String
+const val ENTITY_TYPE_WILDCARD = "*"
+
+fun EntityTypeSelection.isWildcardTypeSelection(): Boolean =
+    trim() == ENTITY_TYPE_WILDCARD
 
 /**
  * EntitySelector type as defined in 5.2.33

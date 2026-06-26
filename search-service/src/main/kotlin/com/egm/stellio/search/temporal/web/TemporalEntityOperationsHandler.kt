@@ -47,9 +47,9 @@ class TemporalEntityOperationsHandler(
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(
             implemented = [
-                QP.LIMIT, QP.OFFSET, QP.COUNT, QP.OPTIONS
+                QP.LIMIT, QP.OFFSET, QP.COUNT, QP.OPTIONS, QP.LOCAL
             ],
-            notImplemented = [QP.LOCAL, QP.VIA]
+            notImplemented = [QP.VIA]
         )
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {

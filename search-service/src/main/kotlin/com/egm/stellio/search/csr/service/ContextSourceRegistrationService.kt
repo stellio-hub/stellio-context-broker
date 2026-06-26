@@ -311,15 +311,15 @@ class ContextSourceRegistrationService(
             )
                 """.trimIndent()
             else null
-            val typeFilter = if (!csrFilters.typeSelection.isNullOrBlank()) {
-                val typeQuery = buildTypeQuery(csrFilters.typeSelection, columnName = "type")
-                """
-                (
-                    type is null OR
-                    ( $typeQuery )
-                )
-                """.trimIndent()
-            } else null
+            val typeFilter = buildTypeQuery(csrFilters.typeSelection, columnName = "type")
+                ?.let { typeQuery ->
+                    """
+                    (
+                        type is null OR
+                        $typeQuery
+                    )
+                    """.trimIndent()
+                }
 
             // we only filter on id since there is no easy way to know if two idPatterns overlap
             // possible resources : https://meta.stackoverflow.com/questions/426313/canonical-for-overlapping-regex-questions

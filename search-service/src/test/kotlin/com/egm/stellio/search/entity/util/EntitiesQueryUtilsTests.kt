@@ -9,6 +9,7 @@ import com.egm.stellio.search.support.buildDefaultPagination
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ENTITY_TYPE_WILDCARD
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
@@ -101,6 +102,21 @@ class EntitiesQueryUtilsTests {
         assertEquals(false, entitiesQuery.paginationQuery.count)
         assertEquals(0, entitiesQuery.paginationQuery.offset)
         assertEquals(30, entitiesQuery.paginationQuery.limit)
+    }
+
+    @Test
+    fun `composeEntitiesQueryFromGet should make query local without type restriction when type is wildcard`() = runTest {
+        val requestParams = LinkedMultiValueMap<String, String>().apply {
+            add("type", "*")
+        }
+        val entitiesQuery = composeEntitiesQueryFromGet(
+            buildDefaultPagination(30, 100),
+            requestParams,
+            NGSILD_TEST_CORE_CONTEXTS
+        ).shouldSucceedAndResult()
+
+        assertEquals(null, entitiesQuery.typeSelection)
+        assertEquals(true, entitiesQuery.local)
     }
 
     @Test
@@ -380,6 +396,46 @@ class EntitiesQueryUtilsTests {
                 )
         }
     }
+
+    @Test
+    fun `composeEntitiesQueryFromPost should make query local without type restriction when entity selector type is wildcard`() =
+        runTest {
+            val query = """
+                {
+                    "type": "Query",
+                    "entities": [
+                        {
+                            "type": "BeeHive"
+                        },
+                        {
+                            "idPattern": "urn:ngsi-ld:Apiary:*",
+                            "type": "*"
+                        }
+                    ]
+                }
+            """.trimIndent()
+
+            composeEntitiesQueryFromPostRequest(
+                buildDefaultPagination(30, 100),
+                query,
+                LinkedMultiValueMap(),
+                APIC_COMPOUND_CONTEXTS
+            ).shouldSucceedWith {
+                assertEquals(true, it.local)
+                assertThat(it.entitySelectors)
+                    .hasSize(2)
+                    .containsAll(
+                        listOf(
+                            EntitySelector(id = null, idPattern = null, typeSelection = BEEHIVE_IRI),
+                            EntitySelector(
+                                id = null,
+                                idPattern = "urn:ngsi-ld:Apiary:*",
+                                typeSelection = ENTITY_TYPE_WILDCARD
+                            )
+                        )
+                    )
+            }
+        }
 
     @Test
     fun `it should not validate a Query if the type is not correct`() {

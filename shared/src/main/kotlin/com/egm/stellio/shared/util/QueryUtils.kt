@@ -2,6 +2,7 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.isWildcardTypeSelection
 import com.egm.stellio.shared.queryparameter.QNode
 import com.egm.stellio.shared.queryparameter.toSqlJsonPath
 
@@ -20,8 +21,9 @@ fun Iterable<Any>.toSqlList(): String = "(${this.joinToString(",") { "'$it'"} })
 fun Iterable<Any?>.toSqlArray(): String = "ARRAY[${this.joinToString(",") { "'$it'"} }]"
 fun Sequence<String?>.toSqlArray(): String = this.toList().toSqlArray()
 
-fun buildTypeQuery(rawQuery: String, columnName: String = "types", target: List<ExpandedTerm>? = null): String =
-    rawQuery.replace(typeSelectionRegex) { matchResult ->
+fun buildTypeQuery(rawQuery: String?, columnName: String = "types", target: List<ExpandedTerm>? = null): String? =
+    if (rawQuery.isNullOrBlank() || rawQuery.isWildcardTypeSelection()) null
+    else rawQuery.replace(typeSelectionRegex) { matchResult ->
         """
         #{TARGET}# && ARRAY['${matchResult.value}']
         """.trimIndent()
@@ -34,7 +36,7 @@ fun buildTypeQuery(rawQuery: String, columnName: String = "types", target: List<
                 it.replace("#{TARGET}#", target.toSqlArray())
             else
                 it.replace("#{TARGET}#", columnName)
-        }
+        }.let { "($it)" }
 
 /**
  * Transforms an NGSI-LD Query Language parameter as per clause 4.9 to a PostgreSQL SQL expression.

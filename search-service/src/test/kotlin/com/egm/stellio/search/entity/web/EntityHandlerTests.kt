@@ -1525,6 +1525,28 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entities should query local entities without type restriction when type is wildcard`() {
+        initializeQueryEntitiesMocks()
+        coEvery {
+            entityQueryService.queryEntities(
+                match<EntitiesQueryFromGet> {
+                    it.typeSelection == null && it.local
+                }
+            )
+        } returns Pair(emptyList<ExpandedEntity>(), 0).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities?type=*")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
+
+        coVerify(exactly = 0) {
+            distributedEntityConsumptionService.distributeQueryEntitiesOperation(any(), any(), any())
+        }
+    }
+
+    @Test
     fun `get entities should return 400 if required parameters are missing`() {
         webClient.get()
             .uri("/ngsi-ld/v1/entities")
@@ -2890,6 +2912,30 @@ class EntityHandlerTests {
 
         coVerify(exactly = 0) { distributedEntityProvisionService.distributePurgeEntities(any(), any(), any()) }
         coVerify { entityService.purgeEntities(any(), emptySet(), emptySet()) }
+    }
+
+    @Test
+    fun `purge entities should skip CSR distribution and have no type restriction when type is wildcard`() {
+        coEvery {
+            entityService.purgeEntities(any(), any(), any())
+        } returns BatchOperationResult().right()
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities?type=*")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isNoContent
+
+        coVerify(exactly = 0) { distributedEntityProvisionService.distributePurgeEntities(any(), any(), any()) }
+        coVerify {
+            entityService.purgeEntities(
+                match {
+                    it.typeSelection == null && it.local
+                },
+                emptySet(),
+                emptySet()
+            )
+        }
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.egm.stellio.search.scope
 
+import arrow.core.right
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationType
@@ -25,13 +27,14 @@ import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.coEvery
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -59,6 +62,9 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
+
+    @MockkBean
+    private lateinit var authorizationService: AuthorizationService
 
     private val beehiveTestCId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
@@ -104,6 +110,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         operationType: OperationType,
         expectedScopes: List<String>?
     ) = runTest {
+        coEvery { authorizationService.createScopesOwnerRights(any()) } returns Unit.right()
         loadSampleData(initialEntity)
             .sampleDataToNgsiLdEntity()
             .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
@@ -421,18 +428,21 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `delete should remove the scope and its history`() = runTest {
+    fun `delete should remove the scope and keep the scope history`() = runTest {
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createScopesOwnerRights(any()) } returns Unit.right()
+
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntity(it.second, it.first).shouldSucceed() }
 
         scopeService.delete(beehiveTestCId).shouldSucceed()
 
-        scopeService.retrieve(beehiveTestCId)
-            .shouldSucceedWith {
-                assertNull(it.first)
-                assertNull(it.second.toExpandedAttributeInstance().getScopes())
-            }
+        entityQueryService.retrieve(beehiveTestCId).shouldSucceedWith {
+            assertNull(it.payload.toExpandedAttributeInstance().getScopes())
+            assertNull(it.scopes)
+        }
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
             TemporalEntitiesQueryFromGet(
@@ -440,11 +450,46 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                temporalQuery = buildDefaultTestTemporalQuery(),
+                temporalQuery = buildDefaultTestTemporalQuery(
+                    timeproperty = TemporalProperty.CREATED_AT,
+                ),
                 temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             )
         ).shouldSucceedAndResult()
-        assertTrue(scopeHistoryEntries.isEmpty())
+        assertThat(scopeHistoryEntries).hasSize(1)
+    }
+
+    @Test
+    fun `permanentlyDelete should remove the scope, and clear its history`() = runTest {
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createScopesOwnerRights(any()) } returns Unit.right()
+
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntity(it.second, it.first).shouldSucceed() }
+
+        scopeService.permanentlyDelete(beehiveTestCId, ngsiLdDateTime()).shouldSucceed()
+
+        entityQueryService.retrieve(beehiveTestCId).shouldSucceedWith {
+            assertNull(it.payload.toExpandedAttributeInstance().getScopes())
+            assertNull(it.scopes)
+        }
+        val scopeHistoryEntries = scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
+                    paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                temporalQuery = buildDefaultTestTemporalQuery(
+                    timeproperty = TemporalProperty.CREATED_AT,
+                ),
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
+            )
+        ).shouldSucceedAndResult()
+        assertThat(scopeHistoryEntries).isEmpty()
     }
 }

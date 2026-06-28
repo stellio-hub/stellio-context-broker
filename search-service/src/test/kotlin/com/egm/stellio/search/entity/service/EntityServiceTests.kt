@@ -21,14 +21,24 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedAttributeInstances
+import com.egm.stellio.shared.model.ExpandedAttributeInstances
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NGSILD_TITLE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
+import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.getDatasetId
+import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
@@ -43,6 +53,7 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NAME_TERM
 import com.egm.stellio.shared.util.OUTGOING_IRI
+import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.loadAndExpandDeletedEntity
 import com.egm.stellio.shared.util.loadAndPrepareSampleData
 import com.egm.stellio.shared.util.loadMinimalEntity
@@ -53,6 +64,7 @@ import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -60,10 +72,15 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -77,6 +94,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 import java.time.ZonedDateTime
+import kotlin.time.Duration.Companion.milliseconds
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -321,7 +339,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns listOf(
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap()),
         ).right()
-        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
         coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -360,9 +377,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 any(),
                 any(),
                 any()
-            )
-            entityAttributeService.getAllForEntity(
-                eq(beehiveTestCId)
             )
             authorizationService.createEntityOwnerRight(beehiveTestCId)
         }
@@ -560,7 +574,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             )
         }
 
-        entityService.updateTypes(beehiveTestCId, listOf(BEEHIVE_IRI, APIARY_IRI), ngsiLdDateTime(), false)
+        entityService.updateTypes(beehiveTestCId, listOf(BEEHIVE_IRI, APIARY_IRI), ngsiLdDateTime())
             .shouldSucceedWith {
                 assertInstanceOf(SucceededAttributeOperationResult::class.java, it)
                 assertEquals(JSONLD_TYPE_KW, it.attributeName)
@@ -588,7 +602,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     now
                 )
             }
-        entityService.updateTypes(entity01Uri, listOf(APIARY_IRI), ngsiLdDateTime(), false)
+        entityService.updateTypes(entity01Uri, listOf(APIARY_IRI), ngsiLdDateTime())
             .shouldSucceed()
 
         entityQueryService.retrieve(entity01Uri)
@@ -661,7 +675,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
         } returns Unit.right()
         coEvery { entityAttributeService.permanentlyDeleteAttribute(any(), any(), any(), any()) } returns Unit.right()
-        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
 
         loadAndPrepareSampleData("beehive.jsonld")
             .map {
@@ -683,8 +696,12 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 excludeDeleted = false
             )
             entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_IRI, null, false)
-            entityAttributeService.getAllForEntity(beehiveTestCId)
         }
+
+        entityQueryService.retrieve(beehiveTestCId)
+            .shouldSucceedWith { entity ->
+                assertFalse(entity.toExpandedEntity().members.containsKey(INCOMING_IRI))
+            }
     }
 
     @Test
@@ -723,6 +740,55 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    fun `permanentlyDeleteAttribute should return a ResourceNotFound error when the entity no longer exists`() =
+        runTest {
+            coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+            coEvery {
+                entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
+            } returns Unit.right()
+            coEvery {
+                entityAttributeService.permanentlyDeleteAttribute(any(), any(), any(), any())
+            } returns Unit.right()
+
+            entityService.permanentlyDeleteAttribute(entity01Uri, INCOMING_IRI, null, deleteAll = true).shouldFail {
+                assertInstanceOf(ResourceNotFoundException::class.java, it)
+            }
+        }
+
+    @Test
+    fun `upsertAttributes should return a ResourceNotFound error when the entity no longer exists`() = runTest {
+        coEvery {
+            entityAttributeService.upsertAttributes(any(), any(), any(), any())
+        } returns SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap()).right()
+
+        val expandedAttributes = expandAttributes(
+            """{ "$INCOMING_TERM": { "type": "Property", "value": 10 } }""",
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        entityService.upsertAttributes(entity01Uri, expandedAttributes).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+        }
+    }
+
+    @Test
+    fun `upsertAttributes should return a ResourceNotFound error when nothing changed and entity no longer exists`() =
+        runTest {
+            coEvery {
+                entityAttributeService.upsertAttributes(any(), any(), any(), any())
+            } returns null.right()
+
+            val expandedAttributes = expandAttributes(
+                """{ "$INCOMING_TERM": { "type": "Property", "value": 10 } }""",
+                APIC_COMPOUND_CONTEXTS
+            )
+
+            entityService.upsertAttributes(entity01Uri, expandedAttributes).shouldFail {
+                assertInstanceOf(ResourceNotFoundException::class.java, it)
+            }
+        }
+
+    @Test
     fun `mergeAttribute should return an error when the entity does not exist`() = runTest {
         entityService.mergeAttribute(
             entity01Uri,
@@ -745,7 +811,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns listOf(
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.UPDATED, emptyMap())
         ).right()
-        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
 
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
@@ -771,8 +836,163 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 any(),
                 eq(now)
             )
-            entityAttributeService.getAllForEntity(eq(entity01Uri))
         }
+    }
+
+    @Test
+    fun `mergeAttribute should update the modifiedAt member in the entity payload`() = runTest {
+        coEvery {
+            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any())
+        } returns listOf(
+            SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.UPDATED, emptyMap())
+        ).right()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        val expandedAttributes = expandAttributes(
+            loadSampleData("fragments/beehive_mergeAttribute.json"),
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        entityService.mergeAttribute(
+            entity01Uri,
+            INCOMING_IRI,
+            expandedAttributes[INCOMING_IRI]!![0],
+            now
+        ).shouldSucceed()
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { entity ->
+                assertTrue(entity.modifiedAt > now)
+                val modifiedAtMember =
+                    (entity.toExpandedEntity().members[NGSILD_MODIFIED_AT_IRI] as List<*>).first() as Map<*, *>
+                assertEquals(entity.modifiedAt.toNgsiLdFormat(), modifiedAtMember[JSONLD_VALUE_KW])
+            }
+    }
+
+    // Not using runTest here: this test needs two mergeAttribute() calls to genuinely race against each
+    // other at the DB level (see EntityService.patchEntityPayload's row-locking strategy), which requires
+    // real wall-clock concurrency rather than runTest's virtual-time coroutine scheduling.
+    @Test
+    fun `mergeAttribute should keep both instances when updated concurrently at two datasetIds`() = runBlocking {
+        val datasetIdX = "urn:ngsi-ld:Dataset:X".toUri()
+        val datasetIdY = "urn:ngsi-ld:Dataset:Y".toUri()
+
+        // force both concurrent mergeAttribute() calls to be in-flight at the same time, so they
+        // genuinely race for the entity_payload row lock in patchEntityPayload
+        listOf(datasetIdX, datasetIdY).forEach { datasetId ->
+            coEvery {
+                entityAttributeService.mergeAttributes(
+                    entity01Uri,
+                    match<List<NgsiLdAttribute>> {
+                        it.first().getAttributeInstances().first().datasetId == datasetId
+                    },
+                    any(),
+                    any(),
+                    any()
+                )
+            } coAnswers {
+                delay(300.milliseconds)
+                listOf(
+                    SucceededAttributeOperationResult(
+                        INCOMING_IRI,
+                        datasetId,
+                        OperationStatus.UPDATED,
+                        mapOf(
+                            JSONLD_TYPE_KW to listOf(NGSILD_PROPERTY_TYPE.uri),
+                            NGSILD_PROPERTY_VALUE to listOf(datasetId.toString()),
+                            NGSILD_DATASET_ID_IRI to listOf(mapOf(JSONLD_ID_KW to datasetId.toString()))
+                        )
+                    )
+                ).right()
+            }
+        }
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        val fragmentX = expandAttributes(incomingFragmentWithDatasetId(datasetIdX), APIC_COMPOUND_CONTEXTS)
+            .getValue(INCOMING_IRI)[0]
+        val fragmentY = expandAttributes(incomingFragmentWithDatasetId(datasetIdY), APIC_COMPOUND_CONTEXTS)
+            .getValue(INCOMING_IRI)[0]
+
+        val jobX = async { entityService.mergeAttribute(entity01Uri, INCOMING_IRI, fragmentX, now) }
+        val jobY = async { entityService.mergeAttribute(entity01Uri, INCOMING_IRI, fragmentY, now) }
+        awaitAll(jobX, jobY).forEach { it.shouldSucceed() }
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { entity ->
+                val incomingInstances = entity.toExpandedEntity().members.getValue(INCOMING_IRI) as List<*>
+                assertEquals(2, incomingInstances.size)
+                val datasetIds = incomingInstances.map {
+                    (it as Map<String, List<Any>>).getDatasetId()
+                }.toSet()
+                assertEquals(setOf(datasetIdX, datasetIdY), datasetIds)
+            }
+    }
+
+    private fun incomingFragmentWithDatasetId(datasetId: URI): String =
+        """
+        {
+            "incoming": {
+                "type": "Property",
+                "value": "$datasetId",
+                "datasetId": "$datasetId"
+            }
+        }
+        """.trimIndent()
+
+    // Not using runTest here: this test needs updateTypes() and mergeAttribute() to genuinely race
+    // against each other at the DB level (see EntityService.patchEntityPayload and updateTypes' row-locking
+    // strategy), which requires real wall-clock concurrency rather than runTest's virtual-time scheduling.
+    @Test
+    fun `updateTypes should not lose a concurrent attribute update racing on the same entity`() = runBlocking {
+        val newType = "https://uri.etsi.org/ngsi-ld/default-context/AnotherType"
+
+        coEvery {
+            entityAttributeService.mergeAttributes(any(), any(), any(), any(), any())
+        } coAnswers {
+            // force this call to still be in-flight while updateTypes races against it, so both
+            // compete for the entity_payload row lock
+            delay(300.milliseconds)
+            listOf(
+                SucceededAttributeOperationResult(
+                    INCOMING_IRI,
+                    null,
+                    OperationStatus.UPDATED,
+                    mapOf(
+                        JSONLD_TYPE_KW to listOf(NGSILD_PROPERTY_TYPE.uri),
+                        NGSILD_PROPERTY_VALUE to listOf("some value")
+                    )
+                )
+            ).right()
+        }
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        val fragment = expandAttributes(
+            loadSampleData("fragments/beehive_mergeAttribute.json"),
+            APIC_COMPOUND_CONTEXTS
+        ).getValue(INCOMING_IRI)[0]
+
+        val mergeJob = async { entityService.mergeAttribute(entity01Uri, INCOMING_IRI, fragment, now) }
+        val typeJob = async { entityService.updateTypes(entity01Uri, listOf(BEEHIVE_IRI, newType), now) }
+        mergeJob.await().shouldSucceed()
+        typeJob.await().shouldSucceed()
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { entity ->
+                assertTrue(entity.types.containsAll(setOf(BEEHIVE_IRI, newType)))
+                val members = entity.toExpandedEntity().members
+                assertTrue(members.containsKey(INCOMING_IRI))
+                @Suppress("UNCHECKED_CAST")
+                assertTrue((members[JSONLD_TYPE_KW] as List<String>).containsAll(setOf(BEEHIVE_IRI, newType)))
+            }
     }
 
     private fun buildTypeQuery(typeIri: String) = EntitiesQueryFromGet(
@@ -975,5 +1195,180 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         assertTrue(result.success.isEmpty())
         assertThat(result.errors).hasSize(1)
             .contains(BatchEntityError(entity01Uri, result.errors.first().error))
+    }
+
+    @Test
+    fun `mergeSucceededOperationResults should replace the existing instance of an updated attribute`() = runTest {
+        val originalEntity = expandJsonLdEntity(
+            """
+                {
+                    "id": "$entity01Uri",
+                    "incoming": {
+                        "type": "Property",
+                        "value": "old"
+                    },
+                    "@context": "$APIC_COMPOUND_CONTEXT"
+
+                }
+            """.trimIndent()
+        )
+        val operationResult = gimmeSucceededAttributeOperationResult(
+            INCOMING_IRI,
+            newExpandedValue = expandAttribute(
+                """
+                {
+                    "incoming": {
+                        "type": "Property",
+                        "value": "new"
+                    }
+                }
+                """.trimIndent(),
+                APIC_COMPOUND_CONTEXTS
+            ).second[0]
+        ).copy(operationStatus = OperationStatus.UPDATED)
+
+        val updatedEntity = originalEntity.mergeSucceededOperationResults(listOf(operationResult), now)
+
+        val incomingInstance = updatedEntity.getAttribute(INCOMING_IRI, null)!!
+        assertEquals("new", incomingInstance.getPropertyValue().getOrNull())
+    }
+
+    @Test
+    fun `mergeSucceededOperationResults should remove the attribute key when its only instance is deleted`() = runTest {
+        val originalEntity = expandJsonLdEntity(
+            """
+                {
+                    "id": "$entity01Uri",
+                    "incoming": {
+                        "type": "Property",
+                        "value": "old"
+                    },
+                    "@context": "$APIC_COMPOUND_CONTEXT"
+
+                }
+            """.trimIndent()
+        )
+        val operationResult = SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.DELETED, emptyMap())
+
+        val updatedEntity = originalEntity.mergeSucceededOperationResults(listOf(operationResult), now)
+
+        assertFalse(updatedEntity.members.containsKey(INCOMING_IRI))
+    }
+
+    @Test
+    fun `mergeSucceededOperationResults should keep instances at other datasetIds untouched`() = runTest {
+        val datasetIdX = "urn:ngsi-ld:Dataset:X"
+        val datasetIdY = "urn:ngsi-ld:Dataset:Y"
+        val originalEntity = expandJsonLdEntity(
+            """
+                {
+                    "id": "$entity01Uri",
+                    "incoming": [{
+                        "type": "Property",
+                        "value": "x-old",
+                        "datasetId": "$datasetIdX"
+                    }, {
+                        "type": "Property",
+                        "value": "y-untouched",
+                        "datasetId": "$datasetIdY"             
+                    }],
+                    "@context": "$APIC_COMPOUND_CONTEXT"
+
+                }
+            """.trimIndent()
+        )
+        val operationResult = SucceededAttributeOperationResult(
+            INCOMING_IRI,
+            datasetIdX.toUri(),
+            OperationStatus.UPDATED,
+            expandAttribute(
+                """
+                {
+                    "incoming": {
+                        "type": "Property",
+                        "value": "x-new",
+                        "datasetId": "$datasetIdX"
+                    }
+                }
+                """.trimIndent(),
+                APIC_COMPOUND_CONTEXTS
+            ).second[0]
+        )
+
+        val updatedEntity = originalEntity.mergeSucceededOperationResults(listOf(operationResult), now)
+
+        val incomingInstances = updatedEntity.members.getValue(INCOMING_IRI) as ExpandedAttributeInstances
+        assertEquals(2, incomingInstances.size)
+        val valuesByDatasetId = incomingInstances.associate { it.getDatasetId() to it.getPropertyValue().getOrNull() }
+        assertEquals("x-new", valuesByDatasetId[datasetIdX.toUri()])
+        assertEquals("y-untouched", valuesByDatasetId[datasetIdY.toUri()])
+    }
+
+    @Test
+    fun `mergeSucceededOperationResults should add a new attribute not present in the original entity`() = runTest {
+        val originalEntity = ExpandedEntity(mapOf(JSONLD_ID_KW to entity01Uri))
+        val operationResult = gimmeSucceededAttributeOperationResult(
+            INCOMING_IRI,
+            newExpandedValue = expandAttribute(
+                """
+                {
+                    "incoming": {
+                        "type": "Property",
+                        "value": "value"
+                    }
+                }
+                """.trimIndent(),
+                APIC_COMPOUND_CONTEXTS
+            ).second[0]
+        )
+
+        val updatedEntity = originalEntity.mergeSucceededOperationResults(listOf(operationResult), now)
+
+        assertTrue(updatedEntity.members.containsKey(INCOMING_IRI))
+    }
+
+    @Test
+    fun `mergeSucceededOperationResults should update the entity-level modifiedAt member`() {
+        val originalEntity = ExpandedEntity(mapOf(JSONLD_ID_KW to entity01Uri))
+
+        val updatedEntity = originalEntity.mergeSucceededOperationResults(emptyList(), now)
+
+        val modifiedAtMember = (updatedEntity.members[NGSILD_MODIFIED_AT_IRI] as List<*>).first() as Map<*, *>
+        assertEquals(now.toNgsiLdFormat(), modifiedAtMember[JSONLD_VALUE_KW])
+    }
+
+    @Test
+    fun `mergeSucceededOperationResults should replace the @type member wholesale`() {
+        val originalEntity = ExpandedEntity(
+            mapOf(JSONLD_ID_KW to entity01Uri, JSONLD_TYPE_KW to listOf(BEEHIVE_IRI))
+        )
+        val newType = NGSILD_DEFAULT_VOCAB + "Distribution"
+        val operationResult = SucceededAttributeOperationResult(
+            JSONLD_TYPE_KW,
+            null,
+            OperationStatus.CREATED,
+            mapOf(JSONLD_TYPE_KW to listOf(BEEHIVE_IRI, newType))
+        )
+
+        val updatedEntity = originalEntity.mergeSucceededOperationResults(listOf(operationResult), now)
+
+        assertEquals(listOf(BEEHIVE_IRI, newType), updatedEntity.members[JSONLD_TYPE_KW])
+    }
+
+    @Test
+    fun `mergeSucceededOperationResults should remove the scope member when its new value is empty`() {
+        val originalEntity = ExpandedEntity(
+            mapOf(JSONLD_ID_KW to entity01Uri, NGSILD_SCOPE_IRI to listOf("/Nantes/BottiereChenaie"))
+        )
+        val operationResult = SucceededAttributeOperationResult(
+            NGSILD_SCOPE_IRI,
+            null,
+            OperationStatus.DELETED,
+            mapOf(NGSILD_SCOPE_IRI to emptyList<String>())
+        )
+
+        val updatedEntity = originalEntity.mergeSucceededOperationResults(listOf(operationResult), now)
+
+        assertFalse(updatedEntity.members.containsKey(NGSILD_SCOPE_IRI))
     }
 }

@@ -8,6 +8,21 @@
 - Imports: Grouped and sorted (Kotlin stdlib first, then Java)
 - Detekt: All code must pass Detekt; suppress only with documented rationale and update module baseline
 
+## Comments
+
+- Default to no comments. Add one only when it captures a non-obvious WHY (a hidden constraint, an
+  invariant, a workaround) that a future reader could not derive from the code itself.
+- Cap comments at ~5 lines. Do not narrate design deliberation — alternatives considered and rejected,
+  benchmark numbers, the history of how a bug was found — in code; that belongs in the PR description
+  or an ADR, not inline.
+- If the same invariant applies to multiple call sites (e.g., a concurrency-safety pattern reused
+  across several SQL statements), explain it once at the primary site and reference it from the others
+  with a short pointer (e.g., `// see EntityService.patchEntityPayload`) instead of restating it.
+- Never reference a file that isn't committed to the repository (a local plan/notes/scratch doc) — the
+  comment must be self-contained for whoever reads it later.
+- Comments (including test comments) describe current, intended behavior — not debugging narration
+  like "this is what regressed" or "even on the buggy code".
+
 ## Naming Conventions
 
 - Packages: `lowercase.with.dots` (e.g., `com.egm.stellio.search`)

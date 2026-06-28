@@ -7,10 +7,8 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.common.util.allToMappedList
-import com.egm.stellio.search.common.util.deserializeExpandedPayload
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
-import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.common.util.toList
 import com.egm.stellio.search.common.util.toOptionalList
 import com.egm.stellio.search.common.util.toOptionalZonedDateTime
@@ -94,21 +92,16 @@ class ScopeService(
             .execute()
 
     @Transactional
-    suspend fun retrieve(entityId: URI): Either<APIException, Pair<List<String>?, Json>> =
+    suspend fun retrieve(entityId: URI): Either<APIException, List<String>?> =
         databaseClient.sql(
             """
-            SELECT scopes, payload
+            SELECT scopes
             FROM entity_payload
             WHERE entity_id = :entity_id
             """.trimIndent()
         )
             .bind("entity_id", entityId)
-            .oneToResult {
-                Pair(
-                    toOptionalList(it["scopes"]),
-                    toJson(it["payload"]),
-                )
-            }
+            .oneToResult { toOptionalList(it["scopes"]) }
 
     suspend fun retrieveHistory(
         entitiesIds: List<URI>,
@@ -207,13 +200,6 @@ class ScopeService(
             .oneToResult { toOptionalZonedDateTime(it["first"]) }
             .getOrNull()
 
-    private fun Json.replaceScopeValue(newScopeValue: Any): Map<String, Any> =
-        this.deserializeExpandedPayload()
-            .mapValues {
-                if (it.key == NGSILD_SCOPE_IRI) newScopeValue
-                else it.value
-            }
-
     private fun rowToScopeInstanceResult(
         row: Map<String, Any>,
         temporalEntitiesQuery: TemporalEntitiesQuery
@@ -261,83 +247,121 @@ class ScopeService(
         modifiedAt: ZonedDateTime,
         operationType: OperationType
     ): Either<APIException, AttributeOperationResult> = either {
-        val scopes = mapOf(NGSILD_SCOPE_IRI to expandedAttributeInstances).getScopes()!!
-        val (currentScopes, currentPayload) = retrieve(entityId).bind()
+        val scopes = mapOf(NGSILD_SCOPE_IRI to expandedAttributeInstances).getScopes()!!.distinct()
+        val currentScopes = retrieve(entityId).bind()
 
-        val (updatedScopes, updatedPayload) = when (operationType) {
-            OperationType.UPDATE_ATTRIBUTES -> {
-                if (currentScopes != null) {
-                    val updatedPayload = currentPayload.replaceScopeValue(expandedAttributeInstances)
-                    Pair(scopes, updatedPayload)
-                } else return@either FailedAttributeOperationResult(
-                    attributeName = NGSILD_SCOPE_IRI,
-                    operationStatus = OperationStatus.FAILED,
-                    errorMessage = SCOPE_DOES_NOT_EXIST_MESSAGE
-                )
-            }
-            OperationType.APPEND_ATTRIBUTES, OperationType.MERGE_ENTITY -> {
-                val newScopes = (currentScopes ?: emptyList()).toSet().plus(scopes).toList()
-                val newPayload = newScopes.map { mapOf(JSONLD_VALUE_KW to it) }
-                val updatedPayload = currentPayload.replaceScopeValue(newPayload)
-                Pair(newScopes, updatedPayload)
-            }
+        if (operationType == OperationType.UPDATE_ATTRIBUTES && currentScopes == null)
+            return@either FailedAttributeOperationResult(
+                attributeName = NGSILD_SCOPE_IRI,
+                operationStatus = OperationStatus.FAILED,
+                errorMessage = SCOPE_DOES_NOT_EXIST_MESSAGE
+            )
+
+        val (updatedScopes, operationResult) = when (operationType) {
+            OperationType.UPDATE_ATTRIBUTES,
             OperationType.APPEND_ATTRIBUTES_OVERWRITE_ALLOWED,
-            OperationType.MERGE_ENTITY_OVERWRITE_ALLOWED,
-            OperationType.PARTIAL_ATTRIBUTE_UPDATE,
-            OperationType.REPLACE_ATTRIBUTE -> {
-                val updatedPayload = currentPayload.replaceScopeValue(expandedAttributeInstances)
-                Pair(scopes, updatedPayload)
-            }
-            else -> Pair(null, Json.of("{}"))
+            OperationType.MERGE_ENTITY_OVERWRITE_ALLOWED ->
+                Pair(scopes, performReplace(entityId, scopes, modifiedAt, expandedAttributeInstances).bind())
+            OperationType.APPEND_ATTRIBUTES, OperationType.MERGE_ENTITY ->
+                performAppend(entityId, scopes, modifiedAt).bind()
+            else -> return@either FailedAttributeOperationResult(
+                attributeName = NGSILD_SCOPE_IRI,
+                operationStatus = OperationStatus.FAILED,
+                errorMessage = unrecognizedOperationTypeMessage(operationType.toString())
+            )
         }
 
-        updatedScopes?.let {
-            val operationResult =
-                performUpdate(entityId, updatedScopes, modifiedAt, serializeObject(updatedPayload)).bind()
-            val temporalPropertyToAdd =
-                if (currentScopes == null) TemporalProperty.CREATED_AT
-                else TemporalProperty.MODIFIED_AT
-            addHistoryEntry(entityId, it, temporalPropertyToAdd, modifiedAt).bind()
-            if (temporalPropertyToAdd == TemporalProperty.MODIFIED_AT)
-                // as stated in 4.5.6: In case the Temporal Representation of the Scope is updated as the result of a
-                // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
-                // sub-Property
-                addHistoryEntry(entityId, it, TemporalProperty.OBSERVED_AT, modifiedAt).bind()
-            authorizationService.createScopesOwnerRights(it).bind()
-            operationResult
-        } ?: FailedAttributeOperationResult(
-            attributeName = NGSILD_SCOPE_IRI,
-            operationStatus = OperationStatus.FAILED,
-            errorMessage = unrecognizedOperationTypeMessage(operationType.toString())
-        )
+        val temporalPropertyToAdd =
+            if (currentScopes == null) TemporalProperty.CREATED_AT
+            else TemporalProperty.MODIFIED_AT
+        addHistoryEntry(entityId, updatedScopes, temporalPropertyToAdd, modifiedAt).bind()
+        if (temporalPropertyToAdd == TemporalProperty.MODIFIED_AT)
+            // as stated in 4.5.6: In case the Temporal Representation of the Scope is updated as the result of a
+            // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
+            // sub-Property
+            addHistoryEntry(entityId, updatedScopes, TemporalProperty.OBSERVED_AT, modifiedAt).bind()
+        authorizationService.createScopesOwnerRights(updatedScopes).bind()
+        operationResult
     }
 
     @Transactional
-    internal suspend fun performUpdate(
+    internal suspend fun performReplace(
         entityId: URI,
         scopes: List<Scope>,
         modifiedAt: ZonedDateTime,
-        payload: String
+        scopeValue: ExpandedAttributeInstances
     ): Either<APIException, SucceededAttributeOperationResult> = either {
+        val patch = mapOf(NGSILD_SCOPE_IRI to scopeValue)
         databaseClient.sql(
             """
             UPDATE entity_payload
             SET scopes = :scopes,
                 modified_at = :modified_at,
-                payload = :payload
+                payload = (payload || :patch::jsonb)
             WHERE entity_id = :entity_id
             """.trimIndent()
         )
             .bind("entity_id", entityId)
             .bind("scopes", scopes.toTypedArray())
             .bind("modified_at", modifiedAt)
-            .bind("payload", Json.of(payload))
+            .bind("patch", Json.of(serializeObject(patch)))
             .execute()
             .map {
                 SucceededAttributeOperationResult(
                     attributeName = NGSILD_SCOPE_IRI,
                     operationStatus = OperationStatus.CREATED,
-                    newExpandedValue = mapOf(NGSILD_SCOPE_IRI to scopes.toList())
+                    newExpandedValue = mapOf(NGSILD_SCOPE_IRI to scopes.map { mapOf(JSONLD_VALUE_KW to it) })
+                )
+            }.bind()
+    }
+
+    @Transactional
+    internal suspend fun performAppend(
+        entityId: URI,
+        newScopes: List<Scope>,
+        modifiedAt: ZonedDateTime
+    ): Either<APIException, Pair<List<Scope>, SucceededAttributeOperationResult>> = either {
+        val unionExpr = """
+            COALESCE(scopes, '{}') || COALESCE(
+                (
+                    SELECT array_agg(ns ORDER BY ord)
+                    FROM unnest(:new_scopes::text[]) WITH ORDINALITY AS u(ns, ord)
+                    WHERE ns <> ALL (COALESCE(scopes, '{}'))
+                ),
+                '{}'::text[]
+            )
+        """.trimIndent()
+
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET scopes = $unionExpr,
+                modified_at = :modified_at,
+                payload = payload || jsonb_build_object(
+                    '$NGSILD_SCOPE_IRI',
+                    (
+                        SELECT jsonb_agg(jsonb_build_object('$JSONLD_VALUE_KW', s.value) ORDER BY s.ord)
+                        FROM unnest($unionExpr) WITH ORDINALITY AS s(value, ord)
+                    )
+                )
+            WHERE entity_id = :entity_id
+            RETURNING scopes
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("modified_at", modifiedAt)
+            .bind("new_scopes", newScopes.toTypedArray())
+            .oneToResult { row -> toList<Scope>(row["scopes"]) }
+            .map { updatedScopes ->
+                Pair(
+                    updatedScopes,
+                    SucceededAttributeOperationResult(
+                        attributeName = NGSILD_SCOPE_IRI,
+                        operationStatus = OperationStatus.CREATED,
+                        newExpandedValue = mapOf(
+                            NGSILD_SCOPE_IRI to updatedScopes.map { mapOf(JSONLD_VALUE_KW to it) }
+                        )
+                    )
                 )
             }.bind()
     }
@@ -382,7 +406,7 @@ class ScopeService(
     }
 
     @Transactional
-    suspend fun permanentlyDelete(entityId: URI): Either<APIException, Unit> =
+    suspend fun permanentlyDelete(entityId: URI, modifiedAt: ZonedDateTime): Either<APIException, Unit> = either {
         databaseClient.sql(
             """
             DELETE FROM scope_history
@@ -391,4 +415,20 @@ class ScopeService(
         )
             .bind("entity_id", entityId)
             .execute()
+            .bind()
+
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET scopes = null,
+                modified_at = :modified_at,
+                payload = payload - '$NGSILD_SCOPE_IRI'
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("modified_at", modifiedAt)
+            .execute()
+            .bind()
+    }
 }

@@ -1,7 +1,6 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.Either
-import arrow.core.flatMap
 import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
@@ -13,8 +12,8 @@ import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.deserializeExpandedPayload
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
+import com.egm.stellio.search.common.util.toJson
 import com.egm.stellio.search.common.util.toZonedDateTime
-import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeOperationResult
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
@@ -46,14 +45,16 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.addSysAttrs
 import com.egm.stellio.shared.model.flattenOnAttributeAndDatasetId
+import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityAlreadyExistsMessage
+import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -481,7 +482,7 @@ class EntityService(
         ).bind()
 
         if (operationResult.isNotEmpty()) {
-            val updatedEntity = updateState(entityId, mergedAt, entityAttributeService.getAllForEntity(entityId)).bind()
+            val updatedEntity = patchEntityPayload(entityId, mergedAt, operationResult, originalEntity).bind()
             entityEventService.publishAttributeChangeEvents(null, originalEntity, updatedEntity, operationResult)
         }
 
@@ -494,24 +495,21 @@ class EntityService(
         expandedAttributes: ExpandedAttributes
     ): Either<APIException, Unit> = either {
         val createdAt = ngsiLdDateTime()
-        expandedAttributes.forEach { (attributeName, expandedAttributeInstances) ->
-            expandedAttributeInstances.forEach { expandedAttributeInstance ->
+
+        val operationResults = expandedAttributes.flatMap { (attributeName, expandedAttributeInstances) ->
+            expandedAttributeInstances.map { expandedAttributeInstance ->
                 val jsonLdAttribute = mapOf(attributeName to listOf(expandedAttributeInstance))
                 val ngsiLdAttribute = jsonLdAttribute.toNgsiLdAttributes().bind()[0]
-
-                entityAttributeService.upsertAttributes(
-                    entityId,
-                    ngsiLdAttribute,
-                    jsonLdAttribute,
-                    createdAt
-                ).bind()
+                entityAttributeService.upsertAttributes(entityId, ngsiLdAttribute, jsonLdAttribute, createdAt).bind()
             }
+        }.filterNotNull()
+
+        if (operationResults.isNotEmpty()) {
+            val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
+            patchEntityPayload(entityId, createdAt, operationResults, originalEntity).bind()
+        } else {
+            updateEntityModifiedAt(entityId, createdAt).bind()
         }
-        updateState(
-            entityId,
-            createdAt,
-            entityAttributeService.getAllForEntity(entityId)
-        ).bind()
     }
 
     @Transactional
@@ -548,8 +546,12 @@ class EntityService(
         // update modifiedAt in entity if at least one attribute has been added
         if (operationResult.hasSuccessfulResult()) {
             val sub = getSubFromSecurityContext()
-            val attributes = entityAttributeService.getAllForEntity(entityId)
-            val updatedEntity = updateState(entityId, createdAt, attributes).bind()
+            val updatedEntity = patchEntityPayload(
+                entityId,
+                createdAt,
+                operationResult.getSucceededAttributesOperations(),
+                originalEntity
+            ).bind()
 
             entityEventService.publishAttributeChangeEvents(
                 sub,
@@ -558,52 +560,6 @@ class EntityService(
                 operationResult.getSucceededAttributesOperations()
             )
         }
-    }
-
-    @Transactional
-    suspend fun updateState(
-        entityUri: URI,
-        modifiedAt: ZonedDateTime,
-        attributes: List<Attribute>
-    ): Either<APIException, ExpandedEntity> =
-        entityQueryService.retrieve(entityUri)
-            .flatMap { entityPayload ->
-                val payload = buildJsonLdEntity(
-                    attributes,
-                    entityPayload.copy(modifiedAt = modifiedAt)
-                )
-                databaseClient.sql(
-                    """
-                    UPDATE entity_payload
-                    SET modified_at = :modified_at,
-                        payload = :payload
-                    WHERE entity_id = :entity_id
-                    """.trimIndent()
-                )
-                    .bind("entity_id", entityUri)
-                    .bind("modified_at", modifiedAt)
-                    .bind("payload", Json.of(serializeObject(payload)))
-                    .execute()
-                    .map { ExpandedEntity(payload) }
-            }
-
-    private fun buildJsonLdEntity(
-        attributes: List<Attribute>,
-        entity: Entity
-    ): Map<String, Any> {
-        val entityCoreAttributes = entity.serializeProperties()
-        val expandedAttributes = attributes
-            .groupBy { attribute ->
-                attribute.attributeName
-            }
-            .mapValues { (_, attributes) ->
-                attributes.map { attribute ->
-                    attribute.payload.deserializeExpandedPayload()
-                        .addSysAttrs(withSysAttrs = true, attribute.createdAt, attribute.modifiedAt)
-                }
-            }
-
-        return entityCoreAttributes.plus(expandedAttributes)
     }
 
     @Transactional
@@ -713,6 +669,7 @@ class EntityService(
 
         val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
 
+        val deletedAt = ngsiLdDateTime()
         val deleteAttributeResults = if (attributeName == NGSILD_SCOPE_IRI) {
             scopeService.delete(entityId).bind()
         } else {
@@ -727,13 +684,14 @@ class EntityService(
                 attributeName,
                 datasetId,
                 deleteAll,
-                ngsiLdDateTime()
+                deletedAt
             ).bind()
         }
-        val updatedEntity = updateState(
+        val updatedEntity = patchEntityPayload(
             entityId,
-            ngsiLdDateTime(),
-            entityAttributeService.getAllForEntity(entityId)
+            deletedAt,
+            deleteAttributeResults.getSucceededAttributesOperations(),
+            originalEntity
         ).bind()
 
         deleteAttributeResults.getSucceededAttributesOperations()
@@ -803,9 +761,11 @@ class EntityService(
         deleteAll: Boolean = false
     ): Either<APIException, Unit> = either {
         authorizationService.userCanUpdateEntity(entityId).bind()
+        val modifiedAt = ngsiLdDateTime()
 
         if (attributeName == NGSILD_SCOPE_IRI) {
             scopeService.permanentlyDelete(entityId).bind()
+            updateEntityModifiedAt(entityId, modifiedAt).bind()
         } else {
             entityAttributeService.checkEntityAndAttributeExistence(
                 entityId,
@@ -814,17 +774,123 @@ class EntityService(
                 anyAttributeInstance = deleteAll,
                 excludeDeleted = false
             ).bind()
-            entityAttributeService.permanentlyDeleteAttribute(
-                entityId,
-                attributeName,
-                datasetId,
-                deleteAll
-            ).bind()
+            if (deleteAll) {
+                entityAttributeService.permanentlyDeleteAttribute(entityId, attributeName, datasetId, true).bind()
+                removeAttributeFromPayload(entityId, modifiedAt, attributeName).bind()
+            } else {
+                // fetch before deletion to know which other instances of this attribute to retain
+                val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
+                entityAttributeService.permanentlyDeleteAttribute(entityId, attributeName, datasetId, false).bind()
+                patchEntityPayload(
+                    entityId,
+                    modifiedAt,
+                    listOf(
+                        SucceededAttributeOperationResult(
+                            attributeName = attributeName,
+                            datasetId = datasetId,
+                            operationStatus = OperationStatus.DELETED,
+                            newExpandedValue = emptyMap()
+                        )
+                    ),
+                    originalEntity
+                ).bind()
+            }
         }
-        updateState(
-            entityId,
-            ngsiLdDateTime(),
-            entityAttributeService.getAllForEntity(entityId)
-        ).bind()
+    }
+
+    // Not annotated with @Transactional: private methods cannot be proxied by Spring AOP,
+    // and self-invocation bypasses the proxy regardless. All callers are already @Transactional.
+    private suspend fun patchEntityPayload(
+        entityId: URI,
+        modifiedAt: ZonedDateTime,
+        operationResults: List<SucceededAttributeOperationResult>,
+        originalEntity: ExpandedEntity
+    ): Either<APIException, ExpandedEntity> = either {
+        // patch accumulates the jsonb fragment to merge into entity_payload.payload
+        val patch = mutableMapOf<String, Any>().apply {
+            modifiedAt to buildNonReifiedTemporalValue(modifiedAt)
+        }
+
+        // attributes where every instance was deleted are removed entirely from the payload
+        val fullyDeletedAttributeNames = mutableListOf<String>()
+
+        operationResults.groupBy { it.attributeName }.forEach { (attrName, results) ->
+            val deletedDatasetIds = results
+                .filter { it.operationStatus == OperationStatus.DELETED }
+                .map { it.datasetId }
+            val upsertedResults = results.filter { it.operationStatus != OperationStatus.DELETED }
+            val upsertedDatasetIds = upsertedResults.map { it.datasetId }
+
+            val existingInstances =
+                originalEntity.members[attrName] as? ExpandedAttributeInstances ?: emptyList()
+
+            // keep instances not touched by this operation (neither deleted nor replaced)
+            val keptInstances = existingInstances.filter { instance ->
+                val instanceDatasetId = instance.getDatasetId()
+                instanceDatasetId !in deletedDatasetIds && instanceDatasetId !in upsertedDatasetIds
+            }
+
+            val newInstances = upsertedResults.map { it.newExpandedValue }
+
+            val updatedArray = keptInstances + newInstances
+            if (updatedArray.isEmpty()) {
+                fullyDeletedAttributeNames.add(attrName)
+            } else {
+                patch[attrName] = updatedArray
+            }
+        }
+
+        // Single atomic UPDATE: merge the patch fragment and strip fully-deleted attribute keys
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET modified_at = :modified_at,
+                payload = (payload || :patch::jsonb) - :deleted_keys::text[]
+            WHERE entity_id = :entity_id
+            RETURNING payload
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("modified_at", modifiedAt)
+            .bind("patch", Json.of(serializeObject(patch)))
+            .bind("deleted_keys", fullyDeletedAttributeNames.toTypedArray())
+            .oneToResult { row -> ExpandedEntity(toJson(row["payload"]).deserializeExpandedPayload()) }
+            .bind()
+    }
+
+    private suspend fun removeAttributeFromPayload(
+        entityId: URI,
+        modifiedAt: ZonedDateTime,
+        attributeName: ExpandedTerm
+    ): Either<APIException, Unit> = either {
+        databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET modified_at = :modified_at,
+                payload = payload - :attribute_name::text
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("modified_at", modifiedAt)
+            .bind("attribute_name", attributeName)
+            .execute()
+            .bind()
+    }
+
+    private suspend fun updateEntityModifiedAt(entityId: URI, modifiedAt: ZonedDateTime): Either<APIException, Unit> {
+        val patch = mapOf(NGSILD_MODIFIED_AT_IRI to buildNonReifiedTemporalValue(modifiedAt))
+        return databaseClient.sql(
+            """
+            UPDATE entity_payload
+            SET modified_at = :modified_at,
+                payload = (payload || :patch::jsonb)
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("modified_at", modifiedAt)
+            .bind("patch", Json.of(serializeObject(patch)))
+            .execute()
     }
 }

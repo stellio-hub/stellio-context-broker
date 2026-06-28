@@ -73,24 +73,21 @@ fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
 }
 
 fun ExpandedAttributeInstance.addSysAttrs(
-    withSysAttrs: Boolean,
     createdAt: ZonedDateTime,
     modifiedAt: ZonedDateTime? = null,
     deletedAt: ZonedDateTime? = null
 ): ExpandedAttributeInstance =
-    if (withSysAttrs)
-        this.plus(NGSILD_CREATED_AT_IRI to buildNonReifiedTemporalValue(createdAt))
-            .let {
-                if (modifiedAt != null)
-                    it.plus(NGSILD_MODIFIED_AT_IRI to buildNonReifiedTemporalValue(modifiedAt))
-                else it
-            }
-            .let {
-                if (deletedAt != null)
-                    it.plus(NGSILD_DELETED_AT_IRI to buildNonReifiedTemporalValue(deletedAt))
-                else it
-            }
-    else this
+    this.plus(NGSILD_CREATED_AT_IRI to buildNonReifiedTemporalValue(createdAt))
+        .let {
+            if (modifiedAt != null)
+                it.plus(NGSILD_MODIFIED_AT_IRI to buildNonReifiedTemporalValue(modifiedAt))
+            else it
+        }
+        .let {
+            if (deletedAt != null)
+                it.plus(NGSILD_DELETED_AT_IRI to buildNonReifiedTemporalValue(deletedAt))
+            else it
+        }
 
 /**
  * Extract the actual value (@value) of a member from an expanded property.

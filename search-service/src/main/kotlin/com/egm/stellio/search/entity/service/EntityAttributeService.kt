@@ -103,13 +103,13 @@ class EntityAttributeService(
      * Called when doing a creation or replacement of an attribute.
      */
     @Transactional
-    suspend fun upsert(attribute: Attribute): Either<APIException, UUID> =
+    internal suspend fun upsert(attribute: Attribute): Either<APIException, AttributeUpsertResult> =
         databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
-                (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
+                (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
                     dataset_id, payload)
-            VALUES 
+            VALUES
                 (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at, :created_at,
                     :dataset_id, :payload)
             ON CONFLICT (entity_id, attribute_name, dataset_id)
@@ -118,7 +118,7 @@ class EntityAttributeService(
                     attribute_value_type = :attribute_value_type,
                     modified_at = :created_at,
                     payload = :payload
-            RETURNING id
+            RETURNING id, created_at, modified_at
             """.trimIndent()
         )
             .bind("id", attribute.id)
@@ -129,7 +129,13 @@ class EntityAttributeService(
             .bind("created_at", attribute.createdAt)
             .bind("dataset_id", attribute.datasetId)
             .bind("payload", attribute.payload)
-            .oneToResult { row -> toUuid(row["id"]) }
+            .oneToResult { row ->
+                AttributeUpsertResult(
+                    toUuid(row["id"]),
+                    toZonedDateTime(row["created_at"]),
+                    toZonedDateTime(row["modified_at"])
+                )
+            }
 
     /**
      * Called when doing a merge (5.5.12) or partial update patch (5.5.8) operation over an attribute.
@@ -228,7 +234,7 @@ class EntityAttributeService(
             createdAt = createdAt,
             payload = Json.of(serializeObject(attributePayload))
         )
-        val attributeUuid = upsert(attribute).bind()
+        val attributeUpdateResult = upsert(attribute).bind()
 
         val (timeProperty, operationStatus) =
             if (existedPreviously)
@@ -237,7 +243,7 @@ class EntityAttributeService(
                 AttributeInstance.TemporalProperty.CREATED_AT to OperationStatus.CREATED
 
         val attributeInstance = AttributeInstance(
-            attributeUuid = attributeUuid,
+            attributeUuid = attributeUpdateResult.id,
             timeProperty = timeProperty,
             time = createdAt,
             attributeMetadata = attributeMetadata,
@@ -248,7 +254,7 @@ class EntityAttributeService(
 
         if (attributeMetadata.observedAt != null) {
             val attributeObservedAtInstance = AttributeInstance(
-                attributeUuid = attributeUuid,
+                attributeUuid = attributeUpdateResult.id,
                 time = attributeMetadata.observedAt,
                 attributeMetadata = attributeMetadata,
                 payload = attributePayload
@@ -260,7 +266,7 @@ class EntityAttributeService(
             attributeName,
             attributeMetadata.datasetId,
             operationStatus,
-            attributePayload
+            attributePayload.addSysAttrs(attributeUpdateResult.createdAt, attributeUpdateResult.modifiedAt)
         )
     }
 
@@ -297,7 +303,7 @@ class EntityAttributeService(
                     attribute.attributeName,
                     attributeMetadata.datasetId,
                     OperationStatus.UPDATED,
-                    attributePayload
+                    updatedAttributeInstance.addSysAttrs(attribute.createdAt, mergedAt)
                 )
             }.bind()
     }
@@ -386,7 +392,6 @@ class EntityAttributeService(
                 attribute.datasetId,
                 OperationStatus.DELETED,
                 expandedAttributeInstance.addSysAttrs(
-                    true,
                     teaTimestamps.first,
                     teaTimestamps.second,
                     teaTimestamps.third
@@ -780,7 +785,7 @@ class EntityAttributeService(
             attribute.attributeName,
             attribute.datasetId,
             OperationStatus.UPDATED,
-            updatedAttributeInstance
+            updatedAttributeInstance.addSysAttrs(attribute.createdAt, modifiedAt)
         )
     }
 
@@ -790,7 +795,7 @@ class EntityAttributeService(
         ngsiLdAttribute: NgsiLdAttribute,
         expandedAttributes: ExpandedAttributes,
         createdAt: ZonedDateTime
-    ): Either<APIException, Unit> = either {
+    ): Either<APIException, SucceededAttributeOperationResult?> = either {
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         logger.debug("Upserting temporal attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
         val currentAttribute =
@@ -823,6 +828,7 @@ class EntityAttributeService(
                 attributeMetadata,
                 expandedAttributes[currentAttribute.attributeName]!!.first()
             ).bind()
+            null
         }
     }
 
@@ -858,14 +864,7 @@ class EntityAttributeService(
                     createdAt,
                     attributePayload,
                     false
-                ).map {
-                    SucceededAttributeOperationResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.CREATED,
-                        attributePayload
-                    )
-                }.bind()
+                ).bind()
             else if (isNull)
                 deleteAttribute(
                     entityUri,
@@ -916,13 +915,6 @@ class EntityAttributeService(
                     expandedAttribute.second.first(),
                     true
                 ).bind()
-
-                SucceededAttributeOperationResult(
-                    ngsiLdAttribute.name,
-                    ngsiLdAttributeInstance.datasetId,
-                    OperationStatus.UPDATED,
-                    expandedAttribute.second.first()
-                )
             }
 
         attributeOperationResult
@@ -1017,4 +1009,6 @@ class EntityAttributeService(
                 attributeMetadata.copy(observedAt = observedAt)
             )
         else Pair(attributePayload, attributeMetadata)
+
+    internal data class AttributeUpsertResult(val id: UUID, val createdAt: ZonedDateTime, val modifiedAt: ZonedDateTime)
 }

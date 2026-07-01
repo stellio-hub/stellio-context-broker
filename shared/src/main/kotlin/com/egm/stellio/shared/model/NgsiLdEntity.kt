@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeInconsistentIns
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeInvalidOrNotImplementedTypeMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeMultipleDefaultInstancesMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeMultipleInstancesSameDatasetIdMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeWithNullDatasetIdMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.geoPropertyMissingValueMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.jsonPropertyInvalidJsonMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.jsonPropertyMissingJsonMessage
@@ -90,6 +91,7 @@ class NgsiLdProperty private constructor(
 
             checkAttributeDefaultInstance(name, ngsiLdPropertyInstances).bind()
             checkAttributeDuplicateDatasetId(name, ngsiLdPropertyInstances).bind()
+            checkAttributeNullDatasetId(name, ngsiLdPropertyInstances).bind()
 
             NgsiLdProperty(name, ngsiLdPropertyInstances)
         }
@@ -115,6 +117,7 @@ class NgsiLdRelationship private constructor(
 
             checkAttributeDefaultInstance(name, ngsiLdRelationshipInstances).bind()
             checkAttributeDuplicateDatasetId(name, ngsiLdRelationshipInstances).bind()
+            checkAttributeNullDatasetId(name, ngsiLdRelationshipInstances).bind()
 
             NgsiLdRelationship(name, ngsiLdRelationshipInstances)
         }
@@ -140,6 +143,7 @@ class NgsiLdGeoProperty private constructor(
 
             checkAttributeDefaultInstance(name, ngsiLdGeoPropertyInstances).bind()
             checkAttributeDuplicateDatasetId(name, ngsiLdGeoPropertyInstances).bind()
+            checkAttributeNullDatasetId(name, ngsiLdGeoPropertyInstances).bind()
 
             NgsiLdGeoProperty(name, ngsiLdGeoPropertyInstances)
         }
@@ -165,6 +169,7 @@ class NgsiLdJsonProperty private constructor(
 
             checkAttributeDefaultInstance(name, ngsiLdJsonPropertyInstances).bind()
             checkAttributeDuplicateDatasetId(name, ngsiLdJsonPropertyInstances).bind()
+            checkAttributeNullDatasetId(name, ngsiLdJsonPropertyInstances).bind()
 
             NgsiLdJsonProperty(name, ngsiLdJsonPropertyInstances)
         }
@@ -190,6 +195,7 @@ class NgsiLdLanguageProperty private constructor(
 
             checkAttributeDefaultInstance(name, ngsiLdLanguagePropertyInstances).bind()
             checkAttributeDuplicateDatasetId(name, ngsiLdLanguagePropertyInstances).bind()
+            checkAttributeNullDatasetId(name, ngsiLdLanguagePropertyInstances).bind()
 
             NgsiLdLanguageProperty(name, ngsiLdLanguagePropertyInstances)
         }
@@ -215,6 +221,7 @@ class NgsiLdVocabProperty private constructor(
 
             checkAttributeDefaultInstance(name, ngsiLdVocabPropertyInstances).bind()
             checkAttributeDuplicateDatasetId(name, ngsiLdVocabPropertyInstances).bind()
+            checkAttributeNullDatasetId(name, ngsiLdVocabPropertyInstances).bind()
 
             NgsiLdVocabProperty(name, ngsiLdVocabPropertyInstances)
         }
@@ -268,8 +275,13 @@ class NgsiLdPropertyInstance private constructor(
     override fun toString(): String = "NgsiLdPropertyInstance(value=$value)"
 }
 
+sealed class RelationshipObjects {
+    data class Single(val id: URI) : RelationshipObjects()
+    data class Multiple(val ids: List<URI>) : RelationshipObjects()
+}
+
 class NgsiLdRelationshipInstance private constructor(
-    val objectId: URI,
+    val objectId: RelationshipObjects,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
     attributes: List<NgsiLdAttribute>
@@ -279,7 +291,7 @@ class NgsiLdRelationshipInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdRelationshipInstance> = either {
-            val objectId = values.getRelationshipObject(name).bind()
+            val objectId = values.getRelationshipObjects(name).bind()
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
 
@@ -375,7 +387,7 @@ class NgsiLdJsonPropertyInstance private constructor(
 }
 
 class NgsiLdLanguagePropertyInstance private constructor(
-    val languageMap: List<Map<String, String>>,
+    val languageMap: ExpandedLanguageMapValue,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
     attributes: List<NgsiLdAttribute>
@@ -402,7 +414,7 @@ class NgsiLdLanguagePropertyInstance private constructor(
             val attributes = parseAttributes(rawAttributes).bind()
 
             NgsiLdLanguagePropertyInstance(
-                languageMap as List<Map<String, String>>,
+                languageMap as ExpandedLanguageMapValue,
                 observedAt,
                 datasetId,
                 attributes
@@ -550,6 +562,15 @@ fun checkAttributeDuplicateDatasetId(
     }
     ensure(datasetIds.toSet().count() == datasetIds.count()) {
         BadRequestDataException(attributeMultipleInstancesSameDatasetIdMessage(name))
+    }
+}
+
+fun checkAttributeNullDatasetId(
+    name: String,
+    instances: List<NgsiLdAttributeInstance>
+): Either<APIException, Unit> = either {
+    ensure(instances.count { it.datasetId?.toString() == NGSILD_NULL } == 0) {
+        BadRequestDataException(attributeWithNullDatasetIdMessage(name))
     }
 }
 

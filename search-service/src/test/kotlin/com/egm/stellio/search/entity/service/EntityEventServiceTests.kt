@@ -110,7 +110,7 @@ class EntityEventServiceTests {
         """.trimIndent()
 
     @Test
-    fun `it should publish all events on the catch-all topic`() {
+    fun `publishEntityEvent should publish all events on the catch-all topic`() {
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityEvent(
@@ -127,7 +127,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish an ENTITY_CREATE event`() = runTest {
+    fun `publishEntityCreateEvent should publish an ENTITY_CREATE event`() = runTest {
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
         entityEventService.publishEntityCreateEvent(
@@ -139,7 +139,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish an ENTITY_DELETE event`() = runTest {
+    fun `publishEntityDeleteEvent should publish an ENTITY_DELETE event`() = runTest {
         val entity = mockk<Entity>(relaxed = true) {
             every { entityId } returns breedingServiceUri
         }
@@ -151,7 +151,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish a single ATTRIBUTE_CREATE event if an attribute was appended`() = runTest {
+    fun `publishAttributeChangeEvents should publish an ATTRIBUTE_CREATE event on append`() = runTest {
         val expandedAttribute =
             expandAttribute(fishNumberTerm, fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
         entityEventService.publishAttributeChangeEvents(
@@ -183,7 +183,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish ATTRIBUTE_CREATE and ATTRIBUTE_UPDATE events if attributes were appended and replaced`() =
+    fun `publishAttributeChangeEvents should publish CREATE and UPDATE events on append and replace`() =
         runTest {
             val attributesPayload = """
                 {
@@ -246,7 +246,7 @@ class EntityEventServiceTests {
         }
 
     @Test
-    fun `it should publish ATTRIBUTE_UPDATE events if two attributes are replaced`() = runTest {
+    fun `publishAttributeChangeEvents should publish ATTRIBUTE_UPDATE events on two replaced attributes`() = runTest {
         val attributesPayload =
             """
             {
@@ -298,7 +298,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish ATTRIBUTE_UPDATE events if a multi-attribute is replaced`() = runTest {
+    fun `publishAttributeChangeEvents should publish ATTRIBUTE_UPDATE events on multi-attribute replace`() = runTest {
         val fishNameAttributeFragment2 =
             """
             {
@@ -364,7 +364,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish ATTRIBUTE_UPDATE event if an attribute is updated`() = runTest {
+    fun `publishAttributeChangeEvents should publish ATTRIBUTE_UPDATE event if an attribute is updated`() = runTest {
         val expandedAttribute = expandAttribute(
             fishNameTerm,
             fishNameAttributeFragment,
@@ -401,7 +401,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish ATTRIBUTE_DELETE event if an attribute has been deleted as part of an update `() = runTest {
+    fun `publishAttributeChangeEvents should publish ATTRIBUTE_DELETE event on delete during update`() = runTest {
         entityEventService.publishAttributeChangeEvents(
             null,
             originalEntity,
@@ -433,7 +433,7 @@ class EntityEventServiceTests {
     }
 
     @Test
-    fun `it should publish ATTRIBUTE_DELETE event if an instance of an attribute is deleted`() = runTest {
+    fun `publishAttributeDeleteEvent should publish ATTRIBUTE_DELETE event when an instance is deleted`() = runTest {
         entityEventService.publishAttributeDeleteEvent(
             null,
             originalEntity,

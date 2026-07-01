@@ -7,19 +7,19 @@ import org.junit.jupiter.api.Test
 class UpdateResultTests {
 
     @Test
-    fun `it should find the successful update operation results`() {
+    fun `isSuccessResult should find the successful update operation results`() {
         assertTrue(OperationStatus.UPDATED.isSuccessResult())
         assertTrue(OperationStatus.CREATED.isSuccessResult())
         assertTrue(OperationStatus.DELETED.isSuccessResult())
     }
 
     @Test
-    fun `it should find the failed update operation results`() {
+    fun `isSuccessResult should find the failed update operation results`() {
         assertFalse(OperationStatus.FAILED.isSuccessResult())
     }
 
     @Test
-    fun `it should find a successful update result`() {
+    fun `isSuccessful should find a successful update result`() {
         val updateResult =
             UpdateResult(
                 notUpdated = emptyList(),
@@ -30,7 +30,7 @@ class UpdateResultTests {
     }
 
     @Test
-    fun `it should find a failed update result if there is one not updated attribute`() {
+    fun `isSuccessful should find a failed update result when there is one not updated attribute`() {
         val updateResult =
             UpdateResult(
                 notUpdated = listOf(NotUpdatedDetails("attributeName", "attribute is malformed")),
@@ -41,7 +41,7 @@ class UpdateResultTests {
     }
 
     @Test
-    fun `it should find a failed update result if an attribute update has failed`() {
+    fun `isSuccessful should find a failed update result when an attribute update has failed`() {
         val updateResult =
             UpdateResult(
                 notUpdated = listOf(

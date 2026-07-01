@@ -73,6 +73,34 @@ WithTimescaleContainer, WithKafkaContainer, WireMock, and Arrow Either assertion
 - Integration: `[function] should [test scenario]`
 - Class suffix: `Tests` (never `Test`)
 
+## Asserting JSON / map results
+
+When a test verifies the content of a serialized Entity or Attribute fragment, you should use
+`assertJsonPayloadsAreEqual`.
+
+Pattern to follow:
+1. Declare a `val expected<Something> = """ ... """.trimIndent()` containing the full expected JSON.
+2. Call `assertJsonPayloadsAreEqual(expected<Something>, serializeObject(result))`.
+
+```kotlin
+val expectedConciseRepresentation = """
+    {
+        "id": "urn:ngsi-ld:Entity:01",
+        "type": "Entity",
+        "temperature": 21.7
+    }
+""".trimIndent()
+
+val result = entity.toConciseAttributes()
+
+assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+```
+
+- `assertJsonPayloadsAreEqual` is in `com.egm.stellio.shared.util`.
+- `serializeObject` is `com.egm.stellio.shared.util.JsonUtils.serializeObject`.
+- Never use scattered `assertEquals` / `assertTrue` / `assertFalse` calls on individual keys. If the assertion can be
+  expressed as a JSON comparison, it must be.
+
 ## What never to do
 
 - Never use Mockito or `@MockBean` — always MockK / `@MockkBean`

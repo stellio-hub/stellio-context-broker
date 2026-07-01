@@ -517,13 +517,10 @@ class PermissionService(
         }
 
         //  targetTypeFilter also return permission targeting entity with this type
-        val targetTypeFilter = if (!permissionFilters.targetTypeSelection.isNullOrEmpty())
-            """
-                -- target type selection filter
-                ( ${buildTypeQuery(permissionFilters.targetTypeSelection, "target_types")} )
-
-            """.trimIndent()
-        else null
+        val targetTypeFilter = buildTypeQuery(
+            permissionFilters.targetTypeSelection,
+            "target_types"
+        )
 
         // targetScopeFilter also return permission targeting entity with this scope
         val targetScopeFilter = if (!permissionFilters.targetScopeSelection.isNullOrEmpty())

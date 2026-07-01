@@ -43,7 +43,7 @@ class ContextSourceRegistrationTests {
     """.trimIndent()
 
     @Test
-    fun `it should not allow a CSR with an empty id`() = runTest {
+    fun `validate should reject a CSR with an empty id`() = runTest {
         val payload = mapOf(
             "id" to "",
             "type" to NGSILD_CSR_TERM,
@@ -63,7 +63,7 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `it should not allow a CSR with an invalid id`() = runTest {
+    fun `validate should reject a CSR with an invalid id`() = runTest {
         val payload = mapOf(
             "id" to "invalidId",
             "type" to NGSILD_CSR_TERM,
@@ -83,7 +83,7 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `it should not allow a CSR with an invalid idPattern`() = runTest {
+    fun `validate should reject a CSR with an invalid idPattern`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "type" to NGSILD_CSR_TERM,
@@ -103,7 +103,7 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `it should not allow a CSR with empty RegistrationInfo`() = runTest {
+    fun `validate should reject a CSR with empty RegistrationInfo`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "information" to listOf(mapOf<String, Any>()),
@@ -123,7 +123,7 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `it should allow a valid CSR`() = runTest {
+    fun `validate should allow a valid CSR`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "information" to listOf(mapOf("entities" to listOf(mapOf("type" to BEEHIVE_IRI)))),
@@ -140,7 +140,7 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `getAttributesMatchingCSFAndEntity should get the matching attributes`() = runTest {
+    fun `getAttributesMatchingCSFAndEntity should return the matching attributes`() = runTest {
         val entity = expandJsonLdEntity(entityPayload)
         val registrationInfoFilter = CSRFilters(
             ids = setOf(entity.id),
@@ -235,7 +235,7 @@ class ContextSourceRegistrationTests {
     }
 
     @Test
-    fun `it should deserialize a CSR payload containing contextSourceInfo`() = runTest {
+    fun `deserialize should parse a CSR payload containing contextSourceInfo`() = runTest {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:Beehive:1234567890".toUri(),
             "endpoint" to endpoint,

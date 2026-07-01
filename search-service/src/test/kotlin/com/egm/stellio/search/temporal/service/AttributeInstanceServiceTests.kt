@@ -1,6 +1,8 @@
 package com.egm.stellio.search.temporal.service
 
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.common.util.asJsonB
+import com.egm.stellio.search.common.util.deserializeTemporalValue
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.service.EntityAttributeService
@@ -11,9 +13,11 @@ import com.egm.stellio.search.support.SAMPLE_VOCAB_PROPERTY_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
+import com.egm.stellio.search.support.gimmeGeoPropertyAttributeInstance
 import com.egm.stellio.search.support.gimmeJsonPropertyAttributeInstance
 import com.egm.stellio.search.support.gimmeLanguagePropertyAttributeInstance
 import com.egm.stellio.search.support.gimmeNumericPropertyAttributeInstance
+import com.egm.stellio.search.support.gimmePropertyAttributeInstance
 import com.egm.stellio.search.support.gimmeTemporalEntitiesQuery
 import com.egm.stellio.search.support.gimmeVocabPropertyAttributeInstance
 import com.egm.stellio.search.temporal.model.AttributeInstance
@@ -39,6 +43,7 @@ import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.addNonReifiedTemporalProperty
 import com.egm.stellio.shared.model.getSingleEntry
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -63,6 +68,7 @@ import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.wktToGeoJson
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
@@ -189,7 +195,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should retrieve a full instance if temporalValues are not asked for`() = runTest {
+    fun `search should retrieve a full instance if temporalValues are not asked for`() = runTest {
         val observation = gimmeNumericPropertyAttributeInstance(
             attributeUuid = incomingAttribute.id,
             measuredValue = 12.4,
@@ -212,7 +218,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should retrieve an instance having the corresponding time property value`() = runTest {
+    fun `search should retrieve an instance having the corresponding time property value`() = runTest {
         val observation = gimmeNumericPropertyAttributeInstance(
             attributeUuid = incomingAttribute.id,
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
@@ -236,7 +242,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should retrieve an instance with audit info if time property is not observedAt`() = runTest {
+    fun `search should retrieve an instance with audit info if time property is not observedAt`() = runTest {
         val observation = gimmeNumericPropertyAttributeInstance(
             attributeUuid = incomingAttribute.id,
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
@@ -262,7 +268,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should not retrieve an instance not having the corresponding time property value`() = runTest {
+    fun `search should not retrieve an instance not having the corresponding time property value`() = runTest {
         val observation = gimmeNumericPropertyAttributeInstance(
             attributeUuid = incomingAttribute.id,
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
@@ -286,7 +292,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should retrieve all full instances if temporalValues are not asked for`() = runTest {
+    fun `search should retrieve all full instances if temporalValues are not asked for`() = runTest {
         (1..10).forEach { _ ->
             attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(incomingAttribute.id))
         }
@@ -305,7 +311,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should retrieve all instances when no timerel and time parameters are provided`() = runTest {
+    fun `search should retrieve all instances when no timerel and time parameters are provided`() = runTest {
         (1..10).forEach { _ ->
             attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(incomingAttribute.id))
         }
@@ -321,7 +327,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should retrieve instances of a temporal entity attribute whose value type is Any`() = runTest {
+    fun `search should retrieve instances of a temporal entity attribute whose value type is Any`() = runTest {
         val attribute2 = Attribute(
             entityId = entityId,
             attributeName = "propWithStringValue",
@@ -336,7 +342,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             val observedAt = ngsiLdDateTime()
             val attributeMetadata = AttributeMetadata(
                 measuredValue = null,
-                value = "some value",
+                value = "some value".asJsonB(),
                 geoValue = null,
                 valueType = Attribute.AttributeValueType.STRING,
                 datasetId = null,
@@ -368,7 +374,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should set the start time to the oldest value if asking for no timerel`() = runTest {
+    fun `selectOldestDate should set the start time to the oldest value when asking for no timerel`() = runTest {
         (1..9).forEachIndexed { index, _ ->
             val attributeInstance =
                 gimmeNumericPropertyAttributeInstance(
@@ -396,7 +402,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should include lower bound of interval with after timerel`() = runTest {
+    fun `search should include lower bound of interval with after timerel`() = runTest {
         (1..5).forEachIndexed { index, _ ->
             val attributeInstance =
                 gimmeNumericPropertyAttributeInstance(
@@ -421,7 +427,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should exclude upper bound of interval with between timerel`() = runTest {
+    fun `search should exclude upper bound of interval with between timerel`() = runTest {
         (1..5).forEachIndexed { index, _ ->
             val attributeInstance =
                 gimmeNumericPropertyAttributeInstance(
@@ -450,7 +456,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should only return the limited instances asked in the temporal query`() = runTest {
+    fun `search should only return the limited instances asked in the temporal query`() = runTest {
         (1..10).forEach { _ ->
             val attributeInstance = gimmeNumericPropertyAttributeInstance(
                 attributeUuid = incomingAttribute.id,
@@ -474,7 +480,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should only return the limited instances asked in an aggregated temporal query`() = runTest {
+    fun `search should only return the limited instances asked in an aggregated temporal query`() = runTest {
         val now = ngsiLdDateTime()
         (1..10).forEachIndexed { index, _ ->
             val attributeInstance =
@@ -504,7 +510,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should only retrieve the temporal evolution of the provided temporal entity attribute`() = runTest {
+    fun `search should only retrieve the temporal evolution of the provided temporal entity attribute`() = runTest {
         val attribute2 = Attribute(
             entityId = entityId,
             attributeName = OUTGOING_TERM,
@@ -539,7 +545,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should not retrieve any instance if temporal entity does not match`() = runTest {
+    fun `search should not retrieve any instance if temporal entity does not match`() = runTest {
         (1..10).forEach { _ ->
             attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(incomingAttribute.id))
         }
@@ -560,7 +566,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should not retrieve any instance if there is no value in the time interval`() = runTest {
+    fun `search should not retrieve any instance if there is no value in the time interval`() = runTest {
         (1..10).forEach { _ ->
             attributeInstanceService.create(gimmeNumericPropertyAttributeInstance(incomingAttribute.id))
         }
@@ -579,7 +585,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should update an existing attribute instance with same observation date`() = runTest {
+    fun `search should update an existing attribute instance with same observation date`() = runTest {
         val attributeInstance = gimmeNumericPropertyAttributeInstance(
             attributeUuid = incomingAttribute.id,
             time = now
@@ -591,7 +597,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             gimmeNumericPropertyAttributeInstance(
                 attributeUuid = incomingAttribute.id,
                 time = now,
-                measuredValue = 100.0
+                measuredValue = 100.1
             )
         )
         assertThat(createResult.isRight())
@@ -609,13 +615,13 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             assertThat(results)
                 .singleElement()
                 .matches {
-                    (it as SimplifiedAttributeInstanceResult).value == 100.0
+                    (it as SimplifiedAttributeInstanceResult).value == 100.1
                 }
         }
     }
 
     @Test
-    fun `it should create an observed attribute instance if it has a non null value`() = runTest {
+    fun `addObservedAttributeInstance should create an observed attribute instance for a non null value`() = runTest {
         val attributeInstanceService = spyk(
             AttributeInstanceService(databaseClient, searchProperties),
             recordPrivateCalls = true
@@ -677,14 +683,14 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should create an observed attribute instance with boolean value`() = runTest {
+    fun `addObservedAttributeInstance should create an observed attribute instance with boolean value`() = runTest {
         val attributeInstanceService = spyk(
             AttributeInstanceService(databaseClient, searchProperties),
             recordPrivateCalls = true
         )
         val attributeMetadata = AttributeMetadata(
             measuredValue = null,
-            value = false.toString(),
+            value = false.asJsonB(),
             geoValue = null,
             valueType = Attribute.AttributeValueType.BOOLEAN,
             datasetId = null,
@@ -715,7 +721,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService["create"](
                 match<AttributeInstance> {
                     it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
-                        it.value == "false" &&
+                        it.value?.deserializeTemporalValue() == false &&
                         it.measuredValue == null &&
                         it.payload.asString().matchContent(
                             """
@@ -739,7 +745,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should create a deleted attribute instance`() = runTest {
+    fun `addDeletedAttributeInstance should create a deleted attribute instance`() = runTest {
         val attributeInstanceService = spyk(
             AttributeInstanceService(databaseClient, searchProperties),
             recordPrivateCalls = true
@@ -761,7 +767,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
 
         attributeInstanceService.addDeletedAttributeInstance(
             incomingAttribute.id,
-            NGSILD_NULL,
+            NGSILD_NULL.asJsonB(),
             deletedAt,
             attributeValues
         )
@@ -770,7 +776,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             attributeInstanceService["create"](
                 match<AttributeInstance> {
                     it.time.toString() == "2025-01-02T11:20:30.000001Z" &&
-                        it.value == "urn:ngsi-ld:null" &&
+                        it.value?.deserializeTemporalValue() == "urn:ngsi-ld:null" &&
                         it.measuredValue == null &&
                         it.payload.asString().matchContent(
                             """
@@ -794,7 +800,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should modify attribute instance for a property`() = runTest {
+    fun `modifyAttributeInstance should modify attribute instance for a property`() = runTest {
         val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
         attributeInstanceService.create(attributeInstance)
 
@@ -831,7 +837,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should modify attribute instance for a JSON property`() = runTest {
+    fun `modifyAttributeInstance should modify attribute instance for a JSON property`() = runTest {
         val attributeInstance = gimmeJsonPropertyAttributeInstance(jsonAttribute.id)
         attributeInstanceService.create(attributeInstance)
 
@@ -870,7 +876,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should modify attribute instance for a LanguageProperty property`() = runTest {
+    fun `modifyAttributeInstance should modify attribute instance for a LanguageProperty property`() = runTest {
         val attributeInstance = gimmeLanguagePropertyAttributeInstance(languageAttribute.id)
         attributeInstanceService.create(attributeInstance)
 
@@ -914,7 +920,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should modify attribute instance for a VocabProperty property`() = runTest {
+    fun `modifyAttributeInstance should modify attribute instance for a VocabProperty property`() = runTest {
         val attributeInstance = gimmeVocabPropertyAttributeInstance(vocabAttribute.id)
         attributeInstanceService.create(attributeInstance)
 
@@ -959,7 +965,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should delete attribute instance`() = runTest {
+    fun `deleteInstance should delete attribute instance`() = runTest {
         val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
         attributeInstanceService.create(attributeInstance).shouldSucceed()
 
@@ -980,7 +986,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should not delete attribute instance if attribute name is not found`() = runTest {
+    fun `deleteInstance should not delete attribute instance if attribute name is not found`() = runTest {
         val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
         attributeInstanceService.create(attributeInstance).shouldSucceed()
 
@@ -1001,7 +1007,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should not delete attribute instance if instanceID is not found`() = runTest {
+    fun `deleteInstance should not delete attribute instance if instanceID is not found`() = runTest {
         val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
         val instanceId = "urn:ngsi-ld:Instance:notFound".toUri()
         attributeInstanceService.create(attributeInstance).shouldSucceed()
@@ -1023,7 +1029,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should delete all instances of an entity`() = runTest {
+    fun `deleteInstancesOfEntity should delete all instances of an entity`() = runTest {
         (1..10).forEachIndexed { index, _ ->
             if (index % 2 == 0)
                 attributeInstanceService.create(
@@ -1062,7 +1068,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should delete all instances of an attribute`() = runTest {
+    fun `deleteAllInstancesOfAttribute should delete all instances of an attribute`() = runTest {
         (1..10).forEachIndexed { index, _ ->
             if (index % 2 == 0)
                 attributeInstanceService.create(
@@ -1089,7 +1095,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
-    fun `it should delete all instances of an attribute on default dataset`() = runTest {
+    fun `deleteInstancesOfAttribute should delete all instances of an attribute on default dataset`() = runTest {
         (1..10).forEachIndexed { index, _ ->
             if (index % 2 == 0)
                 attributeInstanceService.create(
@@ -1113,5 +1119,183 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             .shouldSucceedWith { assertThat(it).hasSize(5) }
         attributeInstanceService.search(temporalEntitiesQuery, incomingAttribute)
             .shouldSucceedWith { assertThat(it).isEmpty() }
+    }
+
+    @Test
+    fun `search should retrieve temporal values for boolean properties`() = runTest {
+        val booleanAttribute = Attribute(
+            entityId = entityId,
+            attributeName = "booleanProperty",
+            attributeValueType = Attribute.AttributeValueType.BOOLEAN,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        entityAttributeService.upsert(booleanAttribute)
+
+        (1..5).forEach { index ->
+            val observedAt = now.plusHours(index.toLong())
+            val booleanValue = index % 2 == 0
+            attributeInstanceService.create(
+                gimmePropertyAttributeInstance(
+                    attributeUuid = booleanAttribute.id,
+                    value = booleanValue,
+                    valueType = Attribute.AttributeValueType.BOOLEAN,
+                    time = observedAt
+                )
+            )
+        }
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = now
+                ),
+                TemporalRepresentation.TEMPORAL_VALUES
+            ),
+            booleanAttribute
+        ).shouldSucceedWith { results ->
+            assertThat(results)
+                .hasSize(5)
+            val simplifiedResults = results as List<SimplifiedAttributeInstanceResult>
+            // Results are ordered by time ASC (oldest first)
+            assertThat(simplifiedResults.map { it.value })
+                .containsExactly(false, true, false, true, false)
+        }
+    }
+
+    @Test
+    fun `search should retrieve temporal values for text properties`() = runTest {
+        val textAttribute = Attribute(
+            entityId = entityId,
+            attributeName = "textProperty",
+            attributeValueType = Attribute.AttributeValueType.STRING,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        entityAttributeService.upsert(textAttribute)
+
+        val textValues = listOf("value1", "value2", "value3")
+        textValues.forEachIndexed { index, textValue ->
+            val observedAt = now.plusHours(index.toLong())
+            attributeInstanceService.create(
+                gimmePropertyAttributeInstance(
+                    attributeUuid = textAttribute.id,
+                    value = textValue,
+                    valueType = Attribute.AttributeValueType.STRING,
+                    time = observedAt
+                )
+            )
+        }
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = now
+                ),
+                TemporalRepresentation.TEMPORAL_VALUES
+            ),
+            textAttribute
+        ).shouldSucceedWith { results ->
+            assertThat(results)
+                .hasSize(3)
+            val simplifiedResults = results as List<SimplifiedAttributeInstanceResult>
+            assertThat(simplifiedResults.map { it.value })
+                .containsExactlyElementsOf(textValues)
+        }
+    }
+
+    @Test
+    fun `search should retrieve temporal values for list of text properties`() = runTest {
+        val arrayAttribute = Attribute(
+            entityId = entityId,
+            attributeName = "arrayProperty",
+            attributeValueType = Attribute.AttributeValueType.ARRAY,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        entityAttributeService.upsert(arrayAttribute)
+
+        val arrayValues = listOf(
+            listOf("item1", "item2"),
+            listOf("item3", "item4", "item5"),
+            listOf("item6")
+        )
+        arrayValues.forEachIndexed { index, arrayValue ->
+            val observedAt = now.plusHours(index.toLong())
+            attributeInstanceService.create(
+                gimmePropertyAttributeInstance(
+                    attributeUuid = arrayAttribute.id,
+                    value = arrayValue,
+                    valueType = Attribute.AttributeValueType.ARRAY,
+                    time = observedAt
+                )
+            )
+        }
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = now
+                ),
+                TemporalRepresentation.TEMPORAL_VALUES
+            ),
+            arrayAttribute
+        ).shouldSucceedWith { results ->
+            assertThat(results)
+                .hasSize(3)
+            val simplifiedResults = results as List<SimplifiedAttributeInstanceResult>
+            assertThat(simplifiedResults.map { it.value })
+                .containsExactlyElementsOf(arrayValues)
+        }
+    }
+
+    @Test
+    fun `search should retrieve temporal values for geoproperty`() = runTest {
+        val geoAttribute = Attribute(
+            entityId = entityId,
+            attributeName = "geoProperty",
+            attributeValueType = Attribute.AttributeValueType.GEOMETRY,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        entityAttributeService.upsert(geoAttribute)
+
+        val geoValues = listOf(
+            WKTCoordinates("POINT (24.30623 60.07966)"),
+            WKTCoordinates("POINT (25.30623 61.07966)"),
+            WKTCoordinates("POINT (26.30623 62.07966)")
+        )
+        geoValues.forEachIndexed { index, geoValue ->
+            val observedAt = now.plusHours(index.toLong())
+            attributeInstanceService.create(
+                gimmeGeoPropertyAttributeInstance(
+                    attributeUuid = geoAttribute.id,
+                    geoValue = geoValue,
+                    time = observedAt
+                )
+            )
+        }
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = now
+                ),
+                TemporalRepresentation.TEMPORAL_VALUES
+            ),
+            geoAttribute
+        ).shouldSucceedWith { results ->
+            assertThat(results)
+                .hasSize(3)
+            results as List<SimplifiedAttributeInstanceResult>
+            assertThat(results.map { it.value })
+                .containsExactlyElementsOf(
+                    geoValues.map { wktToGeoJson(it.value) }
+                )
+        }
     }
 }

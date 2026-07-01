@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.common.util.asJsonB
 import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.valueToDoubleOrNull
 import com.egm.stellio.search.entity.model.Attribute
@@ -12,7 +13,13 @@ import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.model.ExpandedLanguageMapValue
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
+import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_NULL
@@ -26,10 +33,13 @@ import com.egm.stellio.shared.model.NgsiLdLanguagePropertyInstance
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.NgsiLdVocabPropertyInstance
+import com.egm.stellio.shared.model.RelationshipObjects
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.getRelationshipId
+import com.egm.stellio.shared.model.getRelationshipObjects
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeCannotGetValueMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
@@ -60,12 +70,12 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
             guessPropertyValueType(this).let {
                 Triple(AttributeType.Property, it.first, it.second)
             }
+
         is NgsiLdRelationshipInstance ->
-            Triple(
-                AttributeType.Relationship,
-                Attribute.AttributeValueType.URI,
-                Triple(this.objectId.toString(), null, null)
-            )
+            guessRelationshipValueType(this.objectId).let {
+                Triple(AttributeType.Relationship, it.first, it.second)
+            }
+
         is NgsiLdGeoPropertyInstance ->
             Triple(
                 AttributeType.GeoProperty,
@@ -76,19 +86,19 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
             Triple(
                 AttributeType.JsonProperty,
                 Attribute.AttributeValueType.JSON,
-                Triple(JsonUtils.serializeObject(this.json), null, null)
+                Triple(this.json.asJsonB(), null, null)
             )
         is NgsiLdLanguagePropertyInstance ->
             Triple(
                 AttributeType.LanguageProperty,
                 Attribute.AttributeValueType.ARRAY,
-                Triple(JsonUtils.serializeObject(this.languageMap), null, null)
+                Triple(this.languageMap.asJsonB(), null, null)
             )
         is NgsiLdVocabPropertyInstance ->
             Triple(
                 AttributeType.VocabProperty,
                 Attribute.AttributeValueType.ARRAY,
-                Triple(JsonUtils.serializeObject(this.vocab), null, null)
+                Triple(this.vocab.asJsonB(), null, null)
             )
     }
     if (attributeValue == Triple(null, null, null)) {
@@ -114,7 +124,8 @@ fun guessAttributeValueType(
     when (attributeType) {
         AttributeType.Property ->
             guessPropertyValueType(expandedAttributeInstance.getPropertyValue().bind()).first
-        AttributeType.Relationship -> Attribute.AttributeValueType.URI
+        AttributeType.Relationship ->
+            guessRelationshipValueType(expandedAttributeInstance.getRelationshipObjects().bind()).first
         AttributeType.GeoProperty -> Attribute.AttributeValueType.GEOMETRY
         AttributeType.JsonProperty -> Attribute.AttributeValueType.JSON
         AttributeType.LanguageProperty -> Attribute.AttributeValueType.ARRAY
@@ -124,23 +135,95 @@ fun guessAttributeValueType(
 
 fun guessPropertyValueType(
     ngsiLdPropertyInstance: NgsiLdPropertyInstance
-): Pair<Attribute.AttributeValueType, Triple<String?, Double?, WKTCoordinates?>> =
+): Pair<Attribute.AttributeValueType, Triple<Json?, Double?, WKTCoordinates?>> =
     guessPropertyValueType(ngsiLdPropertyInstance.value)
 
 fun guessPropertyValueType(
     value: Any
-): Pair<Attribute.AttributeValueType, Triple<String?, Double?, WKTCoordinates?>> =
+): Pair<Attribute.AttributeValueType, Triple<Json?, Double?, WKTCoordinates?>> =
     when (value) {
         is Double -> Pair(Attribute.AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
         is Int -> Pair(Attribute.AttributeValueType.NUMBER, Triple(null, valueToDoubleOrNull(value), null))
-        is Map<*, *> -> Pair(Attribute.AttributeValueType.OBJECT, Triple(JsonUtils.serializeObject(value), null, null))
-        is List<*> -> Pair(Attribute.AttributeValueType.ARRAY, Triple(JsonUtils.serializeObject(value), null, null))
-        is String -> Pair(Attribute.AttributeValueType.STRING, Triple(value, null, null))
-        is Boolean -> Pair(Attribute.AttributeValueType.BOOLEAN, Triple(value.toString(), null, null))
-        is LocalDate -> Pair(Attribute.AttributeValueType.DATE, Triple(value.toString(), null, null))
-        is ZonedDateTime -> Pair(Attribute.AttributeValueType.DATETIME, Triple(value.toString(), null, null))
-        is LocalTime -> Pair(Attribute.AttributeValueType.TIME, Triple(value.toString(), null, null))
-        else -> Pair(Attribute.AttributeValueType.STRING, Triple(value.toString(), null, null))
+        is Map<*, *> -> Pair(Attribute.AttributeValueType.OBJECT, Triple(value.asJsonB(), null, null))
+        is List<*> -> Pair(Attribute.AttributeValueType.ARRAY, Triple(value.asJsonB(), null, null))
+        is String -> Pair(Attribute.AttributeValueType.STRING, Triple(value.asJsonB(), null, null))
+        is Boolean -> Pair(Attribute.AttributeValueType.BOOLEAN, Triple(value.asJsonB(), null, null))
+        is LocalDate -> Pair(Attribute.AttributeValueType.DATE, Triple(value.toString().asJsonB(), null, null))
+        is ZonedDateTime -> Pair(
+            Attribute.AttributeValueType.DATETIME,
+            Triple(value.toString().asJsonB(), null, null)
+        )
+        is LocalTime -> Pair(Attribute.AttributeValueType.TIME, Triple(value.toString().asJsonB(), null, null))
+        else -> Pair(Attribute.AttributeValueType.STRING, Triple(value.toString().asJsonB(), null, null))
+    }
+
+fun guessRelationshipValueType(
+    objectId: RelationshipObjects
+): Pair<Attribute.AttributeValueType, Triple<Json?, Double?, WKTCoordinates?>> =
+    when (objectId) {
+        is RelationshipObjects.Single ->
+            Pair(Attribute.AttributeValueType.URI, Triple(objectId.id.asJsonB(), null, null))
+        is RelationshipObjects.Multiple ->
+            Pair(Attribute.AttributeValueType.ARRAY, Triple(objectId.ids.asJsonB(), null, null))
+    }
+
+private fun isNgsiLdNullSubAttribute(attrValue: List<Any>): Boolean {
+    val instance = attrValue.firstOrNull() as? ExpandedAttributeInstance ?: return false
+    val typeUri = (instance[JSONLD_TYPE_KW] as? List<*>)?.firstOrNull() as? String ?: return false
+    val attributeType = AttributeType.entries.find { typeUri == it.toExpandedName() } ?: return false
+    return hasNgsiLdNullValue(instance, attributeType)
+}
+
+private fun isNgsiLdNullDatasetId(attrName: ExpandedTerm, attrValue: List<Any>): Boolean =
+    attrName == NGSILD_DATASET_ID_IRI &&
+        (attrValue.firstOrNull() as? Map<*, *>)?.get(JSONLD_ID_KW) == NGSILD_NULL
+
+private fun isNgsiLdNullValue(attrValue: List<Any>): Boolean =
+    (attrValue.firstOrNull() as? Map<*, *>)?.get(JSONLD_VALUE_KW) == NGSILD_NULL
+
+private fun mergeLanguageMap(
+    source: ExpandedAttributeInstance,
+    updateLanguageMap: ExpandedLanguageMapValue
+): List<Any> {
+    val sourceLangEntries = source[NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP] as ExpandedLanguageMapValue
+    val targetLangEntries = sourceLangEntries.toMutableList()
+    updateLanguageMap.forEach { langEntry ->
+        targetLangEntries.removeIf { it[JSONLD_LANGUAGE_KW] == langEntry[JSONLD_LANGUAGE_KW] }
+        if (langEntry[JSONLD_VALUE_KW] != NGSILD_NULL)
+            targetLangEntries.add(langEntry)
+    }
+    return targetLangEntries
+}
+
+/**
+ * Removes from the merged map any keys that have an NGSI-LD Null value in the update.
+ *
+ * Two representations are handled:
+ * - JsonProperty: value is `{"@value": {...raw JSON...}, "@type": "@json"}` — null keys are inside the @value map
+ * - Property with object value: expanded as nested JSON-LD with IRI keys — null keys are top-level entries whose
+ *   single expanded value is `[{"@value": "urn:ngsi-ld:null"}]`
+ */
+private fun applyNgsiLdNullRemoval(
+    attrName: String,
+    merged: Map<String, Any>,
+    update: Map<String, Any>
+): Map<String, Any> =
+    if (attrName == NGSILD_JSONPROPERTY_JSON) {
+        val jsonContent = update[JSONLD_VALUE_KW] as Map<String, Any>
+        val nullKeys = jsonContent.filter { (_, v) -> v == NGSILD_NULL }.keys
+        val mergedContent = merged[JSONLD_VALUE_KW] as? Map<String, Any>
+
+        if (nullKeys.isEmpty() || mergedContent == null) merged
+        else merged + (JSONLD_VALUE_KW to mergedContent.filterKeys { it !in nullKeys })
+    }
+    // else branch covers Properties with object value
+    else {
+        val nullKeys = update.filter { (_, v) ->
+            (v as? List<*>)?.singleOrNull()?.let { it as? Map<*, *> }?.get(JSONLD_VALUE_KW) == NGSILD_NULL
+        }.keys
+
+        if (nullKeys.isEmpty()) merged
+        else merged.filterKeys { it !in nullKeys }
     }
 
 /**
@@ -165,54 +248,59 @@ fun Json.toExpandedAttributeInstance(): ExpandedAttributeInstance =
 fun partialUpdatePatch(
     source: ExpandedAttributeInstance,
     update: ExpandedAttributeInstance
-): Pair<String, ExpandedAttributeInstance> {
-    val target = source.plus(update)
-    return Pair(JsonUtils.serializeObject(target), target)
+): Either<APIException, Pair<String, ExpandedAttributeInstance>> = either {
+    val target = source.toMutableMap()
+    update.forEach { (attrName, attrValue) ->
+        when {
+            isNgsiLdNullDatasetId(attrName, attrValue) ->
+                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE))
+            isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrValue) ->
+                target.remove(attrName)
+            else -> target[attrName] = attrValue
+        }
+    }
+    Pair(JsonUtils.serializeObject(target), target)
 }
 
 fun mergePatch(
     source: ExpandedAttributeInstance,
     update: ExpandedAttributeInstance
-): Pair<String, ExpandedAttributeInstance> {
+): Either<APIException, Pair<String, ExpandedAttributeInstance>> = either {
     val target = source.toMutableMap()
     update.forEach { (attrName, attrValue) ->
-        if (!source.containsKey(attrName)) {
-            target[attrName] = attrValue
-        } else if (
+        when {
+            isNgsiLdNullDatasetId(attrName, attrValue) ->
+                raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE))
+            attrName == NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP ->
+                target[attrName] = mergeLanguageMap(source, attrValue as ExpandedLanguageMapValue)
+            isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrValue) ->
+                target.remove(attrName)
+            !source.containsKey(attrName) ->
+                target[attrName] = attrValue
             listOf(
                 NGSILD_JSONPROPERTY_JSON,
                 NGSILD_VOCABPROPERTY_VOCAB,
                 NGSILD_PROPERTY_VALUE
-            ).contains(attrName)
-        ) {
-            if (attrValue.size > 1) {
-                // a Property holding an array of value or a JsonPropery holding an array of JSON objects
-                // cannot be safely merged patch, so copy the whole value from the update
-                target[attrName] = attrValue
-            } else {
-                target[attrName] = listOf(
-                    JsonMerger().merge(
+            ).contains(attrName) -> {
+                if (attrValue.size > 1) {
+                    // a Property or VocabProperty holding an array of values or a JsonProperty holding an array of
+                    // JSON objects cannot be safely merged patch, so copy the whole value from the update
+                    target[attrName] = attrValue
+                } else {
+                    val mergedElement = JsonMerger().merge(
                         JsonUtils.serializeObject(source[attrName]!![0]),
                         JsonUtils.serializeObject(attrValue[0])
                     ).deserializeAsMap()
-                )
-            }
-        } else if (listOf(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP).contains(attrName)) {
-            val sourceLangEntries = source[attrName] as List<Map<String, String>>
-            val targetLangEntries = sourceLangEntries.toMutableList()
-            (attrValue as List<Map<String, String>>).forEach { langEntry ->
-                // remove any previously existing entry for this language
-                targetLangEntries.removeIf {
-                    it[JSONLD_LANGUAGE_KW] == langEntry[JSONLD_LANGUAGE_KW]
+                    target[attrName] = listOf(
+                        if (attrName == NGSILD_JSONPROPERTY_JSON || attrName == NGSILD_PROPERTY_VALUE)
+                            applyNgsiLdNullRemoval(attrName, mergedElement, attrValue[0] as ExpandedAttributeInstance)
+                        else
+                            mergedElement
+                    )
                 }
-                targetLangEntries.add(langEntry)
             }
-
-            target[attrName] = targetLangEntries
-        } else {
-            target[attrName] = attrValue
+            else -> target[attrName] = attrValue
         }
     }
-
-    return Pair(JsonUtils.serializeObject(target), target)
+    Pair(JsonUtils.serializeObject(target), target)
 }

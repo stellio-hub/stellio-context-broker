@@ -9,10 +9,12 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.CompactedEntity
+import com.egm.stellio.shared.model.ENTITY_TYPE_WILDCARD
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NotAcceptableException
+import com.egm.stellio.shared.model.isWildcardTypeSelection
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.INVALID_AT_CONTEXT_JSON_CONTENT_TYPE_MESSAGE
@@ -208,9 +210,12 @@ fun parseQueryParameter(queryParam: String?): Set<String> =
         .toSet()
 
 fun expandTypeSelection(entityTypeSelection: EntityTypeSelection?, contexts: List<String>): EntityTypeSelection? =
-    entityTypeSelection?.replace(typeSelectionRegex) {
-        expandJsonLdTerm(it.value.trim(), contexts)
-    }
+    if (entityTypeSelection?.isWildcardTypeSelection() == true)
+        ENTITY_TYPE_WILDCARD
+    else
+        entityTypeSelection?.replace(typeSelectionRegex) {
+            expandJsonLdTerm(it.value.trim(), contexts)
+        }
 
 fun compactTypeSelection(entityTypeSelection: EntityTypeSelection, contexts: List<String>): EntityTypeSelection =
     entityTypeSelection.replace(typeSelectionRegex) {

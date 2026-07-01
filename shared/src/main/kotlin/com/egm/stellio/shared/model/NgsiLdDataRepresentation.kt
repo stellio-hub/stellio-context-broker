@@ -41,8 +41,12 @@ data class NgsiLdDataRepresentation(
                     AttributeRepresentation.SIMPLIFIED
                 formatParam == FormatValue.NORMALIZED ->
                     AttributeRepresentation.NORMALIZED
+                formatParam == FormatValue.CONCISE ->
+                    AttributeRepresentation.CONCISE
                 optionsParam.contains(OptionsValue.KEY_VALUES) || optionsParam.contains(OptionsValue.SIMPLIFIED) ->
                     AttributeRepresentation.SIMPLIFIED
+                optionsParam.contains(OptionsValue.CONCISE) ->
+                    AttributeRepresentation.CONCISE
                 else -> AttributeRepresentation.NORMALIZED
             }
             val includeSysAttrs = optionsParam.contains(OptionsValue.SYS_ATTRS)
@@ -68,7 +72,8 @@ data class NgsiLdDataRepresentation(
 
 enum class AttributeRepresentation {
     NORMALIZED,
-    SIMPLIFIED
+    SIMPLIFIED,
+    CONCISE
 }
 
 enum class EntityRepresentation {

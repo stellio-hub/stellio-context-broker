@@ -11,6 +11,7 @@ enum class FormatValue(val value: String) {
     KEY_VALUES("keyValues"),
     SIMPLIFIED("simplified"),
     NORMALIZED("normalized"),
+    CONCISE("concise"),
     TEMPORAL_VALUES("temporalValues"),
     AGGREGATED_VALUES("aggregatedValues");
     companion object {

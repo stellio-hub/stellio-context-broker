@@ -47,7 +47,7 @@ class CoreAPIServiceNoAuthTests {
     }
 
     @Test
-    fun `it should not attach bearer token when authentication is disabled`() {
+    fun `getEntities should not attach bearer token when authentication is disabled`() {
         // stub entity service endpoint only (no token endpoint needed)
         stubFor(
             get(urlEqualTo("/ngsi-ld/v1/entities?type=BeeHive"))

@@ -1,7 +1,6 @@
 package com.egm.stellio.subscription.service
 
 import arrow.core.Either
-import arrow.core.raise.context.bind
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.EntitySelector
@@ -397,7 +396,9 @@ class SubscriptionService(
                 val idQuery = it.id?.let { " '${expandedEntity.id}' = '$it' " }
                 val idPatternQuery = it.idPattern?.let { " '${expandedEntity.id}' ~ '$it' " }
                 listOfNotNull(typeSelectionQuery, idQuery, idPatternQuery)
-                    .joinToString(separator = " AND ", prefix = "(", postfix = ")")
+                    .joinToString(separator = " AND ")
+                    .ifEmpty { "true" }
+                    .let { "($it)" }
             }
         }
 

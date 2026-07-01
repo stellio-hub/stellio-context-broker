@@ -39,6 +39,15 @@ const val NGSILD_VOCABPROPERTY_TERM = "VocabProperty"
 const val NGSILD_VOCABPROPERTY_VOCAB_TERM = "vocab"
 const val NGSILD_VOCABPROPERTY_VOCAB = "${NGSILD_PREFIX}hasVocab"
 
+val NGSILD_ATTRIBUTE_TYPES = setOf(
+    NGSILD_PROPERTY_TERM,
+    NGSILD_GEOPROPERTY_TERM,
+    NGSILD_RELATIONSHIP_TERM,
+    NGSILD_JSONPROPERTY_TERM,
+    NGSILD_LANGUAGEPROPERTY_TERM,
+    NGSILD_VOCABPROPERTY_TERM
+)
+
 // Attributes and expanded terms holding the previous value of an attribute
 
 const val NGSILD_PROPERTY_PREVIOUS_VALUE_TERM = "previousValue"

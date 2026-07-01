@@ -34,7 +34,7 @@ class EntityEventListenerServiceTests {
     private val entityId = "urn:ngsi-ld:BeeHive:01".toUri()
 
     @Test
-    fun `it should parse and transmit an entity create event`() = runTest {
+    fun `dispatchEntityEvent should parse and transmit an entity create event`() = runTest {
         val entityCreateEvent = loadSampleData("events/entity/entityCreateEvent.json")
 
         mockNotificationService()
@@ -56,7 +56,7 @@ class EntityEventListenerServiceTests {
     }
 
     @Test
-    fun `it should parse and transmit an entity delete event`() = runTest {
+    fun `dispatchEntityEvent should parse and transmit an entity delete event`() = runTest {
         val entityDeleteEvent = loadSampleData("events/entity/entityDeleteEvent.json")
 
         mockNotificationService()
@@ -76,7 +76,7 @@ class EntityEventListenerServiceTests {
     }
 
     @Test
-    fun `it should parse and transmit an attribute create event`() = runTest {
+    fun `dispatchEntityEvent should parse and transmit an attribute create event`() = runTest {
         val attributeCreateEvent = loadSampleData("events/entity/attributeAppendTextPropEvent.json")
 
         mockNotificationService()
@@ -98,7 +98,7 @@ class EntityEventListenerServiceTests {
     }
 
     @Test
-    fun `it should parse and transmit an attribute update event`() = runTest {
+    fun `dispatchEntityEvent should parse and transmit an attribute update event`() = runTest {
         val attributeUpdateEvent = loadSampleData("events/entity/attributeUpdateTextPropEvent.json")
 
         mockNotificationService()
@@ -120,7 +120,7 @@ class EntityEventListenerServiceTests {
     }
 
     @Test
-    fun `it should parse and transmit an attribute delete event`() = runTest {
+    fun `dispatchEntityEvent should parse and transmit an attribute delete event`() = runTest {
         val attributeDeleteEvent = loadSampleData("events/entity/attributeDeleteEvent.json")
 
         mockNotificationService()

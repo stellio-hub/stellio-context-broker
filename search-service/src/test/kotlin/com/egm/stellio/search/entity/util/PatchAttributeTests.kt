@@ -4,6 +4,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -106,6 +107,68 @@ class PatchAttributeTests {
                         "attribute": {
                             "type": "VocabProperty",
                             "vocab": "egm"
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subAttribute": {
+                                "type": "Property",
+                                "value": "someValue"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subAttribute": {
+                                "type": "Property",
+                                "value": "urn:ngsi-ld:null"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "unitCode": "GRM"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "unitCode": "urn:ngsi-ld:null"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
                         }
                     }
                     """.trimIndent()
@@ -265,6 +328,58 @@ class PatchAttributeTests {
                 Arguments.of(
                     """
                     {
+                        "attribute": {
+                            "type": "LanguageProperty",
+                            "languageMap": { "en": "train", "fr": "train", "@none": "locomotive" }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "LanguageProperty",
+                            "languageMap": { "@none": "urn:ngsi-ld:null", "fr": "TGV" }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "LanguageProperty",
+                            "languageMap": { "en": "train", "fr": "TGV" }
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "LanguageProperty",
+                            "languageMap": { "en": "train", "fr": "train", "es": "tren" }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "LanguageProperty",
+                            "languageMap": { "en": "urn:ngsi-ld:null", "fr": "TGV" }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "LanguageProperty",
+                            "languageMap": { "es": "tren", "fr": "TGV" }
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
                         "incoming": {
                             "type": "JsonProperty",
                             "json": { "a": 1, "b": "thing" }
@@ -313,6 +428,292 @@ class PatchAttributeTests {
                         }
                     }
                     """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": ["stellio"]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": ["egm", "nantes"]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": ["egm", "nantes"]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subAttribute": {
+                                "type": "Property",
+                                "value": "someValue"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subAttribute": {
+                                "type": "Property",
+                                "value": "urn:ngsi-ld:null"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subAttribute": {
+                                "type": "Property",
+                                "value": "someValue"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subAttribute": "urn:ngsi-ld:null"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subRelationship": {
+                                "type": "Relationship",
+                                "object": "urn:ngsi-ld:Entity:01"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subRelationship": {
+                                "type": "Relationship",
+                                "object": "urn:ngsi-ld:null"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subAttribute": {
+                                "type": "Property",
+                                "value": "urn:ngsi-ld:null"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subLangProp": {
+                                "type": "LanguageProperty",
+                                "languageMap": { "fr": "train", "es": "tren" }
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "subLangProp": {
+                                "type": "LanguageProperty",
+                                "languageMap": { "@none": "urn:ngsi-ld:null" }
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "unitCode": "someUnit"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "unitCode": "urn:ngsi-ld:null"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "address": {
+                            "type": "Property",
+                            "value": {
+                                "street": "Straße des 17. Juni",
+                                "city": "Berlin",
+                                "country": "Germany"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "address": {
+                            "type": "Property",
+                            "value": {
+                                "street": "Pariser Platz",
+                                "country": "urn:ngsi-ld:null"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "address": {
+                            "type": "Property",
+                            "value": {
+                                "street": "Pariser Platz",
+                                "city": "Berlin"
+                            }
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "jsonProperty": {
+                            "type": "JsonProperty",
+                            "json": {
+                                "key1": "value1",
+                                "key2": "value2"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "jsonProperty": {
+                            "type": "JsonProperty",
+                            "json": {
+                                "key1": "urn:ngsi-ld:null",
+                                "key2": "newValue2"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "jsonProperty": {
+                            "type": "JsonProperty",
+                            "json": {
+                                "key2": "newValue2"
+                            }
+                        }
+                    }
+                    """.trimIndent()
                 )
             )
         }
@@ -320,7 +721,7 @@ class PatchAttributeTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.entity.util.PatchAttributeTests#partialUpdatePatchProvider")
-    fun `it should apply a partial update patch behavior to attribute instance`(
+    fun `partialUpdatePatch should apply a partial update patch behavior to attribute instance`(
         source: String,
         target: String,
         expected: String
@@ -328,7 +729,7 @@ class PatchAttributeTests {
         val (mergeResult, _) = partialUpdatePatch(
             expandAttribute(source, NGSILD_TEST_CORE_CONTEXTS).second[0],
             expandAttribute(target, NGSILD_TEST_CORE_CONTEXTS).second[0]
-        )
+        ).shouldSucceedAndResult()
 
         assertJsonPayloadsAreEqual(
             serializeObject(expandAttribute(expected, NGSILD_TEST_CORE_CONTEXTS).second[0]),
@@ -338,7 +739,7 @@ class PatchAttributeTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.entity.util.PatchAttributeTests#mergePatchProvider")
-    fun `it should apply a merge patch behavior to attribute instance`(
+    fun `mergePatch should apply a merge patch behavior to attribute instance`(
         source: String,
         target: String,
         expected: String
@@ -346,7 +747,7 @@ class PatchAttributeTests {
         val (mergeResult, _) = mergePatch(
             expandAttribute(source, NGSILD_TEST_CORE_CONTEXTS).second[0],
             expandAttribute(target, NGSILD_TEST_CORE_CONTEXTS).second[0]
-        )
+        ).shouldSucceedAndResult()
 
         assertJsonPayloadsAreEqual(
             serializeObject(expandAttribute(expected, NGSILD_TEST_CORE_CONTEXTS).second[0]),

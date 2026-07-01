@@ -23,7 +23,7 @@ import org.junit.jupiter.api.fail
 
 class ExpandedEntityTests {
     @Test
-    fun `it should find an expanded attribute contained in the entity`() {
+    fun `checkContainsAnyOf should find an expanded attribute contained in the entity`() {
         val expandedEntity = ExpandedEntity(
             mapOf(INCOMING_IRI to "", OUTGOING_IRI to "")
         )
@@ -36,7 +36,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should not find an expanded attribute not contained in the entity`() {
+    fun `checkContainsAnyOf should not find an expanded attribute not contained in the entity`() {
         val expandedEntity = ExpandedEntity(
             mapOf(INCOMING_IRI to "", OUTGOING_IRI to "", JSONLD_ID_KW to "urn:ngsi-ld:Entity:01".toUri())
         )
@@ -55,7 +55,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should get the attributes from a JSON-LD entity`() = runTest {
+    fun `getAttributes should return all attributes of a JSON-LD entity`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -75,7 +75,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should get an attribute by name without datasetId`() = runTest {
+    fun `getAttribute should return the matching attribute when no datasetId is specified`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -94,7 +94,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should get an attribute by name with datasetId`() = runTest {
+    fun `getAttribute should return the attribute matching both name and datasetId`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -115,7 +115,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should not get an attribute if name does not match`() = runTest {
+    fun `getAttribute should not get an attribute when name does not match`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -136,7 +136,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should not get an attribute if datasetId does not match`() = runTest {
+    fun `getAttribute should not get an attribute when datasetId does not match`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -157,7 +157,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should not get an attribute without datasetId if datasetId is provided`() = runTest {
+    fun `getAttribute should not get an attribute without datasetId when datasetId is provided`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -177,7 +177,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should filter the attributes based on the attrs only`() = runTest {
+    fun `filterAttributes should filter the attributes based on the attrs only`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -214,7 +214,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should filter the attributes based on attrs and apply the datasetId view`() = runTest {
+    fun `applyDatasetView should filter the attributes based on attrs and apply the datasetId view`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -240,7 +240,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should apply the datasetIds view`() = runTest {
+    fun `applyDatasetView should apply the datasetIds view`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -268,7 +268,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should apply the datasetId view on the default instance if @none is asked`() = runTest {
+    fun `applyDatasetView should apply the view on the default instance when @none is asked`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -293,7 +293,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should filter attributes on attrs and apply the datasetId view on @none`() = runTest {
+    fun `applyDatasetView should filter on attrs and apply the view on @none`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -317,7 +317,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should apply the datasetId view on multiple datasetIds`() = runTest {
+    fun `applyDatasetView should apply the view on multiple datasetIds`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -355,7 +355,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should return no attributes if datasetIds and attrs don't match`() = runTest {
+    fun `applyDatasetView should return no attributes when datasetIds and attrs don't match`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 
         val expectedEntity = """
@@ -376,7 +376,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should get the scopes from a JSON-LD entity`() = runTest {
+    fun `getScopes should return the scopes from a JSON-LD entity`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",
@@ -393,7 +393,7 @@ class ExpandedEntityTests {
     }
 
     @Test
-    fun `it should populate the createdAt information at root and attribute levels`() = runTest {
+    fun `populateCreationTimeDate should populate the createdAt information at root and attribute levels`() = runTest {
         val entity = """
         {
             "id": "urn:ngsi-ld:Entity:01",

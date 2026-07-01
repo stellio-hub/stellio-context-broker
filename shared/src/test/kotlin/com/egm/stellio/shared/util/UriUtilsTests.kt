@@ -8,7 +8,7 @@ import org.junit.jupiter.api.assertThrows
 class UriUtilsTests {
 
     @Test
-    fun `it should throw a BadRequestData exception if input string is not an absolute URI`() {
+    fun `toUri should throw a BadRequestData exception if the input string is not an absolute URI`() {
         val uri = "justAString"
 
         val exception = assertThrows<BadRequestDataException> {
@@ -21,7 +21,7 @@ class UriUtilsTests {
     }
 
     @Test
-    fun `it should throw a BadRequestData exception if input string has an invalid syntax`() {
+    fun `toUri should throw a BadRequestData exception if the input string has an invalid syntax`() {
         val uri = "https://just\\AString"
 
         val exception = assertThrows<BadRequestDataException> {

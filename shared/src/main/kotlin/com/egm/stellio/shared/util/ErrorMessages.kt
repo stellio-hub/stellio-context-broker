@@ -126,6 +126,12 @@ object ErrorMessages {
         const val ENTITY_MISSING_TYPE_PROPERTY_MESSAGE = "The provided NGSI-LD entity does not contain a type property"
         const val ENTITY_MISSING_ID_PROPERTY_MESSAGE = "The provided NGSI-LD entity does not contain an id property"
 
+        const val NGSI_LD_NULL_NOT_ALLOWED_MESSAGE = "NGSI-LD Null is not allowed in this operation"
+        const val NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE =
+            "NGSI-LD Null is not allowed as the value of the datasetId member"
+        fun attributeWithNullDatasetIdMessage(attributeName: String) =
+            "Attribute $attributeName has an invalid NGSI-LD Null value for the datasetId member"
+
         fun entityOrAttrsNotFoundMessage(entityId: URI, attrs: Set<String>) =
             "Entity $entityId does not exist or has none of the requested attributes: $attrs"
         fun attributeNotFoundMessage(attrId: String, entityId: URI) =
@@ -325,6 +331,9 @@ object ErrorMessages {
         const val PROJECTION_UNCLOSED_BRACE_MESSAGE = "Expression contains an unclosed brace"
         const val PROJECTION_EMPTY_NESTED_MESSAGE = "Expression contains an empty nested projection"
         const val PROJECTION_CONSECUTIVE_SEPARATORS_MESSAGE = "Expression cannot contain consecutive separators"
+        const val TYPE_WILDCARD_WITH_LOCAL_EQUAL_FALSE = "Cannot use type=* with local=false"
+        const val DISTRIBUTION_NOT_IMPLEMENTED = "The distribution is not yet implemented on this endpoint"
+
         fun projectionInvalidCharactersMessage(invalidChars: String) = "Invalid characters in the value ($invalidChars)"
     }
 

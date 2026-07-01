@@ -2,6 +2,8 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.right
 import com.egm.stellio.search.authorization.subject.USER_UUID
+import com.egm.stellio.search.common.util.asJsonB
+import com.egm.stellio.search.common.util.deserializeTemporalValue
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.Entity
@@ -14,6 +16,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -21,6 +24,7 @@ import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_MESSAGE
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
@@ -113,7 +117,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should retrieve a persisted temporal entity attribute`() = runTest {
+    fun `getForEntity should retrieve a persisted temporal entity attribute`() = runTest {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -141,7 +145,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `it should create entries for all attributes of an entity`() = runTest {
+    fun `createAttributes should create entries for all attributes of an entity`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -174,7 +178,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             )
             attributeInstanceService.create(
                 match {
-                    it.value == "ParisBeehive12" &&
+                    it.value?.deserializeTemporalValue() == "ParisBeehive12" &&
                         it.measuredValue == null &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
                         it.time.isAfter(ngsiLdDateTime().minusMinutes(1))
@@ -182,7 +186,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             )
             attributeInstanceService.create(
                 match {
-                    it.value == "urn:ngsi-ld:Beekeeper:Pascal" &&
+                    it.value?.deserializeTemporalValue() == "urn:ngsi-ld:Beekeeper:Pascal" &&
                         it.measuredValue == null &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
                         it.time.isAfter(ngsiLdDateTime().minusMinutes(1))
@@ -192,7 +196,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should create entries for a multi-instance property`() = runTest {
+    fun `createAttributes should create entries for a multi-instance property`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -242,7 +246,53 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should rollback the whole operation if one DB update fails`() = runTest {
+    fun `createAttributes should create entries for a multi-valued-relationships`() = runTest {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:BeeHive:TESTC",
+              "type": "BeeHive",
+              "multiValuedRelationship": {
+                "type": "Relationship",
+                "object": [
+                  "urn:ngsi-ld:LinkedEntity:01",
+                  "urn:ngsi-ld:LinkedEntity:02"
+                ]
+              },
+              "@context": [
+                "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+              ]
+            }
+            """.trimIndent()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(
+            rawEntity,
+            APIC_COMPOUND_CONTEXTS
+        ).shouldSucceed()
+
+        val attributes = entityAttributeService.getAllForEntity(beehiveTestCId)
+
+        assertEquals(1, attributes.size)
+
+        coVerify {
+            attributeInstanceService.create(
+                match {
+                    it.value?.deserializeTemporalValue() == listOf(
+                        "urn:ngsi-ld:LinkedEntity:01",
+                        "urn:ngsi-ld:LinkedEntity:02"
+                    ) &&
+                        it.measuredValue == null &&
+                        it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
+                        it.time.isAfter(ngsiLdDateTime().minusMinutes(1))
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `createAttributes should rollback the whole operation if one DB update fails`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -264,7 +314,51 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should replace a temporal entity attribute`() = runTest {
+    fun `createAttributes should fail when creating a property with a NGSI-LD Null value`() = runTest {
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        val entityWithNullAttribute = """
+            {
+                "id": "urn:ngsi-ld:BeeHive:TESTC",
+                "type": "BeeHive",
+                "incoming": {
+                    "type": "Property",
+                    "value": "urn:ngsi-ld:null"
+                }
+            }
+        """.trimIndent()
+
+        entityAttributeService.createAttributes(entityWithNullAttribute, APIC_COMPOUND_CONTEXTS)
+            .shouldFail { exception ->
+                assertInstanceOf(BadRequestDataException::class.java, exception)
+                assertEquals(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE, exception.message)
+            }
+    }
+
+    @Test
+    fun `createAttributes should fail when creating a relationship with a NGSI-LD Null value`() = runTest {
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        val entityWithNullAttribute = """
+            {
+                "id": "urn:ngsi-ld:BeeHive:TESTC",
+                "type": "BeeHive",
+                "incoming": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:null"
+                }
+            }
+        """.trimIndent()
+
+        entityAttributeService.createAttributes(entityWithNullAttribute, APIC_COMPOUND_CONTEXTS)
+            .shouldFail { exception ->
+                assertInstanceOf(BadRequestDataException::class.java, exception)
+                assertEquals(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE, exception.message)
+            }
+    }
+
+    @Test
+    fun `addOrReplaceAttribute should replace a temporal entity attribute`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -283,7 +377,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             INCOMING_IRI,
             AttributeMetadata(
                 null,
-                "It's a string now",
+                "It's a string now".asJsonB(),
                 null,
                 Attribute.AttributeValueType.STRING,
                 null,
@@ -291,7 +385,8 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                 ZonedDateTime.parse("2022-12-24T14:01:22.066Z")
             ),
             createdAt,
-            expandedAttribute.second[0]
+            expandedAttribute.second[0],
+            true
         ).shouldSucceed()
 
         entityAttributeService.getForEntityAndAttribute(
@@ -308,7 +403,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should merge an entity attribute`() = runTest {
+    fun `mergeAttribute should merge an entity attribute`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -328,7 +423,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             attribute,
             AttributeMetadata(
                 null,
-                "It's a string now",
+                "It's a string now".asJsonB(),
                 null,
                 Attribute.AttributeValueType.STRING,
                 null,
@@ -370,7 +465,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should merge a previously deleted entity attribute by replacing the deleted one`() = runTest {
+    fun `mergeAttributes should merge a previously deleted attribute by replacing the deleted one`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -406,7 +501,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should merge an entity attributes`() = runTest {
+    fun `mergeAttributes should merge an entity attributes`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -467,7 +562,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should merge an entity attributes with observedAt parameter`() = runTest {
+    fun `mergeAttributes should merge an entity attributes with observedAt parameter`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -505,7 +600,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should delete an attribute in merge operation if its value is NGSI-LD null`() = runTest {
+    fun `mergeAttributes should delete an attribute when its value is NGSI-LD null`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -534,7 +629,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         coVerify(exactly = 1) {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
-                NGSILD_NULL,
+                match { it.deserializeTemporalValue() == NGSILD_NULL },
                 createdAt,
                 expandAttribute(
                     INCOMING_IRI,
@@ -551,7 +646,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should delete an attribute in update operation if its value is NGSI-LD null`() = runTest {
+    fun `updateAttributes should delete an attribute when its value is NGSI-LD null`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -579,7 +674,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         coVerify(exactly = 1) {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
-                NGSILD_NULL,
+                match { it.deserializeTemporalValue() == NGSILD_NULL },
                 createdAt,
                 expandAttribute(
                     INCOMING_IRI,
@@ -596,7 +691,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should update a previously deleted attribute by replacing the deleted one`() = runTest {
+    fun `updateAttributes should update a previously deleted attribute by replacing the deleted one`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -623,7 +718,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceedWith { operationResults ->
             val successfulOperations = operationResults.getSucceededAttributesOperations()
             assertEquals(1, successfulOperations.size)
-            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.UPDATED }.size)
+            assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.CREATED }.size)
         }
 
         entityAttributeService.getForEntityAndAttribute(
@@ -635,7 +730,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should delete an attribute in partial attribute update operation if its value is NGSI-LD null`() = runTest {
+    fun `partialUpdateAttribute should delete an attribute when its value is NGSI-LD null`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -659,7 +754,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         coVerify(exactly = 1) {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
-                NGSILD_NULL,
+                match { it.deserializeTemporalValue() == NGSILD_NULL },
                 createdAt,
                 expandAttribute(
                     INCOMING_IRI,
@@ -676,7 +771,63 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should replace an entity attribute`() = runTest {
+    fun `partialUpdateAttribute should partial update a property without providing its value`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val updatedAt = ngsiLdDateTime()
+        val expandedAttribute = expandAttribute(
+            INCOMING_IRI,
+            """
+                {
+                    "type": "Property",
+                    "unitCode": "C62"
+                }
+            """.trimIndent(),
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        entityAttributeService.partialUpdateAttribute(
+            beehiveTestCId,
+            expandedAttribute,
+            updatedAt
+        ).shouldSucceedWith { operationResult ->
+            assertEquals(OperationStatus.UPDATED, operationResult.operationStatus)
+        }
+
+        val expectedPayload = expandAttribute(
+            """
+                {
+                    "incoming": {
+                        "type": "Property",
+                        "value": 1543,
+                        "observedAt": "2020-01-24T14:01:22.066Z",
+                        "unitCode": "C62",
+                        "observedBy": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+                        }
+                    }
+                }
+            """.trimIndent(),
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        entityAttributeService.getForEntityAndAttribute(
+            beehiveTestCId,
+            INCOMING_IRI
+        ).shouldSucceedWith {
+            assertEquals(Attribute.AttributeValueType.NUMBER, it.attributeValueType)
+            assertJsonPayloadsAreEqual(serializeObject(expectedPayload.second[0]), it.payload.asString())
+            assertEquals(updatedAt, it.modifiedAt)
+        }
+    }
+
+    @Test
+    fun `replaceAttribute should replace an entity attribute`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -712,7 +863,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should ignore a replace attribute if attribute does not exist`() = runTest {
+    fun `replaceAttribute should ignore a replace when the attribute does not exist`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -737,7 +888,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should ignore a replace attribute if attribute was previously deleted`() = runTest {
+    fun `replaceAttribute should ignore a replace if the attribute was previously deleted`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -770,7 +921,66 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should return the attributeId of a given entityId and attributeName`() = runTest {
+    fun `replaceAttribute should raise a BadRequestData error when replacing with a NGSI-LD Null value`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val nullAttribute = """
+            {
+                "type": "Property",
+                "value": "urn:ngsi-ld:null"
+            }
+        """.trimIndent()
+        val expandedAttribute = expandAttribute(INCOMING_IRI, nullAttribute, APIC_COMPOUND_CONTEXTS)
+        val ngsiLdAttribute = expandedAttribute.toNgsiLdAttribute().shouldSucceedAndResult()
+
+        entityAttributeService.replaceAttribute(
+            beehiveTestCId,
+            ngsiLdAttribute,
+            expandedAttribute,
+            ngsiLdDateTime()
+        ).shouldFail { exception ->
+            assertInstanceOf(BadRequestDataException::class.java, exception)
+            assertEquals(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE, exception.message)
+        }
+    }
+
+    @Test
+    fun `appendAttributes should raise a BadRequestData error when appending a NGSI-LD Null value`() = runTest {
+        val rawEntity = loadSampleData()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val nullAttribute = """
+            {
+                "incoming": {
+                    "type": "Property",
+                    "value": "urn:ngsi-ld:null"
+                }
+            }
+        """.trimIndent()
+        val expandedAttributes = JsonLdUtils.expandAttributes(nullAttribute, APIC_COMPOUND_CONTEXTS)
+        val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
+
+        entityAttributeService.appendAttributes(
+            beehiveTestCId,
+            ngsiLdAttributes,
+            expandedAttributes,
+            false,
+            ngsiLdDateTime()
+        ).shouldFail { exception ->
+            assertInstanceOf(BadRequestDataException::class.java, exception)
+            assertEquals(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE, exception.message)
+        }
+    }
+
+    @Test
+    fun `getForEntityAndAttribute should return the attributeId for an entityId and attributeName`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -784,7 +994,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should return the attributeId of a given entityId attributeName and datasetId`() = runTest {
+    fun `getForEntityAndAttribute should return the attributeId for entityId attributeName and datasetId`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -799,7 +1009,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should not return a attributeId if the datasetId is unknown`() = runTest {
+    fun `getForEntityAndAttribute should not return an attributeId if the datasetId is unknown`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -816,7 +1026,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should flag and audit a deleted attribute`() = runTest {
+    fun `deleteAttribute should flag and audit a deleted attribute`() = runTest {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -838,7 +1048,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         coVerify {
             attributeInstanceService.addDeletedAttributeInstance(
                 any(),
-                NGSILD_NULL,
+                match { it.deserializeTemporalValue() == NGSILD_NULL },
                 deletedAt,
                 expandAttribute(
                     INCOMING_IRI,
@@ -860,7 +1070,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should flag and audit all instances of a deleted attribute`() = runTest {
+    fun `deleteAttribute should flag and audit all instances of a deleted attribute`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -887,7 +1097,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should flag and audit all deleted attributes of an entity`() = runTest {
+    fun `deleteAttributes should flag and audit all deleted attributes of an entity`() = runTest {
         val rawEntity = loadSampleData("beehive.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -911,7 +1121,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should permanently delete an attribute of an entity`() = runTest {
+    fun `permanentlyDeleteAttribute should permanently delete an attribute of an entity`() = runTest {
         val rawEntity = loadSampleData("beehive.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -935,7 +1145,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should permanently delete all attribute of an entity`() = runTest {
+    fun `permanentlyDeleteAttributes should permanently delete all attributes of an entity`() = runTest {
         val rawEntity = loadSampleData("beehive.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -957,7 +1167,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should return a right unit if entiy and attribute exist`() = runTest {
+    fun `checkEntityAndAttributeExistence should return a right unit if entity and attribute exist`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -969,7 +1179,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should return a right unit if entiy and attribute exist whatever its datasetId`() = runTest {
+    fun `checkEntityAndAttributeExistence should succeed whatever the datasetId when both exist`() = runTest {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -981,7 +1191,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should return a left attribute not found if entity exists but not the attribute`() = runTest {
+    fun `checkEntityAndAttributeExistence should return a left when the attribute is not found`() = runTest {
         val rawEntity = loadSampleData()
 
         coEvery { attributeInstanceService.create(any()) } returns Unit.right()
@@ -997,7 +1207,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
-    fun `it should return a left entity not found if entity does not exist`() = runTest {
+    fun `checkEntityAndAttributeExistence should return a left entity not found if entity does not exist`() = runTest {
         entityAttributeService.checkEntityAndAttributeExistence(
             "urn:ngsi-ld:Entity:01".toUri(),
             "speed"

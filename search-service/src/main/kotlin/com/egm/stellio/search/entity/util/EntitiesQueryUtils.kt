@@ -3,6 +3,7 @@ package com.egm.stellio.search.entity.util
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.right
 import com.egm.stellio.search.common.model.OrderingParams
 import com.egm.stellio.search.common.model.Query
@@ -14,16 +15,20 @@ import com.egm.stellio.shared.model.AttributeProjection
 import com.egm.stellio.shared.model.AttributeProjection.Companion.parsePickOmitParameters
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.NotImplementedException
+import com.egm.stellio.shared.model.isWildcardTypeSelection
 import com.egm.stellio.shared.queryparameter.GeoQuery.Companion.parseGeoQueryParameters
 import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.parseLinkedEntityQueryParameters
 import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.queryparameter.parseQQuery
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ATTRIBUTES_WITH_PICK_OR_OMIT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.DISTRIBUTION_NOT_IMPLEMENTED
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.ENTITY_MEMBER_IN_PICK_AND_OMIT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.KEEP_AND_DROP_BOTH_PROVIDED_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.MISSING_REQUIRED_PURGE_QUERY_PARAMETER_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.MISSING_REQUIRED_QUERY_PARAMETER_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.TYPE_WILDCARD_WITH_LOCAL_EQUAL_FALSE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
@@ -39,7 +44,15 @@ fun composeEntitiesQueryFromGet(
     contexts: List<String>
 ): Either<APIException, EntitiesQueryFromGet> = either {
     val ids = queryParams.getFirst(QueryParameter.ID.key)?.split(",").orEmpty().toListOfUri().toSet()
-    val typeSelection = expandTypeSelection(queryParams.getFirst(QueryParameter.TYPE.key), contexts)
+    val localParameter = queryParams.getFirst(QueryParameter.LOCAL.key)?.toBoolean()
+    val (typeSelection, local) = // type=* implies local=true
+        if (queryParams.getFirst(QueryParameter.TYPE.key)?.isWildcardTypeSelection() == true) {
+            ensure(localParameter != false) { BadRequestDataException(TYPE_WILDCARD_WITH_LOCAL_EQUAL_FALSE) }
+            null to true
+        } else
+            expandTypeSelection(queryParams.getFirst(QueryParameter.TYPE.key), contexts) to
+                (localParameter ?: false)
+
     val idPattern = validateIdPattern(queryParams.getFirst(QueryParameter.ID_PATTERN.key)).bind()
 
     /**
@@ -69,7 +82,6 @@ fun composeEntitiesQueryFromGet(
         queryParams.getFirst(QueryParameter.JOIN_LEVEL.key),
         queryParams.getFirst(QueryParameter.CONTAINED_BY.key)
     ).bind()
-    val local = queryParams.getFirst(QueryParameter.LOCAL.key)?.toBoolean() ?: false
 
     val ordering = OrderingParams.fromUnparsedOrderBy(
         queryParams.getFirst(QueryParameter.ORDER_BY.key)?.split(','),
@@ -137,6 +149,14 @@ fun composeEntitiesQueryFromPost(
     queryParams: MultiValueMap<String, String>,
     contexts: List<String>
 ): Either<APIException, EntitiesQueryFromPost> = either {
+    val localParameter = queryParams.getFirst(QueryParameter.LOCAL.key)?.toBoolean()
+    val hasWildcardEntitySelector = query.entities?.any { it.typeSelection.isWildcardTypeSelection() } ?: false
+    val local =
+        if (hasWildcardEntitySelector) {
+            ensure(localParameter != false) { BadRequestDataException(TYPE_WILDCARD_WITH_LOCAL_EQUAL_FALSE) }
+            true
+        } else localParameter ?: false
+    ensure(localParameter != false) { NotImplementedException(DISTRIBUTION_NOT_IMPLEMENTED) }
     val entitySelectors = query.entities?.map { entitySelector ->
         validateIdPattern(entitySelector.idPattern).bind()
         EntitySelector(
@@ -192,6 +212,7 @@ fun composeEntitiesQueryFromPost(
         datasetId = datasetId,
         geoQuery = geoQuery,
         linkedEntityQuery = linkedEntityQuery,
+        local = local,
         ordering = ordering,
         contexts = contexts,
         jsonKeys = jsonKeys,

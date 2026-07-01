@@ -35,7 +35,10 @@ data class NotificationParams(
         SIMPLIFIED("simplified"),
 
         @JsonProperty("normalized")
-        NORMALIZED("normalized")
+        NORMALIZED("normalized"),
+
+        @JsonProperty("concise")
+        CONCISE("concise")
     }
 
     enum class StatusType(val status: String) {

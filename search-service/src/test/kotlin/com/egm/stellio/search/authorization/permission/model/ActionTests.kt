@@ -19,7 +19,7 @@ class ActionTests {
     )
 
     @Test
-    fun `it should return a 400 if the payload contains a multi-instance property`() = runTest {
+    fun `getSpecificAccessPolicy should return a 400 if the payload contains a multi-instance property`() = runTest {
         val requestPayload =
             """
             [{
@@ -46,7 +46,7 @@ class ActionTests {
     }
 
     @Test
-    fun `it should ignore properties that are not part of the payload when setting a specific access policy`() =
+    fun `getSpecificAccessPolicy should ignore properties not part of the payload`() =
         runTest {
             val requestPayload =
                 """
@@ -67,7 +67,7 @@ class ActionTests {
         }
 
     @Test
-    fun `it should accept AUTH_READ as a specific access policy`() =
+    fun `getSpecificAccessPolicy should accept AUTH_READ as a specific access policy`() =
         runTest {
             val requestPayload =
                 """
@@ -87,7 +87,7 @@ class ActionTests {
         }
 
     @Test
-    fun `it should return a 400 if the value is not one of the supported`() = runTest {
+    fun `getSpecificAccessPolicy should return a 400 if the value is not one of the supported`() = runTest {
         val requestPayload =
             """
             {
@@ -112,7 +112,7 @@ class ActionTests {
     }
 
     @Test
-    fun `it should return a 400 if the provided attribute is a relationship`() = runTest {
+    fun `getSpecificAccessPolicy should return a 400 if the provided attribute is a relationship`() = runTest {
         val requestPayload =
             """
             {

@@ -35,7 +35,7 @@ class TenantWebFilterTests {
     }
 
     @Test
-    fun `it should return a NonexistentTenant error if the tenant does not exist`() {
+    fun `GET requests should return a NonexistentTenant error when the tenant does not exist`() {
         webClient.get()
             .uri("/router/mockkedroute/ok")
             .header(NGSILD_TENANT_HEADER, "urn:ngsi-ld:tenant:02")
@@ -48,7 +48,7 @@ class TenantWebFilterTests {
     }
 
     @Test
-    fun `it should find a non-default tenant and add the NGSILD-Tenant header in the response`() {
+    fun `GET requests should add the NGSILD-Tenant header when the tenant is non-default`() {
         webClient.get()
             .uri("/router/mockkedroute/ok")
             .header(NGSILD_TENANT_HEADER, "urn:ngsi-ld:tenant:01")
@@ -59,7 +59,7 @@ class TenantWebFilterTests {
     }
 
     @Test
-    fun `it should fallback to the default tenant if none was provided in the request`() {
+    fun `GET requests should fall back to the default tenant when none is provided`() {
         webClient.get()
             .uri("/router/mockkedroute/ok")
             .exchange()

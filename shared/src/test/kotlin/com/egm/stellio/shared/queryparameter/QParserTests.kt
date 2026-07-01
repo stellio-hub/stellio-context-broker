@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
 class QParserTests {
 
     @Test
-    fun `it should parse a simple attribute existence check`() {
+    fun `parseQQuery should parse a simple attribute existence check`() {
         parseQQuery("temperature").shouldSucceedWith { node ->
             assertInstanceOf(ExistsNode::class.java, node)
             assertEquals("temperature", (node as ExistsNode).rawPath)
@@ -18,7 +18,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse a negated existence check`() {
+    fun `parseQQuery should parse a negated existence check`() {
         parseQQuery("!temperature").shouldSucceedWith { node ->
             assertInstanceOf(NotExistsNode::class.java, node)
             assertEquals("temperature", (node as NotExistsNode).rawPath)
@@ -26,7 +26,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse a simple equality comparison`() {
+    fun `parseQQuery should parse a simple equality comparison`() {
         parseQQuery("temperature==42").shouldSucceedWith { node ->
             assertInstanceOf(ComparisonNode::class.java, node)
             node as ComparisonNode
@@ -40,7 +40,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse an AND expression`() {
+    fun `parseQQuery should parse an AND expression`() {
         parseQQuery("temperature==42;humidity>10").shouldSucceedWith { node ->
             assertInstanceOf(AndNode::class.java, node)
             node as AndNode
@@ -50,7 +50,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse an OR expression`() {
+    fun `parseQQuery should parse an OR expression`() {
         parseQQuery("temperature==42|humidity>10").shouldSucceedWith { node ->
             assertInstanceOf(OrNode::class.java, node)
             node as OrNode
@@ -60,7 +60,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse a grouped expression in parentheses`() {
+    fun `parseQQuery should parse a grouped expression in parentheses`() {
         parseQQuery("(temperature==42|humidity>10);status==\"active\"").shouldSucceedWith { node ->
             assertInstanceOf(AndNode::class.java, node)
             node as AndNode
@@ -69,7 +69,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse NEQ operator`() {
+    fun `parseQQuery should parse NEQ operator`() {
         parseQQuery("temperature!=42").shouldSucceedWith { node ->
             node as ComparisonNode
             assertEquals(ComparisonOperator.NEQ, node.operator)
@@ -77,7 +77,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse GTE operator`() {
+    fun `parseQQuery should parse GTE operator`() {
         parseQQuery("temperature>=42").shouldSucceedWith { node ->
             node as ComparisonNode
             assertEquals(ComparisonOperator.GTE, node.operator)
@@ -85,7 +85,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse GT operator`() {
+    fun `parseQQuery should parse GT operator`() {
         parseQQuery("temperature>42").shouldSucceedWith { node ->
             node as ComparisonNode
             assertEquals(ComparisonOperator.GT, node.operator)
@@ -93,7 +93,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse LTE operator`() {
+    fun `parseQQuery should parse LTE operator`() {
         parseQQuery("temperature<=42").shouldSucceedWith { node ->
             node as ComparisonNode
             assertEquals(ComparisonOperator.LTE, node.operator)
@@ -101,7 +101,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse LT operator`() {
+    fun `parseQQuery should parse LT operator`() {
         parseQQuery("temperature<42").shouldSucceedWith { node ->
             node as ComparisonNode
             assertEquals(ComparisonOperator.LT, node.operator)
@@ -109,7 +109,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse LIKE_REGEX operator`() {
+    fun `parseQQuery should parse LIKE_REGEX operator`() {
         parseQQuery("name~=\"foo.*\"").shouldSucceedWith { node ->
             node as ComparisonNode
             assertEquals(ComparisonOperator.LIKE_REGEX, node.operator)
@@ -117,7 +117,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse NOT_LIKE_REGEX operator`() {
+    fun `parseQQuery should parse NOT_LIKE_REGEX operator`() {
         parseQQuery("name!~=\"foo.*\"").shouldSucceedWith { node ->
             node as ComparisonNode
             assertEquals(ComparisonOperator.NOT_LIKE_REGEX, node.operator)
@@ -125,7 +125,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse a range value`() {
+    fun `parseQQuery should parse a range value`() {
         parseQQuery("temperature==10..20").shouldSucceedWith { node ->
             node as ComparisonNode
             assertInstanceOf(RangeValue::class.java, node.value)
@@ -136,7 +136,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse a list value`() {
+    fun `parseQQuery should parse a list value`() {
         parseQQuery("temperature==10,20,30").shouldSucceedWith { node ->
             node as ComparisonNode
             assertInstanceOf(ListValue::class.java, node.value)
@@ -149,7 +149,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse a string value in double quotes`() {
+    fun `parseQQuery should parse a string value in double quotes`() {
         parseQQuery("name==\"BeeHive\"").shouldSucceedWith { node ->
             node as ComparisonNode
             val sv = node.value as SingleValue
@@ -159,7 +159,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should detect boolean value type`() {
+    fun `parseQQuery should detect boolean value type`() {
         parseQQuery("active==true").shouldSucceedWith { node ->
             node as ComparisonNode
             val sv = node.value as SingleValue
@@ -168,7 +168,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should detect datetime value type`() {
+    fun `parseQQuery should detect datetime value type`() {
         parseQQuery("observedAt==\"2023-01-01T00:00:00Z\"").shouldSucceedWith { node ->
             node as ComparisonNode
             val sv = node.value as SingleValue
@@ -177,7 +177,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse attribute path with dot notation`() {
+    fun `parseQQuery should parse attribute path with dot notation`() {
         parseQQuery("incoming.observedAt>\"2023-01-01T00:00:00Z\"").shouldSucceedWith { node ->
             node as ComparisonNode
             assertEquals("incoming.observedAt", node.rawPath)
@@ -185,7 +185,7 @@ class QParserTests {
     }
 
     @Test
-    fun `it should parse attribute path with bracket notation`() {
+    fun `parseQQuery should parse attribute path with bracket notation`() {
         parseQQuery("incoming[temperature]==42").shouldSucceedWith { node ->
             node as ComparisonNode
             assertEquals("incoming[temperature]", node.rawPath)
@@ -193,35 +193,35 @@ class QParserTests {
     }
 
     @Test
-    fun `it should return BadRequest for empty query`() {
+    fun `parseQQuery should return BadRequest for empty query`() {
         parseQQuery("").shouldFail { ex ->
             assertInstanceOf(BadRequestDataException::class.java, ex)
         }
     }
 
     @Test
-    fun `it should return BadRequest for unbalanced parentheses`() {
+    fun `parseQQuery should return BadRequest for unbalanced parentheses`() {
         parseQQuery("(temperature==42").shouldFail { ex ->
             assertInstanceOf(BadRequestDataException::class.java, ex)
         }
     }
 
     @Test
-    fun `it should return BadRequest for trailing semicolon`() {
+    fun `parseQQuery should return BadRequest for trailing semicolon`() {
         parseQQuery("temperature==42;").shouldFail { ex ->
             assertInstanceOf(BadRequestDataException::class.java, ex)
         }
     }
 
     @Test
-    fun `it should return BadRequest for unclosed string value`() {
+    fun `parseQQuery should return BadRequest for unclosed string value`() {
         parseQQuery("temperature==\"unclosed").shouldFail { ex ->
             assertInstanceOf(BadRequestDataException::class.java, ex)
         }
     }
 
     @Test
-    fun `it should parse complex nested expression`() {
+    fun `parseQQuery should parse complex nested expression`() {
         parseQQuery("(temperature>10;humidity<90)|status==\"active\"").shouldSucceedWith { node ->
             assertInstanceOf(OrNode::class.java, node)
             node as OrNode

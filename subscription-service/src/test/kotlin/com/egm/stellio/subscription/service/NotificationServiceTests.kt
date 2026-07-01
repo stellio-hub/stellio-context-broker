@@ -18,12 +18,14 @@ import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.MANAGED_BY_IRI
 import com.egm.stellio.shared.util.MANAGED_BY_TERM
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NAME_TERM
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
+import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.shouldSucceed
@@ -140,7 +142,7 @@ class NotificationServiceTests {
     ).second[0]
 
     @Test
-    fun `it should notify the subscriber and update the subscription`() = runTest {
+    fun `notifyMatchingSubscribers should notify the subscriber and update the subscription`() = runTest {
         val subscription = gimmeRawSubscription()
         val expandedEntity = expandJsonLdEntity(rawEntity)
 
@@ -179,7 +181,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should call entity service to get linked entities if join is asked`() = runTest {
+    fun `notifyMatchingSubscribers should call entity service to get linked entities when join is asked`() = runTest {
         val subscription = gimmeRawSubscription(contexts = APIC_COMPOUND_CONTEXTS)
             .copy(
                 notification = NotificationParams(
@@ -227,7 +229,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should notify the subscriber and only keep the expected attributes`() = runTest {
+    fun `notifyMatchingSubscribers should notify the subscriber and only keep the expected attributes`() = runTest {
         val subscription = gimmeRawSubscription(
             withNotifParams = Pair(
                 FormatType.NORMALIZED,
@@ -271,7 +273,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should notify the subscriber and use subscription contexts to compact`() = runTest {
+    fun `notifyMatchingSubscribers should notify the subscriber and use subscription contexts to compact`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),
@@ -313,7 +315,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should notify the subscriber and use jsonldContext to compact when it is provided`() = runTest {
+    fun `notifyMatchingSubscribers should compact with jsonldContext when it is provided`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),
@@ -352,7 +354,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should send a simplified payload when format is keyValues and include only the specified attributes`() =
+    fun `notifyMatchingSubscribers should send only the specified attributes when format is keyValues`() =
         runTest {
             val subscription = gimmeRawSubscription(
                 withNotifParams = Pair(FormatType.KEY_VALUES, listOf(NGSILD_LOCATION_TERM))
@@ -394,7 +396,56 @@ class NotificationServiceTests {
         }
 
     @Test
-    fun `it should notify the two subscribers`() = runTest {
+    fun `notifyMatchingSubscribers should send a concise payload when format is concise`() = runTest {
+        val subscription = gimmeRawSubscription(
+            withNotifParams = Pair(FormatType.CONCISE, emptyList()),
+            contexts = APIC_COMPOUND_CONTEXTS
+        )
+        val expandedEntity = expandJsonLdEntity(rawEntity)
+
+        coEvery {
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
+        } returns listOf(subscription).right()
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandedEntity,
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith { results ->
+            val notifiedEntity = results[0].second.data[0]
+            val expectedNotifiedEntity = """
+                {
+                    "id": "urn:ngsi-ld:Apiary:XYZ01",
+                    "type": "Apiary",
+                    "name": "ApiarySophia",
+                    "managedBy": {
+                        "object": "urn:ngsi-ld:Beekeeper:01"
+                    },
+                    "location": {
+                        "type": "Point",
+                        "coordinates": [
+                            24.30623,
+                            60.07966
+                        ]
+                    },
+                    "@context": "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+                }
+            """.trimIndent()
+
+            assertJsonPayloadsAreEqual(expectedNotifiedEntity, serializeObject(notifiedEntity))
+        }
+    }
+
+    @Test
+    fun `notifyMatchingSubscribers should notify the two subscribers`() = runTest {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
         val expandedEntity = expandJsonLdEntity(rawEntity)
@@ -431,7 +482,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should notify the second subscriber even if the first notification has failed`() = runTest {
+    fun `notifyMatchingSubscribers should notify the second subscriber after the first one failed`() = runTest {
         // the notification for this one is expected to fail as we don't listen on port 8088
         val subscription1 = gimmeRawSubscription()
             .copy(
@@ -485,7 +536,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should fail if it cannot contact the subscriber after the configured timeout`() = runTest {
+    fun `notifyMatchingSubscribers should fail when the subscriber is unreachable within the timeout`() = runTest {
         val subscription = gimmeRawSubscription()
             .copy(
                 notification = NotificationParams(
@@ -521,7 +572,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should add a Link header containing the context of the subscription`() = runTest {
+    fun `callSubscriber should add a Link header containing the context of the subscription`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),
@@ -551,7 +602,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should add a Link header containing the jsonldContext of the subscription when provided`() = runTest {
+    fun `callSubscriber should add a Link header with the subscription jsonldContext when provided`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),
@@ -582,7 +633,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should add an NGSILD-Tenant header if the subscription is not from the default context`() = runTest {
+    fun `callSubscriber should add an NGSILD-Tenant header for a non-default context`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),
@@ -615,7 +666,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should call the subscriber`() = runTest {
+    fun `callSubscriber should call the subscriber`() = runTest {
         val subscription = gimmeRawSubscription()
 
         coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
@@ -642,7 +693,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should notify the subscriber and return entities without sysAttrs if sysAttrs is false`() = runTest {
+    fun `notifyMatchingSubscribers should return entities without sysAttrs when sysAttrs is false`() = runTest {
         val subscription = gimmeRawSubscription()
         val expandedEntity = expandJsonLdEntity(entityWithSysAttrs)
 
@@ -676,7 +727,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should notify the subscriber with sysAttrs if sysAttrs is true`() = runTest {
+    fun `notifyMatchingSubscribers should notify the subscriber with sysAttrs when sysAttrs is true`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),
@@ -720,7 +771,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should notify the subscriber with language filter applied if lang is provided`() = runTest {
+    fun `notifyMatchingSubscribers should apply the language filter when lang is provided`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),
@@ -782,7 +833,7 @@ class NotificationServiceTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.subscription.service.AttributeChangesInjectionSource#showChangesDataProvider")
-    fun `it should update an attribute with its previous value`(
+    fun `addChangesInNotifiedEntity should update an attribute with its previous value`(
         compactedEntitiesPayload: String,
         isMultiInstancesAttribute: Boolean,
         compactedPreviousAttribute: String,
@@ -810,7 +861,7 @@ class NotificationServiceTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.subscription.service.EntityChangesInjectionSource#showChangesDataProvider")
-    fun `it should add the previous values of an entity`(
+    fun `addChangesInNotifiedEntity should add the previous values of an entity`(
         compactedEntitiesPayload: String,
         compactedPreviousEntity: String,
         expectedOutputEntity: String
@@ -833,7 +884,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `callSuscriber should ask mqttNotifier if the endpoint uri startWith mqtt`() = runTest {
+    fun `callSubscriber should ask mqttNotifier if the endpoint uri startWith mqtt`() = runTest {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = emptyList(),
@@ -855,7 +906,7 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `callSuscriber should generate headers for mqtt notification`() = runTest {
+    fun `callSubscriber should generate headers for mqtt notification`() = runTest {
         val infoKey = "hello"
         val infoValue = "world"
         val subscription = gimmeRawSubscription().copy(

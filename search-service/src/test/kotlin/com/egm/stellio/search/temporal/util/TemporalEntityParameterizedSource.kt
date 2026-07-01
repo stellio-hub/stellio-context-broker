@@ -15,6 +15,8 @@ import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
+import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
@@ -563,16 +565,16 @@ class TemporalEntityParameterizedSource {
                         listOf(
                             SimplifiedAttributeInstanceResult(
                                 attributeUuid = UUID.randomUUID(),
-                                value = """
-                                    { "id": "123", "stringValue": "value", "nullValue": null }
-                                """,
+                                value = deserializeObject(
+                                    """{ "id": "123", "stringValue": "value", "nullValue": null }"""
+                                ),
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
                                 attributeUuid = UUID.randomUUID(),
-                                value = """
-                                    { "id": "456", "stringValue": "anotherValue" }
-                                """,
+                                value = deserializeObject(
+                                    """{ "id": "456", "stringValue": "anotherValue" }"""
+                                ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         )
@@ -598,7 +600,8 @@ class TemporalEntityParameterizedSource {
                         listOf(
                             SimplifiedAttributeInstanceResult(
                                 attributeUuid = UUID.randomUUID(),
-                                value = """
+                                value = deserializeListOfObjects(
+                                    """
                                     [{
                                       "@value": "One beautiful beehive",
                                       "@language": "en"
@@ -607,12 +610,14 @@ class TemporalEntityParameterizedSource {
                                       "@value": "Une belle ruche",
                                       "@language": "fr"
                                     }]
-                                """,
+                                """
+                                ),
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
                                 attributeUuid = UUID.randomUUID(),
-                                value = """
+                                value = deserializeListOfObjects(
+                                    """
                                     [{
                                       "@value": "My beautiful beehive",
                                       "@language": "en"
@@ -621,7 +626,8 @@ class TemporalEntityParameterizedSource {
                                       "@value": "Ma belle ruche",
                                       "@language": "fr"
                                     }]
-                                """,
+                                """
+                                ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         )
@@ -647,23 +653,27 @@ class TemporalEntityParameterizedSource {
                         listOf(
                             SimplifiedAttributeInstanceResult(
                                 attributeUuid = UUID.randomUUID(),
-                                value = """
+                                value = deserializeListOfObjects(
+                                    """
                                     [{
                                       "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"
                                     },
                                     {
                                       "@id": "https://uri.etsi.org/ngsi-ld/default-context/egm"
                                     }]
-                                """,
+                                """
+                                ),
                                 time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                             ),
                             SimplifiedAttributeInstanceResult(
                                 attributeUuid = UUID.randomUUID(),
-                                value = """
+                                value = deserializeListOfObjects(
+                                    """
                                     [{
                                       "@id": "https://uri.etsi.org/ngsi-ld/default-context/stellio"
                                     }]
-                                """,
+                                """
+                                ),
                                 time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         )

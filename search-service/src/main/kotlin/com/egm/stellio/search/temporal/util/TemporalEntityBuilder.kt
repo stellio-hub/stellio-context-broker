@@ -13,6 +13,7 @@ import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_JSON_KW
+import com.egm.stellio.shared.model.JSONLD_LIST_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
@@ -28,7 +29,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandGeoPropertyFragment
-import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.wktToGeoJson
 
@@ -144,17 +144,12 @@ object TemporalEntityBuilder {
                     attributeInstanceResult as SimplifiedAttributeInstanceResult
                     when (it.key.attributeType) {
                         Attribute.AttributeType.JsonProperty -> {
-                            // flaky way to know if the serialized value is a JSON object or an array of JSON objects
-                            val deserializedJsonValue: Any =
-                                if ((attributeInstanceResult.value as String).startsWith("["))
-                                    deserializeListOfObjects(attributeInstanceResult.value)
-                                else deserializeObject(attributeInstanceResult.value)
                             listOf(
                                 mapOf(
                                     NGSILD_JSONPROPERTY_JSON to listOf(
                                         mapOf(
                                             JSONLD_TYPE_KW to JSONLD_JSON_KW,
-                                            JSONLD_VALUE_KW to deserializedJsonValue
+                                            JSONLD_VALUE_KW to attributeInstanceResult.value
                                         )
                                     )
                                 ),
@@ -163,19 +158,13 @@ object TemporalEntityBuilder {
                         }
                         Attribute.AttributeType.LanguageProperty -> {
                             listOf(
-                                mapOf(
-                                    NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP to
-                                        deserializeListOfObjects(attributeInstanceResult.value as String)
-                                ),
+                                mapOf(NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP to attributeInstanceResult.value),
                                 mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
                             )
                         }
                         Attribute.AttributeType.VocabProperty -> {
                             listOf(
-                                mapOf(
-                                    NGSILD_VOCABPROPERTY_VOCAB to
-                                        deserializeListOfObjects(attributeInstanceResult.value as String)
-                                ),
+                                mapOf(NGSILD_VOCABPROPERTY_VOCAB to attributeInstanceResult.value),
                                 mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
                             )
                         }
@@ -187,10 +176,22 @@ object TemporalEntityBuilder {
                             listOf(expendedGeoProperty)
                         }
                         else -> {
-                            listOf(
-                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.value),
-                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
-                            )
+                            if (attributeInstanceResult.value is List<*>)
+                                listOf(
+                                    mapOf(
+                                        JSONLD_LIST_KW to
+                                            attributeInstanceResult.value.map { value ->
+                                                mapOf(JSONLD_VALUE_KW to value)
+                                            }
+                                    ),
+                                    mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
+                                )
+                            else {
+                                listOf(
+                                    mapOf(JSONLD_VALUE_KW to attributeInstanceResult.value),
+                                    mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
+                                )
+                            }
                         }
                     }
                 }

@@ -1,9 +1,7 @@
 package com.egm.stellio.search.entity.model
 
 import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
 import com.egm.stellio.shared.model.JSONLD_NONE_KW
-import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_VALUE
@@ -31,7 +29,6 @@ import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCABS
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.annotation.Id
 import java.net.URI
@@ -144,13 +141,6 @@ data class Attribute(
                         NGSILD_DATASET_ID_IRI to buildNonReifiedPropertyValue(datasetId.toString())
                     )
                 else nullAttrRepresentation
-            }
-
-        fun toNullValue(): String =
-            when (this) {
-                Property, GeoProperty, JsonProperty, VocabProperty, Relationship -> NGSILD_NULL
-                LanguageProperty ->
-                    serializeObject(listOf(mapOf(JSONLD_VALUE_KW to NGSILD_NULL, JSONLD_LANGUAGE_KW to JSONLD_NONE_KW)))
             }
     }
 }

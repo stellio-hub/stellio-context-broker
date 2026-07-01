@@ -59,7 +59,7 @@ class EnabledAuthorizationServiceTests {
     private val entityId02 = "urn:ngsi-ld:Beehive:02".toUri()
 
     @Test
-    fun `it should return false if user has no global role`() = runTest {
+    fun `userHasOneOfGivenRoles should return false when user has no global role`() = runTest {
         coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns listOf(subjectUuid).right()
 
         enabledAuthorizationService.userHasOneOfGivenRoles(CREATION_ROLES)
@@ -69,7 +69,7 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
-    fun `it should return true if user has one of the required roles`() = runTest {
+    fun `userHasOneOfGivenRoles should return true when user has one of the required roles`() = runTest {
         coEvery { subjectReferentialService.getCurrentSubjectClaims() } returns
             listOf(subjectUuid, STELLIO_CREATOR.key).right()
 
@@ -98,7 +98,7 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
-    fun `it should allow an user that has the right to read an entity`() = runTest {
+    fun `userCanReadEntity should allow a user that has the right to read an entity`() = runTest {
         coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns true.right()
 
         enabledAuthorizationService.userCanReadEntity(entityId01)
@@ -113,7 +113,7 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
-    fun `it should return an access denied if user cannot update the given entity`() = runTest {
+    fun `userCanUpdateEntity should return an access denied when user cannot update the entity`() = runTest {
         coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns false.right()
 
         enabledAuthorizationService.userCanUpdateEntity(entityId01)
@@ -131,7 +131,7 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
-    fun `it should allow an user that has the right to update an entity`() = runTest {
+    fun `userCanUpdateEntity should allow a user that has the right to update an entity`() = runTest {
         coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns true.right()
 
         enabledAuthorizationService.userCanUpdateEntity(entityId01)
@@ -146,7 +146,7 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
-    fun `it should return an access denied if user cannot admin the given entity`() = runTest {
+    fun `userCanAdminEntity should return an access denied when user cannot admin the entity`() = runTest {
         coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns false.right()
 
         enabledAuthorizationService.userCanAdminEntity(entityId01)
@@ -164,7 +164,7 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
-    fun `it should allow an user that has the right to admin an entity`() = runTest {
+    fun `userCanAdminEntity should allow a user that has the right to admin an entity`() = runTest {
         coEvery { permissionService.checkHasPermissionOnEntity(any(), any()) } returns true.right()
 
         enabledAuthorizationService.userCanAdminEntity(entityId01)
@@ -180,7 +180,7 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `it should create owner link for a set of entities`() = runTest {
+    fun `createEntitiesOwnerRights should create owner link for a set of entities`() = runTest {
         coEvery { permissionService.create(any()) } returns Unit.right()
 
         enabledAuthorizationService.createEntitiesOwnerRights(listOf(entityId01, entityId02))
@@ -206,7 +206,7 @@ class EnabledAuthorizationServiceTests {
 
     @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
-    fun `it should only create ownership on non existing scopes`() = runTest {
+    fun `createScopesOwnerRights should only create ownership on non existing scopes`() = runTest {
         val scopeA = "/A"
         val scopeB = "/B"
 
@@ -239,7 +239,7 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
-    fun `it should return a null filter is user has the stellio-admin role`() = runTest {
+    fun `getAccessRightWithClauseAndFilter should return a null filter for the stellio-admin role`() = runTest {
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
         } returns listOf(subjectUuid, STELLIO_ADMIN.key).right()
@@ -250,7 +250,7 @@ class EnabledAuthorizationServiceTests {
     }
 
     @Test
-    fun `it should return a valid entity filter if user does not have the stellio-admin role`() = runTest {
+    fun `getAccessRightWithClauseAndFilter should return a filter for a non-admin user`() = runTest {
         coEvery {
             subjectReferentialService.getCurrentSubjectClaims()
         } returns listOf(subjectUuid, groupUuid).right()

@@ -2,11 +2,16 @@ package com.egm.stellio.search.entity.util
 
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Attribute.AttributeType
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.shouldFail
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
@@ -17,7 +22,7 @@ import java.time.LocalTime
 class AttributeUtilsTests {
 
     @Test
-    fun `it should guess the value type of a string property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a string property`() = runTest {
         val expandedStringProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to "A string"),
@@ -25,12 +30,12 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.STRING,
-            guessAttributeValueType(AttributeType.Property, expandedStringProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedStringProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
     @Test
-    fun `it should guess the value type of a double property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a double property`() = runTest {
         val expandedBooleanProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to 20.0),
@@ -38,12 +43,12 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.NUMBER,
-            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
     @Test
-    fun `it should guess the value type of an int property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of an int property`() = runTest {
         val expandedBooleanProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to 20),
@@ -51,12 +56,12 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.NUMBER,
-            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
     @Test
-    fun `it should guess the value type of a boolean property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a boolean property`() = runTest {
         val expandedBooleanProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to true),
@@ -64,12 +69,12 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.BOOLEAN,
-            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedBooleanProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
     @Test
-    fun `it should guess the value type of an object property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of an object property`() = runTest {
         val expandedListProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to mapOf("key1" to "value1", "key2" to "value3")),
@@ -77,12 +82,12 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.OBJECT,
-            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
     @Test
-    fun `it should guess the value type of an array property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of an array property`() = runTest {
         val expandedListProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to listOf("A", "B")),
@@ -90,12 +95,12 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.ARRAY,
-            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedListProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
     @Test
-    fun `it should guess the value type of a time property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a time property`() = runTest {
         val expandedTimeProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to mapOf("@type" to "Time", "@value" to LocalTime.now())),
@@ -103,12 +108,12 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.TIME,
-            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
     @Test
-    fun `it should guess the value type of a datetime property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a datetime property`() = runTest {
         val expandedTimeProperty = expandAttribute(
             "property",
             mapOf("type" to "Property", "value" to mapOf("@type" to "DateTime", "@value" to ngsiLdDateTime())),
@@ -116,12 +121,12 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.DATETIME,
-            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.Property, expandedTimeProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
     @Test
-    fun `it should guess the value type of a geo-property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a geo-property`() = runTest {
         val expandedGeoProperty = expandAttribute(
             "location",
             mapOf(
@@ -132,12 +137,12 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.GEOMETRY,
-            guessAttributeValueType(AttributeType.GeoProperty, expandedGeoProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.GeoProperty, expandedGeoProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
     @Test
-    fun `it should guess the value type of a JSON property`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a JSON property`() = runTest {
         val expandedJsonProperty = expandAttribute(
             "jsonProperty",
             mapOf(
@@ -148,28 +153,48 @@ class AttributeUtilsTests {
         )
         assertEquals(
             Attribute.AttributeValueType.JSON,
-            guessAttributeValueType(AttributeType.JsonProperty, expandedJsonProperty.second[0]).getOrNull()
+            guessAttributeValueType(AttributeType.JsonProperty, expandedJsonProperty.second[0]).shouldSucceedAndResult()
         )
     }
 
     @Test
-    fun `it should guess the value type of a relationship`() = runTest {
-        val expandedGeoRelationship = expandAttribute(
+    fun `guessAttributeValueType should guess the value type of a relationship`() = runTest {
+        val expandedRelationship = expandAttribute(
             "relationship",
-            mapOf("type" to "Relationship", "value" to URI("urn:ngsi-ld")),
+            mapOf("type" to "Relationship", "object" to URI("urn:ngsi-ld")),
             NGSILD_TEST_CORE_CONTEXTS
         )
         assertEquals(
             Attribute.AttributeValueType.URI,
             guessAttributeValueType(
                 AttributeType.Relationship,
-                expandedGeoRelationship.second[0]
-            ).getOrNull()
+                expandedRelationship.second[0]
+            ).shouldSucceedAndResult()
         )
     }
 
     @Test
-    fun `it should find a Property whose value is NGSI-LD Null`() = runTest {
+    fun `guessAttributeValueType should guess the value type of a multivalued relationship`() = runTest {
+        val expandedRelationship = expandAttribute(
+            "relationship",
+            mapOf(
+                "type" to "Relationship",
+                "object" to listOf(URI("urn:ngsi-ld"), URI("urn:ngsi-ld:2"))
+            ),
+            NGSILD_TEST_CORE_CONTEXTS
+        )
+
+        assertEquals(
+            Attribute.AttributeValueType.ARRAY,
+            guessAttributeValueType(
+                AttributeType.Relationship,
+                expandedRelationship.second[0]
+            ).shouldSucceedAndResult()
+        )
+    }
+
+    @Test
+    fun `hasNgsiLdNullValue should find a Property whose value is NGSI-LD Null`() = runTest {
         val expandedProperty = expandAttribute(
             """
                 {
@@ -186,7 +211,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should find a LanguageProperty whose value is NGSI-LD Null`() = runTest {
+    fun `hasNgsiLdNullValue should find a LanguageProperty whose value is NGSI-LD Null`() = runTest {
         val expandedProperty = expandAttribute(
             """
                 {
@@ -205,7 +230,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should find a JsonProperty whose value is NGSI-LD Null`() = runTest {
+    fun `hasNgsiLdNullValue should find a JsonProperty whose value is NGSI-LD Null`() = runTest {
         val expandedProperty = expandAttribute(
             """
                 {
@@ -222,7 +247,7 @@ class AttributeUtilsTests {
     }
 
     @Test
-    fun `it should find a Relationship whose value is NGSI-LD Null`() = runTest {
+    fun `hasNgsiLdNullValue should find a Relationship whose value is NGSI-LD Null`() = runTest {
         val expandedProperty = expandAttribute(
             """
                 {
@@ -236,5 +261,72 @@ class AttributeUtilsTests {
         ).second[0]
 
         assertTrue(hasNgsiLdNullValue(expandedProperty, AttributeType.Relationship))
+    }
+
+    @Test
+    fun `partialUpdatePatch should raise a BadRequestData error when the datasetId member value is NGSI-LD Null`() =
+        runTest {
+            val source = expandAttribute(
+                """
+                {
+                    "attribute": {
+                        "type": "Property",
+                        "value": 12.0
+                    }
+                }
+                """.trimIndent(),
+                NGSILD_TEST_CORE_CONTEXTS
+            ).second[0]
+
+            val update = expandAttribute(
+                """
+                {
+                    "attribute": {
+                        "type": "Property",
+                        "value": 12.0,
+                        "datasetId": "urn:ngsi-ld:null"
+                    }
+                }
+                """.trimIndent(),
+                NGSILD_TEST_CORE_CONTEXTS
+            ).second[0]
+
+            partialUpdatePatch(source, update).shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE, it.message)
+            }
+        }
+
+    @Test
+    fun `mergePatch should raise a BadRequestData error when the datasetId member value is NGSI-LD Null`() = runTest {
+        val source = expandAttribute(
+            """
+                {
+                    "attribute": {
+                        "type": "Property",
+                        "value": 12.0
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        val update = expandAttribute(
+            """
+                {
+                    "attribute": {
+                        "type": "Property",
+                        "value": 12.0,
+                        "datasetId": "urn:ngsi-ld:null"
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        mergePatch(source, update).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE, it.message)
+        }
     }
 }

@@ -13,9 +13,11 @@
     "ContextSourceRegistration": "ngsi-ld:ContextSourceRegistration",
     "Date": "ngsi-ld:Date",
     "DateTime": "ngsi-ld:DateTime",
+    "EntityMap": "ngsi-ld:EntityMap",
     "EntityType": "ngsi-ld:EntityType",
     "EntityTypeInfo": "ngsi-ld:EntityTypeInfo",
     "EntityTypeList": "ngsi-ld:EntityTypeList",
+    "ExecutionResultDetails": "ngsi-ld:ExecutionResultDetails",
     "Feature": "geojson:Feature",
     "FeatureCollection": "geojson:FeatureCollection",
     "GeoProperty": "ngsi-ld:GeoProperty",
@@ -33,13 +35,18 @@
     "Polygon": "geojson:Polygon",
     "Property": "ngsi-ld:Property",
     "Relationship": "ngsi-ld:Relationship",
+    "Snapshot": "ngsi-ld:Snapshot",
+    "SnapshotNotification": "ngsi-ld:SnapshotNotification",
     "Subscription": "ngsi-ld:Subscription",
     "TemporalProperty": "ngsi-ld:TemporalProperty",
     "Time": "ngsi-ld:Time",
     "VocabProperty": "ngsi-ld:VocabProperty",
     "accept": "ngsi-ld:accept",
-    "attributeCount": "attributeCount",
-    "attributeDetails": "attributeDetails",
+    "aggrParams": "ngsi-ld:aggrParams",
+    "aggrMethods": "ngsi-ld:aggrMethods",
+    "aggrPeriodDuration": "ngsi-ld:aggrPeriodDuration",
+    "attributeCount": "ngsi-ld:attributeCount",
+    "attributeDetails": "ngsi-ld:attributeDetails",
     "attributeList": {
       "@id": "ngsi-ld:attributeList",
       "@type": "@vocab"
@@ -70,6 +77,7 @@
       "@id": "geojson:bbox"
     },
     "cacheDuration": "ngsi-ld:cacheDuration",
+    "collation": "ngsi-ld:collation",
     "containedBy": "ngsi-ld:isContainedBy",
     "contextSourceAlias": "ngsi-ld:contextSourceAlias",
     "contextSourceExtras": {
@@ -80,7 +88,7 @@
     "contextSourceTimeAt": {
       "@id": "ngsi-ld:contextSourceTimeAt",
       "@type": "DateTime"
-    },
+    }, 
     "contextSourceUptime": "ngsi-ld:contextSourceUptime",
     "cooldown": "ngsi-ld:cooldown",
     "coordinates": {
@@ -104,7 +112,7 @@
     "deletedAt": {
       "@id": "ngsi-ld:deletedAt",
       "@type": "DateTime"
-    },
+    }, 
     "description": "http://purl.org/dc/terms/description",
     "detail": "ngsi-ld:detail",
     "distinctCount": {
@@ -131,9 +139,14 @@
       "@id": "ngsi-ld:entityList",
       "@container": "@list"
     },
-    "entityMap": "ngsi-ld:hasEntityMap",
+    "entityMap": {
+      "@id": "ngsi-ld:hasEntityMap",
+      "@container": "@index"
+    },
+    "entityMapLifetime": "ngsi-ld:hasEntityMapLifetime",
     "error": "ngsi-ld:error",
     "errors": "ngsi-ld:errors",
+    "expandValues": "ngsi-ld:expandValues",
     "expiresAt": {
       "@id": "ngsi-ld:expiresAt",
       "@type": "DateTime"
@@ -157,9 +170,11 @@
     "join": "ngsi-ld:join",
     "joinLevel": "ngsi-ld:hasJoinLevel",
     "json": {
-      "@id": "ngsi-ld:hasJSON",
-      "@type": "@json"
+      "@id": "ngsi-ld:hasJSON", 
+	  "@type": "@json"			   
     },
+    "jsonKeys": "ngsi-ld:jsonKeys",
+	"jsonldContext": "ngsi-ld:jsonldContext",
     "jsons": {
       "@id": "ngsi-ld:jsons",
       "@container": "@list"
@@ -174,16 +189,22 @@
       "@id": "ngsi-ld:hasLanguageMaps",
       "@container": "@list"
     },
+    "langString": "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
     "lastFailure": {
       "@id": "ngsi-ld:lastFailure",
       "@type": "DateTime"
     },
+    "lastN": "ngsi-ld:lastN",	
     "lastNotification": {
       "@id": "ngsi-ld:lastNotification",
       "@type": "DateTime"
     },
     "lastSuccess": {
       "@id": "ngsi-ld:lastSuccess",
+      "@type": "DateTime"
+    },
+    "lastUsedAt": {
+      "@id": "ngsi-ld:lastUsedAt",
       "@type": "DateTime"
     },
     "linkedMaps": "ngsi-ld:linkedMaps",
@@ -204,6 +225,19 @@
       "@id": "ngsi-ld:modifiedAt",
       "@type": "DateTime"
     },
+    "ngsildproof": {
+      "@id": "ngsi-ld:ngsildproof",
+      "@context": [{
+        "entityIdSealed": "ngsi-ld:entityIdSealed",
+        "entityTypeSealed": {
+          "@id": "ngsi-ld:entityTypeSealed",
+          "@type": "@vocab"
+        }
+      },
+      "https://w3id.org/security/data-integrity/v2"
+      ]
+    },
+    "ngsildConformance": "ngsi-ld:ngsildConformance",
     "notification": "ngsi-ld:notification",
     "notificationTrigger": "ngsi-ld:notificationTrigger",
     "notifiedAt": {
@@ -220,12 +254,12 @@
       "@id": "ngsi-ld:hasObjectList",
       "@container": "@list"
     },
-    "objects": {
-      "@id": "ngsi-ld:hasObjects",
+    "objectLists": {
+      "@id": "ngsi-ld:hasObjectLists",
       "@container": "@list"
     },
-    "objectsLists": {
-      "@id": "ngsi-ld:hasObjectsLists",
+    "objects": {
+      "@id": "ngsi-ld:hasObjects",
       "@container": "@list"
     },
     "objectType": {
@@ -238,8 +272,15 @@
       "@id": "ngsi-ld:observedAt",
       "@type": "DateTime"
     },
-    "operationSpace": "ngsi-ld:operationSpace",
+    "omit": "ngsi-ld:omit",
     "operations": "ngsi-ld:operations",
+    "operationSpace": "ngsi-ld:operationSpace",
+    "orderBy": {
+      "@container": "@list",
+      "@id": "ngsi-ld:orderBy"
+    },
+    "ordering": "ngsi-ld:ordering",
+    "pick": "ngsi-ld:pick",
     "previousJson": {
       "@id": "ngsi-ld:hasPreviousJson",
       "@type": "@json"
@@ -265,6 +306,10 @@
       "@id": "ngsi-ld:hasPreviousVocab",
       "@type": "@vocab"
     },
+    "problemDetails": {
+      "@id": "ngsi-ld:problemDetails",
+      "@type": "@json"
+    },
     "properties": "geojson:properties",
     "propertyNames": {
       "@id": "ngsi-ld:propertyNames",
@@ -280,9 +325,31 @@
       "@id": "ngsi-ld:relationshipNames",
       "@type": "@vocab"
     },
+    "resultStatus": "ngsi-ld:resultStatus",
     "scope": "ngsi-ld:scope",
     "scopeQ": "ngsi-ld:scopeQ",
     "showChanges": "ngsi-ld:showChanges",
+    "snapshotId": "ngsi-ld:snapshotId",
+    "snapshotLifetime": "ngsi-ld:snapshotLifetime",
+    "snapshotPriority": "ngsi-ld:snapshotPriority",
+    "snapshotQueries": {
+      "@id": "ngsi-ld:snapshotQueries",
+      "@container": "@list"
+    },
+    "snapshotQueriesDetails": {
+      "@id": "ngsi-ld:snapshotQueriesDetails",
+      "@container": "@list"
+    },
+    "snapshotStatus": "ngsi-ld:snapshotStatus",
+    "snapshotTemporalQueries": {
+      "@id": "ngsi-ld:snapshotTemporalQueries",
+      "@container": "@list"
+    },
+    "snapshotTemporalQueriesDetails": {
+      "@id": "ngsi-ld:snapshotTemporalQueriesDetails",
+      "@container": "@list"
+    },
+	"splitEntities": "ngsi-ld:hasSplitEntities",
     "startAt": {
       "@id": "ngsi-ld:startAt",
       "@type": "DateTime"
@@ -360,6 +427,10 @@
     "values": {
       "@id": "ngsi-ld:hasValues",
       "@container": "@list"
+    },
+    "valueType": {
+      "@id": "ngsi-ld:hasValueType",
+      "@type": "@vocab"
     },
     "vocab": {
       "@id": "ngsi-ld:hasVocab",

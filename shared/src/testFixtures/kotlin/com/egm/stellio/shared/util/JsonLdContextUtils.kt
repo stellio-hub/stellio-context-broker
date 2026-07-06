@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.util
 
 const val EGM_TEST_BASE_CONTEXT_URL = "http://localhost:8093/jsonld-contexts"
-const val NGSILD_TEST_CORE_CONTEXT = "$EGM_TEST_BASE_CONTEXT_URL/ngsi-ld-core-context-v1.8.jsonld"
+const val NGSILD_TEST_CORE_CONTEXT = "$EGM_TEST_BASE_CONTEXT_URL/ngsi-ld-core-context-v1.9.jsonld"
 val NGSILD_TEST_CORE_CONTEXTS = listOf(NGSILD_TEST_CORE_CONTEXT)
 
 const val AQUAC_COMPOUND_CONTEXT = "$EGM_TEST_BASE_CONTEXT_URL/aquac-compound.jsonld"

@@ -37,15 +37,16 @@ import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntitySafe
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.addCoreContextIfMissingSafe
 import com.egm.stellio.shared.util.buildQueryResponse
+import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.checkContentIsNgsiLdSupported
 import com.egm.stellio.shared.util.checkContentType
 import com.egm.stellio.shared.util.checkLinkHeader
 import com.egm.stellio.shared.util.checkNamesAreNgsiLdSupported
 import com.egm.stellio.shared.util.extractContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
-import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.toListOfUri
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -263,10 +264,11 @@ class EntityOperationHandler(
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val query = Query(requestBody.awaitFirst()).bind()
+        val body = requestBody.awaitFirst().deserializeAsMap()
+        val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
+        val query = Query(body).bind()
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
             .copy(languageFilter = query.lang)
-        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
         val entitiesQuery = composeEntitiesQueryFromPost(
             applicationProperties.pagination,
             query,

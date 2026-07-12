@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.INCOMING_IRI
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedAndResult
@@ -462,7 +463,7 @@ class TemporalQueryUtilsTests {
 
         composeTemporalEntitiesQueryFromPost(
             buildDefaultPagination(30, 100),
-            Query(query).shouldSucceedAndResult(),
+            Query(query.deserializeAsMap()).shouldSucceedAndResult(),
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
         ).shouldSucceedWith {

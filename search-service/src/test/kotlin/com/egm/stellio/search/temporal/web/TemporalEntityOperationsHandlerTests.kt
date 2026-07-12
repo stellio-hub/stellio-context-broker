@@ -11,6 +11,7 @@ import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIARY_TERM
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
+import org.springframework.http.MediaType
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
@@ -88,6 +90,7 @@ class TemporalEntityOperationsHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query?options=temporalValues")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(query)
             .header("Link", APIC_HEADER_LINK)
             .exchange()
@@ -105,6 +108,52 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_IRI, OUTGOING_IRI) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.temporalRepresentation == TemporalRepresentation.TEMPORAL_VALUES
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `query temporal entities should use the context embedded in the request body`() {
+        val temporalQuery = buildDefaultTestTemporalQuery(
+            timerel = TemporalQuery.Timerel.BETWEEN,
+            timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+            endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
+        )
+
+        coEvery {
+            temporalQueryService.queryTemporalEntities(any())
+        } returns Either.Right(Triple(emptyList(), 2, null))
+
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{
+                    "type": "$BEEHIVE_TERM,$APIARY_TERM"
+                }],
+                "attrs": ["incoming", "outgoing"],
+                "temporalQ": {
+                    "timerel": "between",
+                    "timeAt": "2019-10-17T07:31:39Z",
+                    "endTimeAt": "2019-10-18T07:31:39Z"
+                },
+                "@context": "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entityOperations/query?options=temporalValues")
+            .bodyValue(query)
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify {
+            temporalQueryService.queryTemporalEntities(
+                match { temporalEntitiesQuery ->
+                    val entitiesQueryFromPost = temporalEntitiesQuery.entitiesQuery as EntitiesQueryFromPost
+                    entitiesQueryFromPost.entitySelectors!![0].typeSelection == "$BEEHIVE_IRI,$APIARY_IRI" &&
+                        temporalEntitiesQuery.entitiesQuery.attrs == setOf(INCOMING_IRI, OUTGOING_IRI) &&
+                        temporalEntitiesQuery.temporalQuery == temporalQuery
                 }
             )
         }
@@ -139,6 +188,7 @@ class TemporalEntityOperationsHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query?options=temporalValues&count=true")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(query)
             .header("Link", APIC_HEADER_LINK)
             .exchange()
@@ -181,6 +231,7 @@ class TemporalEntityOperationsHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(query)
             .exchange()
             .expectStatus().isBadRequest
@@ -217,6 +268,7 @@ class TemporalEntityOperationsHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(query)
             .header("Link", APIC_HEADER_LINK)
             .exchange()
@@ -249,6 +301,7 @@ class TemporalEntityOperationsHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(query)
             .header("Link", APIC_HEADER_LINK)
             .exchange()
@@ -281,6 +334,7 @@ class TemporalEntityOperationsHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(query)
             .header("Link", APIC_HEADER_LINK)
             .exchange()

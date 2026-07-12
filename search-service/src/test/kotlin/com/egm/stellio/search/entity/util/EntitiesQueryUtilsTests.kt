@@ -241,7 +241,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `composeEntitiesQueryFromPostRequest should parse a valid complete Query datatype`() = runTest {
+    fun `composeEntitiesQueryFromPost should parse a valid complete Query datatype`() = runTest {
         val query = """
             {
                 "type": "Query",
@@ -308,7 +308,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `composeEntitiesQueryFromPostRequest should parse a valid simple Query datatype`() = runTest {
+    fun `composeEntitiesQueryFromPost should parse a valid simple Query datatype`() = runTest {
         val query = """
             {
                 "type": "Query",
@@ -333,7 +333,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `composeEntitiesQueryFromPostRequest should default to location geoproperty if not provided`() = runTest {
+    fun `composeEntitiesQueryFromPost should default to location geoproperty if not provided`() = runTest {
         val query = """
             {
                 "type": "Query",
@@ -356,7 +356,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `composeEntitiesQueryFromPostRequest should parse a Query datatype with multiple entity selectors`() = runTest {
+    fun `composeEntitiesQueryFromPost should parse a Query datatype with multiple entity selectors`() = runTest {
         val query = """
             {
                 "type": "Query",
@@ -439,91 +439,7 @@ class EntitiesQueryUtilsTests {
         }
 
     @Test
-    fun `composeEntitiesQueryFromPostRequest should not validate a Query if the type is not correct`() {
-        val query = """
-            {
-                "type": "NotAQuery",
-                "attrs": ["attr1", "attr2"]
-            }
-        """.trimIndent()
-
-        composeEntitiesQueryFromPostRequest(
-            buildDefaultPagination(30, 100),
-            query,
-            LinkedMultiValueMap(),
-            APIC_COMPOUND_CONTEXTS
-        ).shouldFail {
-            assertInstanceOf<BadRequestDataException>(it)
-            assertEquals("Type must be 'Query'", it.message)
-        }
-    }
-
-    @Test
-    fun `composeEntitiesQueryFromPostRequest should not validate a Query if the JSON payload is invalid`() {
-        val query = """
-            {
-                "type": "Query",,
-                "attrs": ["attr1", "attr2"]
-            }
-        """.trimIndent()
-
-        composeEntitiesQueryFromPostRequest(
-            buildDefaultPagination(30, 100),
-            query,
-            LinkedMultiValueMap(),
-            APIC_COMPOUND_CONTEXTS
-        ).shouldFail {
-            assertInstanceOf<BadRequestDataException>(it)
-            assertThat(it.message).startsWith("Query could not be parsed:")
-        }
-    }
-
-    @Test
-    fun `composeEntitiesQueryFromPostRequest should not validate a Query with unexpected parameters`() {
-        val query = """
-            {
-                "type": "Query",
-                "property": "anUnexpectedProperty"
-            }
-        """.trimIndent()
-
-        composeEntitiesQueryFromPostRequest(
-            buildDefaultPagination(30, 100),
-            query,
-            LinkedMultiValueMap(),
-            APIC_COMPOUND_CONTEXTS
-        ).shouldFail {
-            assertInstanceOf<BadRequestDataException>(it)
-            assertThat(it.message).startsWith("Query could not be parsed:")
-        }
-    }
-
-    @Test
-    fun `composeEntitiesQueryFromPostRequest should not validate a Query if an entity selector has no type member`() {
-        val query = """
-            {
-                "type": "Query",
-                "entities": [
-                    {
-                        "idPattern": "urn:ngsi-ld:BeeHive:*"
-                    }
-                ]
-            }
-        """.trimIndent()
-
-        composeEntitiesQueryFromPostRequest(
-            buildDefaultPagination(30, 100),
-            query,
-            LinkedMultiValueMap(),
-            APIC_COMPOUND_CONTEXTS
-        ).shouldFail {
-            assertInstanceOf<BadRequestDataException>(it)
-            assertThat(it.message).startsWith("Query could not be parsed:")
-        }
-    }
-
-    @Test
-    fun `composeEntitiesQueryFromPostRequest should not validate a Query if joinLevel is invalid`() {
+    fun `composeEntitiesQueryFromPost should not validate a Query if joinLevel is invalid`() {
         val query = """
             {
                 "type": "Query",
@@ -546,7 +462,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `composeEntitiesQueryFromPostRequest should not validate a Query if join is invalid`() {
+    fun `composeEntitiesQueryFromPost should not validate a Query if join is invalid`() {
         val query = """
             {
                 "type": "Query",
@@ -569,7 +485,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `composeEntitiesQueryFromPostRequest should not validate a Query if pick and omit are invalid`() {
+    fun `composeEntitiesQueryFromPost should not validate a Query if pick and omit are invalid`() {
         val query = """
             {
                 "type": "Query",
@@ -590,7 +506,7 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
-    fun `composeEntitiesQueryFromPostRequest should parse a Query with multiple orderBy`() {
+    fun `composeEntitiesQueryFromPost should parse a Query with multiple orderBy`() {
         val query = """
             {
                 "type": "Query",

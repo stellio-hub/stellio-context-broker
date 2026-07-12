@@ -33,15 +33,19 @@ suspend fun loadAndPrepareSampleData(
 fun loadMinimalEntity(
     entityId: URI,
     entityTypes: Set<String>,
+    expiresAt: ZonedDateTime? = null,
     contexts: Set<String> = setOf(NGSILD_TEST_CORE_CONTEXT)
-): String =
-    """
+): String {
+    val expiresAtMember = expiresAt?.let { """ "expiresAt": "$it", """.trim() } ?: ""
+    return """
         {
             "id": "$entityId",
             "type": [${entityTypes.joinToString(",") { "\"$it\"" }}],
+            $expiresAtMember
             "@context": [${contexts.joinToString(",") { "\"$it\"" }}]
         }
     """.trimIndent()
+}
 
 suspend fun loadAndExpandMinimalEntity(
     id: String,

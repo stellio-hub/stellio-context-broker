@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_TERM
+import com.egm.stellio.shared.model.NGSILD_EXPIRES_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
@@ -307,6 +308,29 @@ class ContextSourceUtilsTests {
     }
 
     @Test
+    fun `mergeEntitiesLists should drop expiresAt if one source is missing it`() = runTest {
+        val entityWithExpiresAt = entityWithName.plus(NGSILD_EXPIRES_AT_TERM to evenMoreRecentTime)
+        val mergedEntity = ContextSourceUtils.mergeEntitiesLists(
+            listOf(entityWithExpiresAt),
+            listOf(listOf(entityWithLastName) to inclusiveCSR)
+        ).getOrNull()
+
+        assertThat(mergedEntity!!.first()).doesNotContainKey(NGSILD_EXPIRES_AT_TERM)
+    }
+
+    @Test
+    fun `mergeEntitiesLists should keep the furthest in the future expiresAt if all sources have one`() = runTest {
+        val entityWithExpiresAt = entityWithName.plus(NGSILD_EXPIRES_AT_TERM to moreRecentTime)
+        val otherEntityWithExpiresAt = entityWithLastName.plus(NGSILD_EXPIRES_AT_TERM to evenMoreRecentTime)
+        val mergedEntity = ContextSourceUtils.mergeEntitiesLists(
+            listOf(entityWithExpiresAt),
+            listOf(listOf(otherEntityWithExpiresAt) to inclusiveCSR)
+        ).getOrNull()
+
+        assertEquals(evenMoreRecentTime, mergedEntity!!.first()[NGSILD_EXPIRES_AT_TERM])
+    }
+
+    @Test
     fun `merge entitiesList should merge using getMergeNewValues and return the received warnings`() = runTest {
         val warning1 = MiscellaneousWarning("1", inclusiveCSR)
         val warning2 = MiscellaneousWarning("2", inclusiveCSR)
@@ -340,5 +364,164 @@ class ContextSourceUtilsTests {
             val entityWithNameAndSurname = entityWithName.plus("surName" to nameAttribute)
             assertEquals(listOf(entityWithNameAndSurname), entity)
         }
+    }
+
+    @Test
+    fun `propagateExpiresAtToAttributes should add expiresAt to an attribute missing it`() {
+        val entity = entityWithName.plus(NGSILD_EXPIRES_AT_TERM to evenMoreRecentTime)
+        val entityWithExpiresAtPropagated = ContextSourceUtils.propagateExpiresAtToAttributes(entity)
+
+        assertEquals(
+            evenMoreRecentTime,
+            (entityWithExpiresAtPropagated[name] as CompactedAttributeInstance)[NGSILD_EXPIRES_AT_TERM]
+        )
+    }
+
+    @Test
+    fun `propagateExpiresAtToAttributes should tighten an attribute expiresAt later than the entity's`() {
+        val attributeWithLaterExpiry = nameAttribute.plus(NGSILD_EXPIRES_AT_TERM to evenMoreRecentTime)
+        val entity = minimalEntity.toMutableMap()
+            .plus(name to attributeWithLaterExpiry)
+            .plus(NGSILD_EXPIRES_AT_TERM to moreRecentTime)
+        val entityWithExpiresAtPropagated = ContextSourceUtils.propagateExpiresAtToAttributes(entity)
+
+        assertEquals(
+            moreRecentTime,
+            (entityWithExpiresAtPropagated[name] as CompactedAttributeInstance)[NGSILD_EXPIRES_AT_TERM]
+        )
+    }
+
+    @Test
+    fun `propagateExpiresAtToAttributes should keep an attribute expiresAt already earlier than the entity's`() {
+        val attributeWithEarlierExpiry = nameAttribute.plus(NGSILD_EXPIRES_AT_TERM to moreRecentTime)
+        val entity = minimalEntity.toMutableMap()
+            .plus(name to attributeWithEarlierExpiry)
+            .plus(NGSILD_EXPIRES_AT_TERM to evenMoreRecentTime)
+        val entityWithExpiresAtPropagated = ContextSourceUtils.propagateExpiresAtToAttributes(entity)
+
+        assertEquals(
+            moreRecentTime,
+            (entityWithExpiresAtPropagated[name] as CompactedAttributeInstance)[NGSILD_EXPIRES_AT_TERM]
+        )
+    }
+
+    @Test
+    fun `propagateExpiresAtToAttributes should leave the entity untouched if it has no expiresAt`() {
+        val entityWithExpiresAtPropagated = ContextSourceUtils.propagateExpiresAtToAttributes(entityWithName)
+
+        assertEquals(entityWithName, entityWithExpiresAtPropagated)
+    }
+
+    @Test
+    fun `propagateExpiresAtToAttributes should propagate to every instance of a multi-instance attribute`() {
+        val nameAttribute2: CompactedAttributeInstance = mapOf(
+            NGSILD_TYPE_TERM to "Property",
+            NGSILD_VALUE_TERM to "name2",
+            NGSILD_DATASET_ID_TERM to "2",
+            NGSILD_EXPIRES_AT_TERM to time
+        )
+        val entity = minimalEntity.toMutableMap()
+            .plus(name to listOf(nameAttribute, nameAttribute2))
+            .plus(NGSILD_EXPIRES_AT_TERM to moreRecentTime)
+
+        val entityWithExpiresAtPropagated = ContextSourceUtils.propagateExpiresAtToAttributes(entity)
+
+        val instances = entityWithExpiresAtPropagated[name] as List<*>
+        val instanceWithoutOwnExpiry = instances
+            .first { (it as CompactedAttributeInstance)[NGSILD_DATASET_ID_TERM] == "1" } as CompactedAttributeInstance
+        val instanceWithEarlierOwnExpiry = instances
+            .first { (it as CompactedAttributeInstance)[NGSILD_DATASET_ID_TERM] == "2" } as CompactedAttributeInstance
+
+        assertEquals(moreRecentTime, instanceWithoutOwnExpiry[NGSILD_EXPIRES_AT_TERM])
+        assertEquals(time, instanceWithEarlierOwnExpiry[NGSILD_EXPIRES_AT_TERM])
+    }
+
+    @Test
+    fun `mergeEntities should drop expiresAt if one source is missing it`() = runTest {
+        val entityWithExpiresAt = entityWithName.plus(NGSILD_EXPIRES_AT_TERM to evenMoreRecentTime)
+        val mergedEntity = ContextSourceUtils.mergeEntities(
+            entityWithExpiresAt,
+            listOf(entityWithLastName to inclusiveCSR)
+        ).getOrNull()
+
+        assertThat(mergedEntity).doesNotContainKey(NGSILD_EXPIRES_AT_TERM)
+    }
+
+    @Test
+    fun `mergeEntities should keep the furthest in the future expiresAt if all sources have one`() = runTest {
+        val entityWithExpiresAt = entityWithName.plus(NGSILD_EXPIRES_AT_TERM to moreRecentTime)
+        val otherEntityWithExpiresAt = entityWithLastName.plus(NGSILD_EXPIRES_AT_TERM to evenMoreRecentTime)
+        val mergedEntity = ContextSourceUtils.mergeEntities(
+            entityWithExpiresAt,
+            listOf(otherEntityWithExpiresAt to inclusiveCSR)
+        ).getOrNull()
+
+        assertEquals(evenMoreRecentTime, mergedEntity?.get(NGSILD_EXPIRES_AT_TERM))
+    }
+
+    @Test
+    fun `mergeEntities should combine expiration propagation with the entity-level conflict rule`() = runTest {
+        // CSR-1: entity-level expiresAt, its 'name' attribute (datasetId 1) has none of its own
+        val csr1Entity = entityWithName.plus(NGSILD_EXPIRES_AT_TERM to moreRecentTime)
+
+        // CSR-2: no entity-level expiresAt, but its 'name' attribute (datasetId 2) already has one
+        val nameAttributeWithOwnExpiry: CompactedAttributeInstance = mapOf(
+            NGSILD_TYPE_TERM to "Property",
+            NGSILD_VALUE_TERM to "name2",
+            NGSILD_DATASET_ID_TERM to "2",
+            NGSILD_EXPIRES_AT_TERM to evenMoreRecentTime
+        )
+        val csr2Entity = minimalEntity.toMutableMap() + (name to nameAttributeWithOwnExpiry)
+
+        val mergedEntity = ContextSourceUtils.mergeEntities(
+            minimalEntity,
+            listOf(csr1Entity to inclusiveCSR, csr2Entity to inclusiveCSR)
+        ).getOrNull()
+
+        // local entity and CSR-2 both lack an entity-level expiresAt -> dropped from the merged entity
+        assertThat(mergedEntity).doesNotContainKey(NGSILD_EXPIRES_AT_TERM)
+
+        // CSR-1's attribute had no expiresAt of its own, so it received the entity's one by propagation
+        val nameInstances = mergedEntity?.get(name) as List<*>
+        assertThat(nameInstances).hasSize(2)
+        val instanceFromCsr1 = nameInstances.first { (it as CompactedAttributeInstance)[NGSILD_DATASET_ID_TERM] == "1" }
+            as CompactedAttributeInstance
+        val instanceFromCsr2 = nameInstances.first { (it as CompactedAttributeInstance)[NGSILD_DATASET_ID_TERM] == "2" }
+            as CompactedAttributeInstance
+
+        assertEquals(moreRecentTime, instanceFromCsr1[NGSILD_EXPIRES_AT_TERM])
+        assertEquals(evenMoreRecentTime, instanceFromCsr2[NGSILD_EXPIRES_AT_TERM])
+    }
+
+    @Test
+    fun `mergeAttribute should discard the remote instance if it is expired`() {
+        val expiredRemote = nameAttribute.plus(NGSILD_EXPIRES_AT_TERM to time)
+        val merged = ContextSourceUtils.mergeAttribute(nameAttribute, expiredRemote, inclusiveCSR).getOrNull()
+
+        assertEquals(nameAttribute, merged)
+    }
+
+    @Test
+    fun `mergeAttribute should keep the remote instance if the current one is expired`() {
+        val expiredCurrent = nameAttribute.plus(NGSILD_EXPIRES_AT_TERM to time)
+        val merged = ContextSourceUtils.mergeAttribute(expiredCurrent, moreRecentAttribute, inclusiveCSR).getOrNull()
+
+        assertEquals(moreRecentAttribute, merged)
+    }
+
+    @Test
+    fun `mergeAttribute should fall back to the observedAt tie-break if both instances are expired`() {
+        val expiredCurrent = nameAttribute.plus(NGSILD_EXPIRES_AT_TERM to time)
+        val expiredRemote = moreRecentAttribute.plus(NGSILD_EXPIRES_AT_TERM to time)
+        val merged = ContextSourceUtils.mergeAttribute(expiredCurrent, expiredRemote, inclusiveCSR).getOrNull()
+
+        assertEquals(expiredRemote, merged)
+    }
+
+    @Test
+    fun `mergeAttribute should apply the normal observedAt tie-break if neither instance is expired`() {
+        val merged = ContextSourceUtils.mergeAttribute(nameAttribute, moreRecentAttribute, inclusiveCSR).getOrNull()
+
+        assertEquals(moreRecentAttribute, merged)
     }
 }

@@ -2,6 +2,7 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
+import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.WithKafkaContainer
@@ -32,7 +33,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
+import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 import java.time.ZonedDateTime
 
 @SpringBootTest
@@ -51,6 +54,9 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
+    @Autowired
+    private lateinit var databaseClient: DatabaseClient
+
     private val beehiveTestCId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val entity01Uri = "urn:ngsi-ld:Entity:01".toUri()
     private val entity02Uri = "urn:ngsi-ld:Entity:02".toUri()
@@ -60,6 +66,15 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     fun deleteEntities() {
         r2dbcEntityTemplate.delete<Entity>().from("entity_payload").all().block()
         r2dbcEntityTemplate.delete<Attribute>().from("temporal_entity_attribute").all().block()
+    }
+
+    // simulates an entity that was created with a valid (future) expiresAt and has since expired,
+    // bypassing the future-only validation enforced by NgsiLdEntity.create()
+    private suspend fun expireEntity(entityId: URI, expiresAt: ZonedDateTime) {
+        databaseClient.sql("UPDATE entity_payload SET expires_at = :expires_at WHERE entity_id = :entity_id")
+            .bind("entity_id", entityId)
+            .bind("expires_at", expiresAt)
+            .execute()
     }
 
     @Test
@@ -89,6 +104,28 @@ class EntityQueryServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             .shouldFail {
                 assertTrue(it is ResourceNotFoundException)
             }
+    }
+
+    @Test
+    fun `getExpiredEntitiesIds should return an entity if it is expired`() = runTest {
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+        expireEntity(entity01Uri, now.minusDays(1))
+
+        val expiredEntities = entityQueryService.getExpiredEntitiesIds()
+        assertThat(expiredEntities).hasSize(1).contains(entity01Uri)
+    }
+
+    @Test
+    fun `retrieve should map the expires_at column onto the returned Entity`() = runTest {
+        val expiresAt = now.plusDays(1)
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI), expiresAt)
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { assertEquals(expiresAt, it.expiresAt) }
     }
 
     @Test

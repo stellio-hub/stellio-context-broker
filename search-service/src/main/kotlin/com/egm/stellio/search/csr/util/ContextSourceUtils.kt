@@ -21,6 +21,7 @@ import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_TERM
+import com.egm.stellio.shared.model.NGSILD_EXPIRES_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
@@ -28,8 +29,10 @@ import com.egm.stellio.shared.model.NGSILD_SCOPE_TERM
 import com.egm.stellio.shared.model.NGSILD_SYSATTRS_TERMS
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.TEMPORAL_REPRESENTATION_TERMS
+import com.egm.stellio.shared.model.applyAttributeTransformation
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceInvalidPayloadMessage
 import com.egm.stellio.shared.util.isDateTime
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import java.time.ZonedDateTime
 
 typealias CompactedEntityWithCSR = Pair<CompactedEntity, ContextSourceRegistration>
@@ -39,23 +42,78 @@ typealias AttributeByDatasetId = Map<String?, CompactedAttributeInstance>
 
 object ContextSourceUtils {
 
+    /**
+     * Implements 4.5.5.2 - Processing of Conflicting Transient Entities: pushes an entity-level expiresAt down onto
+     * every attribute of the entity that has no expiresAt of its own, or that has a later one than the entity's.
+     */
+    fun propagateExpiresAtToAttributes(entity: CompactedEntity): CompactedEntity {
+        val entityExpiresAt = entity[NGSILD_EXPIRES_AT_TERM] as? String ?: return entity
+        return entity.mapValues { entry ->
+            applyAttributeTransformation(
+                entry,
+                { propagateExpiresAtToAttributeInstance(it, entityExpiresAt) },
+                { instances -> instances.map { propagateExpiresAtToAttributeInstance(it, entityExpiresAt) } }
+            )
+        }
+    }
+
+    private fun propagateExpiresAtToAttributeInstance(
+        instance: CompactedAttributeInstance,
+        entityExpiresAt: String
+    ): CompactedAttributeInstance {
+        val attributeExpiresAt = instance[NGSILD_EXPIRES_AT_TERM] as? String
+        return when {
+            attributeExpiresAt == null -> instance.plus(NGSILD_EXPIRES_AT_TERM to entityExpiresAt)
+            entityExpiresAt.isBefore(attributeExpiresAt) -> instance.plus(NGSILD_EXPIRES_AT_TERM to entityExpiresAt)
+            else -> instance
+        }
+    }
+
+    /**
+     * Implements 4.5.5.3 - Processing of Conflicting Attributes (entity-level expiresAt): if expiresAt is missing
+     * from at least one of the sources contributing to this entity, it is dropped entirely; otherwise the furthest
+     * in the future value is kept.
+     */
+    private fun resolveEntityExpiresAtConflict(
+        mergedEntity: MutableMap<String, Any>,
+        sourceEntities: List<CompactedEntity>
+    ) {
+        val expiresAtValues = sourceEntities.map { it[NGSILD_EXPIRES_AT_TERM] as? String }
+        if (expiresAtValues.isEmpty()) return
+        if (expiresAtValues.any { it == null })
+            mergedEntity.remove(NGSILD_EXPIRES_AT_TERM)
+        else
+            mergedEntity[NGSILD_EXPIRES_AT_TERM] = expiresAtValues.filterNotNull()
+                .maxWith { a, b -> ZonedDateTime.parse(a).compareTo(ZonedDateTime.parse(b)) }
+    }
+
     fun mergeEntitiesLists(
         localEntities: List<CompactedEntity>,
         remoteEntitiesWithCSR: List<CompactedEntitiesWithCSR>
     ): IorNel<NGSILDWarning, List<CompactedEntity>> {
         val mergedEntityMap = localEntities.map { it.toMutableMap() }.associateBy { it[NGSILD_ID_TERM] }.toMutableMap()
+        val remoteEntitiesWithExpiresAtPropagated = remoteEntitiesWithCSR.map { (entities, csr) ->
+            Pair(entities.map { propagateExpiresAtToAttributes(it) }, csr)
+        }
 
-        val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }.mapNotNull { (entities, csr) ->
-            either {
-                entities.forEach { entity ->
-                    val id = entity[NGSILD_ID_TERM]
-                    mergedEntityMap[id]
-                        ?.let { it.putAll(getMergeNewValues(it, entity, csr).bind()) }
-                        ?: run { mergedEntityMap[id] = entity.toMutableMap() }
-                }
-                null
-            }.leftOrNull()
-        }.toNonEmptyListOrNull()
+        val warnings = remoteEntitiesWithExpiresAtPropagated.sortedBy { (_, csr) -> csr.isAuxiliary() }
+            .mapNotNull { (entities, csr) ->
+                either {
+                    entities.forEach { entity ->
+                        val id = entity[NGSILD_ID_TERM]
+                        mergedEntityMap[id]
+                            ?.let { it.putAll(getMergeNewValues(it, entity, csr).bind()) }
+                            ?: run { mergedEntityMap[id] = entity.toMutableMap() }
+                    }
+                    null
+                }.leftOrNull()
+            }.toNonEmptyListOrNull()
+
+        val sourceEntitiesById = (localEntities + remoteEntitiesWithExpiresAtPropagated.flatMap { it.first })
+            .groupBy { it[NGSILD_ID_TERM] }
+        mergedEntityMap.forEach { (id, mergedEntity) ->
+            resolveEntityExpiresAtConflict(mergedEntity, sourceEntitiesById[id] ?: emptyList())
+        }
 
         val entities = mergedEntityMap.values.toList()
         return if (warnings == null) Ior.Right(entities) else Ior.Both(warnings, entities)
@@ -68,12 +126,18 @@ object ContextSourceUtils {
         if (localEntity == null && remoteEntitiesWithCSR.isEmpty()) return Ior.Right(null)
 
         val mergedEntity: MutableMap<String, Any> = localEntity?.toMutableMap() ?: mutableMapOf()
+        val remoteEntitiesWithExpiresAtPropagated = remoteEntitiesWithCSR.map { (entity, csr) ->
+            Pair(propagateExpiresAtToAttributes(entity), csr)
+        }
 
-        val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }
+        val warnings = remoteEntitiesWithExpiresAtPropagated.sortedBy { (_, csr) -> csr.isAuxiliary() }
             .mapNotNull { (entity, csr) ->
                 getMergeNewValues(mergedEntity, entity, csr)
                     .onRight { mergedEntity.putAll(it) }.leftOrNull()
             }.toNonEmptyListOrNull()
+
+        val sourceEntities = listOfNotNull(localEntity) + remoteEntitiesWithExpiresAtPropagated.map { it.first }
+        resolveEntityExpiresAtConflict(mergedEntity, sourceEntities)
 
         return if (warnings == null) Ior.Right(mergedEntity) else Ior.Both(warnings, mergedEntity)
     }
@@ -87,7 +151,10 @@ object ContextSourceUtils {
             val currentValue = currentEntity[key]
             when {
                 currentValue == null -> value
-                key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW -> currentValue
+                // expiresAt is a plain member here, not a merge target: its final entity-level value is
+                // (re)computed from all sources by resolveEntityExpiresAtConflict once every CSR has been merged
+                // in (see 4.5.5.3), so whichever value is kept in this intermediate step is only a placeholder
+                key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW || key == NGSILD_EXPIRES_AT_TERM -> currentValue
                 key == NGSILD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
                     mergeTypeOrScope(currentValue, value)
                 key == NGSILD_CREATED_AT_TERM ->
@@ -128,21 +195,33 @@ object ContextSourceUtils {
         val remoteInstances = groupInstancesByDataSetId(remoteAttribute, csr).bind()
         remoteInstances.entries.forEach { (datasetId, remoteInstance) ->
             val currentInstance = currentInstances[datasetId]
-            when {
-                currentInstance == null -> currentInstances[datasetId] = remoteInstance
-                csr.isAuxiliary() -> Unit
-                currentInstance.isBefore(remoteInstance, NGSILD_OBSERVED_AT_TERM) ->
-                    currentInstances[datasetId] = remoteInstance
-                remoteInstance.isBefore(currentInstance, NGSILD_OBSERVED_AT_TERM) -> Unit
-                currentInstance.isBefore(remoteInstance, NGSILD_MODIFIED_AT_TERM) ->
-                    currentInstances[datasetId] = remoteInstance
-                remoteInstance.isBefore(currentInstance, NGSILD_MODIFIED_AT_TERM) -> Unit
-                // if there is no discriminating factor choose the current one
-                else -> Unit
-            }
+            currentInstances[datasetId] =
+                if (currentInstance == null) remoteInstance
+                else chooseAttributeInstance(currentInstance, remoteInstance, csr)
         }
         val values = currentInstances.values.toList()
         if (values.size == 1) values[0] else values
+    }
+
+    private fun chooseAttributeInstance(
+        currentInstance: CompactedAttributeInstance,
+        remoteInstance: CompactedAttributeInstance,
+        csr: ContextSourceRegistration
+    ): CompactedAttributeInstance {
+        val isCurrentExpired = isAttributeInstanceExpired(currentInstance)
+        val isRemoteExpired = isAttributeInstanceExpired(remoteInstance)
+        return when {
+            // 4.5.5.3 - discard whichever instance has an expiresAt DateTime that lies in the past
+            isRemoteExpired && !isCurrentExpired -> currentInstance
+            isCurrentExpired && !isRemoteExpired -> remoteInstance
+            csr.isAuxiliary() -> currentInstance
+            currentInstance.isBefore(remoteInstance, NGSILD_OBSERVED_AT_TERM) -> remoteInstance
+            remoteInstance.isBefore(currentInstance, NGSILD_OBSERVED_AT_TERM) -> currentInstance
+            currentInstance.isBefore(remoteInstance, NGSILD_MODIFIED_AT_TERM) -> remoteInstance
+            remoteInstance.isBefore(currentInstance, NGSILD_MODIFIED_AT_TERM) -> currentInstance
+            // if there is no discriminating factor, choose the current one
+            else -> currentInstance
+        }
     }
 
     // only meant to work with attributes under:
@@ -187,24 +266,45 @@ object ContextSourceUtils {
             date?.isDateTime() == true &&
             ZonedDateTime.parse(this) < ZonedDateTime.parse(date)
 
+    /**
+     * Implements 4.5.5.3 - Processing of Conflicting Attributes: an attribute instance whose expiresAt lies in the
+     * past shall be discarded when resolving a conflict against another instance of the same datasetId.
+     */
+    private fun isAttributeInstanceExpired(instance: CompactedAttributeInstance): Boolean {
+        val expiresAt = instance[NGSILD_EXPIRES_AT_TERM] as? String ?: return false
+        return expiresAt.isDateTime() && ZonedDateTime.parse(expiresAt) < ngsiLdDateTime()
+    }
+
     fun mergeTemporalEntitiesLists(
         localEntities: List<CompactedEntity>,
         remoteEntitiesWithCSR: List<CompactedEntitiesWithCSR>,
         temporalEntitiesQuery: TemporalEntitiesQueryFromGet
     ): IorNel<NGSILDWarning, List<CompactedEntity>> {
         val mergedEntities = localEntities.map { it.toMutableMap() }.associateBy { it[NGSILD_ID_TERM] }.toMutableMap()
+        val remoteEntitiesWithExpiresAtPropagated = remoteEntitiesWithCSR.map { (entities, csr) ->
+            Pair(entities.map { propagateExpiresAtToAttributes(it) }, csr)
+        }
 
-        val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }.mapNotNull { (entities, csr) ->
-            either {
-                entities.forEach { entity ->
-                    val id = entity[NGSILD_ID_TERM]
-                    mergedEntities[id]
-                        ?.let { it.putAll(getMergeTemporalNewValues(it, entity, temporalEntitiesQuery, csr).bind()) }
-                        ?: run { mergedEntities[id] = entity.toMutableMap() }
-                }
-                null
-            }.leftOrNull()
-        }.toNonEmptyListOrNull()
+        val warnings = remoteEntitiesWithExpiresAtPropagated.sortedBy { (_, csr) -> csr.isAuxiliary() }
+            .mapNotNull { (entities, csr) ->
+                either {
+                    entities.forEach { entity ->
+                        val id = entity[NGSILD_ID_TERM]
+                        mergedEntities[id]
+                            ?.let {
+                                it.putAll(getMergeTemporalNewValues(it, entity, temporalEntitiesQuery, csr).bind())
+                            }
+                            ?: run { mergedEntities[id] = entity.toMutableMap() }
+                    }
+                    null
+                }.leftOrNull()
+            }.toNonEmptyListOrNull()
+
+        val sourceEntitiesById = (localEntities + remoteEntitiesWithExpiresAtPropagated.flatMap { it.first })
+            .groupBy { it[NGSILD_ID_TERM] }
+        mergedEntities.forEach { (id, mergedEntity) ->
+            resolveEntityExpiresAtConflict(mergedEntity, sourceEntitiesById[id] ?: emptyList())
+        }
 
         val entities = mergedEntities.values.toList()
         return if (warnings == null) Ior.Right(entities) else Ior.Both(warnings, entities)
@@ -218,12 +318,18 @@ object ContextSourceUtils {
         if (localEntity == null && remoteEntitiesWithCSR.isEmpty()) return Ior.Right(null)
 
         val mergedEntity: MutableMap<String, Any> = localEntity?.toMutableMap() ?: mutableMapOf()
+        val remoteEntitiesWithExpiresAtPropagated = remoteEntitiesWithCSR.map { (entity, csr) ->
+            Pair(propagateExpiresAtToAttributes(entity), csr)
+        }
 
-        val warnings = remoteEntitiesWithCSR.sortedBy { (_, csr) -> csr.isAuxiliary() }
+        val warnings = remoteEntitiesWithExpiresAtPropagated.sortedBy { (_, csr) -> csr.isAuxiliary() }
             .mapNotNull { (entity, csr) ->
                 getMergeTemporalNewValues(mergedEntity, entity, temporalEntitiesQuery, csr)
                     .onRight { mergedEntity.putAll(it) }.leftOrNull()
             }.toNonEmptyListOrNull()
+
+        val sourceEntities = listOfNotNull(localEntity) + remoteEntitiesWithExpiresAtPropagated.map { it.first }
+        resolveEntityExpiresAtConflict(mergedEntity, sourceEntities)
 
         return if (warnings == null)
             Ior.Right(mergedEntity)
@@ -242,6 +348,9 @@ object ContextSourceUtils {
                 currentValue == null -> value
                 key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW -> currentValue
                 key == NGSILD_TYPE_TERM -> mergeTypeOrScope(currentValue, value)
+                // includes expiresAt: its final entity-level value is (re)computed from all sources by
+                // resolveEntityExpiresAtConflict once every CSR has been merged in (see 4.5.5.3), so whichever
+                // value the "earliest wins" rule below picks for it here is only a placeholder
                 key in NGSILD_SYSATTRS_TERMS ->
                     if ((value as String?).isBefore(currentValue as String?)) value
                     else currentValue

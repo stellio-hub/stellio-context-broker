@@ -144,6 +144,22 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
     }
 
     @Test
+    fun `getExpiredAttributes should return an attribute whose expiresAt is in the past`() = runTest {
+        val expiredAttribute = Attribute(
+            entityId = beehiveTestCId,
+            attributeName = INCOMING_IRI,
+            attributeValueType = Attribute.AttributeValueType.NUMBER,
+            createdAt = ngsiLdDateTime(),
+            expiresAt = ngsiLdDateTime().minusDays(1),
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        entityAttributeService.upsert(expiredAttribute).shouldSucceed()
+
+        val expiredAttributes = entityAttributeService.getExpiredAttributes()
+        assertThat(expiredAttributes).hasSize(1)
+    }
+
+    @Test
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
     fun `createAttributes should create entries for all attributes of an entity`() = runTest {
         val rawEntity = loadSampleData()

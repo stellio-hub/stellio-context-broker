@@ -3,7 +3,9 @@ package com.egm.stellio.search.common
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.shouldFail
+import com.egm.stellio.shared.util.shouldSucceed
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -58,5 +60,22 @@ class QueryTests {
             assertInstanceOf<BadRequestDataException>(it)
             assertThat(it.message).startsWith("Query could not be parsed:")
         }
+    }
+
+    @Test
+    fun `Query constructor should ignore a context provided in the Query object`() {
+        val query = """
+            {
+                "type": "Query",
+                "entities": [
+                    {
+                        "type": "BeeHive"
+                    }
+                ],
+                "@context": "$NGSILD_TEST_CORE_CONTEXT"
+            }
+        """.trimIndent()
+
+        Query(query.deserializeAsMap()).shouldSucceed()
     }
 }

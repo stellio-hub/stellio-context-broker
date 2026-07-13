@@ -42,8 +42,7 @@ data class Query private constructor(
     companion object {
         operator fun invoke(queryBody: Map<String, Any>): Either<APIException, Query> = either {
             runCatching {
-                // the JSON-LD "@context" member, if present, is not part of the Query data type (5.2.23) and is
-                // handled separately when composing the applicable contexts for the request
+                // the JSON-LD "@context" member, if present, is not part of the Query data type (5.2.23)
                 DataTypes.convertTo<Query>(queryBody.minus(JSONLD_CONTEXT_KW))
             }.fold(
                 {

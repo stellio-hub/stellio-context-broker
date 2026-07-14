@@ -7,6 +7,7 @@ import arrow.core.raise.ensure
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
@@ -39,9 +40,10 @@ data class Query private constructor(
     val expandValues: Set<String>? = null
 ) {
     companion object {
-        operator fun invoke(queryBody: String): Either<APIException, Query> = either {
+        operator fun invoke(queryBody: Map<String, Any>): Either<APIException, Query> = either {
             runCatching {
-                DataTypes.deserializeAs<Query>(queryBody)
+                // the JSON-LD "@context" member, if present, is not part of the Query data type (5.2.23)
+                DataTypes.convertTo<Query>(queryBody.minus(JSONLD_CONTEXT_KW))
             }.fold(
                 {
                     ensure(it.type == "Query") {

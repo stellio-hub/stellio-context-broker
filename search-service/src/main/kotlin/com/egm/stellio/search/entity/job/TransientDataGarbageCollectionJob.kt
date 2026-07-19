@@ -24,7 +24,7 @@ class TransientDataGarbageCollectionJob(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @Scheduled(fixedRateString = $$"${search.transient-data.gc.interval:3600000}")
+    @Scheduled(cron = $$"${search.transient-data.gc.interval:0 0 4 * * *}")
     fun purgeTransientData() {
         applicationProperties.tenants.forEach { tenantConfiguration ->
             runBlocking {

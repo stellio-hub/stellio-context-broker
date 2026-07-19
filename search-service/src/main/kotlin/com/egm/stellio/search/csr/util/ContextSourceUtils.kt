@@ -151,8 +151,7 @@ object ContextSourceUtils {
             val currentValue = currentEntity[key]
             when {
                 currentValue == null -> value
-                // expiresAt is a plain member here, not a merge target: its final entity-level value is
-                // (re)computed from all sources by resolveEntityExpiresAtConflict once every CSR has been merged
+                // expiresAt will be overwritten by resolveEntityExpiresAtConflict once every CSR has been merged
                 // in (see 4.5.5.3), so whichever value is kept in this intermediate step is only a placeholder
                 key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW || key == NGSILD_EXPIRES_AT_TERM -> currentValue
                 key == NGSILD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
@@ -348,9 +347,9 @@ object ContextSourceUtils {
                 currentValue == null -> value
                 key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW -> currentValue
                 key == NGSILD_TYPE_TERM -> mergeTypeOrScope(currentValue, value)
-                // includes expiresAt: its final entity-level value is (re)computed from all sources by
-                // resolveEntityExpiresAtConflict once every CSR has been merged in (see 4.5.5.3), so whichever
-                // value the "earliest wins" rule below picks for it here is only a placeholder
+                // expiresAt will be overwritten by resolveEntityExpiresAtConflict once every CSR has been merged
+                // in (see 4.5.5.3), so whichever value the "earliest wins" rule below picks for it here is only
+                // a placeholder
                 key in NGSILD_SYSATTRS_TERMS ->
                     if ((value as String?).isBefore(currentValue as String?)) value
                     else currentValue

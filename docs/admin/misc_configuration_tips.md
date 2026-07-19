@@ -57,6 +57,21 @@ Or by adding the variable in the environment target service  (`search-service`)
     - APPLICATION_PAGINATION_TEMPORAL-LIMIT=9999
 ```
 
+## Change the interval of the transient data garbage collection job
+
+Entities and attributes using the transient storage feature (`expiresAt`) are purged by a background job
+running by default every day at 4am.
+
+This schedule can be changed by configuring the `search.transient-data.gc.interval` property in `search-service`. It
+expects a standard [Spring cron expression](https://docs.spring.io/spring-framework/reference/integration/scheduling.html#scheduling-cron-expression).
+
+If running Stellio from `docker-compose`, it can be configured in the environment section of the `search-service`:
+
+```yaml
+    environment:
+      - SEARCH_TRANSIENT-DATA_GC_INTERVAL=0 0 * * * *
+```
+
 ## Change the log level of a library / namespace
 
 Add a new environment for the target namespace. For instance, adding:

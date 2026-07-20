@@ -70,7 +70,7 @@ subprojects {
         implementation("org.glassfish:jakarta.json:2.0.1")
 
         implementation("com.github.stellio-hub:json-merge:0.1.0")
-        implementation("org.json:json:20260522")
+        implementation("org.json:json:20260719")
 
         implementation("io.arrow-kt:arrow-fx-coroutines:2.2.3")
 

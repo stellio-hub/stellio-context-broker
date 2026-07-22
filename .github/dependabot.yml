@@ -23,3 +23,7 @@ updates:
       interval: "daily"
     assignees:
       - "bobeal"
+    groups:
+      codeql:
+        patterns:
+          - "github/codeql-action/*"

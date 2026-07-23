@@ -134,6 +134,47 @@ class ContextSourceUtilsTests {
     }
 
     @Test
+    fun `merge attribute should consider a null value before a dated one`() = runTest {
+        val attributeWithoutObservedAt = nameAttribute - NGSILD_OBSERVED_AT_TERM
+
+        val mergedWithDatedValueFirst = ContextSourceUtils.mergeAttribute(
+            nameAttribute,
+            attributeWithoutObservedAt,
+            inclusiveCSR
+        ).getOrNull()
+        val mergedWithNullValueFirst = ContextSourceUtils.mergeAttribute(
+            attributeWithoutObservedAt,
+            nameAttribute,
+            inclusiveCSR
+        ).getOrNull()
+
+        assertEquals(nameAttribute, mergedWithDatedValueFirst)
+        assertEquals(nameAttribute, mergedWithNullValueFirst)
+    }
+
+    @Test
+    fun `merge attribute should keep most recent modifiedAt when both observedAt values are null`() = runTest {
+        val olderAttribute = nameAttribute - NGSILD_OBSERVED_AT_TERM +
+            (NGSILD_MODIFIED_AT_TERM to time)
+        val newerAttribute = moreRecentAttribute - NGSILD_OBSERVED_AT_TERM +
+            (NGSILD_MODIFIED_AT_TERM to moreRecentTime)
+
+        val mergedWithOlderValueFirst = ContextSourceUtils.mergeAttribute(
+            olderAttribute,
+            newerAttribute,
+            inclusiveCSR
+        ).getOrNull()
+        val mergedWithNewerValueFirst = ContextSourceUtils.mergeAttribute(
+            newerAttribute,
+            olderAttribute,
+            inclusiveCSR
+        ).getOrNull()
+
+        assertEquals(newerAttribute, mergedWithOlderValueFirst)
+        assertEquals(newerAttribute, mergedWithNewerValueFirst)
+    }
+
+    @Test
     fun `merge entity should not merge info from auxiliary entity if already present`() = runTest {
         val mergedEntity = ContextSourceUtils.mergeEntities(
             entityWithName,

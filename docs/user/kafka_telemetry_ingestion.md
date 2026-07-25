@@ -6,6 +6,7 @@ This avoids the overhead of HTTP connection handling and offers an improved resi
 **Topic**: `cim.telemetry`
 
 **Constraints**:
+
 - The entity must already exist (provisioned once via HTTP).
 - Only `Property` values are supported; other attribute types must use the HTTP API.
 - No authentication — Kafka is a trusted, internal channel.
@@ -24,6 +25,7 @@ This avoids the overhead of HTTP connection handling and offers an improved resi
 ```
 
 On receipt, the search-service:
+
 - creates the attribute if it does not exist yet.
 - applies merge semantics (NGSI-LD §5.5.12), preserving existing attribute metadata, if it exists.
 

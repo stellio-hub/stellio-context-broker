@@ -379,6 +379,17 @@ object JsonLdUtils {
             .keys
             .elementAtOrElse(0) { _ -> term }
 
+    /**
+     * Compact a term using the provided context, memoizing the result in the caller-provided cache so a term
+     * repeated across a batch is only compacted once.
+     */
+    fun compactTermWithCache(
+        term: ExpandedTerm,
+        contexts: List<String>,
+        cache: MutableMap<ExpandedTerm, String>
+    ): String =
+        cache.getOrPut(term) { compactTerm(term, contexts) }
+
     fun compactAttribute(
         attribute: ExpandedAttributes,
         contexts: List<String>

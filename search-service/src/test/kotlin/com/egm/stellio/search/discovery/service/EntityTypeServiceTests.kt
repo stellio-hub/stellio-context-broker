@@ -210,6 +210,34 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    fun `getEntityTypes should not lose any attribute contributed by distinct entities of the same type`() = runTest {
+        val uniqueType = "https://ontology.eglobalmark.com/egm#UniqueSensorType"
+        val uniqueAttributeCount = 20
+
+        (1..uniqueAttributeCount).forEach { index ->
+            val entityId = "urn:ngsi-ld:UniqueSensorType:Uniq$index"
+            createEntityPayload(gimmeEntityPayload(entityId, listOf(uniqueType)))
+            createAttribute(
+                newAttribute(
+                    entityId,
+                    "https://ontology.eglobalmark.com/egm#uniqueAttribute$index",
+                    Attribute.AttributeType.Property,
+                    Attribute.AttributeValueType.NUMBER
+                )
+            )
+        }
+
+        val entityTypes = entityTypeService.getEntityTypes(APIC_COMPOUND_CONTEXTS)
+
+        val uniqueEntityType = entityTypes.first { it.typeName == uniqueType }
+        assertThat(uniqueEntityType.attributeNames)
+            .hasSize(uniqueAttributeCount)
+            .containsExactlyInAnyOrderElementsOf(
+                (1..uniqueAttributeCount).map { "https://ontology.eglobalmark.com/egm#uniqueAttribute$it" }
+            )
+    }
+
+    @Test
     fun `getEntityTypeInfoByType should return entity type info for a specific type`() = runTest {
         val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(SENSOR_IRI, APIC_COMPOUND_CONTEXTS)
 
@@ -259,6 +287,33 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 assertEquals(ResourceNotFoundException(typeNotFoundMessage(TEMPERATURE_IRI)), it)
             }
     }
+
+    @Test
+    fun `getEntityTypes should union attribute sets with only partial overlap across entities of the same type`() =
+        runTest {
+            val sharedType = "https://ontology.eglobalmark.com/egm#PartialOverlapType"
+            val attrP = "https://ontology.eglobalmark.com/egm#partialAttrP"
+            val attrQ = "https://ontology.eglobalmark.com/egm#partialAttrQ"
+            val attrR = "https://ontology.eglobalmark.com/egm#partialAttrR"
+            val entity1Id = "urn:ngsi-ld:PartialOverlapType:E1"
+            val entity2Id = "urn:ngsi-ld:PartialOverlapType:E2"
+
+            val numberType = Attribute.AttributeType.Property
+            val numberValueType = Attribute.AttributeValueType.NUMBER
+
+            createEntityPayload(gimmeEntityPayload(entity1Id, listOf(sharedType)))
+            createAttribute(newAttribute(entity1Id, attrP, numberType, numberValueType))
+            createAttribute(newAttribute(entity1Id, attrQ, numberType, numberValueType))
+
+            createEntityPayload(gimmeEntityPayload(entity2Id, listOf(sharedType)))
+            createAttribute(newAttribute(entity2Id, attrQ, numberType, numberValueType))
+            createAttribute(newAttribute(entity2Id, attrR, numberType, numberValueType))
+
+            val entityTypes = entityTypeService.getEntityTypes(APIC_COMPOUND_CONTEXTS)
+
+            val sharedEntityType = entityTypes.first { it.typeName == sharedType }
+            assertThat(sharedEntityType.attributeNames).containsExactlyInAnyOrder(attrP, attrQ, attrR)
+        }
 
     private fun createAttribute(
         attribute: Attribute

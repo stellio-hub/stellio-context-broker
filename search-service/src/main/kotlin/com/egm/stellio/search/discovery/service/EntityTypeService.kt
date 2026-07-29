@@ -16,6 +16,7 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ErrorMessages.EntityTypeInfo.typeNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
+import com.egm.stellio.shared.util.JsonLdUtils.compactTermWithCache
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Component
@@ -40,9 +41,9 @@ class EntityTypeService(
     suspend fun getEntityTypes(contexts: List<String>): List<EntityType> {
         val result = databaseClient.sql(
             """
-            SELECT unnest(types) as type, attribute_name
+            SELECT DISTINCT unnest(types) as type, attribute_name
             FROM entity_payload
-            JOIN temporal_entity_attribute 
+            JOIN temporal_entity_attribute
                 ON entity_payload.entity_id = temporal_entity_attribute.entity_id
                 AND temporal_entity_attribute.deleted_at IS NULL
             WHERE entity_payload.deleted_at IS NULL
@@ -50,11 +51,14 @@ class EntityTypeService(
             """.trimIndent()
         ).allToMappedList { rowToEntityType(it) }.groupBy({ it.first }, { it.second }).toList()
 
+        val termCache = mutableMapOf<ExpandedTerm, String>()
         return result.map {
             EntityType(
                 id = toUri(it.first),
-                typeName = compactTerm(it.first, contexts),
-                attributeNames = compactTerms(it.second, contexts).toSet().sorted()
+                typeName = compactTermWithCache(it.first, contexts, termCache),
+                attributeNames = it.second
+                    .map { attribute -> compactTermWithCache(attribute, contexts, termCache) }
+                    .sorted()
             )
         }
     }

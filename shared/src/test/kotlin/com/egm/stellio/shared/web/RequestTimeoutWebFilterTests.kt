@@ -1,8 +1,6 @@
 package com.egm.stellio.shared.web
 
 import com.egm.stellio.shared.config.ApplicationProperties
-import io.mockk.every
-import io.mockk.mockk
 import kotlinx.coroutines.delay
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
@@ -14,15 +12,7 @@ import java.time.Duration
 
 class RequestTimeoutWebFilterTests {
 
-    private val webClient = WebTestClient.bindToController(TimeoutTestController())
-        .webFilter<WebTestClient.ControllerSpec>(
-            RequestTimeoutWebFilter(
-                mockk<ApplicationProperties> {
-                    every { requestTimeout } returns Duration.ofMillis(50)
-                }
-            )
-        )
-        .build()
+    private val webClient = buildWebClient(Duration.ofMillis(50))
 
     @Test
     fun `slow query endpoint should return a gateway timeout`() {
@@ -42,6 +32,26 @@ class RequestTimeoutWebFilterTests {
             .expectGatewayTimeout()
     }
 
+    @Test
+    fun `negative timeout should disable request timeout`() {
+        buildWebClient(Duration.ofMillis(-1))
+            .get()
+            .uri("/slow-query")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody(String::class.java).isEqualTo("query completed")
+    }
+
+    @Test
+    fun `zero timeout should disable request timeout`() {
+        buildWebClient(Duration.ZERO)
+            .get()
+            .uri("/slow-query")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody(String::class.java).isEqualTo("query completed")
+    }
+
     private fun WebTestClient.ResponseSpec.expectGatewayTimeout() {
         expectStatus().isEqualTo(504)
             .expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
@@ -51,6 +61,22 @@ class RequestTimeoutWebFilterTests {
             .jsonPath("$.detail")
             .isEqualTo("The request exceeded the configured timeout of 50 ms and was cancelled")
     }
+
+    private fun buildWebClient(requestTimeout: Duration): WebTestClient =
+        WebTestClient.bindToController(TimeoutTestController())
+            .webFilter<WebTestClient.ControllerSpec>(
+                RequestTimeoutWebFilter(applicationProperties(requestTimeout))
+            )
+            .build()
+
+    private fun applicationProperties(requestTimeout: Duration) =
+        ApplicationProperties(
+            authentication = ApplicationProperties.Authentication(false, emptyList()),
+            pagination = ApplicationProperties.Pagination(30, 100, 10_000),
+            tenants = emptyList(),
+            contexts = ApplicationProperties.Contexts("", "", ""),
+            requestTimeout = requestTimeout
+        )
 }
 
 @RestController

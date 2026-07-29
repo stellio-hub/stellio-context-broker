@@ -34,6 +34,23 @@ If running Stellio from `docker-compose`, it can be configured in the environmen
       - SPRING_HTTP_CODECS_MAX-IN-MEMORY-SIZE=10485760
 ```
 
+## Configure the request timeout
+
+You can configure a timeout in `search-service` and `subscription-service` by setting the `application.request-timeout` property.
+The default timeout is one minute. A zero or negative duration disables it.
+
+When running Stellio with Docker Compose, use `APPLICATION_REQUEST_TIMEOUT`:
+
+```dotenv
+# Spring duration format: ms, s, m, h, or an ISO-8601 duration
+# 1m by default
+# Set to 0s or less to disable the timeout
+APPLICATION_REQUEST_TIMEOUT=30s
+```
+
+When the timeout expires, Stellio cancels the request and returns a `504 Gateway Timeout`. Any reverse proxy in front of Stellio should have a timeout
+greater than this value so that clients receive Stellio's 504 response.
+
 ## Increase the default and maximum limit for pagination
 
 Stellio has a default pagination limit of 30 and a maximum of 100. 

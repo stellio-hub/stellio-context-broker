@@ -11,11 +11,6 @@ data class ApplicationProperties(
     val contexts: Contexts,
     val requestTimeout: Duration = Duration.ofMinutes(1)
 ) {
-    init {
-        require(!requestTimeout.isZero && !requestTimeout.isNegative) {
-            "application.request-timeout must be greater than zero"
-        }
-    }
 
     data class Authentication(
         val enabled: Boolean,

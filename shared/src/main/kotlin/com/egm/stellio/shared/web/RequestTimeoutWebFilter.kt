@@ -23,12 +23,16 @@ class RequestTimeoutWebFilter(
     private val applicationProperties: ApplicationProperties
 ) : WebFilter {
 
-    override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> =
-        chain.filter(exchange)
-            .timeout(applicationProperties.requestTimeout)
-            .onErrorResume(TimeoutException::class.java) {
-                writeTimeoutResponse(exchange)
-            }
+    override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
+        val request = chain.filter(exchange)
+        return if (!applicationProperties.requestTimeout.isPositive)
+            request
+        else
+            request.timeout(applicationProperties.requestTimeout)
+                .onErrorResume(TimeoutException::class.java) {
+                    writeTimeoutResponse(exchange)
+                }
+    }
 
     private fun writeTimeoutResponse(exchange: ServerWebExchange): Mono<Void> {
         if (exchange.response.isCommitted)

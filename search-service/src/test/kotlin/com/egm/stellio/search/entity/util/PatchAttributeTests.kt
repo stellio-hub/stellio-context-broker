@@ -714,6 +714,198 @@ class PatchAttributeTests {
                         }
                     }
                     """.trimIndent()
+                ),
+                // a JsonProperty holding a single-element array of an object on both sides is deep-merged
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 1, "b": "keep" } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 2 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 2, "b": "keep" } ]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                // a JsonProperty whose source JSON is a multi-element array cannot be merged with an object update,
+                // so the update is copied wholesale
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 1 }, { "b": 2 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": { "a": 2 }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": { "a": 2 }
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                // a JsonProperty whose source JSON is a single-element array cannot be merged with a multi-element
+                // array update, so the update is copied wholesale
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 1 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 2 }, { "b": 3 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 2 }, { "b": 3 } ]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                // a Property whose source value is a multi-element array is replaced wholesale by a scalar update
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": [ "car", "voiture" ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": "velo"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": "velo"
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                // a VocabProperty whose source vocab is a multi-element array is replaced wholesale by a scalar
+                // update
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": [ "stellio", "egm" ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": "nantes"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": "nantes"
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                // a Relationship holding multiple targets is always replaced wholesale, regardless of the update
+                // shape
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": [ "urn:ngsi-ld:Entity:01", "urn:ngsi-ld:Entity:02" ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:Entity:03"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:Entity:03"
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:Entity:01"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": [ "urn:ngsi-ld:Entity:02", "urn:ngsi-ld:Entity:03" ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": [ "urn:ngsi-ld:Entity:02", "urn:ngsi-ld:Entity:03" ]
+                        }
+                    }
+                    """.trimIndent()
                 )
             )
         }

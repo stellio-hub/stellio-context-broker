@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test
 class ActionTests {
     private val authContexts = listOf(
         "http://localhost:8093/jsonld-contexts/authorization.jsonld",
-        "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+        "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.9.jsonld"
     )
 
     @Test

@@ -1,7 +1,6 @@
 package com.egm.stellio.search.discovery.service
 
 import arrow.core.Either
-import arrow.core.flatten
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.util.allToMappedList
@@ -16,7 +15,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeWithDatasetIdNotFoundMessage
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
+import com.egm.stellio.shared.util.JsonLdUtils.compactTermWithCache
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerms
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Component
@@ -41,21 +40,22 @@ class AttributeService(
     suspend fun getAttributeDetails(contexts: List<String>): List<AttributeDetails> {
         val result = databaseClient.sql(
             """
-            SELECT types, attribute_name
+            SELECT DISTINCT unnest(types) as type, attribute_name
             FROM entity_payload
-            JOIN temporal_entity_attribute 
+            JOIN temporal_entity_attribute
                 ON entity_payload.entity_id = temporal_entity_attribute.entity_id
                 AND temporal_entity_attribute.deleted_at IS NULL
             WHERE entity_payload.deleted_at IS NULL
             ORDER BY attribute_name
             """.trimIndent()
-        ).allToMappedList { rowToAttributeDetails(it) }.flatten().groupBy({ it.second }, { it.first }).toList()
+        ).allToMappedList { rowToAttributeDetails(it) }.groupBy({ it.second }, { it.first }).toList()
 
+        val termCache = mutableMapOf<ExpandedTerm, String>()
         return result.map {
             AttributeDetails(
                 id = toUri(it.first),
-                attributeName = compactTerm(it.first, contexts),
-                typeNames = compactTerms(it.second, contexts).sorted().toSet()
+                attributeName = compactTermWithCache(it.first, contexts, termCache),
+                typeNames = it.second.map { type -> compactTermWithCache(type, contexts, termCache) }.sorted().toSet()
             )
         }
     }
@@ -86,21 +86,25 @@ class AttributeService(
         if (result.isEmpty())
             return ResourceNotFoundException(attributeWithDatasetIdNotFoundMessage(attributeName)).left()
 
+        val termCache = mutableMapOf<ExpandedTerm, String>()
         return AttributeTypeInfo(
             id = toUri(attributeName),
-            attributeName = compactTerm(attributeName, contexts),
+            attributeName = compactTermWithCache(attributeName, contexts, termCache),
             attributeTypes = result.map { AttributeType.forKey(it["attribute_type"] as String) }.sorted().toSet(),
             attributeCount = toInt(result.first()["attribute_count"]),
-            typeNames = result.map { compactTerms(toList(it["types"]), contexts) }.flatten().sorted().toSet()
+            typeNames = result.flatMap { toList<ExpandedTerm>(it["types"]) }
+                .map { compactTermWithCache(it, contexts, termCache) }
+                .sorted()
+                .toSet()
         ).right()
     }
 
     private fun rowToAttributeNames(row: Map<String, Any>): ExpandedTerm =
         row["attribute_name"] as ExpandedTerm
 
-    private fun rowToAttributeDetails(row: Map<String, Any>): List<Pair<ExpandedTerm, ExpandedTerm>> {
-        val types = toList<ExpandedTerm>(row["types"])
+    private fun rowToAttributeDetails(row: Map<String, Any>): Pair<ExpandedTerm, ExpandedTerm> {
+        val type = row["type"] as ExpandedTerm
         val attributeName = row["attribute_name"] as ExpandedTerm
-        return types.map { Pair(it, attributeName) }
+        return Pair(type, attributeName)
     }
 }

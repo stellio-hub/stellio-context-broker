@@ -15,8 +15,10 @@ import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -37,6 +39,7 @@ import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
@@ -554,7 +557,7 @@ class EntityOperationHandlerTests {
             {
                 "type": "Query",
                 "entities": [{
-                    "type": "$BEEHIVE_IRI"
+                    "type": "$BEEHIVE_TERM"
                 }],
                 "attrs": ["attr1", "attr2"]
             }
@@ -562,6 +565,8 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri("$queryEntitiesEndpoint?limit=10&offset=20")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .bodyValue(query)
             .exchange()
             .expectStatus().isOk
@@ -574,6 +579,40 @@ class EntityOperationHandlerTests {
                         it is EntitiesQueryFromPost &&
                         it.entitySelectors!![0].typeSelection == BEEHIVE_IRI &&
                         it.attrs == setOf("${NGSILD_DEFAULT_VOCAB}attr1", "${NGSILD_DEFAULT_VOCAB}attr2")
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `query entities should use the context embedded in the request body`() = runTest {
+        coEvery {
+            entityQueryService.queryEntities(any())
+        } returns Pair(emptyList<ExpandedEntity>(), 0).right()
+        coEvery {
+            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any())
+        } returns emptyList<CompactedEntity>().right()
+
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{ "type": "$BEEHIVE_TERM" }],
+                "@context": "$APIC_COMPOUND_CONTEXT"
+            }
+        """.trimIndent()
+
+        webClient.post()
+            .uri(queryEntitiesEndpoint)
+            .bodyValue(query)
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify {
+            entityQueryService.queryEntities(
+                match {
+                    it.contexts == listOf(APIC_COMPOUND_CONTEXT) &&
+                        it is EntitiesQueryFromPost &&
+                        it.entitySelectors!![0].typeSelection == BEEHIVE_IRI
                 }
             )
         }
@@ -593,7 +632,7 @@ class EntityOperationHandlerTests {
                 "type": "Query",
                 "entities": [
                     {
-                        "type": "$BEEHIVE_IRI"
+                        "type": "$BEEHIVE_TERM"
                     },
                     {
                         "type": "*"
@@ -604,6 +643,8 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri(queryEntitiesEndpoint)
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .bodyValue(query)
             .exchange()
             .expectStatus().isOk
@@ -614,7 +655,7 @@ class EntityOperationHandlerTests {
                     it is EntitiesQueryFromPost &&
                         it.local &&
                         it.entitySelectors!![0].typeSelection == BEEHIVE_IRI &&
-                        it.entitySelectors!![1].typeSelection == ENTITY_TYPE_WILDCARD
+                        it.entitySelectors[1].typeSelection == ENTITY_TYPE_WILDCARD
                 }
             )
         }
@@ -638,6 +679,7 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri("$queryEntitiesEndpoint?format=concise")
+            .contentType(MediaType.APPLICATION_JSON)
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .bodyValue(query)
             .exchange()

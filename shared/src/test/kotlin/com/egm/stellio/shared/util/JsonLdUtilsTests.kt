@@ -424,17 +424,17 @@ class JsonLdUtilsTests {
 
     @Test
     fun `deleteAndReload should delete and reload a context from the cache`() = runTest {
-        val contextUrl = "http://localhost:8094/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+        val contextUrl = "http://localhost:8094/jsonld-contexts/ngsi-ld-core-context-v1.9.jsonld"
 
         // expand a term to populate the cache
         expandJsonLdTerm(INCOMING_TERM, listOf(contextUrl))
 
-        jsonLdContextServerExtension.checkGetOnUrlPath("/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld")
+        jsonLdContextServerExtension.checkGetOnUrlPath("/jsonld-contexts/ngsi-ld-core-context-v1.9.jsonld")
         jsonLdContextServerExtension.resetAllRequests()
 
         deleteAndReload(contextUrl.toUri(), true).shouldSucceed()
 
-        jsonLdContextServerExtension.checkGetOnUrlPath("/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld")
+        jsonLdContextServerExtension.checkGetOnUrlPath("/jsonld-contexts/ngsi-ld-core-context-v1.9.jsonld")
     }
 
     @Test

@@ -31,7 +31,6 @@ import com.egm.stellio.shared.model.TEMPORAL_REPRESENTATION_TERMS
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceInvalidPayloadMessage
 import com.egm.stellio.shared.util.isDateTime
 import java.time.ZonedDateTime
-import kotlin.random.Random.Default.nextBoolean
 
 typealias CompactedEntityWithCSR = Pair<CompactedEntity, ContextSourceRegistration>
 typealias CompactedEntitiesWithCSR = Pair<List<CompactedEntity>, ContextSourceRegistration>
@@ -138,8 +137,7 @@ object ContextSourceUtils {
                 currentInstance.isBefore(remoteInstance, NGSILD_MODIFIED_AT_TERM) ->
                     currentInstances[datasetId] = remoteInstance
                 remoteInstance.isBefore(currentInstance, NGSILD_MODIFIED_AT_TERM) -> Unit
-                // if there is no discriminating factor choose one at random
-                nextBoolean() -> currentInstances[datasetId] = remoteInstance
+                // if there is no discriminating factor choose the current one
                 else -> Unit
             }
         }
@@ -174,7 +172,15 @@ object ContextSourceUtils {
     private fun CompactedAttributeInstance.isBefore(
         attr: CompactedAttributeInstance,
         property: String
-    ): Boolean = (this[property] as String?)?.isBefore(attr[property] as String?) == true
+    ): Boolean {
+        val propertyTime = this[property] as String?
+        val newPropertyTime = attr[property] as String?
+        return when {
+            propertyTime.isNullOrBlank() -> !newPropertyTime.isNullOrBlank()
+            newPropertyTime.isNullOrBlank() -> false
+            else -> propertyTime.isBefore(newPropertyTime)
+        }
+    }
 
     private fun String?.isBefore(date: String?) =
         this?.isDateTime() == true &&

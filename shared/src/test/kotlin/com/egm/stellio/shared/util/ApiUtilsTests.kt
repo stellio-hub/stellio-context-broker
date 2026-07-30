@@ -33,7 +33,7 @@ class ApiUtilsTests {
     ).build()
 
     private val applicationProperties = mockk<ApplicationProperties> {
-        every { contexts.core } returns "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.8.jsonld"
+        every { contexts.core } returns "http://localhost:8093/jsonld-contexts/ngsi-ld-core-context-v1.9.jsonld"
     }
 
     @Test

@@ -15,6 +15,7 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getTenantFromContext
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,7 +35,11 @@ class EntityEventService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, exception ->
+        logger.error("Error while asynchronously publishing an entity event", exception)
+    }
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + coroutineExceptionHandler)
 
     internal fun publishEntityEvent(event: EntityEvent): Boolean {
         kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))

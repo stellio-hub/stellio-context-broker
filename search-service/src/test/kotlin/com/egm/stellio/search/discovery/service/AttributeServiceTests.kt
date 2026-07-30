@@ -174,6 +174,36 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    fun `getAttributeDetails should not lose any type contributed by distinct entities sharing the same attribute`() =
+        runTest {
+            val uniqueAttribute = "https://ontology.eglobalmark.com/egm#uniqueSharedAttribute"
+            val uniqueTypeCount = 20
+
+            (1..uniqueTypeCount).forEach { index ->
+                val entityId = "urn:ngsi-ld:UniqueType$index:Uniq$index"
+                val uniqueType = "https://ontology.eglobalmark.com/egm#UniqueType$index"
+                createEntityPayload(gimmeEntityPayload(entityId, listOf(uniqueType)))
+                createAttribute(
+                    newAttribute(
+                        entityId,
+                        uniqueAttribute,
+                        Attribute.AttributeType.Property,
+                        Attribute.AttributeValueType.NUMBER
+                    )
+                )
+            }
+
+            val attributeDetails = attributeService.getAttributeDetails(APIC_COMPOUND_CONTEXTS)
+
+            val uniqueAttributeDetails = attributeDetails.first { it.attributeName == uniqueAttribute }
+            assertThat(uniqueAttributeDetails.typeNames)
+                .hasSize(uniqueTypeCount)
+                .containsExactlyInAnyOrderElementsOf(
+                    (1..uniqueTypeCount).map { "https://ontology.eglobalmark.com/egm#UniqueType$it" }
+                )
+        }
+
+    @Test
     fun `getAttributeTypeInfoByAttribute should return attribute information for a specific attribute`() = runTest {
         val attributeTypeInfo =
             attributeService.getAttributeTypeInfoByAttribute(INCOMING_IRI, APIC_COMPOUND_CONTEXTS)
@@ -196,6 +226,30 @@ class AttributeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             assertEquals(ResourceNotFoundException(attributeWithDatasetIdNotFoundMessage(TEMPERATURE_IRI)), it)
         }
     }
+
+    @Test
+    fun `getAttributeDetails should union type sets with only partial overlap across entities of the same attribute`() =
+        runTest {
+            val sharedAttribute = "https://ontology.eglobalmark.com/egm#partialOverlapAttr"
+            val typeX = "https://ontology.eglobalmark.com/egm#PartialOverlapTypeX"
+            val typeY = "https://ontology.eglobalmark.com/egm#PartialOverlapTypeY"
+            val typeZ = "https://ontology.eglobalmark.com/egm#PartialOverlapTypeZ"
+            val entity1Id = "urn:ngsi-ld:PartialOverlap:E1"
+            val entity2Id = "urn:ngsi-ld:PartialOverlap:E2"
+            val numberType = Attribute.AttributeType.Property
+            val numberValueType = Attribute.AttributeValueType.NUMBER
+
+            createEntityPayload(gimmeEntityPayload(entity1Id, listOf(typeX, typeY)))
+            createAttribute(newAttribute(entity1Id, sharedAttribute, numberType, numberValueType))
+
+            createEntityPayload(gimmeEntityPayload(entity2Id, listOf(typeY, typeZ)))
+            createAttribute(newAttribute(entity2Id, sharedAttribute, numberType, numberValueType))
+
+            val attributeDetails = attributeService.getAttributeDetails(APIC_COMPOUND_CONTEXTS)
+
+            val sharedAttributeDetails = attributeDetails.first { it.attributeName == sharedAttribute }
+            assertThat(sharedAttributeDetails.typeNames).containsExactlyInAnyOrder(typeX, typeY, typeZ)
+        }
 
     private fun createAttribute(
         attribute: Attribute

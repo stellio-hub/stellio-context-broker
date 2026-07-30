@@ -9,7 +9,7 @@ data class ApplicationProperties(
     val pagination: Pagination,
     val tenants: List<TenantConfiguration>,
     val contexts: Contexts,
-    val requestTimeout: Duration = Duration.ofMinutes(1)
+    val transactionTimeout: Duration = Duration.ofMinutes(1)
 ) {
 
     data class Authentication(

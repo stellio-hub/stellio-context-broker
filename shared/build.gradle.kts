@@ -16,6 +16,8 @@ the<DependencyManagementExtension>().apply {
 }
 
 dependencies {
+    implementation("org.springframework:spring-r2dbc")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     testFixturesImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")

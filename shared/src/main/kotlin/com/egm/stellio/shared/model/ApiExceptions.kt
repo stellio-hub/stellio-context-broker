@@ -259,7 +259,7 @@ fun Throwable.toAPIException(specificMessage: String? = null): APIException =
                     "Caused by: $this"
                 )
             else BadRequestDataException(UNEXPECTED_ERROR_PARSING_PAYLOAD_MESSAGE, "Caused by: $this")
-        else -> BadRequestDataException(specificMessage ?: this.localizedMessage)
+        else -> InternalErrorException(specificMessage ?: this.localizedMessage)
     }
 
 enum class ErrorType(val type: URI) {

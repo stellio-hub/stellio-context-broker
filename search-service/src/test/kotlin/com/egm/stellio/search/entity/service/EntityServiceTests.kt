@@ -204,7 +204,11 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `createEntity should not create an entity if it contains an NGSI-LD Null value`() = runTest {
+    fun `createEntity should returns the error found in createAttributes`() = runTest {
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery {
+            entityAttributeService.createAttributes(any(), any(), any(), any())
+        } returns BadRequestDataException("").left()
         val (jsonLdEntity, ngsiLdEntity) = """
             {
                 "id": "urn:ngsi-ld:Entity:01",

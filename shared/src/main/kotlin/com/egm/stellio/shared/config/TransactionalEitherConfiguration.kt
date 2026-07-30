@@ -5,6 +5,7 @@ import arrow.core.left
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.toAPIException
 import io.r2dbc.spi.R2dbcException
 import io.r2dbc.spi.R2dbcTimeoutException
 import org.aopalliance.intercept.MethodInterceptor
@@ -26,7 +27,6 @@ import org.springframework.transaction.TransactionTimedOutException
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource
 import java.lang.reflect.Method
 import kotlin.coroutines.Continuation
-import kotlin.coroutines.cancellation.CancellationException
 import kotlin.reflect.jvm.kotlinFunction
 
 @Configuration(proxyBeanMethods = false)
@@ -63,19 +63,14 @@ internal object TransactionalEitherPointcut : StaticMethodMatcherPointcut() {
 
 internal class TransactionalEitherInterceptor : MethodInterceptor {
 
+    @Suppress("TooGenericExceptionCaught")
     override fun invoke(invocation: MethodInvocation): Any? {
         wrapContinuation(invocation)
 
         return try {
             invocation.proceed()
-        } catch (exception: APIException) {
-            exception.left()
-        } catch (exception: TransactionException) {
-            exception.toTransactionFailure().left()
-        } catch (exception: DataAccessException) {
-            exception.toTransactionFailure().left()
-        } catch (exception: R2dbcException) {
-            exception.toTransactionFailure().left()
+        } catch (exception: Exception) {
+            exception.toTransactionAPIException().left()
         }
     }
 
@@ -88,36 +83,30 @@ internal class TransactionalEitherInterceptor : MethodInterceptor {
             override val context = continuation.context
 
             override fun resumeWith(result: Result<Any?>) {
-                val exception = result.exceptionOrNull()
-                val apiException = exception?.toTransactionAPIException()
-
-                if (apiException != null)
-                    continuation.resumeWith(Result.success(apiException.left()))
-                else
-                    continuation.resumeWith(result)
+                continuation.resumeWith(
+                    result.recover { exception ->
+                        exception.toTransactionAPIException().left()
+                    }
+                )
             }
         }
     }
 
-    private fun Throwable.toTransactionFailure(): APIException =
-        toTransactionAPIException()
-            ?: InternalErrorException(DATABASE_TRANSACTION_FAILURE_MESSAGE)
-                .also { logger.error(DATABASE_TRANSACTION_FAILURE_MESSAGE, this) }
-
-    private fun Throwable.toTransactionAPIException(): APIException? {
+    private fun Throwable.toTransactionAPIException(): APIException {
         val causes = causes()
         val apiException = causes.filterIsInstance<APIException>().firstOrNull()
 
         return when {
-            this is CancellationException -> null
             apiException != null -> apiException
-            causes.any { it.isTimeout() } ->
+            causes.any { it.isTimeout() } -> {
+                logger.warn(DATABASE_TIMEOUT_MESSAGE, this)
                 GatewayTimeoutException(DATABASE_TIMEOUT_MESSAGE)
-                    .also { logger.warn(DATABASE_TIMEOUT_MESSAGE, this) }
-            causes.any { it is TransactionException || it is DataAccessException || it is R2dbcException } ->
+            }
+            causes.any { it is TransactionException || it is DataAccessException || it is R2dbcException } -> {
+                logger.error(DATABASE_TRANSACTION_FAILURE_MESSAGE, this)
                 InternalErrorException(DATABASE_TRANSACTION_FAILURE_MESSAGE)
-                    .also { logger.error(DATABASE_TRANSACTION_FAILURE_MESSAGE, this) }
-            else -> null
+            }
+            else -> this.toAPIException()
         }
     }
 

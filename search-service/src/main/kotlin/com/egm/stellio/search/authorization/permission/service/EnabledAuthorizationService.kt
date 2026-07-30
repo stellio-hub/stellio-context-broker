@@ -25,6 +25,7 @@ import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
 @Component
@@ -134,6 +135,7 @@ class EnabledAuthorizationService(
     override suspend fun removeRightsOnEntity(entityId: URI): Either<APIException, Unit> =
         permissionService.removePermissionsOnEntity(entityId)
 
+    @Transactional(readOnly = true)
     override suspend fun getGroupsMemberships(
         offset: Int,
         limit: Int
@@ -160,6 +162,7 @@ class EnabledAuthorizationService(
         Pair(groups.first, jsonLdEntities)
     }
 
+    @Transactional(readOnly = true)
     override suspend fun getUsers(
         offset: Int,
         limit: Int,

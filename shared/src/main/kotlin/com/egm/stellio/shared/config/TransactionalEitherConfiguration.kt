@@ -6,6 +6,8 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.util.ErrorMessages.Database.DATABASE_TIMEOUT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Database.DATABASE_TRANSACTION_FAILURE_MESSAGE
 import io.r2dbc.spi.R2dbcException
 import io.r2dbc.spi.R2dbcTimeoutException
 import org.aopalliance.intercept.MethodInterceptor
@@ -132,7 +134,5 @@ internal class TransactionalEitherInterceptor : MethodInterceptor {
         private val logger = LoggerFactory.getLogger(TransactionalEitherInterceptor::class.java)
 
         private const val QUERY_CANCELED_SQL_STATE = "57014"
-        private const val DATABASE_TIMEOUT_MESSAGE = "The database operation timed out"
-        private const val DATABASE_TRANSACTION_FAILURE_MESSAGE = "The database transaction failed"
     }
 }

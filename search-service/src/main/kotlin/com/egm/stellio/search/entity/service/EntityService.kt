@@ -148,14 +148,15 @@ class EntityService(
         databaseClient.sql(
             """
             INSERT INTO entity_payload
-                (entity_id, types, scopes, created_at, modified_at, payload)
+                (entity_id, types, scopes, created_at, modified_at, expires_at, payload)
             VALUES
-                (:entity_id, :types, :scopes, :created_at, :created_at ,:payload)
+                (:entity_id, :types, :scopes, :created_at, :created_at, :expires_at, :payload)
             ON CONFLICT (entity_id)
                 DO UPDATE SET types = :types,
                     scopes = :scopes,
                     modified_at = :created_at,
                     deleted_at = null,
+                    expires_at = :expires_at,
                     payload = :payload
             """.trimIndent()
         )
@@ -163,6 +164,7 @@ class EntityService(
             .bind("types", ngsiLdEntity.types.toTypedArray())
             .bind("scopes", ngsiLdEntity.scopes?.toTypedArray())
             .bind("created_at", createdAt)
+            .bind("expires_at", ngsiLdEntity.expiresAt)
             .bind("payload", Json.of(serializeObject(expandedEntity.members)))
             .execute()
     }
@@ -289,6 +291,7 @@ class EntityService(
             SET types = :types,
                 scopes = :scopes,
                 modified_at = :modified_at,
+                expires_at = :expires_at,
                 payload = :payload
             WHERE entity_id = :entity_id
             """.trimIndent()
@@ -297,6 +300,7 @@ class EntityService(
             .bind("types", ngsiLdEntity.types.toTypedArray())
             .bind("scopes", ngsiLdEntity.scopes?.toTypedArray())
             .bind("modified_at", replacedAt)
+            .bind("expires_at", ngsiLdEntity.expiresAt)
             .bind("payload", Json.of(serializedPayload))
             .execute()
     }
@@ -607,11 +611,15 @@ class EntityService(
     }
 
     @Transactional
-    suspend fun deleteEntity(entityId: URI): Either<APIException, Unit> = runCatching {
+    suspend fun deleteEntity(
+        entityId: URI,
+        inTransientPurge: Boolean = false
+    ): Either<APIException, Unit> = runCatching {
         either<APIException, Unit> {
             val sub = getSubFromSecurityContext()
             val currentEntity = entityQueryService.retrieve(entityId).bind()
-            authorizationService.userCanAdminEntity(entityId).bind()
+            if (!inTransientPurge)
+                authorizationService.userCanAdminEntity(entityId).bind()
 
             val deletedAt = ngsiLdDateTime()
             val deletedEntityPayload = currentEntity.toExpandedDeletedEntity(deletedAt)
@@ -706,10 +714,12 @@ class EntityService(
         entityId: URI,
         attributeName: ExpandedTerm,
         datasetId: URI?,
-        deleteAll: Boolean = false
+        deleteAll: Boolean = false,
+        inTransientPurge: Boolean = false
     ): Either<APIException, Unit> = either {
         val sub = getSubFromSecurityContext()
-        authorizationService.userCanUpdateEntity(entityId).bind()
+        if (!inTransientPurge)
+            authorizationService.userCanUpdateEntity(entityId).bind()
 
         val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
 
@@ -793,6 +803,41 @@ class EntityService(
         }
 
         result
+    }
+
+    /**
+     * NGSI-LD 4.22 - Transient Storage of Entities and Attributes: garbage-collects entities and attributes whose
+     * expiresAt lies in the past. Called periodically by TransientDataGarbageCollectionJob, outside of any user
+     * request, so authorization checks are bypassed (there is no requesting user to authorize against).
+     */
+    @Transactional
+    suspend fun purgeExpiredEntitiesAndAttributes(): BatchOperationResult {
+        val result = BatchOperationResult()
+
+        val expiredEntitiesIds = entityQueryService.getExpiredEntitiesIds()
+        expiredEntitiesIds.forEach { entityId ->
+            deleteEntity(entityId, inTransientPurge = true).fold(
+                { result.errors.add(BatchEntityError(entityId, it.toProblemDetail())) },
+                { result.success.add(entityId) }
+            )
+        }
+
+        entityAttributeService.getExpiredAttributes()
+            .filter { it.entityId !in expiredEntitiesIds }
+            .forEach { attribute ->
+                deleteAttribute(
+                    attribute.entityId,
+                    attribute.attributeName,
+                    attribute.datasetId,
+                    deleteAll = false,
+                    inTransientPurge = true
+                ).fold(
+                    { result.errors.add(BatchEntityError(attribute.entityId, it.toProblemDetail())) },
+                    { result.success.add(attribute.entityId) }
+                )
+            }
+
+        return result
     }
 
     @Transactional

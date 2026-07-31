@@ -89,7 +89,8 @@ data class AttributeInstance private constructor(
         OBSERVED_AT("observedAt"),
         CREATED_AT("createdAt"),
         MODIFIED_AT("modifiedAt"),
-        DELETED_AT("deletedAt");
+        DELETED_AT("deletedAt"),
+        EXPIRES_AT("expiresAt");
 
         companion object {
             fun fromTimeProperty(timeProperty: String): Either<APIException, TemporalProperty> =

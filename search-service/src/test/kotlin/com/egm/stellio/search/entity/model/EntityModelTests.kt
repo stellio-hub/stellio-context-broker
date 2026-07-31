@@ -3,6 +3,7 @@ package com.egm.stellio.search.entity.model
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_EXPIRES_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.BEEHIVE_IRI
@@ -39,5 +40,18 @@ class EntityModelTests {
             entity.copy(specificAccessPolicy = Action.WRITE)
         val serializedEntity = entityPayloadWithSAP.serializeProperties()
         assertTrue(serializedEntity.contains(AuthContextModel.AUTH_PROP_SAP))
+    }
+
+    @Test
+    fun `serializeProperties should serialize entityPayload with expiresAt if present`() {
+        val entityPayloadWithExpiry = entity.copy(expiresAt = now.plusDays(1))
+        val serializedEntity = entityPayloadWithExpiry.serializeProperties()
+        assertTrue(serializedEntity.contains(NGSILD_EXPIRES_AT_IRI))
+    }
+
+    @Test
+    fun `serializeProperties should not serialize expiresAt when absent`() {
+        val serializedEntity = entity.serializeProperties()
+        assertFalse(serializedEntity.contains(NGSILD_EXPIRES_AT_IRI))
     }
 }

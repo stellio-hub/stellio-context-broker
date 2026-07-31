@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_EXPIRES_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.Scope
@@ -26,6 +27,7 @@ data class Entity(
     val createdAt: ZonedDateTime,
     val modifiedAt: ZonedDateTime = createdAt,
     val deletedAt: ZonedDateTime? = null,
+    val expiresAt: ZonedDateTime? = null,
     val payload: Json,
     val specificAccessPolicy: Action? = null
 ) {
@@ -46,6 +48,9 @@ data class Entity(
         resultEntity[NGSILD_MODIFIED_AT_IRI] = buildNonReifiedTemporalValue(modifiedAt)
         deletedAt?.run {
             resultEntity[NGSILD_DELETED_AT_IRI] = buildNonReifiedTemporalValue(deletedAt)
+        }
+        expiresAt?.run {
+            resultEntity[NGSILD_EXPIRES_AT_IRI] = buildNonReifiedTemporalValue(expiresAt)
         }
 
         return resultEntity

@@ -113,7 +113,8 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
         valueType = attributeValueType,
         datasetId = this.datasetId,
         type = attributeType,
-        observedAt = this.observedAt
+        observedAt = this.observedAt,
+        expiresAt = this.expiresAt
     ).right()
 }
 

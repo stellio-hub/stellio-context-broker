@@ -60,6 +60,7 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.model.addSysAttrs
 import com.egm.stellio.shared.model.flatOnInstances
+import com.egm.stellio.shared.model.getAndCheckExpiresAt
 import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.model.getMemberValue
@@ -107,16 +108,17 @@ class EntityAttributeService(
         databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
-                (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
-                    dataset_id, payload)
-            VALUES 
+                (id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
+                    dataset_id, expires_at, payload)
+            VALUES
                 (:id, :entity_id, :attribute_name, :attribute_type, :attribute_value_type, :created_at, :created_at,
-                    :dataset_id, :payload)
+                    :dataset_id, :expires_at, :payload)
             ON CONFLICT (entity_id, attribute_name, dataset_id)
                 DO UPDATE SET deleted_at = null,
                     attribute_type = :attribute_type,
                     attribute_value_type = :attribute_value_type,
                     modified_at = :created_at,
+                    expires_at = :expires_at,
                     payload = :payload
             RETURNING id
             """.trimIndent()
@@ -128,6 +130,7 @@ class EntityAttributeService(
             .bind("attribute_value_type", attribute.attributeValueType.toString())
             .bind("created_at", attribute.createdAt)
             .bind("dataset_id", attribute.datasetId)
+            .bind("expires_at", attribute.expiresAt)
             .bind("payload", attribute.payload)
             .oneToResult { row -> toUuid(row["id"]) }
 
@@ -139,6 +142,7 @@ class EntityAttributeService(
         attributeUUID: UUID,
         valueType: Attribute.AttributeValueType,
         modifiedAt: ZonedDateTime,
+        expiresAt: ZonedDateTime? = null,
         payload: String
     ): Either<APIException, Unit> =
         databaseClient.sql(
@@ -146,7 +150,8 @@ class EntityAttributeService(
             UPDATE temporal_entity_attribute
             SET payload = :payload,
                 attribute_value_type = :attribute_value_type,
-                modified_at = :modified_at
+                modified_at = :modified_at,
+                expires_at = :expires_at
             WHERE id = :attribute_uuid
             """.trimIndent()
         )
@@ -154,6 +159,7 @@ class EntityAttributeService(
             .bind("payload", Json.of(payload))
             .bind("attribute_value_type", valueType.toString())
             .bind("modified_at", modifiedAt)
+            .bind("expires_at", expiresAt)
             .execute()
 
     /**
@@ -226,6 +232,7 @@ class EntityAttributeService(
             attributeValueType = attributeMetadata.valueType,
             datasetId = attributeMetadata.datasetId,
             createdAt = createdAt,
+            expiresAt = attributeMetadata.expiresAt,
             payload = Json.of(serializeObject(attributePayload))
         )
         val attributeUuid = upsert(attribute).bind()
@@ -278,6 +285,7 @@ class EntityAttributeService(
             attributeMetadata.datasetId,
             attribute.entityId
         )
+        val expiresAt = attributePayload.getAndCheckExpiresAt().bind()
         val (processedAttributePayload, processedAttributeMetadata) = processObservedAtInMergeOperation(
             attribute,
             attributePayload,
@@ -287,7 +295,7 @@ class EntityAttributeService(
         val (jsonTargetObject, updatedAttributeInstance) =
             mergePatch(attribute.payload.toExpandedAttributeInstance(), processedAttributePayload).bind()
         val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance).bind()
-        update(attribute.id, processedAttributeMetadata.valueType, mergedAt, jsonTargetObject).bind()
+        update(attribute.id, processedAttributeMetadata.valueType, mergedAt, expiresAt, jsonTargetObject).bind()
 
         val attributeInstance =
             createContextualAttributeInstance(attribute, updatedAttributeInstance, value, mergedAt)
@@ -456,8 +464,8 @@ class EntityAttributeService(
         val selectQuery =
             """
             SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
-                deleted_at, dataset_id, payload
-            FROM temporal_entity_attribute            
+                deleted_at, dataset_id, expires_at, payload
+            FROM temporal_entity_attribute
             WHERE entity_id IN (:entities_ids)
             AND $filter
             ORDER BY entity_id
@@ -475,6 +483,18 @@ class EntityAttributeService(
     ): List<Attribute> =
         getForEntity(id, emptySet(), emptySet(), emptySet(), excludeDeleted)
 
+    suspend fun getExpiredAttributes(): List<Attribute> =
+        databaseClient.sql(
+            """
+            SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
+                deleted_at, dataset_id, expires_at, payload
+            FROM temporal_entity_attribute
+            WHERE expires_at < now()
+            AND deleted_at is null
+            """.trimIndent()
+        )
+            .allToMappedList { rowToAttribute(it) }
+
     suspend fun getForEntity(
         id: URI,
         pick: Set<String>,
@@ -486,9 +506,9 @@ class EntityAttributeService(
 
         val selectQuery =
             """
-            SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at, 
-                dataset_id, payload
-            FROM temporal_entity_attribute            
+            SELECT id, entity_id, attribute_name, attribute_type, attribute_value_type, created_at, modified_at,
+                dataset_id, expires_at, payload
+            FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
             ${if (excludeDeleted) " and deleted_at is null " else ""}
             AND $filter
@@ -574,6 +594,7 @@ class EntityAttributeService(
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toZonedDateTime(row["modified_at"]),
             deletedAt = toOptionalZonedDateTime(row["deleted_at"]),
+            expiresAt = toOptionalZonedDateTime(row["expires_at"]),
             payload = toJson(row["payload"])
         )
 
@@ -761,11 +782,12 @@ class EntityAttributeService(
                 BadRequestDataException(ATTRIBUTE_TYPE_MISMATCH_MESSAGE)
             }
         }
+        val expiresAt = attributeValues.getAndCheckExpiresAt().bind()
         val (jsonTargetObject, updatedAttributeInstance) =
             partialUpdatePatch(attribute.payload.toExpandedAttributeInstance(), attributeValues).bind()
         val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance).bind()
         val attributeValueType = guessAttributeValueType(attribute.attributeType, updatedAttributeInstance).bind()
-        update(attribute.id, attributeValueType, modifiedAt, jsonTargetObject).bind()
+        update(attribute.id, attributeValueType, modifiedAt, expiresAt, jsonTargetObject).bind()
 
         // then update attribute instance
         val attributeInstance = createContextualAttributeInstance(

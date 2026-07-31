@@ -5,12 +5,14 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.authorization.subject.USER_UUID
 import com.egm.stellio.search.common.util.deserializeAsMap
+import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.web.BatchEntityError
+import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.support.gimmeSucceededAttributeOperationResult
@@ -71,7 +73,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
+import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
+import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -94,9 +99,21 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
+    @Autowired
+    private lateinit var databaseClient: DatabaseClient
+
     private val entity01Uri = "urn:ngsi-ld:Entity:01".toUri()
     private val beehiveTestCId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val now = ngsiLdDateTime()
+
+    // simulates an entity that was created with a valid (future) expiresAt and has since expired,
+    // bypassing the future-only validation enforced by NgsiLdEntity.create()
+    private suspend fun expireEntity(entityId: URI, expiresAt: ZonedDateTime) {
+        databaseClient.sql("UPDATE entity_payload SET expires_at = :expires_at WHERE entity_id = :entity_id")
+            .bind("entity_id", entityId)
+            .bind("expires_at", expiresAt)
+            .execute()
+    }
 
     @AfterEach
     fun clearEntityPayloadTable() {
@@ -784,6 +801,88 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
 
         entityQueryService.retrieve(entity01Uri)
             .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
+    }
+
+    @Test
+    fun `purgeExpiredEntitiesAndAttributes should delete an entity whose expiresAt is in the past`() = runTest {
+        coEvery {
+            entityAttributeService.deleteAttributes(any(), any())
+        } returns emptyList<SucceededAttributeOperationResult>().right()
+        coEvery { entityAttributeService.getExpiredAttributes() } returns emptyList()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+        expireEntity(entity01Uri, now.minusDays(1))
+
+        assertThat(entityQueryService.getExpiredEntitiesIds()).contains(entity01Uri)
+
+        val result = entityService.purgeExpiredEntitiesAndAttributes()
+
+        assertTrue(result.errors.isEmpty())
+        assertThat(result.success).hasSize(1).contains(entity01Uri)
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldFail { assertInstanceOf(ResourceNotFoundException::class.java, it) }
+
+        coVerify(exactly = 1) { entityEventService.publishEntityDeleteEvent(any(), any(), any()) }
+    }
+
+    @Test
+    fun `purgeExpiredEntitiesAndAttributes should not delete an entity whose expiresAt is in the future`() = runTest {
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI), now.plusDays(1))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+        coEvery { entityAttributeService.getExpiredAttributes() } returns emptyList()
+
+        val result = entityService.purgeExpiredEntitiesAndAttributes()
+
+        assertTrue(result.errors.isEmpty())
+        assertTrue(result.success.isEmpty())
+        entityQueryService.retrieve(entity01Uri).shouldSucceed()
+    }
+
+    @Test
+    fun `purgeExpiredEntitiesAndAttributes should delete an attribute whose expiresAt is in the past`() = runTest {
+        val expiredAttribute = Attribute(
+            entityId = entity01Uri,
+            attributeName = INCOMING_IRI,
+            attributeValueType = Attribute.AttributeValueType.NUMBER,
+            createdAt = now,
+            expiresAt = now.minusDays(1),
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        coEvery { entityAttributeService.getExpiredAttributes() } returns listOf(expiredAttribute)
+        coEvery {
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
+        } returns Unit.right()
+        coEvery {
+            entityAttributeService.deleteAttribute(any(), any(), any(), any(), any())
+        } returns listOf(gimmeSucceededAttributeOperationResult()).right()
+        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        val result = entityService.purgeExpiredEntitiesAndAttributes()
+
+        assertTrue(result.errors.isEmpty())
+        assertThat(result.success).hasSize(1).contains(entity01Uri)
+        coVerify(exactly = 1) { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `purgeExpiredEntitiesAndAttributes should return an empty result when nothing is expired`() = runTest {
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+        coEvery { entityAttributeService.getExpiredAttributes() } returns emptyList()
+
+        val result = entityService.purgeExpiredEntitiesAndAttributes()
+
+        assertTrue(result.errors.isEmpty())
+        assertTrue(result.success.isEmpty())
     }
 
     @Test

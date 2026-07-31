@@ -12,5 +12,6 @@ data class AttributeMetadata(
     val valueType: Attribute.AttributeValueType,
     val datasetId: URI?,
     val type: Attribute.AttributeType,
-    val observedAt: ZonedDateTime?
+    val observedAt: ZonedDateTime?,
+    val expiresAt: ZonedDateTime? = null
 )

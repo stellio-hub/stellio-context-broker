@@ -97,7 +97,7 @@ object ContextSourceUtils {
     }
 
     private fun applyExpiresAtConflictResolutionToList(
-        mergedEntities: MutableMap<Any?, MutableMap<String, Any>>,
+        mergedEntities: Map<Any?, MutableMap<String, Any>>,
         localEntities: List<CompactedEntity>,
         remoteEntitiesWithExpiresAtPropagated: List<CompactedEntitiesWithCSR>
     ) {

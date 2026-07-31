@@ -87,6 +87,27 @@ object ContextSourceUtils {
                 .maxWith { a, b -> ZonedDateTime.parse(a).compareTo(ZonedDateTime.parse(b)) }
     }
 
+    private fun applyExpiresAtConflictResolution(
+        mergedEntity: MutableMap<String, Any>,
+        localEntity: CompactedEntity?,
+        remoteEntitiesWithExpiresAtPropagated: List<CompactedEntityWithCSR>
+    ) {
+        val sourceEntities = listOfNotNull(localEntity) + remoteEntitiesWithExpiresAtPropagated.map { it.first }
+        resolveEntityExpiresAtConflict(mergedEntity, sourceEntities)
+    }
+
+    private fun applyExpiresAtConflictResolutionToList(
+        mergedEntities: MutableMap<Any?, MutableMap<String, Any>>,
+        localEntities: List<CompactedEntity>,
+        remoteEntitiesWithExpiresAtPropagated: List<CompactedEntitiesWithCSR>
+    ) {
+        val sourceEntitiesById = (localEntities + remoteEntitiesWithExpiresAtPropagated.flatMap { it.first })
+            .groupBy { it[NGSILD_ID_TERM] }
+        mergedEntities.forEach { (id, mergedEntity) ->
+            resolveEntityExpiresAtConflict(mergedEntity, sourceEntitiesById[id] ?: emptyList())
+        }
+    }
+
     fun mergeEntitiesLists(
         localEntities: List<CompactedEntity>,
         remoteEntitiesWithCSR: List<CompactedEntitiesWithCSR>
@@ -109,11 +130,7 @@ object ContextSourceUtils {
                 }.leftOrNull()
             }.toNonEmptyListOrNull()
 
-        val sourceEntitiesById = (localEntities + remoteEntitiesWithExpiresAtPropagated.flatMap { it.first })
-            .groupBy { it[NGSILD_ID_TERM] }
-        mergedEntityMap.forEach { (id, mergedEntity) ->
-            resolveEntityExpiresAtConflict(mergedEntity, sourceEntitiesById[id] ?: emptyList())
-        }
+        applyExpiresAtConflictResolutionToList(mergedEntityMap, localEntities, remoteEntitiesWithExpiresAtPropagated)
 
         val entities = mergedEntityMap.values.toList()
         return if (warnings == null) Ior.Right(entities) else Ior.Both(warnings, entities)
@@ -136,8 +153,7 @@ object ContextSourceUtils {
                     .onRight { mergedEntity.putAll(it) }.leftOrNull()
             }.toNonEmptyListOrNull()
 
-        val sourceEntities = listOfNotNull(localEntity) + remoteEntitiesWithExpiresAtPropagated.map { it.first }
-        resolveEntityExpiresAtConflict(mergedEntity, sourceEntities)
+        applyExpiresAtConflictResolution(mergedEntity, localEntity, remoteEntitiesWithExpiresAtPropagated)
 
         return if (warnings == null) Ior.Right(mergedEntity) else Ior.Both(warnings, mergedEntity)
     }
@@ -151,8 +167,9 @@ object ContextSourceUtils {
             val currentValue = currentEntity[key]
             when {
                 currentValue == null -> value
-                // expiresAt will be overwritten by resolveEntityExpiresAtConflict once every CSR has been merged
-                // in (see 4.5.5.3), so whichever value is kept in this intermediate step is only a placeholder
+                // expiresAt (4.5.5.3) can't be resolved in this pairwise fold: it needs all sources at once to
+                // tell "never present" from "present then dropped". Placeholder only —
+                // see resolveEntityExpiresAtConflict, which runs once over the full source list.
                 key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW || key == NGSILD_EXPIRES_AT_TERM -> currentValue
                 key == NGSILD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
                     mergeTypeOrScope(currentValue, value)
@@ -299,11 +316,7 @@ object ContextSourceUtils {
                 }.leftOrNull()
             }.toNonEmptyListOrNull()
 
-        val sourceEntitiesById = (localEntities + remoteEntitiesWithExpiresAtPropagated.flatMap { it.first })
-            .groupBy { it[NGSILD_ID_TERM] }
-        mergedEntities.forEach { (id, mergedEntity) ->
-            resolveEntityExpiresAtConflict(mergedEntity, sourceEntitiesById[id] ?: emptyList())
-        }
+        applyExpiresAtConflictResolutionToList(mergedEntities, localEntities, remoteEntitiesWithExpiresAtPropagated)
 
         val entities = mergedEntities.values.toList()
         return if (warnings == null) Ior.Right(entities) else Ior.Both(warnings, entities)
@@ -327,8 +340,7 @@ object ContextSourceUtils {
                     .onRight { mergedEntity.putAll(it) }.leftOrNull()
             }.toNonEmptyListOrNull()
 
-        val sourceEntities = listOfNotNull(localEntity) + remoteEntitiesWithExpiresAtPropagated.map { it.first }
-        resolveEntityExpiresAtConflict(mergedEntity, sourceEntities)
+        applyExpiresAtConflictResolution(mergedEntity, localEntity, remoteEntitiesWithExpiresAtPropagated)
 
         return if (warnings == null)
             Ior.Right(mergedEntity)
@@ -347,9 +359,9 @@ object ContextSourceUtils {
                 currentValue == null -> value
                 key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW -> currentValue
                 key == NGSILD_TYPE_TERM -> mergeTypeOrScope(currentValue, value)
-                // expiresAt will be overwritten by resolveEntityExpiresAtConflict once every CSR has been merged
-                // in (see 4.5.5.3), so whichever value the "earliest wins" rule below picks for it here is only
-                // a placeholder
+                // "Earliest wins" is correct for createdAt/modifiedAt, but for expiresAt (4.5.5.3) it's only a
+                // placeholder: this pairwise fold can't see all sources at once, so it can't apply the
+                // "missing from any source" rule — see resolveEntityExpiresAtConflict, which does.
                 key in NGSILD_SYSATTRS_TERMS ->
                     if ((value as String?).isBefore(currentValue as String?)) value
                     else currentValue

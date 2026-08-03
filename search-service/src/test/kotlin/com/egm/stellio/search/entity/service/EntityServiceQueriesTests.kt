@@ -355,6 +355,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "contains, Polygon, '[[[90.0, 0.0], [100.0, 10.0], [110.0, 0.0], [100.0, -10.0], [90.0, 0.0]]]', 0",
         "equals, Point, '[100.0, 0.0]', 1",
         "equals, Point, '[101.0, 0.0]', 0",
+        "equals, Point, '[100.0, 0.0, 50.0]', 1",
         "intersects, Polygon, '[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]', 1",
         "intersects, Polygon, '[[[101.0, 0.0], [102.0, 0.0], [102.0, -1.0], [101.0, 0.0]]]', 0",
         "disjoint, Point, '[101.0, 0.0]', 2",

@@ -37,16 +37,16 @@ If running Stellio from `docker-compose`, it can be configured in the environmen
 ## Configure the transaction timeout
 
 You can configure the default timeout for Spring-managed database transactions in `search-service` and
-`subscription-service` by setting the `application.transaction-timeout` property. The default timeout is 30 seconds.
+`subscription-service` by setting the `application.transaction-timeout` property. The default timeout is 40 seconds.
 A zero or negative duration disables the default timeout.
 
 When running Stellio with Docker Compose, use `APPLICATION_TRANSACTION_TIMEOUT`:
 
 ```dotenv
 # Spring duration format: ms, s, m, h, or an ISO-8601 duration
-# 30s by default
+# 40s by default
 # Set to 0s or less to disable the timeout
-APPLICATION_TRANSACTION_TIMEOUT=30s
+APPLICATION_TRANSACTION_TIMEOUT=40s
 ```
 
 ## Increase the default and maximum limit for pagination

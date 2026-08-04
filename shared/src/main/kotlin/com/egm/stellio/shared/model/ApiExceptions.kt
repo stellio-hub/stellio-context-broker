@@ -189,7 +189,7 @@ data class NotImplementedException(override val message: String, override val de
 data class LdContextNotAvailableException(override val message: String, override val detail: String? = null) :
     APIException(
         ErrorType.LD_CONTEXT_NOT_AVAILABLE.type,
-        HttpStatus.SERVICE_UNAVAILABLE,
+        HttpStatus.GATEWAY_TIMEOUT,
         message,
         detail
     )

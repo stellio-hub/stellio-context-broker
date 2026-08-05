@@ -204,7 +204,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `createEntity should returns the error found in createAttributes`() = runTest {
+    fun `createEntity should return errors found when creating attributes`() = runTest {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any())

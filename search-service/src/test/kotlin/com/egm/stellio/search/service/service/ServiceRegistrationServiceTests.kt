@@ -5,6 +5,7 @@ import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.service.model.InputInformation
 import com.egm.stellio.search.service.model.InputInformationType
 import com.egm.stellio.search.service.model.ServiceInformation
+import com.egm.stellio.search.service.model.ServiceMode
 import com.egm.stellio.search.service.model.ServiceRegistration
 import com.egm.stellio.search.service.model.ServiceRegistrationFilters
 import com.egm.stellio.search.support.WithKafkaContainer

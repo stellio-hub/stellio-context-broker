@@ -1,4 +1,4 @@
-package com.egm.stellio.search.service.model
+package com.egm.stellio.search.service.registration.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal

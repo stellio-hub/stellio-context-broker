@@ -6,9 +6,10 @@ import com.egm.stellio.search.authorization.permission.service.AuthorizationServ
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.common.model.UnparsedGeoQuery
 import com.egm.stellio.search.csr.model.EntityInfo
-import com.egm.stellio.search.service.model.ServiceInformation
-import com.egm.stellio.search.service.model.ServiceRegistration
-import com.egm.stellio.search.service.service.ServiceRegistrationService
+import com.egm.stellio.search.service.registration.model.ServiceInformation
+import com.egm.stellio.search.service.registration.model.ServiceRegistration
+import com.egm.stellio.search.service.registration.service.ServiceRegistrationService
+import com.egm.stellio.search.service.registration.web.ServiceRegistrationHandler
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_HEADER_LINK

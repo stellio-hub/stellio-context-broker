@@ -1,4 +1,4 @@
-package com.egm.stellio.search.service.model
+package com.egm.stellio.search.service.registration.model
 
 import arrow.core.Either
 import arrow.core.left

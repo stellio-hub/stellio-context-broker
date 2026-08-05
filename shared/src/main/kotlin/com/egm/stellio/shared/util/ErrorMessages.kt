@@ -112,6 +112,15 @@ object ErrorMessages {
             "Member 'serviceInformation.name' must be a non-empty string"
     }
 
+    object ServiceExecutionErrorMessages {
+        fun invalidServiceExecutionInputMessage(path: String, expected: String) =
+            "Invalid service execution input at '$path': expected $expected"
+        fun missingServiceExecutionInputMessage(path: String) =
+            "Invalid service execution input: required value '$path' is missing"
+        fun invalidInputElementKeyMessage(key: String) =
+            "Invalid InputInformation element key '$key': expected a non-negative index or '*'"
+    }
+
     object DataRepresentation {
         fun invalidCharacterInNameMessage(name: Any?) =
             "JSON-LD object contains a member with invalid characters (4.6.2): $name"

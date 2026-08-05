@@ -1,4 +1,4 @@
-package com.egm.stellio.search.service.service
+package com.egm.stellio.search.service.registration.service
 
 import arrow.core.Either
 import arrow.core.flatMap
@@ -16,9 +16,9 @@ import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.csr.model.EntityInfoDB
-import com.egm.stellio.search.service.model.ServiceInformation
-import com.egm.stellio.search.service.model.ServiceRegistration
-import com.egm.stellio.search.service.model.ServiceRegistrationFilters
+import com.egm.stellio.search.service.registration.model.ServiceInformation
+import com.egm.stellio.search.service.registration.model.ServiceRegistration
+import com.egm.stellio.search.service.registration.model.ServiceRegistrationFilters
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -34,6 +34,7 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
+import org.springframework.http.HttpMethod
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Component
@@ -58,16 +59,17 @@ class ServiceRegistrationService(
         databaseClient.sql(
             """
             INSERT INTO service_registration(
-                id, endpoint, entities, service_information,
+                id, endpoint, endpoint_method, entities, service_information,
                 q, geo_q, scope_q, sub, created_at, modified_at
             )
             VALUES(
-                :id, :endpoint, :entities, :service_information,
+                :id, :endpoint, :endpoint_method, :entities, :service_information,
                 :q, :geo_q, :scope_q, :sub, :created_at, :modified_at
             )
             ON CONFLICT (id)
             DO UPDATE SET
                 endpoint = :endpoint,
+                endpoint_method = :endpoint_method,
                 entities = :entities,
                 service_information = :service_information,
                 q = :q,
@@ -79,6 +81,7 @@ class ServiceRegistrationService(
         )
             .bind("id", serviceRegistration.id)
             .bind("endpoint", serviceRegistration.endpoint)
+            .bind("endpoint_method", serviceRegistration.endpointMethod.name())
             .bind(
                 "entities",
                 Json.of(DataTypes.serialize(serviceRegistration.entities.map(::EntityInfoDB)))
@@ -122,7 +125,7 @@ class ServiceRegistrationService(
 
         databaseClient.sql(
             """
-            SELECT id, endpoint, entities, service_information,
+            SELECT id, endpoint, endpoint_method, entities, service_information,
                 q, geo_q, scope_q, created_at, modified_at
             FROM service_registration
             WHERE id = :id
@@ -150,7 +153,7 @@ class ServiceRegistrationService(
 
         return databaseClient.sql(
             """
-            SELECT registration.id, endpoint, entities, service_information,
+            SELECT registration.id, endpoint, endpoint_method, entities, service_information,
                 q, geo_q, scope_q, created_at, modified_at
             FROM service_registration AS registration
             LEFT JOIN jsonb_to_recordset(entities)
@@ -215,6 +218,7 @@ class ServiceRegistrationService(
             ServiceRegistration(
                 id = toUri(row["id"]),
                 endpoint = toUri(row["endpoint"]),
+                endpointMethod = HttpMethod.valueOf(row["endpoint_method"] as String),
                 entities = DataTypes.mapper.readerForListOf(EntityInfo::class.java)
                     .readValue(toJsonString(row["entities"])),
                 serviceInformation = DataTypes.deserializeAs<ServiceInformation>(

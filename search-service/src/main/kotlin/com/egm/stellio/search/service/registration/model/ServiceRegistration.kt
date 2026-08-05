@@ -1,4 +1,4 @@
-package com.egm.stellio.search.service.model
+package com.egm.stellio.search.service.registration.model
 
 import arrow.core.Either
 import arrow.core.left
@@ -24,6 +24,7 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
+import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import java.net.URI
 import java.time.ZonedDateTime
@@ -33,6 +34,7 @@ data class ServiceRegistration(
     val id: URI = "urn:ngsi-ld:ServiceRegistration:${UUID.randomUUID()}".toUri(),
     val type: String = NGSILD_SERVICE_REGISTRATION_TERM,
     val endpoint: URI,
+    val endpointMethod: HttpMethod = HttpMethod.POST,
     val entities: List<EntityInfo>,
     val serviceInformation: ServiceInformation,
     val q: String? = null,

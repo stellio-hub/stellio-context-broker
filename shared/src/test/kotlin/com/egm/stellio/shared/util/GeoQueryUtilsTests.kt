@@ -146,8 +146,8 @@ class GeoQueryUtilsTests {
             """
             public.ST_disjoint(
                 public.ST_GeomFromText((select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT (24.30623 60.07966)"}]}]}',
-                    '$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'), 4326),
-                public.ST_GeomFromText('POLYGON ((0 1, 1 1, 0 1))', 4326)
+                    '$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value')),
+                public.ST_GeomFromText('POLYGON ((0 1, 1 1, 0 1))')
             )
             """,
             queryStatement
@@ -168,9 +168,10 @@ class GeoQueryUtilsTests {
 
         assertEqualsIgnoringNoise(
             """
-            public.ST_DistanceSphere(
-                public.ST_GeomFromText('POINT(60.124.6)', 4326),
-                public.ST_GeomFromText((select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.0796624.30623)"}]}]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'), 4326)
+            public.ST_Distance(
+                cast('SRID=4326;POINT(60.124.6)' as public.geography),
+                cast('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.0796624.30623)"}]}]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value') as public.geography),
+                false
             ) <= 2000
             """,
             queryStatement
@@ -191,9 +192,10 @@ class GeoQueryUtilsTests {
 
         assertEqualsIgnoringNoise(
             """
-            public.ST_DistanceSphere(
-                public.ST_GeomFromText('POINT(60.124.6)', 4326),
-                public.ST_GeomFromText((select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.3062330.07966)"}]}]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value'), 4326)
+            public.ST_Distance(
+                cast('SRID=4326;POINT(60.124.6)' as public.geography),
+                cast('SRID=4326;' || (select jsonb_path_query_first('{"@id":"urn:ngsi-ld:Entity:01","@type":["https://uri.etsi.org/ngsi-ld/default-context/Entity"],"https://uri.etsi.org/ngsi-ld/location":[{"@type":["https://uri.etsi.org/ngsi-ld/GeoProperty"],"https://uri.etsi.org/ngsi-ld/hasValue":[{"@value":"POINT(60.3062330.07966)"}]}]}','$."https://uri.etsi.org/ngsi-ld/location"."https://uri.etsi.org/ngsi-ld/hasValue"[0]')->>'@value') as public.geography),
+                false
             ) >= 15
             """,
             queryStatement

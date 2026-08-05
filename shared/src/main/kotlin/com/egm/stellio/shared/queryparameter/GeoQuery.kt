@@ -49,35 +49,31 @@ data class GeoQuery(
             """
             (select jsonb_path_query_first(#{TARGET}#, '$."$geoproperty"."$NGSILD_GEOPROPERTY_VALUE"[0]')->>'$JSONLD_VALUE_KW')
             """.trimIndent()
-        return buildSqlFilter(
-            "public.ST_GeomFromText($targetWKTCoordinates, 4326)"
-        )
+        val georelQuery = Georel.prepareQuery(georel)
+
+        return (
+            if (georelQuery.first == Georel.NEAR_DISTANCE_MODIFIER)
+                """
+                public.ST_Distance(
+                    cast('SRID=4326;${wktCoordinates.value}' as public.geography), 
+                    cast('SRID=4326;' || $targetWKTCoordinates as public.geography),
+                    false
+                ) ${georelQuery.second} ${georelQuery.third}
+                """.trimIndent()
+            else
+                """
+                public.ST_${georelQuery.first}(
+                    public.ST_GeomFromText($targetWKTCoordinates),
+                    public.ST_GeomFromText('${wktCoordinates.value}')
+                ) 
+                """.trimIndent()
+            )
             .let {
                 if (target == null)
                     it.replace("#{TARGET}#", "entity_payload.payload")
                 else
                     it.replace("#{TARGET}#", "'" + JsonUtils.serializeObject(target.members) + "'")
             }
-    }
-
-    private fun buildSqlFilter(targetGeometry: String): String {
-        val georelQuery = Georel.prepareQuery(georel)
-        val queryGeometry = "public.ST_GeomFromText('${wktCoordinates.value}', 4326)"
-
-        return if (georelQuery.first == Georel.NEAR_DISTANCE_MODIFIER)
-            """
-            public.ST_DistanceSphere(
-                $queryGeometry,
-                $targetGeometry
-            ) ${georelQuery.second} ${georelQuery.third}
-            """.trimIndent()
-        else
-            """
-            public.ST_${georelQuery.first}(
-                $targetGeometry,
-                $queryGeometry
-            )
-            """.trimIndent()
     }
 
     companion object {

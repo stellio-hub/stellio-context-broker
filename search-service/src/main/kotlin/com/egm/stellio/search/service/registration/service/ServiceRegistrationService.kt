@@ -1,4 +1,4 @@
-package com.egm.stellio.search.service.service
+package com.egm.stellio.search.service.registration.service
 
 import arrow.core.Either
 import arrow.core.flatMap
@@ -16,9 +16,9 @@ import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.csr.model.EntityInfoDB
-import com.egm.stellio.search.service.model.ServiceInformation
-import com.egm.stellio.search.service.model.ServiceRegistration
-import com.egm.stellio.search.service.model.ServiceRegistrationFilters
+import com.egm.stellio.search.service.registration.model.ServiceInformation
+import com.egm.stellio.search.service.registration.model.ServiceRegistration
+import com.egm.stellio.search.service.registration.model.ServiceRegistrationFilters
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException

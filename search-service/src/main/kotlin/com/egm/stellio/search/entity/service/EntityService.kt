@@ -1,6 +1,7 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.Either
+import arrow.core.flattenOption
 import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
@@ -8,11 +9,11 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.getSpecificAccessPolicy
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
-import com.egm.stellio.search.common.util.deserializeAsMap
 import com.egm.stellio.search.common.util.deserializeExpandedPayload
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toJson
+import com.egm.stellio.search.common.util.toList
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.AttributeOperationResult
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
@@ -44,12 +45,13 @@ import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.flattenOnAttributeAndDatasetId
-import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.queryparameter.PaginationQuery
@@ -345,43 +347,55 @@ class EntityService(
     suspend fun updateTypes(
         entityId: URI,
         newTypes: List<ExpandedTerm>,
-        modifiedAt: ZonedDateTime,
-        allowEmptyListOfTypes: Boolean = true
+        modifiedAt: ZonedDateTime
     ): Either<APIException, SucceededAttributeOperationResult> = either {
-        val entityPayload = entityQueryService.retrieve(entityId).bind()
-        val currentTypes = entityPayload.types
-        // when dealing with an entity update, list of types can be empty if no change of type is requested
-        if (currentTypes.sorted() == newTypes.sorted() || newTypes.isEmpty() && allowEmptyListOfTypes)
-            return@either SucceededAttributeOperationResult(
-                attributeName = JSONLD_TYPE_KW,
-                operationStatus = OperationStatus.CREATED,
-                newExpandedValue = mapOf(JSONLD_TYPE_KW to currentTypes.toList())
-            )
-
-        val updatedTypes = currentTypes.union(newTypes)
-        val updatedPayload = entityPayload.payload.deserializeAsMap().plus(JSONLD_TYPE_KW to updatedTypes)
-
+        // Unlike attribute instances (keyed by datasetId), `types` is a plain set-valued column, so
+        // its union with :new_types can be computed directly in SQL, self-referentially, in a single
+        // round trip with no preliminary read and no explicit lock (see patchEntityPayload for why
+        // this correlated-subquery pattern is safe under concurrency). Genuinely-new type IRIs are
+        // appended after the existing ones, in the order given in :new_types, to match the ordering
+        // Kotlin's Set.union() used to produce.
         databaseClient.sql(
             """
             UPDATE entity_payload
-            SET types = :types,
+            SET types = types || COALESCE(
+                    (
+                        SELECT array_agg(nt ORDER BY ord)
+                        FROM unnest(:new_types::text[]) WITH ORDINALITY AS u(nt, ord)
+                        WHERE nt <> ALL(types)
+                    ),
+                    '{}'::text[]
+                ),
                 modified_at = :modified_at,
-                payload = :payload
+                payload = payload || jsonb_build_object(
+                    :type_key::text,
+                    to_jsonb(
+                        types || COALESCE(
+                            (
+                                SELECT array_agg(nt ORDER BY ord)
+                                FROM unnest(:new_types::text[]) WITH ORDINALITY AS u(nt, ord)
+                                WHERE nt <> ALL(types)
+                            ),
+                            '{}'::text[]
+                        )
+                    )
+                )
             WHERE entity_id = :entity_id
+            RETURNING types
             """.trimIndent()
         )
             .bind("entity_id", entityId)
             .bind("modified_at", modifiedAt)
-            .bind("types", updatedTypes.toTypedArray())
-            .bind("payload", Json.of(serializeObject(updatedPayload)))
-            .execute()
-            .map {
+            .bind("new_types", newTypes.toTypedArray())
+            .bind("type_key", JSONLD_TYPE_KW)
+            .oneToResult { row ->
                 SucceededAttributeOperationResult(
                     attributeName = JSONLD_TYPE_KW,
                     operationStatus = OperationStatus.CREATED,
-                    newExpandedValue = mapOf(JSONLD_TYPE_KW to updatedTypes.toList())
+                    newExpandedValue = mapOf(JSONLD_TYPE_KW to toList<ExpandedTerm>(row["types"]))
                 )
-            }.bind()
+            }
+            .bind()
     }
 
     @Transactional
@@ -486,7 +500,7 @@ class EntityService(
         ).bind()
 
         if (operationResult.isNotEmpty()) {
-            val updatedEntity = patchEntityPayload(entityId, mergedAt, operationResult, originalEntity).bind()
+            val updatedEntity = patchEntityPayload(entityId, mergedAt, operationResult).bind()
             entityEventService.publishAttributeChangeEvents(null, originalEntity, updatedEntity, operationResult)
         }
 
@@ -506,11 +520,10 @@ class EntityService(
                 val ngsiLdAttribute = jsonLdAttribute.toNgsiLdAttributes().bind()[0]
                 entityAttributeService.upsertAttributes(entityId, ngsiLdAttribute, jsonLdAttribute, createdAt).bind()
             }
-        }.filterNotNull()
+        }.flattenOption()
 
         if (operationResults.isNotEmpty()) {
-            val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
-            patchEntityPayload(entityId, createdAt, operationResults, originalEntity).bind()
+            patchEntityPayload(entityId, createdAt, operationResults).bind()
         } else {
             updateEntityModifiedAt(entityId, createdAt).bind()
         }
@@ -553,8 +566,7 @@ class EntityService(
             val updatedEntity = patchEntityPayload(
                 entityId,
                 createdAt,
-                operationResult.getSucceededAttributesOperations(),
-                originalEntity
+                operationResult.getSucceededAttributesOperations()
             ).bind()
 
             entityEventService.publishAttributeChangeEvents(
@@ -700,8 +712,7 @@ class EntityService(
         val updatedEntity = patchEntityPayload(
             entityId,
             deletedAt,
-            deleteAttributeResults.getSucceededAttributesOperations(),
-            originalEntity
+            deleteAttributeResults.getSucceededAttributesOperations()
         ).bind()
 
         deleteAttributeResults.getSucceededAttributesOperations()
@@ -823,8 +834,6 @@ class EntityService(
                 entityAttributeService.permanentlyDeleteAttribute(entityId, attributeName, datasetId, true).bind()
                 removeAttributeFromPayload(entityId, modifiedAt, attributeName).bind()
             } else {
-                // fetch before deletion to know which other instances of this attribute to retain
-                val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
                 entityAttributeService.permanentlyDeleteAttribute(entityId, attributeName, datasetId, false).bind()
                 patchEntityPayload(
                     entityId,
@@ -836,8 +845,7 @@ class EntityService(
                             operationStatus = OperationStatus.DELETED,
                             newExpandedValue = emptyMap()
                         )
-                    ),
-                    originalEntity
+                    )
                 ).bind()
             }
         }
@@ -845,62 +853,112 @@ class EntityService(
 
     // Not annotated with @Transactional: private methods cannot be proxied by Spring AOP,
     // and self-invocation bypasses the proxy regardless. All callers are already @Transactional.
+    //
+    // Concurrency-safety strategy (see plan-concurrent-perf-update.md, Problem 3.2): the "kept
+    // instances" computation - which existing instances of an attribute must survive this merge
+    // because this operation didn't touch them - is expressed as a single, self-referential
+    // `UPDATE entity_payload SET payload = (expression referencing payload) WHERE entity_id = :id`
+    // per touched attribute name, with no preceding SELECT and no explicit row lock. This is the
+    // same principle that already makes the simpler `payload = payload || patch` merge safe: a
+    // correlated subquery inside the SET list of a single-table UPDATE always observes the current
+    // (about-to-be-locked) row, so two concurrent operations on the same entity - even touching the
+    // same attribute name at different datasetIds - naturally serialize on Postgres's normal
+    // per-row MVCC write lock and each sees the other's committed change.
+    // An earlier version of this fix used `SELECT ... FOR UPDATE` followed by a separate UPDATE.
+    // That is also correct, but doubles the round trips for every write (measured to regress
+    // throughput under concurrent load), so it was replaced by this single-statement form.
+    // A `WITH cte AS (SELECT ... FROM entity_payload ...) UPDATE entity_payload ... FROM cte` form
+    // was also considered and rejected: joining the CTE against the UPDATE's own target table makes
+    // the read subject to Postgres's EvalPlanQual re-check semantics, which are not guaranteed to
+    // safely re-evaluate an arbitrary CTE read for the concurrently-updated row. A subquery that is
+    // merely correlated to the row being updated (no join against the target) avoids that ambiguity.
     private suspend fun patchEntityPayload(
         entityId: URI,
         modifiedAt: ZonedDateTime,
-        operationResults: List<SucceededAttributeOperationResult>,
-        originalEntity: ExpandedEntity
+        operationResults: List<SucceededAttributeOperationResult>
     ): Either<APIException, ExpandedEntity> = either {
-        // patch accumulates the jsonb fragment to merge into entity_payload.payload
-        val patch = mutableMapOf<String, Any>().apply {
-            modifiedAt to buildNonReifiedTemporalValue(modifiedAt)
-        }
+        val modifiedAtPatch = Json.of(
+            serializeObject(mapOf(NGSILD_MODIFIED_AT_IRI to buildNonReifiedTemporalValue(modifiedAt)))
+        )
+        val attributeGroups = operationResults.groupBy { it.attributeName }
 
-        // attributes where every instance was deleted are removed entirely from the payload
-        val fullyDeletedAttributeNames = mutableListOf<String>()
-
-        operationResults.groupBy { it.attributeName }.forEach { (attrName, results) ->
-            val deletedDatasetIds = results
-                .filter { it.operationStatus == OperationStatus.DELETED }
-                .map { it.datasetId }
-            val upsertedResults = results.filter { it.operationStatus != OperationStatus.DELETED }
-            val upsertedDatasetIds = upsertedResults.map { it.datasetId }
-
-            val existingInstances =
-                originalEntity.members[attrName] as? ExpandedAttributeInstances ?: emptyList()
-
-            // keep instances not touched by this operation (neither deleted nor replaced)
-            val keptInstances = existingInstances.filter { instance ->
-                val instanceDatasetId = instance.getDatasetId()
-                instanceDatasetId !in deletedDatasetIds && instanceDatasetId !in upsertedDatasetIds
+        if (attributeGroups.isEmpty()) {
+            databaseClient.sql(
+                """
+                UPDATE entity_payload
+                SET modified_at = :modified_at,
+                    payload = (payload || :modified_at_patch::jsonb)
+                WHERE entity_id = :entity_id
+                RETURNING payload
+                """.trimIndent()
+            )
+                .bind("entity_id", entityId)
+                .bind("modified_at", modifiedAt)
+                .bind("modified_at_patch", modifiedAtPatch)
+                .oneToResult { row -> ExpandedEntity(toJson(row["payload"]).deserializeExpandedPayload()) }
+                .bind()
+        } else {
+            var updatedEntity: ExpandedEntity? = null
+            attributeGroups.forEach { (attrName, results) ->
+                updatedEntity =
+                    mergeAttributeIntoPayload(entityId, attrName, results, modifiedAt, modifiedAtPatch).bind()
             }
-
-            val newInstances = upsertedResults.map { it.newExpandedValue }
-
-            val updatedArray = keptInstances + newInstances
-            if (updatedArray.isEmpty()) {
-                fullyDeletedAttributeNames.add(attrName)
-            } else {
-                patch[attrName] = updatedArray
-            }
+            updatedEntity!!
         }
+    }
 
-        // Single atomic UPDATE: merge the patch fragment and strip fully-deleted attribute keys
-        databaseClient.sql(
+    private suspend fun mergeAttributeIntoPayload(
+        entityId: URI,
+        attrName: ExpandedTerm,
+        results: List<SucceededAttributeOperationResult>,
+        modifiedAt: ZonedDateTime,
+        modifiedAtPatch: Json
+    ): Either<APIException, ExpandedEntity> {
+        val deletedDatasetIds = results
+            .filter { it.operationStatus == OperationStatus.DELETED }
+            .map { it.datasetId }
+        val upsertedResults = results.filter { it.operationStatus != OperationStatus.DELETED }
+        // datasetIds touched by this operation (deleted or replaced): the corresponding
+        // existing instances must not be kept from the live payload
+        val excludedDatasetIds = (deletedDatasetIds + upsertedResults.map { it.datasetId })
+            .map { it?.toString() ?: JSONLD_NONE_KW }
+        val newInstances = upsertedResults.map { it.newExpandedValue }
+
+        return databaseClient.sql(
             """
             UPDATE entity_payload
             SET modified_at = :modified_at,
-                payload = (payload || :patch::jsonb) - :deleted_keys::text[]
+                payload = (
+                    (
+                        SELECT CASE
+                            WHEN kept.instances || :new_instances::jsonb = '[]'::jsonb
+                            THEN payload - :attr_name::text
+                            ELSE payload || jsonb_build_object(
+                                :attr_name::text, kept.instances || :new_instances::jsonb
+                            )
+                        END
+                        FROM (
+                            SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb) AS instances
+                            FROM jsonb_array_elements(
+                                COALESCE(payload -> :attr_name::text, '[]'::jsonb)
+                            ) AS elem
+                            WHERE COALESCE(
+                                elem #>> '{$NGSILD_DATASET_ID_IRI,0,$JSONLD_ID_KW}', '$JSONLD_NONE_KW'
+                            ) <> ALL (:excluded_dataset_ids::text[])
+                        ) AS kept
+                    ) || :modified_at_patch::jsonb
+                )
             WHERE entity_id = :entity_id
             RETURNING payload
             """.trimIndent()
         )
             .bind("entity_id", entityId)
             .bind("modified_at", modifiedAt)
-            .bind("patch", Json.of(serializeObject(patch)))
-            .bind("deleted_keys", fullyDeletedAttributeNames.toTypedArray())
+            .bind("attr_name", attrName)
+            .bind("excluded_dataset_ids", excludedDatasetIds.toTypedArray())
+            .bind("new_instances", Json.of(serializeObject(newInstances)))
+            .bind("modified_at_patch", modifiedAtPatch)
             .oneToResult { row -> ExpandedEntity(toJson(row["payload"]).deserializeExpandedPayload()) }
-            .bind()
     }
 
     private suspend fun removeAttributeFromPayload(

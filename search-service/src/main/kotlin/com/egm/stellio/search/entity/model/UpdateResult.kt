@@ -4,6 +4,8 @@ import com.egm.stellio.shared.model.EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.fasterxml.jackson.annotation.JsonIgnore
 import java.net.URI
+import java.time.ZonedDateTime
+import java.util.UUID
 
 /**
  * UpdateResult datatype as defined in 5.2.18
@@ -86,3 +88,9 @@ fun List<AttributeOperationResult>.hasSuccessfulResult(): Boolean =
 fun List<AttributeOperationResult>.getSucceededAttributesOperations(): List<SucceededAttributeOperationResult> =
     this.filterIsInstance<SucceededAttributeOperationResult>()
         .filter { it.attributeName !in EXPANDED_ENTITY_CORE_MEMBERS }
+
+/**
+ * Result of an INSERT ... ON CONFLICT DO UPDATE ... RETURNING on temporal_entity_attribute,
+ * conveying the DB-generated identifier and timestamps for the upserted attribute row.
+ */
+internal data class AttributeUpsertResult(val id: UUID, val createdAt: ZonedDateTime, val modifiedAt: ZonedDateTime)

@@ -1,11 +1,14 @@
 package com.egm.stellio.search.entity.service
 
 import arrow.core.Either
+import arrow.core.Option
 import arrow.core.flatMap
 import arrow.core.left
+import arrow.core.none
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
+import arrow.core.some
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.asJsonB
@@ -22,6 +25,7 @@ import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.AttributeOperationResult
+import com.egm.stellio.search.entity.model.AttributeUpsertResult
 import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
@@ -817,7 +821,7 @@ class EntityAttributeService(
         ngsiLdAttribute: NgsiLdAttribute,
         expandedAttributes: ExpandedAttributes,
         createdAt: ZonedDateTime
-    ): Either<APIException, SucceededAttributeOperationResult?> = either {
+    ): Either<APIException, Option<SucceededAttributeOperationResult>> = either {
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         logger.debug("Upserting temporal attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
         val currentAttribute =
@@ -842,7 +846,7 @@ class EntityAttributeService(
                 createdAt,
                 attributePayload,
                 false
-            ).bind()
+            ).bind().some()
         } else {
             logger.debug("Adding instance to attribute {} to entity {}", currentAttribute.attributeName, entityUri)
             attributeInstanceService.addObservedAttributeInstance(
@@ -850,7 +854,7 @@ class EntityAttributeService(
                 attributeMetadata,
                 expandedAttributes[currentAttribute.attributeName]!!.first()
             ).bind()
-            null
+            none()
         }
     }
 
@@ -1031,6 +1035,4 @@ class EntityAttributeService(
                 attributeMetadata.copy(observedAt = observedAt)
             )
         else Pair(attributePayload, attributeMetadata)
-
-    internal data class AttributeUpsertResult(val id: UUID, val createdAt: ZonedDateTime, val modifiedAt: ZonedDateTime)
 }

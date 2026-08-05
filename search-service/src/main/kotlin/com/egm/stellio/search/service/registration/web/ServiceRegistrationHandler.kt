@@ -1,11 +1,11 @@
-package com.egm.stellio.search.service.web
+package com.egm.stellio.search.service.registration.web
 
 import arrow.core.raise.either
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
-import com.egm.stellio.search.service.model.ServiceRegistration.Companion.deserialize
-import com.egm.stellio.search.service.model.ServiceRegistrationFilters
-import com.egm.stellio.search.service.model.serialize
-import com.egm.stellio.search.service.service.ServiceRegistrationService
+import com.egm.stellio.search.service.registration.model.ServiceRegistration.Companion.deserialize
+import com.egm.stellio.search.service.registration.model.ServiceRegistrationFilters
+import com.egm.stellio.search.service.registration.model.serialize
+import com.egm.stellio.search.service.registration.service.ServiceRegistrationService
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue

@@ -6,9 +6,10 @@ import com.egm.stellio.search.authorization.permission.service.AuthorizationServ
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.common.model.UnparsedGeoQuery
 import com.egm.stellio.search.csr.model.EntityInfo
-import com.egm.stellio.search.service.model.ServiceInformation
-import com.egm.stellio.search.service.model.ServiceRegistration
-import com.egm.stellio.search.service.service.ServiceRegistrationService
+import com.egm.stellio.search.service.registration.model.ServiceInformation
+import com.egm.stellio.search.service.registration.model.ServiceRegistration
+import com.egm.stellio.search.service.registration.service.ServiceRegistrationService
+import com.egm.stellio.search.service.registration.web.ServiceRegistrationHandler
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
@@ -28,6 +29,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
@@ -104,6 +106,7 @@ class ServiceRegistrationHandlerTests {
                 match {
                     it.id == registrationId &&
                         it.endpoint.toString() == "http://localhost:2345/setLight" &&
+                        it.endpointMethod == HttpMethod.GET &&
                         it.serviceInformation.name == "setLight" &&
                         it.scopeQ == "/building/floor1" &&
                         it.geoQ?.geometry == "Point"
@@ -238,6 +241,7 @@ class ServiceRegistrationHandlerTests {
           "id": "$registrationId",
           "type": "ServiceRegistration",
           "endpoint": "http://localhost:2345/setLight",
+          "endpointMethod": "GET",
           "entities": [{
             "idPattern": "urn:ngsi-ld:BeeHive:.*",
             "type": "BeeHive"

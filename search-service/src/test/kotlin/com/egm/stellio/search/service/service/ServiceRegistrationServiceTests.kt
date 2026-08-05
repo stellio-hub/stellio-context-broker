@@ -2,11 +2,12 @@ package com.egm.stellio.search.service.service
 
 import com.egm.stellio.search.common.model.UnparsedGeoQuery
 import com.egm.stellio.search.csr.model.EntityInfo
-import com.egm.stellio.search.service.model.InputInformation
-import com.egm.stellio.search.service.model.InputInformationType
-import com.egm.stellio.search.service.model.ServiceInformation
-import com.egm.stellio.search.service.model.ServiceRegistration
-import com.egm.stellio.search.service.model.ServiceRegistrationFilters
+import com.egm.stellio.search.service.registration.model.InputInformation
+import com.egm.stellio.search.service.registration.model.InputInformationType
+import com.egm.stellio.search.service.registration.model.ServiceInformation
+import com.egm.stellio.search.service.registration.model.ServiceRegistration
+import com.egm.stellio.search.service.registration.model.ServiceRegistrationFilters
+import com.egm.stellio.search.service.registration.service.ServiceRegistrationService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AlreadyExistsException
@@ -28,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
+import org.springframework.http.HttpMethod
 import org.springframework.test.context.ActiveProfiles
 
 @SpringBootTest
@@ -55,6 +57,7 @@ class ServiceRegistrationServiceTests : WithTimescaleContainer, WithKafkaContain
         serviceRegistrationService.getById(registration.id).shouldSucceedWith {
             assertEquals(registration.id, it.id)
             assertEquals(registration.endpoint, it.endpoint)
+            assertEquals(HttpMethod.GET, it.endpointMethod)
             assertEquals(registration.entities, it.entities)
             assertEquals(registration.serviceInformation, it.serviceInformation)
             assertEquals(registration.q, it.q)
@@ -170,6 +173,7 @@ class ServiceRegistrationServiceTests : WithTimescaleContainer, WithKafkaContain
         ServiceRegistration(
             id = "urn:ngsi-ld:ServiceRegistration:sr3689".toUri(),
             endpoint = "http://localhost:2345/setLight".toUri(),
+            endpointMethod = HttpMethod.GET,
             entities = listOf(
                 EntityInfo(
                     id = null,

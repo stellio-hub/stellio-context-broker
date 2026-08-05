@@ -16,7 +16,7 @@ import java.time.Duration
 class DefaultTimeoutR2dbcTransactionManagerTests {
 
     @Test
-    fun `configured timeout should apply by default`() {
+    fun `resolveTimeout should return configured timeout when transaction does not define one`() {
         val transactionManager = transactionManager(Duration.ofMinutes(1))
 
         assertThat(transactionManager.resolveTimeout(DefaultTransactionDefinition()))
@@ -24,7 +24,7 @@ class DefaultTimeoutR2dbcTransactionManagerTests {
     }
 
     @Test
-    fun `explicit transaction timeout should take precedence`() {
+    fun `resolveTimeout should return explicit timeout when transaction defines one`() {
         val transactionManager = transactionManager(Duration.ofMinutes(1))
         val definition = DefaultTransactionDefinition().apply { timeout = 10 }
 
@@ -33,7 +33,7 @@ class DefaultTimeoutR2dbcTransactionManagerTests {
     }
 
     @Test
-    fun `non-positive configured timeout should disable the default`() {
+    fun `resolveTimeout should disable default timeout when configured timeout is non-positive`() {
         val definition = DefaultTransactionDefinition()
 
         assertThat(transactionManager(Duration.ZERO).resolveTimeout(definition))
@@ -43,7 +43,7 @@ class DefaultTimeoutR2dbcTransactionManagerTests {
     }
 
     @Test
-    fun `configured timeout should be applied to database statements`() {
+    fun `applyStatementTimeout should execute statement when timeout is configured`() {
         val connection = mockk<Connection>()
         val statement = mockk<Statement>()
         everyStatement(connection, statement, 60_000)
@@ -56,7 +56,7 @@ class DefaultTimeoutR2dbcTransactionManagerTests {
     }
 
     @Test
-    fun `disabled timeout should not configure database statements`() {
+    fun `applyStatementTimeout should not execute statement when timeout is disabled`() {
         val connection = mockk<Connection>()
 
         transactionManager(Duration.ZERO)

@@ -125,14 +125,18 @@ internal class TransactionalEitherInterceptor : MethodInterceptor {
     }
 
     private fun Throwable.isTimeout(): Boolean =
-        this is QueryTimeoutException ||
-            this is TransactionTimedOutException ||
-            this is R2dbcTimeoutException ||
-            this is R2dbcException && sqlState == QUERY_CANCELED_SQL_STATE
+        when (this) {
+            is QueryTimeoutException,
+            is TransactionTimedOutException,
+            is R2dbcTimeoutException -> true
+            is R2dbcException -> sqlState == QUERY_CANCELLED_SQL_STATE
+            else -> false
+        }
 
     companion object {
         private val logger = LoggerFactory.getLogger(TransactionalEitherInterceptor::class.java)
 
-        private const val QUERY_CANCELED_SQL_STATE = "57014"
+        // https://www.postgresql.org/docs/current/errcodes-appendix.html
+        private const val QUERY_CANCELLED_SQL_STATE = "57014"
     }
 }

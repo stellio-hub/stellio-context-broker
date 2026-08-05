@@ -39,14 +39,14 @@ class TransactionalEitherConfigurationTests @Autowired constructor(
     }
 
     @Test
-    fun `successful transaction should preserve the right result`() = runTest {
+    fun `eitherResult should preserve right result when transaction succeeds`() = runTest {
         val result = testService.eitherResult()
 
         assertThat(result.getOrNull()).isEqualTo("result")
     }
 
     @Test
-    fun `transaction timeout should be returned as a left`() = runTest {
+    fun `eitherResult should return a timeout when transaction times out`() = runTest {
         transactionManager.commitFailure = QueryTimeoutException("statement timed out")
 
         val result = testService.eitherResult()
@@ -55,7 +55,7 @@ class TransactionalEitherConfigurationTests @Autowired constructor(
     }
 
     @Test
-    fun `PostgreSQL query cancellation should be returned as a timeout left`() = runTest {
+    fun `eitherResult should return a timeout when PostgreSQL cancels the query`() = runTest {
         transactionManager.commitFailure =
             R2dbcTransientResourceException("canceling statement due to statement timeout", "57014")
 
@@ -65,7 +65,7 @@ class TransactionalEitherConfigurationTests @Autowired constructor(
     }
 
     @Test
-    fun `other transaction failure should be returned as a left`() = runTest {
+    fun `eitherResult should return an internal error when transaction fails for another reason`() = runTest {
         transactionManager.commitFailure = TransactionSystemException("commit failed")
 
         val result = testService.eitherResult()
@@ -74,7 +74,7 @@ class TransactionalEitherConfigurationTests @Autowired constructor(
     }
 
     @Test
-    fun `transaction failure should still be thrown for a raw return type`() {
+    fun `rawResult should throw the error when transaction fails`() {
         transactionManager.commitFailure = QueryTimeoutException("statement timed out")
 
         assertThrows<QueryTimeoutException> {
@@ -85,7 +85,7 @@ class TransactionalEitherConfigurationTests @Autowired constructor(
     }
 
     @Test
-    fun `transaction failure should still be thrown for an Either with another left type`() {
+    fun `eitherWithStringError should throw the error when transaction fails`() {
         transactionManager.commitFailure = QueryTimeoutException("statement timed out")
 
         assertThrows<QueryTimeoutException> {

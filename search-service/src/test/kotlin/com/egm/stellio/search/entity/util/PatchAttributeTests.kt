@@ -714,6 +714,248 @@ class PatchAttributeTests {
                         }
                     }
                     """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 1, "b": "keep" } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 2 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 2, "b": "keep" } ]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 1 }, { "b": 2 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": { "a": 2 }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": { "a": 2 }
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 1 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 2 }, { "b": 3 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 2 }, { "b": 3 } ]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 1 }, { "b": 2 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 4 }, { "c": 5 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 4 }, { "c": 5 } ]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 1 }, { "b": 2 } ],
+                            "subProperty": {
+                                "type": "Property",
+                                "value": "a"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 4 }, { "c": 5 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 4 }, { "c": 5 } ],
+                            "subProperty": {
+                                "type": "Property",
+                                "value": "a"
+                            }
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": [ "car", "voiture" ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": "velo"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": "velo"
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": [ "stellio", "egm" ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": "nantes"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "VocabProperty",
+                            "vocab": "nantes"
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": [ "urn:ngsi-ld:Entity:01", "urn:ngsi-ld:Entity:02" ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:Entity:03"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:Entity:03"
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": "urn:ngsi-ld:Entity:01"
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": [ "urn:ngsi-ld:Entity:02", "urn:ngsi-ld:Entity:03" ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Relationship",
+                            "object": [ "urn:ngsi-ld:Entity:02", "urn:ngsi-ld:Entity:03" ]
+                        }
+                    }
+                    """.trimIndent()
                 )
             )
         }

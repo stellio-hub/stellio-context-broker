@@ -244,7 +244,7 @@ private fun mergePropertyOrVocabProperty(
 
     return listOf(
         if (attrName == NGSILD_PROPERTY_VALUE)
-            applyNgsiLdNullRemoval(mergedElement, updateInstance[0] as ExpandedAttributeInstance)
+            applyPropertyNgsiLdNullRemoval(mergedElement, updateInstance[0] as ExpandedAttributeInstance)
         else
             mergedElement
     )
@@ -256,7 +256,7 @@ private fun mergePropertyOrVocabProperty(
  * Covers Properties with an object value: expanded as nested JSON-LD with IRI keys — null keys are top-level
  * entries whose single expanded value is `[{"@value": "urn:ngsi-ld:null"}]`
  */
-private fun applyNgsiLdNullRemoval(
+private fun applyPropertyNgsiLdNullRemoval(
     merged: Map<String, Any>,
     update: Map<String, Any>
 ): Map<String, Any> {

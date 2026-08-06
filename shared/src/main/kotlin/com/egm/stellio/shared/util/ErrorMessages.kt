@@ -105,7 +105,7 @@ object ErrorMessages {
             "Context source $csrId returned an invalid payload, attribute is neither a List nor a Map: $attribute"
     }
 
-    object ServiceRegistrationErrorMessages {
+    object ServiceRegistration {
         fun serviceRegistrationNotFoundMessage(id: URI) = "Service registration $id does not exist"
         fun serviceRegistrationAlreadyExistsMessage(id: URI) = "Service registration $id already exists"
         fun serviceRegistrationFailedToParseMessage(cause: String?) =

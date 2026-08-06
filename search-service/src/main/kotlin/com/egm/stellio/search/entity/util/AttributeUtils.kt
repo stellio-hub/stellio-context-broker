@@ -322,7 +322,7 @@ fun mergePatch(
                 target[attrName] = mergeJsonProperty(
                     source[attrName]!! as ExpandedAttributeValue,
                     attrValue as ExpandedAttributeValue
-                ) ?: attrValue
+                )
             }
             attrName == NGSILD_VOCABPROPERTY_VOCAB || attrName == NGSILD_PROPERTY_VALUE -> {
                 target[attrName] = mergePropertyOrVocabProperty(

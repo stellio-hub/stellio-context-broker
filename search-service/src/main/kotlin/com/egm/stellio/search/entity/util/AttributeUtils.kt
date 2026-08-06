@@ -13,6 +13,7 @@ import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
+import com.egm.stellio.shared.model.ExpandedAttributeValue
 import com.egm.stellio.shared.model.ExpandedLanguageMapValue
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_ID_KW
@@ -196,19 +197,14 @@ private fun mergeLanguageProperty(
     return targetLangEntries
 }
 
-/**
- * Merges a JsonProperty instance's `@value` content with the corresponding update, unwrapping/rewrapping
- * one-element arrays as needed. Returns `null` when either side's content is not safely mergeable (arrays with
- * zero or several elements, or scalars), signalling to the caller that the update should be copied wholesale.
- */
 private fun mergeJsonProperty(
-    sourceInstance: Map<String, Any>,
-    updateInstance: Map<String, Any>
-): List<Map<String, Any>>? {
-    val sourceContent = extractMergeableJsonMap(sourceInstance[JSONLD_VALUE_KW])
-    val updateContent = extractMergeableJsonMap(updateInstance[JSONLD_VALUE_KW])
+    sourceInstance: ExpandedAttributeValue,
+    updateInstance: ExpandedAttributeValue
+): ExpandedAttributeValue {
+    val sourceContent = extractMergeableJsonMap(sourceInstance[0][JSONLD_VALUE_KW])
+    val updateContent = extractMergeableJsonMap(updateInstance[0][JSONLD_VALUE_KW])
     if (sourceContent == null || updateContent == null)
-        return null
+        return updateInstance
 
     val mergedContent = JsonMerger().merge(
         JsonUtils.serializeObject(sourceContent),
@@ -218,15 +214,14 @@ private fun mergeJsonProperty(
     val nullKeys = updateContent.filter { (_, v) -> v == NGSILD_NULL }.keys
     val filteredContent = if (nullKeys.isEmpty()) mergedContent else mergedContent.filterKeys { it !in nullKeys }
     // restore the shape (bare object vs. one-element array) that the update's `@value` had before merging
-    val rewrappedContent = if (updateInstance[JSONLD_VALUE_KW] is List<*>) listOf(filteredContent) else filteredContent
+    val rewrappedContent =
+        if (updateInstance[0][JSONLD_VALUE_KW] is List<*>)
+            listOf(filteredContent)
+        else filteredContent
 
-    return listOf(updateInstance + (JSONLD_VALUE_KW to rewrappedContent))
+    return listOf(updateInstance[0] + (JSONLD_VALUE_KW to rewrappedContent))
 }
 
-/**
- * Extracts the JSON object to merge/null-filter out of a JsonProperty's raw `@value` content: the value itself
- * if it is already a JSON object, or the single element if it is a one-element array holding a JSON object.
- */
 private fun extractMergeableJsonMap(value: Any?): Map<String, Any>? =
     when (value) {
         is Map<*, *> -> value as Map<String, Any>
@@ -234,27 +229,22 @@ private fun extractMergeableJsonMap(value: Any?): Map<String, Any>? =
         else -> null
     }
 
-/**
- * Merges a Property or VocabProperty instance with the corresponding update. Returns `null` when the update
- * holds an array of values (`updateInstances.size > 1`), signalling to the caller that it is not safely
- * mergeable and the update should be copied wholesale.
- */
 private fun mergePropertyOrVocabProperty(
     attrName: String,
-    sourceInstances: List<Any>,
-    updateInstances: List<Any>
-): List<Map<String, Any>>? {
-    if (updateInstances.size > 1)
-        return null
+    sourceInstance: ExpandedAttributeValue,
+    updateInstance: ExpandedAttributeValue
+): ExpandedAttributeValue {
+    if (updateInstance.size > 1)
+        return updateInstance
 
     val mergedElement = JsonMerger().merge(
-        JsonUtils.serializeObject(sourceInstances[0]),
-        JsonUtils.serializeObject(updateInstances[0])
+        JsonUtils.serializeObject(sourceInstance[0]),
+        JsonUtils.serializeObject(updateInstance[0])
     ).deserializeAsMap()
 
     return listOf(
         if (attrName == NGSILD_PROPERTY_VALUE)
-            applyNgsiLdNullRemoval(mergedElement, updateInstances[0] as ExpandedAttributeInstance)
+            applyNgsiLdNullRemoval(mergedElement, updateInstance[0] as ExpandedAttributeInstance)
         else
             mergedElement
     )
@@ -330,14 +320,16 @@ fun mergePatch(
                 target[attrName] = attrValue
             attrName == NGSILD_JSONPROPERTY_JSON -> {
                 target[attrName] = mergeJsonProperty(
-                    source[attrName]!![0] as Map<String, Any>,
-                    attrValue[0] as Map<String, Any>
+                    source[attrName]!! as ExpandedAttributeValue,
+                    attrValue as ExpandedAttributeValue
                 ) ?: attrValue
             }
             attrName == NGSILD_VOCABPROPERTY_VOCAB || attrName == NGSILD_PROPERTY_VALUE -> {
-                // a Property or VocabProperty holding an array of values cannot be safely merge patched,
-                // so copy the whole value from the update
-                target[attrName] = mergePropertyOrVocabProperty(attrName, source[attrName]!!, attrValue) ?: attrValue
+                target[attrName] = mergePropertyOrVocabProperty(
+                    attrName,
+                    source[attrName]!! as ExpandedAttributeValue,
+                    attrValue as ExpandedAttributeValue
+                )
             }
             else -> target[attrName] = attrValue
         }

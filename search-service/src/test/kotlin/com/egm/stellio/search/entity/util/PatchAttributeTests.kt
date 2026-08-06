@@ -715,7 +715,6 @@ class PatchAttributeTests {
                     }
                     """.trimIndent()
                 ),
-                // a JsonProperty holding a single-element array of an object on both sides is deep-merged
                 Arguments.of(
                     """
                     {
@@ -742,8 +741,6 @@ class PatchAttributeTests {
                     }
                     """.trimIndent()
                 ),
-                // a JsonProperty whose source JSON is a multi-element array cannot be merged with an object update,
-                // so the update is copied wholesale
                 Arguments.of(
                     """
                     {
@@ -770,8 +767,6 @@ class PatchAttributeTests {
                     }
                     """.trimIndent()
                 ),
-                // a JsonProperty whose source JSON is a single-element array cannot be merged with a multi-element
-                // array update, so the update is copied wholesale
                 Arguments.of(
                     """
                     {
@@ -798,7 +793,66 @@ class PatchAttributeTests {
                     }
                     """.trimIndent()
                 ),
-                // a Property whose source value is a multi-element array is replaced wholesale by a scalar update
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 1 }, { "b": 2 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 4 }, { "c": 5 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 4 }, { "c": 5 } ]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 1 }, { "b": 2 } ],
+                            "subProperty": {
+                                "type": "Property",
+                                "value": "a"
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 4 }, { "c": 5 } ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "JsonProperty",
+                            "json": [ { "a": 4 }, { "c": 5 } ],
+                            "subProperty": {
+                                "type": "Property",
+                                "value": "a"
+                            }
+                        }
+                    }
+                    """.trimIndent()
+                ),
                 Arguments.of(
                     """
                     {
@@ -825,8 +879,6 @@ class PatchAttributeTests {
                     }
                     """.trimIndent()
                 ),
-                // a VocabProperty whose source vocab is a multi-element array is replaced wholesale by a scalar
-                // update
                 Arguments.of(
                     """
                     {
@@ -853,8 +905,6 @@ class PatchAttributeTests {
                     }
                     """.trimIndent()
                 ),
-                // a Relationship holding multiple targets is always replaced wholesale, regardless of the update
-                // shape
                 Arguments.of(
                     """
                     {

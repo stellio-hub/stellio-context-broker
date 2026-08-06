@@ -3,7 +3,7 @@ package com.egm.stellio.shared.config
 import org.springframework.boot.context.properties.ConfigurationProperties
 import java.time.Duration
 
-private const val DEFAULT_TRANSACTION_TIMEOUT_SECONDS = 40L
+private const val DEFAULT_TRANSACTION_TIMEOUT_SECONDS = 50L
 
 @ConfigurationProperties("application")
 data class ApplicationProperties(

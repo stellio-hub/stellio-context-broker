@@ -24,8 +24,8 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.DataTypes
-import com.egm.stellio.shared.util.ErrorMessages.ServiceRegistrationErrorMessages.serviceRegistrationAlreadyExistsMessage
-import com.egm.stellio.shared.util.ErrorMessages.ServiceRegistrationErrorMessages.serviceRegistrationNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceRegistration.serviceRegistrationAlreadyExistsMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceRegistration.serviceRegistrationNotFoundMessage
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.escapeSingleQuotes
 import com.egm.stellio.shared.util.getSubFromSecurityContext

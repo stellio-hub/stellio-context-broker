@@ -7,7 +7,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.ErrorMessages.ServiceRegistrationErrorMessages.SERVICE_REGISTRATION_QUERY_REQUIRED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.ServiceRegistration.SERVICE_REGISTRATION_QUERY_REQUIRED_MESSAGE
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.toListOfUri
 import org.springframework.util.MultiValueMap

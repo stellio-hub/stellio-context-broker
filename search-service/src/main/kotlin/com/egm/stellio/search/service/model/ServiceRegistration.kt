@@ -18,7 +18,7 @@ import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidUriMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.memberIsInvalidMessage
-import com.egm.stellio.shared.util.ErrorMessages.ServiceRegistrationErrorMessages.serviceRegistrationFailedToParseMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceRegistration.serviceRegistrationFailedToParseMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject

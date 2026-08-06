@@ -5,7 +5,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.ErrorMessages.ServiceRegistrationErrorMessages.SERVICE_INFORMATION_NAME_REQUIRED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.ServiceRegistration.SERVICE_INFORMATION_NAME_REQUIRED_MESSAGE
 
 data class ServiceInformation(
     val name: String = "",

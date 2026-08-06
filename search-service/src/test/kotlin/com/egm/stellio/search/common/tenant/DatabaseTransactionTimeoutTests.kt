@@ -6,6 +6,7 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.GatewayTimeoutException
+import com.egm.stellio.shared.model.InternalErrorException
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -34,6 +35,13 @@ class DatabaseTransactionTimeoutTests : WithTimescaleContainer, WithKafkaContain
         assertThat(result.leftOrNull()).isInstanceOf(GatewayTimeoutException::class.java)
     }
 
+    @Test
+    fun `runInvalidQuery should return an internal error when database request fails`() = runTest {
+        val result = databaseTimeoutTestService.runInvalidQuery()
+
+        assertThat(result.leftOrNull()).isInstanceOf(InternalErrorException::class.java)
+    }
+
     @TestConfiguration(proxyBeanMethods = false)
     class TimeoutTestConfiguration {
 
@@ -50,6 +58,14 @@ open class DatabaseTimeoutTestService(
     @Transactional
     open suspend fun runSlowQuery(): Either<APIException, Unit> {
         databaseClient.sql("SELECT pg_sleep(1)")
+            .then()
+            .awaitSingleOrNull()
+        return Unit.right()
+    }
+
+    @Transactional
+    open suspend fun runInvalidQuery(): Either<APIException, Unit> {
+        databaseClient.sql("FAILED REQUEST")
             .then()
             .awaitSingleOrNull()
         return Unit.right()

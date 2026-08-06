@@ -16,6 +16,8 @@ import org.locationtech.jts.io.WKTWriter
 import org.locationtech.jts.io.geojson.GeoJsonReader
 import org.locationtech.jts.io.geojson.GeoJsonWriter
 
+private const val WKT_OUTPUT_DIMENSION = 3
+
 const val FEATURE_TYPE = "Feature"
 const val FEATURE_COLLECTION_TYPE = "FeatureCollection"
 const val GEOMETRY_PROPERTY_TERM = "geometry"
@@ -40,7 +42,7 @@ fun geoJsonToWkt(geoJsonPayload: Map<String, Any>): Either<APIException, String>
 fun geoJsonToWkt(geoJsonSerializedPayload: String): Either<APIException, String> =
     runCatching {
         val geoJson = GeoJsonReader().read(geoJsonSerializedPayload)
-        WKTWriter().write(geoJson)
+        WKTWriter(WKT_OUTPUT_DIMENSION).write(geoJson)
     }.fold({
         it.right()
     }, {

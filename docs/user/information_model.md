@@ -41,7 +41,7 @@ There are several property types:
 
 - `Property`: a string, number, date, time, datetime, or boolean
 - `JsonProperty`: valid JSON data
-- `GeoProperty`: a GeoJSON geometry (use `location` to represent the entity’s location)
+- `GeoProperty`: a GeoJSON geometry (use `location` to represent the entity’s location). GeoJSON coordinates may include a third altitude ordinate, which Stellio preserves. Altitude is not taken into account by geoqueries.
 - `LanguageProperty`: text in multiple languages
 
 Example with different attributes:

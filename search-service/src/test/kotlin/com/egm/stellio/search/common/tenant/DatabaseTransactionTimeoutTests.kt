@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
 
 @SpringBootTest(properties = ["application.transaction-timeout=100ms"])
 @ActiveProfiles("test")
@@ -28,6 +29,9 @@ class DatabaseTransactionTimeoutTests : WithTimescaleContainer, WithKafkaContain
     @Autowired
     private lateinit var databaseTimeoutTestService: DatabaseTimeoutTestService
 
+    @Autowired
+    private lateinit var databaseClient: DatabaseClient
+
     @Test
     fun `runSlowQuery should return a gateway timeout when PostgreSQL cancels the statement`() = runTest {
         val result = databaseTimeoutTestService.runSlowQuery()
@@ -36,10 +40,18 @@ class DatabaseTransactionTimeoutTests : WithTimescaleContainer, WithKafkaContain
     }
 
     @Test
-    fun `runInvalidQuery should return an internal error when database request fails`() = runTest {
-        val result = databaseTimeoutTestService.runInvalidQuery()
+    fun `createDuplicateEntity should roll back first entity creation when the second insert fails`() = runTest {
+        val entityId = "urn:ngsi-ld:Entity:${UUID.randomUUID()}"
+
+        val result = databaseTimeoutTestService.createDuplicateEntity(entityId)
+        val storedEntity = databaseClient.sql("SELECT entity_id FROM entity_payload WHERE entity_id = :entityId")
+            .bind("entityId", entityId)
+            .fetch()
+            .one()
+            .awaitSingleOrNull()
 
         assertThat(result.leftOrNull()).isInstanceOf(InternalErrorException::class.java)
+        assertThat(storedEntity).isNull()
     }
 
     @TestConfiguration(proxyBeanMethods = false)
@@ -63,11 +75,16 @@ open class DatabaseTimeoutTestService(
         return Unit.right()
     }
 
-    @Transactional
-    open suspend fun runInvalidQuery(): Either<APIException, Unit> {
-        databaseClient.sql("FAILED REQUEST")
-            .then()
-            .awaitSingleOrNull()
+    @Transactional(timeout = 5)
+    open suspend fun createDuplicateEntity(entityId: String): Either<APIException, Unit> {
+        repeat(2) {
+            databaseClient.sql(
+                "INSERT INTO entity_payload (entity_id, modified_at) VALUES (:entityId, CURRENT_TIMESTAMP)"
+            )
+                .bind("entityId", entityId)
+                .then()
+                .awaitSingleOrNull()
+        }
         return Unit.right()
     }
 }

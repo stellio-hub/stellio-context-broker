@@ -30,11 +30,9 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestPropertySource
 
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(properties = ["application.authentication.enabled=false"])
 class ServiceRegistrationServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Autowired
     private lateinit var serviceRegistrationService: ServiceRegistrationService
@@ -58,7 +56,6 @@ class ServiceRegistrationServiceTests : WithTimescaleContainer, WithKafkaContain
         serviceRegistrationService.getById(registration.id).shouldSucceedWith {
             assertEquals(registration.id, it.id)
             assertEquals(registration.endpoint, it.endpoint)
-            assertEquals(ServiceMode.ASYNCHRONOUS, it.mode)
             assertEquals(registration.entities, it.entities)
             assertEquals(registration.serviceInformation, it.serviceInformation)
             assertEquals(registration.q, it.q)
@@ -174,7 +171,6 @@ class ServiceRegistrationServiceTests : WithTimescaleContainer, WithKafkaContain
         ServiceRegistration(
             id = "urn:ngsi-ld:ServiceRegistration:sr3689".toUri(),
             endpoint = "http://localhost:2345/setLight".toUri(),
-            mode = ServiceMode.ASYNCHRONOUS,
             entities = listOf(
                 EntityInfo(
                     id = null,

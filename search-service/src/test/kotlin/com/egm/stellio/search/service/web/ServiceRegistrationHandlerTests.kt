@@ -185,6 +185,18 @@ class ServiceRegistrationHandlerTests {
     }
 
     @Test
+    fun `retrieve should propagate a not found error`() = runTest {
+        coEvery {
+            serviceRegistrationService.getById(registrationId)
+        } returns ResourceNotFoundException("not found").left()
+
+        webClient.get()
+            .uri("$resourceUri/$registrationId")
+            .exchange()
+            .expectStatus().isNotFound
+    }
+
+    @Test
     fun `update should merge the fragment and return 204`() = runTest {
         coEvery { serviceRegistrationService.getById(registrationId) } returns registration.right()
         coEvery { serviceRegistrationService.upsert(any()) } returns Unit.right()
@@ -218,18 +230,6 @@ class ServiceRegistrationHandlerTests {
         coVerify {
             serviceRegistrationService.delete(registrationId)
         }
-    }
-
-    @Test
-    fun `retrieve should propagate a not found error`() = runTest {
-        coEvery {
-            serviceRegistrationService.getById(registrationId)
-        } returns ResourceNotFoundException("not found").left()
-
-        webClient.get()
-            .uri("$resourceUri/$registrationId")
-            .exchange()
-            .expectStatus().isNotFound
     }
 
     private val serviceRegistrationPayload =

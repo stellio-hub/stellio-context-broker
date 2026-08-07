@@ -2,7 +2,6 @@ CREATE TABLE service_registration
 (
     id text,
     endpoint text NOT NULL,
-    mode text,
     entities jsonb NOT NULL,
     service_information jsonb NOT NULL,
     q text,

@@ -17,7 +17,6 @@ import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.csr.model.EntityInfo
 import com.egm.stellio.search.csr.model.EntityInfoDB
 import com.egm.stellio.search.service.model.ServiceInformation
-import com.egm.stellio.search.service.model.ServiceMode
 import com.egm.stellio.search.service.model.ServiceRegistration
 import com.egm.stellio.search.service.model.ServiceRegistrationFilters
 import com.egm.stellio.shared.model.APIException
@@ -59,17 +58,16 @@ class ServiceRegistrationService(
         databaseClient.sql(
             """
             INSERT INTO service_registration(
-                id, endpoint, mode, entities, service_information,
+                id, endpoint, entities, service_information,
                 q, geo_q, scope_q, sub, created_at, modified_at
             )
             VALUES(
-                :id, :endpoint, :mode, :entities, :service_information,
+                :id, :endpoint, :entities, :service_information,
                 :q, :geo_q, :scope_q, :sub, :created_at, :modified_at
             )
             ON CONFLICT (id)
             DO UPDATE SET
                 endpoint = :endpoint,
-                mode = :mode,
                 entities = :entities,
                 service_information = :service_information,
                 q = :q,
@@ -81,7 +79,6 @@ class ServiceRegistrationService(
         )
             .bind("id", serviceRegistration.id)
             .bind("endpoint", serviceRegistration.endpoint)
-            .bind("mode", serviceRegistration.mode?.key)
             .bind(
                 "entities",
                 Json.of(DataTypes.serialize(serviceRegistration.entities.map(::EntityInfoDB)))
@@ -125,7 +122,7 @@ class ServiceRegistrationService(
 
         databaseClient.sql(
             """
-            SELECT id, endpoint, mode, entities, service_information,
+            SELECT id, endpoint, entities, service_information,
                 q, geo_q, scope_q, created_at, modified_at
             FROM service_registration
             WHERE id = :id
@@ -153,7 +150,7 @@ class ServiceRegistrationService(
 
         return databaseClient.sql(
             """
-            SELECT registration.id, endpoint, mode, entities, service_information,
+            SELECT registration.id, endpoint, entities, service_information,
                 q, geo_q, scope_q, created_at, modified_at
             FROM service_registration AS registration
             LEFT JOIN jsonb_to_recordset(entities)
@@ -218,7 +215,6 @@ class ServiceRegistrationService(
             ServiceRegistration(
                 id = toUri(row["id"]),
                 endpoint = toUri(row["endpoint"]),
-                mode = ServiceMode.fromString(row["mode"] as? String),
                 entities = DataTypes.mapper.readerForListOf(EntityInfo::class.java)
                     .readValue(toJsonString(row["entities"])),
                 serviceInformation = DataTypes.deserializeAs<ServiceInformation>(

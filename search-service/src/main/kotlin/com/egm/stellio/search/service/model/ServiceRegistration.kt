@@ -33,7 +33,6 @@ data class ServiceRegistration(
     val id: URI = "urn:ngsi-ld:ServiceRegistration:${UUID.randomUUID()}".toUri(),
     val type: String = NGSILD_SERVICE_REGISTRATION_TERM,
     val endpoint: URI,
-    val mode: ServiceMode? = null,
     val entities: List<EntityInfo>,
     val serviceInformation: ServiceInformation,
     val q: String? = null,
@@ -128,6 +127,7 @@ data class ServiceRegistration(
         } ?: Unit.right()
 
     companion object {
+
         fun deserialize(
             input: Map<String, Any>,
             contexts: List<String>

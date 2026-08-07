@@ -26,6 +26,7 @@ import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.toSqlArray
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
 @Service
@@ -33,6 +34,7 @@ class EntityQueryService(
     private val databaseClient: DatabaseClient,
     private val authorizationService: AuthorizationService
 ) {
+    @Transactional(readOnly = true)
     suspend fun queryEntity(
         entityId: URI,
         excludeDeleted: Boolean = true
@@ -43,6 +45,7 @@ class EntityQueryService(
         entity.toExpandedEntity()
     }
 
+    @Transactional(readOnly = true)
     suspend fun queryEntities(
         entitiesQuery: EntitiesQuery
     ): Either<APIException, Pair<List<ExpandedEntity>, Int>> = either {

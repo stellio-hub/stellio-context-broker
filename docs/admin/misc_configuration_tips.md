@@ -34,6 +34,21 @@ If running Stellio from `docker-compose`, it can be configured in the environmen
       - SPRING_HTTP_CODECS_MAX-IN-MEMORY-SIZE=10485760
 ```
 
+## Configure the transaction timeout
+
+You can configure the default timeout for Spring-managed database transactions in `search-service` and
+`subscription-service` by setting the `application.transaction-timeout` property. The default timeout is 50 seconds.
+A zero or negative duration disables the default timeout.
+
+When running Stellio with Docker Compose, use `APPLICATION_TRANSACTION_TIMEOUT`:
+
+```dotenv
+# Spring duration format: ms, s, m, h, or an ISO-8601 duration
+# 50s by default
+# Set to 0s or less to disable the timeout
+APPLICATION_TRANSACTION_TIMEOUT=50s
+```
+
 ## Increase the default and maximum limit for pagination
 
 Stellio has a default pagination limit of 30 and a maximum of 100. 

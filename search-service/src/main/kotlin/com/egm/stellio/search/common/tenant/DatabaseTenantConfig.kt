@@ -1,6 +1,7 @@
 package com.egm.stellio.search.common.tenant
 
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.config.DefaultTimeoutR2dbcTransactionManager
 import io.r2dbc.spi.ConnectionFactories
 import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.ConnectionFactoryOptions
@@ -14,7 +15,6 @@ import org.springframework.data.r2dbc.core.DefaultReactiveDataAccessStrategy
 import org.springframework.data.r2dbc.core.R2dbcEntityOperations
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.dialect.DialectResolver
-import org.springframework.r2dbc.connection.R2dbcTransactionManager
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.transaction.ReactiveTransactionManager
 import org.springframework.transaction.annotation.EnableTransactionManagement
@@ -30,7 +30,7 @@ class DatabaseTenantConfig(
 
     @Bean
     fun transactionManager(connectionFactory: ConnectionFactory): ReactiveTransactionManager =
-        R2dbcTransactionManager(connectionFactory)
+        DefaultTimeoutR2dbcTransactionManager(connectionFactory, applicationProperties.transactionTimeout)
 
     @Bean("connectionFactory")
     @Qualifier("connectionFactory")

@@ -24,7 +24,9 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.propertyMissingValueMess
 import com.egm.stellio.shared.util.ErrorMessages.Entity.vocabPropertyInvalidVocabMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.vocabPropertyMissingVocabMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeUriMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.memberMustBeFutureMessage
 import com.egm.stellio.shared.util.isURI
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.Locale
@@ -33,6 +35,7 @@ class NgsiLdEntity private constructor(
     val id: URI,
     val types: List<ExpandedTerm>,
     val scopes: List<Scope>?,
+    val expiresAt: ZonedDateTime?,
     val attributes: List<NgsiLdAttribute>
 ) {
     companion object {
@@ -53,10 +56,15 @@ class NgsiLdEntity private constructor(
 
             val scopes = (parsedKeys as Map<String, List<Any>>).getScopes()
 
+            val expiresAt = parsedKeys.getMemberValueAsDateTime(NGSILD_EXPIRES_AT_IRI)
+            ensure(expiresAt == null || expiresAt.isAfter(ngsiLdDateTime())) {
+                BadRequestDataException(memberMustBeFutureMessage(NGSILD_EXPIRES_AT_TERM))
+            }
+
             val rawAttributes = getNonCoreMembers(parsedKeys, EXPANDED_ENTITY_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
 
-            NgsiLdEntity(expandedEntity.id, types, scopes, attributes)
+            NgsiLdEntity(expandedEntity.id, types, scopes, expiresAt, attributes)
         }
     }
 
@@ -233,6 +241,7 @@ class NgsiLdVocabProperty private constructor(
 sealed class NgsiLdAttributeInstance(
     val observedAt: ZonedDateTime?,
     val datasetId: URI?,
+    val expiresAt: ZonedDateTime?,
     val attributes: List<NgsiLdAttribute>
 )
 
@@ -241,8 +250,9 @@ class NgsiLdPropertyInstance private constructor(
     val unitCode: String?,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
+    expiresAt: ZonedDateTime?,
     attributes: List<NgsiLdAttribute>
-) : NgsiLdAttributeInstance(observedAt, datasetId, attributes) {
+) : NgsiLdAttributeInstance(observedAt, datasetId, expiresAt, attributes) {
     companion object {
         suspend fun create(
             name: ExpandedTerm,
@@ -256,6 +266,7 @@ class NgsiLdPropertyInstance private constructor(
             val unitCode = values.getMemberValueAsString(NGSILD_UNIT_CODE_IRI)
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
+            val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, PROPERTIES_FORBIDDEN_MEMBERS).bind()
 
@@ -267,6 +278,7 @@ class NgsiLdPropertyInstance private constructor(
                 unitCode,
                 observedAt,
                 datasetId,
+                expiresAt,
                 attributes
             )
         }
@@ -284,8 +296,9 @@ class NgsiLdRelationshipInstance private constructor(
     val objectId: RelationshipObjects,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
+    expiresAt: ZonedDateTime?,
     attributes: List<NgsiLdAttribute>
-) : NgsiLdAttributeInstance(observedAt, datasetId, attributes) {
+) : NgsiLdAttributeInstance(observedAt, datasetId, expiresAt, attributes) {
     companion object {
         suspend fun create(
             name: ExpandedTerm,
@@ -294,6 +307,7 @@ class NgsiLdRelationshipInstance private constructor(
             val objectId = values.getRelationshipObjects(name).bind()
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
+            val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, RELATIONSHIPS_FORBIDDEN_MEMBERS).bind()
 
@@ -304,6 +318,7 @@ class NgsiLdRelationshipInstance private constructor(
                 objectId,
                 observedAt,
                 datasetId,
+                expiresAt,
                 attributes
             )
         }
@@ -316,8 +331,9 @@ class NgsiLdGeoPropertyInstance(
     val coordinates: WKTCoordinates,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
+    expiresAt: ZonedDateTime?,
     attributes: List<NgsiLdAttribute>
-) : NgsiLdAttributeInstance(observedAt, datasetId, attributes) {
+) : NgsiLdAttributeInstance(observedAt, datasetId, expiresAt, attributes) {
     companion object {
         suspend fun create(
             name: ExpandedTerm,
@@ -329,6 +345,7 @@ class NgsiLdGeoPropertyInstance(
             }
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
+            val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, GEOPROPERTIES_FORBIDDEN_MEMBERS).bind()
 
@@ -339,6 +356,7 @@ class NgsiLdGeoPropertyInstance(
                 WKTCoordinates(wktValue),
                 observedAt,
                 datasetId,
+                expiresAt,
                 attributes
             )
         }
@@ -351,8 +369,9 @@ class NgsiLdJsonPropertyInstance private constructor(
     val json: Any,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
+    expiresAt: ZonedDateTime?,
     attributes: List<NgsiLdAttribute>
-) : NgsiLdAttributeInstance(observedAt, datasetId, attributes) {
+) : NgsiLdAttributeInstance(observedAt, datasetId, expiresAt, attributes) {
     companion object {
         suspend fun create(
             name: ExpandedTerm,
@@ -368,6 +387,7 @@ class NgsiLdJsonPropertyInstance private constructor(
 
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
+            val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, JSONPROPERTIES_FORBIDDEN_MEMBERS).bind()
 
@@ -378,6 +398,7 @@ class NgsiLdJsonPropertyInstance private constructor(
                 json,
                 observedAt,
                 datasetId,
+                expiresAt,
                 attributes
             )
         }
@@ -390,8 +411,9 @@ class NgsiLdLanguagePropertyInstance private constructor(
     val languageMap: ExpandedLanguageMapValue,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
+    expiresAt: ZonedDateTime?,
     attributes: List<NgsiLdAttribute>
-) : NgsiLdAttributeInstance(observedAt, datasetId, attributes) {
+) : NgsiLdAttributeInstance(observedAt, datasetId, expiresAt, attributes) {
     companion object {
         suspend fun create(
             name: ExpandedTerm,
@@ -407,6 +429,7 @@ class NgsiLdLanguagePropertyInstance private constructor(
 
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
+            val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, LANGUAGEPROPERTIES_FORBIDDEN_MEMBERS).bind()
 
@@ -417,6 +440,7 @@ class NgsiLdLanguagePropertyInstance private constructor(
                 languageMap as ExpandedLanguageMapValue,
                 observedAt,
                 datasetId,
+                expiresAt,
                 attributes
             )
         }
@@ -450,8 +474,9 @@ class NgsiLdVocabPropertyInstance private constructor(
     val vocab: Any,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
+    expiresAt: ZonedDateTime?,
     attributes: List<NgsiLdAttribute>
-) : NgsiLdAttributeInstance(observedAt, datasetId, attributes) {
+) : NgsiLdAttributeInstance(observedAt, datasetId, expiresAt, attributes) {
     companion object {
         suspend fun create(
             name: ExpandedTerm,
@@ -467,6 +492,7 @@ class NgsiLdVocabPropertyInstance private constructor(
 
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
+            val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, VOCABPROPERTIES_FORBIDDEN_MEMBERS).bind()
 
@@ -477,6 +503,7 @@ class NgsiLdVocabPropertyInstance private constructor(
                 vocab,
                 observedAt,
                 datasetId,
+                expiresAt,
                 attributes
             )
         }
@@ -612,6 +639,18 @@ suspend fun ExpandedAttributeInstances.toNgsiLdAttribute(
     isAttributeOfType(this[0], NGSILD_VOCABPROPERTY_TYPE) ->
         NgsiLdVocabProperty.create(attributeName, this)
     else -> BadRequestDataException(attributeInvalidOrNotImplementedTypeMessage(attributeName)).left()
+}
+
+/**
+ * Reads and validates the expiresAt system property (NGSI-LD 4.22): it is client-settable, unlike createdAt /
+ * modifiedAt, but must not be set in the past.
+ */
+fun ExpandedAttributeInstance.getAndCheckExpiresAt(): Either<APIException, ZonedDateTime?> = either {
+    val expiresAt = getMemberValueAsDateTime(NGSILD_EXPIRES_AT_IRI)
+    ensure(expiresAt == null || expiresAt.isAfter(ngsiLdDateTime())) {
+        BadRequestDataException(memberMustBeFutureMessage(NGSILD_EXPIRES_AT_TERM))
+    }
+    expiresAt
 }
 
 suspend fun ExpandedEntity.toNgsiLdEntity(): Either<APIException, NgsiLdEntity> =

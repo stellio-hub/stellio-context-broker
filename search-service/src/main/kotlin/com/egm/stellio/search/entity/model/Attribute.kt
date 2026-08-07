@@ -46,6 +46,7 @@ data class Attribute(
     val createdAt: ZonedDateTime,
     val modifiedAt: ZonedDateTime = createdAt,
     val deletedAt: ZonedDateTime? = null,
+    val expiresAt: ZonedDateTime? = null,
     val payload: Json
 ) {
     enum class AttributeValueType {

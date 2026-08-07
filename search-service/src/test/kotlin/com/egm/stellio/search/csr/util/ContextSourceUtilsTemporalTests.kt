@@ -6,6 +6,7 @@ import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.support.gimmeTemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
+import com.egm.stellio.shared.model.NGSILD_EXPIRES_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
@@ -74,6 +75,9 @@ class ContextSourceUtilsTemporalTests {
 
     private val inclusiveCSR = ContextSourceRegistration(endpoint = "http://mock-uri".toUri())
     private val auxiliaryCSR = ContextSourceRegistration(endpoint = "http://mock-uri".toUri(), mode = Mode.AUXILIARY)
+
+    private val moreRecentTime = "2020-01-01T01:01:01.01Z"
+    private val evenMoreRecentTime = "2030-01-01T01:01:01.01Z"
 
     @Test
     fun `mergeTemporalEntities should merge normalized instances with different attributes`() {
@@ -296,6 +300,60 @@ class ContextSourceUtilsTemporalTests {
         assertTrue(result.isRight())
         assertNotNull(result.getOrNull()!![INCOMING_TERM])
         assertNotNull(result.getOrNull()!![OUTGOING_TERM])
+    }
+
+    @Test
+    fun `mergeTemporalEntities should drop expiresAt if one source is missing it`() {
+        val localWithExpiresAt = localIncomingNormalized.plus(NGSILD_EXPIRES_AT_TERM to moreRecentTime)
+        val result = ContextSourceUtils.mergeTemporalEntities(
+            localWithExpiresAt,
+            listOf(remoteIncomingNormalized to inclusiveCSR),
+            createTemporalQueryWithRepresentation(TemporalRepresentation.NORMALIZED)
+        )
+
+        assertTrue(result.isRight())
+        assertThat(result.getOrNull()).doesNotContainKey(NGSILD_EXPIRES_AT_TERM)
+    }
+
+    @Test
+    fun `mergeTemporalEntities should keep the furthest in the future expiresAt if all sources have one`() {
+        val localWithExpiresAt = localIncomingNormalized.plus(NGSILD_EXPIRES_AT_TERM to moreRecentTime)
+        val remoteWithLaterExpiresAt = remoteIncomingNormalized.plus(NGSILD_EXPIRES_AT_TERM to evenMoreRecentTime)
+        val result = ContextSourceUtils.mergeTemporalEntities(
+            localWithExpiresAt,
+            listOf(remoteWithLaterExpiresAt to inclusiveCSR),
+            createTemporalQueryWithRepresentation(TemporalRepresentation.NORMALIZED)
+        )
+
+        assertTrue(result.isRight())
+        assertEquals(evenMoreRecentTime, result.getOrNull()?.get(NGSILD_EXPIRES_AT_TERM))
+    }
+
+    @Test
+    fun `mergeTemporalEntitiesLists should drop expiresAt if one source is missing it`() {
+        val localWithExpiresAt = localIncomingNormalized.plus(NGSILD_EXPIRES_AT_TERM to moreRecentTime)
+        val result = ContextSourceUtils.mergeTemporalEntitiesLists(
+            listOf(localWithExpiresAt),
+            listOf(listOf(remoteIncomingNormalized) to inclusiveCSR),
+            createTemporalQueryWithRepresentation(TemporalRepresentation.NORMALIZED)
+        )
+
+        assertTrue(result.isRight())
+        assertThat(result.getOrNull()!!.first()).doesNotContainKey(NGSILD_EXPIRES_AT_TERM)
+    }
+
+    @Test
+    fun `mergeTemporalEntitiesLists should keep the furthest in the future expiresAt if all sources have one`() {
+        val localWithExpiresAt = localIncomingNormalized.plus(NGSILD_EXPIRES_AT_TERM to moreRecentTime)
+        val remoteWithLaterExpiresAt = remoteIncomingNormalized.plus(NGSILD_EXPIRES_AT_TERM to evenMoreRecentTime)
+        val result = ContextSourceUtils.mergeTemporalEntitiesLists(
+            listOf(localWithExpiresAt),
+            listOf(listOf(remoteWithLaterExpiresAt) to inclusiveCSR),
+            createTemporalQueryWithRepresentation(TemporalRepresentation.NORMALIZED)
+        )
+
+        assertTrue(result.isRight())
+        assertEquals(evenMoreRecentTime, result.getOrNull()!!.first()[NGSILD_EXPIRES_AT_TERM])
     }
 
     @Test

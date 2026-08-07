@@ -212,6 +212,82 @@ class NgsiLdEntityTests {
     }
 
     @Test
+    fun `toNgsiLdEntity should parse an entity with an expiresAt in the future`() = runTest {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:Device:01234",
+              "type": "Device",
+              "expiresAt": "2099-07-19T00:00:00Z"
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+        assertEquals(ZonedDateTime.parse("2099-07-19T00:00:00Z"), ngsiLdEntity.expiresAt)
+    }
+
+    @Test
+    fun `toNgsiLdEntity should return an error if an entity has an expiresAt in the past`() = runTest {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:Device:01234",
+              "type": "Device",
+              "expiresAt": "2020-07-19T00:00:00Z"
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("Member 'expiresAt' must be in the future", it.message)
+        }
+    }
+
+    @Test
+    fun `toNgsiLdEntity should parse a property with an expiresAt in the future`() = runTest {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:Device:01234",
+              "type": "Device",
+              "deviceState": {
+                "type": "Property",
+                "value": "Open",
+                "expiresAt": "2099-07-19T00:00:00Z"
+              }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val ngsiLdPropertyInstance = ngsiLdEntity.properties[0].instances[0]
+        assertEquals(ZonedDateTime.parse("2099-07-19T00:00:00Z"), ngsiLdPropertyInstance.expiresAt)
+    }
+
+    @Test
+    fun `toNgsiLdEntity should return an error if a property has an expiresAt in the past`() = runTest {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:Device:01234",
+              "type": "Device",
+              "deviceState": {
+                "type": "Property",
+                "value": "Open",
+                "expiresAt": "2020-07-19T00:00:00Z"
+              }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals("Member 'expiresAt' must be in the future", it.message)
+        }
+    }
+
+    @Test
     fun `toNgsiLdEntity should not parse an entity with a property without a value`() = runTest {
         val rawEntity =
             """

@@ -256,6 +256,16 @@ class EntityQueryService(
             .bind("entity_id", entityId)
             .oneToResult(ResourceNotFoundException(entityNotFoundMessage(entityId.toString()))) { it.rowToEntity() }
 
+    suspend fun getExpiredEntitiesIds(): List<URI> =
+        databaseClient.sql(
+            """
+            SELECT entity_id
+            FROM entity_payload
+            WHERE expires_at < now()
+            AND deleted_at is null
+            """.trimIndent()
+        ).allToMappedList { toUri(it["entity_id"]) }
+
     suspend fun retrieve(entitiesIds: List<URI>): List<Entity> =
         databaseClient.sql(
             """

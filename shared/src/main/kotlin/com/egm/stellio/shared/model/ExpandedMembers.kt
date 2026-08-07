@@ -28,6 +28,9 @@ typealias ExpandedAttributeInstance = Map<String, List<Any>>
 typealias ExpandedNonReifiedPropertyValue = List<Map<String, Any>>
 typealias ExpandedLanguageMapValue = List<Map<String, String>>
 
+// what is behind the value (hasJSON, hasObject, ...) of an expanded attribute
+typealias ExpandedAttributeValue = List<Map<String, Any>>
+
 fun ExpandedAttributes.addCoreMembers(
     entityId: URI,
     entityTypes: List<ExpandedTerm>

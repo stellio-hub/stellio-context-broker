@@ -16,5 +16,6 @@ fun Map<String, Any>.rowToEntity(): Entity =
         createdAt = toZonedDateTime(this["created_at"]),
         modifiedAt = toZonedDateTime(this["modified_at"]),
         deletedAt = toOptionalZonedDateTime(this["deleted_at"]),
+        expiresAt = toOptionalZonedDateTime(this["expires_at"]),
         payload = toJson(this["payload"]),
     )

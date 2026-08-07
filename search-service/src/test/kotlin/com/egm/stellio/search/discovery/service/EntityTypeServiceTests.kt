@@ -281,6 +281,37 @@ class EntityTypeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    fun `getEntityTypeInfoByType should not duplicate an attribute type shared by many entities of the same type`() =
+        runTest {
+            val sharedType = "https://ontology.eglobalmark.com/egm#SharedType"
+            val sharedAttribute = "https://ontology.eglobalmark.com/egm#sharedAttr"
+            val entityCount = 5
+
+            (1..entityCount).forEach { index ->
+                val entityId = "urn:ngsi-ld:SharedType:E$index"
+                createEntityPayload(gimmeEntityPayload(entityId, listOf(sharedType)))
+                createAttribute(
+                    newAttribute(
+                        entityId,
+                        sharedAttribute,
+                        Attribute.AttributeType.Property,
+                        Attribute.AttributeValueType.NUMBER
+                    )
+                )
+            }
+
+            val entityTypeInfo = entityTypeService.getEntityTypeInfoByType(sharedType, APIC_COMPOUND_CONTEXTS)
+
+            entityTypeInfo.shouldSucceedWith {
+                assertEquals(entityCount, it.entityCount)
+                val attributeInfo = it.attributeDetails.first { attribute ->
+                    attribute.attributeName == sharedAttribute
+                }
+                assertEquals(listOf(AttributeType.Property), attributeInfo.attributeTypes)
+            }
+        }
+
+    @Test
     fun `getEntityTypeInfoByType should return an error when the entity type does not exist`() = runTest {
         entityTypeService.getEntityTypeInfoByType(TEMPERATURE_IRI, APIC_COMPOUND_CONTEXTS)
             .shouldFail {

@@ -75,7 +75,6 @@ class ServiceRegistrationTests {
             {
               "id": "urn:ngsi-ld:ServiceRegistration:sr3690",
               "type": "ServiceRegistration",
-              "mode": "asynchronous",
               "endpoint": "http://localhost:2345/setLight",
               "entities": [{
                 "type": "Device"
@@ -95,7 +94,6 @@ class ServiceRegistrationTests {
             emptyList()
         ).shouldSucceedAndResult()
 
-        assertEquals(ServiceMode.ASYNCHRONOUS, registration.mode)
         assertEquals("model==\"modelName\"", registration.q)
         assertEquals("Polygon", registration.geoQ?.geometry)
         assertEquals("within", registration.geoQ?.georel)

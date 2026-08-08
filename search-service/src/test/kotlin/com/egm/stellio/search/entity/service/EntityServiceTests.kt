@@ -325,7 +325,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns listOf(
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.CREATED, emptyMap()),
         ).right()
-        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
         coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
 
         val (expandedEntity, ngsiLdEntity) =
@@ -364,9 +363,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 any(),
                 any(),
                 any()
-            )
-            entityAttributeService.getAllForEntity(
-                eq(beehiveTestCId)
             )
             authorizationService.createEntityOwnerRight(beehiveTestCId)
         }
@@ -665,7 +661,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
         } returns Unit.right()
         coEvery { entityAttributeService.permanentlyDeleteAttribute(any(), any(), any(), any()) } returns Unit.right()
-        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
 
         loadAndPrepareSampleData("beehive.jsonld")
             .map {
@@ -687,7 +682,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 excludeDeleted = false
             )
             entityAttributeService.permanentlyDeleteAttribute(beehiveTestCId, INCOMING_IRI, null, false)
-            entityAttributeService.getAllForEntity(beehiveTestCId)
         }
     }
 
@@ -749,7 +743,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         } returns listOf(
             SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.UPDATED, emptyMap())
         ).right()
-        coEvery { entityAttributeService.getAllForEntity(any()) } returns emptyList()
 
         loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
             .sampleDataToNgsiLdEntity()
@@ -775,7 +768,6 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                 any(),
                 eq(now)
             )
-            entityAttributeService.getAllForEntity(eq(entity01Uri))
         }
     }
 

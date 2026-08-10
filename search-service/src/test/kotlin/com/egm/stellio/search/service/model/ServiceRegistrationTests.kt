@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpMethod
 
 class ServiceRegistrationTests {
     @Test
@@ -22,6 +23,7 @@ class ServiceRegistrationTests {
               "id": "urn:ngsi-ld:ServiceRegistration:sr3689",
               "type": "ServiceRegistration",
               "endpoint": "http://localhost:2345/setLight",
+              "endpointMethod": "GET",
               "entities": [{
                 "idPattern": "urn:MyLamp.*$",
                 "type": "Lamp"
@@ -44,7 +46,9 @@ class ServiceRegistrationTests {
                   }
                 },
                 "output": {
-                  "type": "string"
+                  "type": "string",
+                  "matchRegex": "[A-Z]+",
+                  "maxSize": 32
                 }
               }
             }
@@ -54,6 +58,7 @@ class ServiceRegistrationTests {
 
         assertEquals("urn:ngsi-ld:ServiceRegistration:sr3689", registration.id.toString())
         assertEquals("http://localhost:2345/setLight", registration.endpoint.toString())
+        assertEquals(HttpMethod.GET, registration.endpointMethod)
         assertEquals("urn:MyLamp.*$", registration.entities.single().idPattern)
         assertEquals(listOf("Lamp"), registration.entities.single().types)
         assertEquals("setLight", registration.serviceInformation.name)
@@ -67,7 +72,10 @@ class ServiceRegistrationTests {
         assertEquals(true, brightness.required)
         assertEquals(0.toBigDecimal(), brightness.minimum)
         assertEquals(255.toBigDecimal(), brightness.maximum)
-        assertEquals(InputInformationType.STRING, registration.serviceInformation.output?.type)
+        val output = requireNotNull(registration.serviceInformation.output)
+        assertEquals(InputInformationType.STRING, output.type)
+        assertEquals("[A-Z]+", output.matchRegex)
+        assertEquals(32, output.maxSize)
         registration.validate().shouldSucceed()
     }
 

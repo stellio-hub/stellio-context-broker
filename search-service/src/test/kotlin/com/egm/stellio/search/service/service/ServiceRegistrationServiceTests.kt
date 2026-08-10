@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
+import org.springframework.http.HttpMethod
 import org.springframework.test.context.ActiveProfiles
 
 @SpringBootTest
@@ -56,6 +57,7 @@ class ServiceRegistrationServiceTests : WithTimescaleContainer, WithKafkaContain
         serviceRegistrationService.getById(registration.id).shouldSucceedWith {
             assertEquals(registration.id, it.id)
             assertEquals(registration.endpoint, it.endpoint)
+            assertEquals(HttpMethod.GET, it.endpointMethod)
             assertEquals(registration.entities, it.entities)
             assertEquals(registration.serviceInformation, it.serviceInformation)
             assertEquals(registration.q, it.q)
@@ -171,6 +173,7 @@ class ServiceRegistrationServiceTests : WithTimescaleContainer, WithKafkaContain
         ServiceRegistration(
             id = "urn:ngsi-ld:ServiceRegistration:sr3689".toUri(),
             endpoint = "http://localhost:2345/setLight".toUri(),
+            endpointMethod = HttpMethod.GET,
             entities = listOf(
                 EntityInfo(
                     id = null,

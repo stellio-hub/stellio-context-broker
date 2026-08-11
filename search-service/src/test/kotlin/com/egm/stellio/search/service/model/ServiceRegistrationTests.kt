@@ -55,7 +55,7 @@ class ServiceRegistrationTests {
         assertEquals(listOf("Lamp"), registration.entities.single().types)
         assertEquals("setLight", registration.serviceInformation.name)
         assertEquals("setLight", registration.serviceInformation.title)
-        assertEquals(ServiceMode.ASYNCHRONOUS, registration.serviceInformation.mode)
+        assertEquals(ServiceInformation.ServiceMode.ASYNCHRONOUS, registration.serviceInformation.mode)
         val input = requireNotNull(registration.serviceInformation.input)
         val brightness = requireNotNull(input.properties?.get("brightness"))
         assertEquals(InputInformationType.OBJECT, input.type)

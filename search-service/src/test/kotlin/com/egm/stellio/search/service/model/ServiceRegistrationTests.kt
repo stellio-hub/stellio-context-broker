@@ -1,7 +1,7 @@
 package com.egm.stellio.search.service.model
 
 import com.egm.stellio.search.service.registration.model.InputInformationType
-import com.egm.stellio.search.service.registration.model.ServiceMode
+import com.egm.stellio.search.service.registration.model.ServiceInformation
 import com.egm.stellio.search.service.registration.model.ServiceRegistration
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap

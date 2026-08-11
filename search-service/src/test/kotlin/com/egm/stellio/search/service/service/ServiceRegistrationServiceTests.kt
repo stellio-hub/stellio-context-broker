@@ -2,12 +2,12 @@ package com.egm.stellio.search.service.service
 
 import com.egm.stellio.search.common.model.UnparsedGeoQuery
 import com.egm.stellio.search.csr.model.EntityInfo
-import com.egm.stellio.search.service.model.InputInformation
-import com.egm.stellio.search.service.model.InputInformationType
-import com.egm.stellio.search.service.model.ServiceInformation
-import com.egm.stellio.search.service.model.ServiceMode
-import com.egm.stellio.search.service.model.ServiceRegistration
-import com.egm.stellio.search.service.model.ServiceRegistrationFilters
+import com.egm.stellio.search.service.registration.model.InputInformation
+import com.egm.stellio.search.service.registration.model.InputInformationType
+import com.egm.stellio.search.service.registration.model.ServiceInformation
+import com.egm.stellio.search.service.registration.model.ServiceRegistration
+import com.egm.stellio.search.service.registration.model.ServiceRegistrationFilters
+import com.egm.stellio.search.service.registration.service.ServiceRegistrationService
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AlreadyExistsException

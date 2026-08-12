@@ -30,7 +30,8 @@ class ServiceExecutionTests {
                 }
               },
               "executionStatus": "pending",
-              "completion": 0.25
+              "completion": 0.25,
+              "responseStatusCode": 202
             }
             """.trimIndent().deserializeAsMap(),
             emptyList()
@@ -46,6 +47,7 @@ class ServiceExecutionTests {
         assertThat(input["transition"]).isEqualTo(mapOf("duration" to 2))
         assertEquals(ServiceExecutionStatus.PENDING, execution.executionStatus)
         assertEquals(0.25, execution.completion)
+        assertEquals(202, execution.responseStatusCode)
         execution.validate().shouldSucceed()
     }
 
@@ -70,6 +72,7 @@ class ServiceExecutionTests {
             assertEquals(expectedInput, execution.input)
             assertEquals(null, execution.serviceName)
             assertEquals(null, execution.completion)
+            assertEquals(null, execution.responseStatusCode)
         }
     }
 

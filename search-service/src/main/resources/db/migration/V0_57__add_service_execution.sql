@@ -9,6 +9,7 @@ CREATE TABLE service_execution
     execution_status text NOT NULL,
     completion double precision,
     output jsonb,
+    response_status_code integer,
     sub text,
     created_at timestamp with time zone NOT NULL,
     modified_at timestamp with time zone NOT NULL,

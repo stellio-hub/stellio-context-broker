@@ -50,11 +50,11 @@ class ServiceExecutionService(
             """
             INSERT INTO service_execution(
                 id, service_id, entity_id, entity_type, input, service_name,
-                execution_status, completion, output, sub, created_at, modified_at
+                execution_status, completion, output, response_status_code, sub, created_at, modified_at
             )
             VALUES(
                 :id, :service_id, :entity_id, :entity_type, :input, :service_name,
-                :execution_status, :completion, :output, :sub, :created_at, :modified_at
+                :execution_status, :completion, :output, :response_status_code, :sub, :created_at, :modified_at
             )
             ON CONFLICT (id)
             DO UPDATE SET
@@ -66,6 +66,7 @@ class ServiceExecutionService(
                 execution_status = :execution_status,
                 completion = :completion,
                 output = :output,
+                response_status_code = :response_status_code,
                 sub = :sub,
                 modified_at = :modified_at
             """.trimIndent()
@@ -79,6 +80,7 @@ class ServiceExecutionService(
             .bind("execution_status", serviceExecution.executionStatus.name.lowercase())
             .bind("completion", serviceExecution.completion)
             .bind("output", serviceExecution.output?.let { Json.of(DataTypes.serialize(it)) })
+            .bind("response_status_code", serviceExecution.responseStatusCode)
             .bind("sub", getSubFromSecurityContext())
             .bind("created_at", serviceExecution.createdAt)
             .bind("modified_at", serviceExecution.modifiedAt)
@@ -115,7 +117,7 @@ class ServiceExecutionService(
         databaseClient.sql(
             """
             SELECT id, service_id, entity_id, entity_type, input, service_name,
-                execution_status, completion, output, created_at, modified_at
+                execution_status, completion, output, response_status_code, created_at, modified_at
             FROM service_execution
             WHERE id = :id
             """.trimIndent()
@@ -149,6 +151,7 @@ class ServiceExecutionService(
                 output = row["output"]?.let {
                     DataTypes.mapper.readValue(toJsonString(it), Any::class.java)
                 },
+                responseStatusCode = row["response_status_code"] as? Int,
                 createdAt = toZonedDateTime(row["created_at"]),
                 modifiedAt = toZonedDateTime(row["modified_at"])
             )

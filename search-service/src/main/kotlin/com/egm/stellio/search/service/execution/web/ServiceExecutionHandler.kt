@@ -87,7 +87,7 @@ class ServiceExecutionHandler(
 
         serviceExecutionService.create(serviceExecution).bind()
         val launchedExecution = if (serviceRegistration.serviceInformation.mode == ServiceMode.ASYNCHRONOUS) {
-            serviceExecutionLauncher.invokeAsynchronously(serviceExecution, serviceRegistration)
+            serviceExecutionLauncher.invokeAsynchronousService(serviceExecution, serviceRegistration)
         } else {
             serviceExecutionLauncher.invoke(serviceExecution, serviceRegistration)
         }

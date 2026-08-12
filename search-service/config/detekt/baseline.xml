@@ -55,5 +55,7 @@
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$fun</ID>
     <ID>NestedBlockDepth:DistributedEntityProvisionService.kt$DistributedEntityProvisionService$suspend fun distributePurgeEntities( httpHeaders: HttpHeaders, entitiesQuery: EntitiesQueryFromGet, queryParams: MultiValueMap&lt;String, String&gt; ): Either&lt;APIException, BatchOperationResult&gt;</ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
+    <ID>UnusedPrivateProperty:ServiceExecutionLauncherTests.kt$ServiceExecutionLauncherTests$@MockkBean private lateinit var serviceExecutionService: ServiceExecutionService</ID>
+    <ID>UnusedPrivateProperty:ServiceExecutionLauncherTests.kt$ServiceExecutionLauncherTests$@MockkBean private lateinit var serviceRegistrationService: ServiceRegistrationService</ID>
   </CurrentIssues>
 </SmellBaseline>

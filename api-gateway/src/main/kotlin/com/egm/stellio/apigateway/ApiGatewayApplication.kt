@@ -31,7 +31,8 @@ class ApiGatewayApplication {
                     "/ngsi-ld/v1/temporal/entities/**",
                     "/ngsi-ld/v1/temporal/entityOperations/**",
                     "/ngsi-ld/v1/csourceRegistrations/**",
-                    "/ngsi-ld/v1/serviceRegistrations/**"
+                    "/ngsi-ld/v1/serviceRegistrations/**",
+                    "/ngsi-ld/v1/services/**"
                 ).uri(searchServiceUrl)
             }
             .route { p ->

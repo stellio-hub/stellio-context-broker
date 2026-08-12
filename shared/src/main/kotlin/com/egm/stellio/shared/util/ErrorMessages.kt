@@ -118,12 +118,28 @@ object ErrorMessages {
     }
 
     object ServiceExecutionErrorMessages {
+        fun serviceExecutionNotFoundMessage(id: URI) = "Service execution $id does not exist"
+        fun serviceExecutionAlreadyExistsMessage(id: URI) = "Service execution $id already exists"
+        fun serviceExecutionFailedToParseMessage(cause: String?) =
+            "Service execution cannot be parsed: $cause"
+        const val SERVICE_EXECUTION_COMPLETION_CREATE_MESSAGE =
+            "Member 'completion' can only be provided when updating a service execution"
+        const val SERVICE_EXECUTION_UPDATE_MEMBERS_MESSAGE =
+            "Service execution update is only for reporting 'completion', 'output' and 'executionStatus'"
+        const val SERVICE_EXECUTION_DELETE_OPTIONS_MESSAGE =
+            "Query parameter 'options' must be one of 'remove', 'cancel' or 'remove,cancel'"
+        fun serviceExecutionCancellationNotImplementedMessage(id: URI) =
+            "Cancellation of service execution $id is not implemented"
         fun invalidServiceExecutionInputMessage(path: String, expected: String) =
             "Invalid service execution input at '$path': expected $expected"
         fun missingServiceExecutionInputMessage(path: String) =
             "Invalid service execution input: required value '$path' is missing"
         fun invalidInputElementKeyMessage(key: String) =
             "Invalid InputInformation element key '$key': expected a non-negative index or '*'"
+        fun serviceEndpointErrorMessage(serviceId: URI, endpoint: URI, status: Int) =
+            "Service registration $serviceId returned status $status from $endpoint"
+        fun serviceEndpointContactErrorMessage(serviceId: URI, endpoint: URI) =
+            "Unable to contact service registration $serviceId at $endpoint"
     }
 
     object DataRepresentation {

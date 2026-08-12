@@ -41,6 +41,7 @@ data class ServiceExecution(
     val executionStatus: ServiceExecutionStatus = ServiceExecutionStatus.PENDING,
     val completion: Double? = null,
     val output: Any? = null,
+    val responseStatusCode: Int? = null,
     val createdAt: ZonedDateTime = ngsiLdDateTime(),
     val modifiedAt: ZonedDateTime = createdAt,
 ) {

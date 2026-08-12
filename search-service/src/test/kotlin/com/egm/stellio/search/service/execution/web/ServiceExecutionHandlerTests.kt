@@ -25,8 +25,6 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -42,7 +40,6 @@ import org.springframework.security.test.web.reactive.server.SecurityMockServerC
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import reactor.core.publisher.Mono
 
 @ActiveProfiles("test")
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
@@ -75,7 +72,8 @@ class ServiceExecutionHandlerTests {
         input = 125,
         executionStatus = ServiceExecutionStatus.SUCCESS,
         completion = 1.0,
-        output = "Brightness successfully changed."
+        output = "Brightness successfully changed.",
+        responseStatusCode = 200
     )
     private val synchronousRegistration = ServiceRegistration(
         id = serviceId,
@@ -125,6 +123,7 @@ class ServiceExecutionHandlerTests {
             .jsonPath("$.executionStatus").isEqualTo("success")
             .jsonPath("$.completion").isEqualTo(1.0)
             .jsonPath("$.output").isEqualTo("Brightness successfully changed.")
+            .jsonPath("$.responseStatusCode").isEqualTo(200)
 
         coVerify {
             serviceExecutionLauncher.invoke(
@@ -145,14 +144,20 @@ class ServiceExecutionHandlerTests {
     }
 
     @Test
-    fun `create should launch an asynchronous service without waiting for its result`() = runTest {
+    fun `create should wait for an asynchronous service acknowledgement`() = runTest {
         val asynchronousRegistration = synchronousRegistration.copy(
             serviceInformation = synchronousRegistration.serviceInformation.copy(mode = ServiceMode.ASYNCHRONOUS)
         )
+        val acknowledgedExecution = execution.copy(
+            executionStatus = ServiceExecutionStatus.EXECUTING,
+            completion = null,
+            output = mapOf("accepted" to true),
+            responseStatusCode = 202
+        )
         coEvery { serviceRegistrationService.getById(serviceId) } returns asynchronousRegistration.right()
-        every {
-            serviceExecutionLauncher.invokeAsynchronously(any(), asynchronousRegistration)
-        } returns Mono.never()
+        coEvery {
+            serviceExecutionLauncher.invokeAsynchronousService(any(), asynchronousRegistration)
+        } returns acknowledgedExecution
 
         webClient.post()
             .uri(resourceUri)
@@ -164,7 +169,8 @@ class ServiceExecutionHandlerTests {
             .jsonPath("$.id").isEqualTo(executionId.toString())
             .jsonPath("$.executionStatus").isEqualTo("executing")
             .jsonPath("$.completion").doesNotExist()
-            .jsonPath("$.output").doesNotExist()
+            .jsonPath("$.output.accepted").isEqualTo(true)
+            .jsonPath("$.responseStatusCode").isEqualTo(202)
 
         coVerify {
             serviceExecutionService.create(
@@ -172,13 +178,11 @@ class ServiceExecutionHandlerTests {
             )
         }
         coVerify {
-            serviceExecutionService.upsert(
-                match { it.id == executionId && it.executionStatus == ServiceExecutionStatus.EXECUTING }
-            )
+            serviceExecutionService.upsert(acknowledgedExecution)
         }
-        verify {
-            serviceExecutionLauncher.invokeAsynchronously(
-                match { it.id == executionId && it.executionStatus == ServiceExecutionStatus.EXECUTING },
+        coVerify {
+            serviceExecutionLauncher.invokeAsynchronousService(
+                match { it.id == executionId && it.executionStatus == ServiceExecutionStatus.PENDING },
                 asynchronousRegistration
             )
         }
@@ -239,6 +243,7 @@ class ServiceExecutionHandlerTests {
             .jsonPath("$.executionStatus").isEqualTo("success")
             .jsonPath("$.completion").isEqualTo(1.0)
             .jsonPath("$.output").isEqualTo("Brightness successfully changed.")
+            .jsonPath("$.responseStatusCode").isEqualTo(200)
             .jsonPath("$.createdAt").doesNotExist()
     }
 

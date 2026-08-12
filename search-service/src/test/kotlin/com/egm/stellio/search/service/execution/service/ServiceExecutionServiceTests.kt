@@ -45,7 +45,8 @@ class ServiceExecutionServiceTests : WithTimescaleContainer, WithKafkaContainer(
         val execution = buildExecution().copy(
             executionStatus = ServiceExecutionStatus.SUCCESS,
             completion = 1.0,
-            output = "Brightness successfully changed."
+            output = "Brightness successfully changed.",
+            responseStatusCode = 200
         )
 
         serviceExecutionService.create(execution).shouldSucceed()
@@ -60,6 +61,7 @@ class ServiceExecutionServiceTests : WithTimescaleContainer, WithKafkaContainer(
             assertEquals(ServiceExecutionStatus.SUCCESS, it.executionStatus)
             assertEquals(1.0, it.completion)
             assertEquals(execution.output, it.output)
+            assertEquals(200, it.responseStatusCode)
         }
     }
 

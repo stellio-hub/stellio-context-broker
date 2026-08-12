@@ -15,11 +15,14 @@
 - Can a synchronous execution be pending, executing, cancelled? (if someone abort the request?)
 - What should the status be for asynchronous execution if the call returned an error?
   - for a success : executing with the response in the output
-  - for an error : failure with the response in the output (what about the httpStatus of the response)
-  - 
+  - for an error : failure with the response in the output and the response status in `responseStatusCode` (clear deviation)
 
 todo :
 - query serviceExecutions?
 - verification of the output?
 - What should return a create serviceExecution if the service returned an error.
-   - for now it is a success with the error in the output and executionStatus (no status code)
+   - for now it returns a 201 created (because the service execution was created and the service was called)
+   - the executionStatus become failure
+   - the error response is stored in the output,
+   - and the received status in `responseStatusCode`
+   - for now the same behavior happens if we didn't managed to connect to the service with the gateway timeout statuscode and a generated problemDetails as output

@@ -21,7 +21,6 @@ import com.github.tomakehurst.wiremock.client.WireMock.stubFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
-import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -54,6 +53,7 @@ class ServiceExecutionLauncherTests {
         assertEquals(ServiceExecutionStatus.SUCCESS, successfulExecution.executionStatus)
         assertEquals(null, successfulExecution.completion)
         assertEquals(mapOf("accepted" to true), successfulExecution.output)
+        assertEquals(200, successfulExecution.responseStatusCode)
         verify(
             postRequestedFor(urlPathEqualTo("/invoke"))
                 .withRequestBody(equalTo("125"))
@@ -75,6 +75,7 @@ class ServiceExecutionLauncherTests {
         val successfulExecution = serviceExecutionLauncher.invoke(execution, registration)
 
         assertEquals("done", successfulExecution.output)
+        assertEquals(200, successfulExecution.responseStatusCode)
         verify(
             getRequestedFor(urlPathEqualTo("/invoke"))
                 .withRequestBody(equalTo("\"turn-on\""))
@@ -90,17 +91,18 @@ class ServiceExecutionLauncherTests {
         )
         stubFor(
             post(urlPathEqualTo("/invoke"))
-                .willReturn(serverError())
+                .willReturn(serverError().withBody("""{"error":"execution rejected"}"""))
         )
 
         val failedExecution = serviceExecutionLauncher.invoke(execution, registration)
 
         assertEquals(ServiceExecutionStatus.FAILURE, failedExecution.executionStatus)
-        assertEquals(null, failedExecution.output)
+        assertEquals(mapOf("error" to "execution rejected"), failedExecution.output)
+        assertEquals(500, failedExecution.responseStatusCode)
     }
 
     @Test
-    fun `invokeAsynchronously should return the endpoint result without blocking`() = runTest {
+    fun `invokeAsynchronousService should wait for and return the endpoint acknowledgement`() = runTest {
         val execution = buildExecution(125)
         val registration = buildRegistration(
             HttpMethod.POST,
@@ -111,12 +113,30 @@ class ServiceExecutionLauncherTests {
                 .willReturn(okJson("""{"accepted":true}"""))
         )
 
-        val successfulExecution = serviceExecutionLauncher
-            .invokeAsynchronously(execution, registration)
-            .awaitSingle()
+        val successfulExecution = serviceExecutionLauncher.invokeAsynchronousService(execution, registration)
 
-        assertEquals(ServiceExecutionStatus.SUCCESS, successfulExecution.executionStatus)
+        assertEquals(ServiceExecutionStatus.EXECUTING, successfulExecution.executionStatus)
         assertEquals(mapOf("accepted" to true), successfulExecution.output)
+        assertEquals(200, successfulExecution.responseStatusCode)
+    }
+
+    @Test
+    fun `invokeAsynchronousService should capture a failed acknowledgement response`() = runTest {
+        val execution = buildExecution(125)
+        val registration = buildRegistration(
+            HttpMethod.POST,
+            InputInformation(type = InputInformationType.INTEGER)
+        )
+        stubFor(
+            post(urlPathEqualTo("/invoke"))
+                .willReturn(serverError().withBody("execution rejected"))
+        )
+
+        val failedExecution = serviceExecutionLauncher.invokeAsynchronousService(execution, registration)
+
+        assertEquals(ServiceExecutionStatus.FAILURE, failedExecution.executionStatus)
+        assertEquals("execution rejected", failedExecution.output)
+        assertEquals(500, failedExecution.responseStatusCode)
     }
 
     @Test

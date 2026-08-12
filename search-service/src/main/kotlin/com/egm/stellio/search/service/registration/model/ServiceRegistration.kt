@@ -76,7 +76,9 @@ data class ServiceRegistration(
         fragment: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, ServiceRegistration> = either {
-        val mergedRegistration = DataTypes.convertTo<Map<String, Any>>(this@ServiceRegistration).plus(fragment)
+        val mergedRegistration = DataTypes.convertTo<Map<String, Any>>(this@ServiceRegistration)
+            .plus("endpointMethod" to endpointMethod.name())
+            .plus(fragment)
         deserialize(mergedRegistration, contexts).bind()
             .copy(modifiedAt = ngsiLdDateTime())
     }

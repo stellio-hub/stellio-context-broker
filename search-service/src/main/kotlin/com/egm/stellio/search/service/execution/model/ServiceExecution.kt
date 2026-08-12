@@ -3,7 +3,6 @@ package com.egm.stellio.search.service.execution.model
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
-import arrow.core.raise.ensure
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -14,7 +13,6 @@ import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidUriMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.memberIsInvalidMessage
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.SERVICE_EXECUTION_UPDATE_MEMBERS_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.serviceExecutionFailedToParseMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
@@ -80,17 +78,12 @@ data class ServiceExecution(
         fragment: Map<String, Any>,
         contexts: List<String>
     ): Either<APIException, ServiceExecution> = either {
-        ensure((fragment.keys - JSONLD_CONTEXT_KW).all(PATCHABLE_MEMBERS::contains)) {
-            BadRequestDataException(SERVICE_EXECUTION_UPDATE_MEMBERS_MESSAGE)
-        }
         val mergedExecution = DataTypes.convertTo<Map<String, Any>>(this@ServiceExecution).plus(fragment)
         deserialize(mergedExecution, contexts).bind()
             .copy(modifiedAt = ngsiLdDateTime())
     }
 
     companion object {
-        private val PATCHABLE_MEMBERS = setOf("completion", "output", "executionStatus")
-
         fun deserialize(
             input: Map<String, Any>,
             contexts: List<String>

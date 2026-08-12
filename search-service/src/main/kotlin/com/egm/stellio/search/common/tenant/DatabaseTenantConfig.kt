@@ -2,6 +2,9 @@ package com.egm.stellio.search.common.tenant
 
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.config.DefaultTimeoutR2dbcTransactionManager
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.MeterRegistry
+import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.spi.ConnectionFactories
 import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.ConnectionFactoryOptions
@@ -23,7 +26,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement
 @EnableTransactionManagement
 class DatabaseTenantConfig(
     private val r2dbcProperties: R2dbcProperties,
-    private val applicationProperties: ApplicationProperties
+    private val applicationProperties: ApplicationProperties,
+    private val meterRegistry: MeterRegistry
 ) : AbstractR2dbcConfiguration() {
 
     internal val tenantConnectionFactories = mutableMapOf<String, ConnectionFactory>()
@@ -36,9 +40,11 @@ class DatabaseTenantConfig(
     @Qualifier("connectionFactory")
     override fun connectionFactory(): ConnectionFactory {
         val connectionFactory = DatabaseTenantConnectionFactory(applicationProperties)
-        connectionFactory.setDefaultTargetConnectionFactory(defaultConnectionFactory())
+        val defaultFactory = defaultConnectionFactory()
+        connectionFactory.setDefaultTargetConnectionFactory(defaultFactory)
         connectionFactory.setTargetConnectionFactories(tenantConnectionFactories)
         connectionFactory.setLenientFallback(false)
+        // bindPoolMetrics("default", defaultFactory)
         return connectionFactory
     }
 
@@ -89,5 +95,37 @@ class DatabaseTenantConfig(
                 .build()
         )
         tenantConnectionFactories.putIfAbsent(name, tenantConnectionFactory)
+        // bindPoolMetrics(name, tenantConnectionFactory)
+    }
+
+    // Exposes r2dbc-pool's own PoolMetrics (acquired/allocated/idle/pending connection counts) as
+    // Micrometer gauges, tagged by tenant, so pool exhaustion (pendingAcquireSize > 0, acquiredSize
+    // pinned at maxAllocatedSize) can be told apart from genuine query slowness under load.
+    // Call sites are toggled on/off per perf-test run - suppressed rather than removed.
+    @Suppress("UnusedPrivateMember")
+    private fun bindPoolMetrics(tenant: String, connectionFactory: ConnectionFactory) {
+        val pool = connectionFactory as? ConnectionPool ?: return
+        val metrics = pool.metrics.orElse(null) ?: return
+
+        Gauge.builder("r2dbc.pool.acquired", metrics) { it.acquiredSize().toDouble() }
+            .description("Connections currently acquired and in active use")
+            .tag("tenant", tenant)
+            .register(meterRegistry)
+        Gauge.builder("r2dbc.pool.allocated", metrics) { it.allocatedSize().toDouble() }
+            .description("Connections currently allocated (acquired or idle)")
+            .tag("tenant", tenant)
+            .register(meterRegistry)
+        Gauge.builder("r2dbc.pool.idle", metrics) { it.idleSize().toDouble() }
+            .description("Connections currently idle in the pool")
+            .tag("tenant", tenant)
+            .register(meterRegistry)
+        Gauge.builder("r2dbc.pool.pending", metrics) { it.pendingAcquireSize().toDouble() }
+            .description("Acquire requests currently waiting for a connection - the key pool-exhaustion signal")
+            .tag("tenant", tenant)
+            .register(meterRegistry)
+        Gauge.builder("r2dbc.pool.max", metrics) { it.maxAllocatedSize.toDouble() }
+            .description("Configured maximum pool size")
+            .tag("tenant", tenant)
+            .register(meterRegistry)
     }
 }

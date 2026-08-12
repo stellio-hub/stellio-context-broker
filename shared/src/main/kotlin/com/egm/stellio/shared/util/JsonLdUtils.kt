@@ -90,10 +90,26 @@ object JsonLdUtils {
         return contextsArray.build()
     }
 
+    // A fresh per-call JsonLdOptions copy carrying `contexts` as the expand context, rather than
+    // embedding "@context" in the document to expand - this is what lets CachedContextExpansion
+    // intercept and cache the resolved active context (see its class doc for why). The copy constructor
+    // preserves the shared documentCache; expandContext must not be set on the shared jsonLdOptions
+    // itself, since concurrent requests would race on that field.
+    private fun expandOptionsFor(contexts: List<String>): JsonLdOptions =
+        JsonLdOptions(jsonLdOptions).apply {
+            setExpandContext(JsonDocument.of(buildContextDocument(contexts)))
+        }
+
+    // diagnostic-only: (hits, misses) for the resolved-active-context cache, to verify under load that
+    // it is actually being hit rather than silently falling through on every call
+    fun jsonLdContextCacheStats(): Pair<Long, Long> =
+        CachedContextExpansion.cacheHits() to CachedContextExpansion.cacheMisses()
+
     fun deleteAndReload(context: URI, reload: Boolean): Either<APIException, Unit> {
         val documentCache = jsonLdOptions.documentCache as RemovableLruCache
         return if (documentCache.containsKey(context.toString())) {
             documentCache.remove(context.toString())
+            CachedContextExpansion.invalidate(context.toString())
             if (reload) {
                 // force a reload by expanding a random term from the core context
                 expandJsonLdTerm(NGSILD_UNIT_CODE_TERM, context.toString())
@@ -137,13 +153,9 @@ object JsonLdUtils {
             NGSILD_TYPE_TERM -> JSONLD_TYPE_KW
             NGSILD_SCOPE_TERM -> NGSILD_SCOPE_IRI
             else -> try {
-                val preparedTerm = mapOf(
-                    term to mapOf<String, Any>(),
-                    JSONLD_CONTEXT_KW to contexts
-                )
-                JsonLd.expand(JsonDocument.of(serializeObject(preparedTerm).byteInputStream()))
-                    .options(jsonLdOptions)
-                    .get()
+                val preparedTerm = mapOf(term to mapOf<String, Any>())
+                val document = JsonDocument.of(serializeObject(preparedTerm).byteInputStream())
+                CachedContextExpansion.expand(document, contexts, expandOptionsFor(contexts), frameExpansion = false)
                     .let {
                         if (it.isNotEmpty())
                             (it[0] as JsonObject).keys.first()
@@ -206,20 +218,22 @@ object JsonLdUtils {
         doGeoPropertyTransformation: Boolean = true
     ): Map<String, Any> {
         // transform the GeoJSON value of geo properties into WKT format before JSON-LD expansion
-        // since JSON-LD expansion breaks the data (e.g., flattening the lists of lists)
+        // since JSON-LD expansion breaks the data (e.g., flattening the lists of lists).
+        // Also strip any "@context" the fragment itself carries (e.g. entity payloads loaded straight
+        // from a fixture/request commonly have their own): context is now passed exclusively via
+        // options.expandContext (see expandOptionsFor) so CachedContextExpansion can intercept it - an
+        // embedded "@context" left in the document would be resolved a second time by titanium's own
+        // ObjectExpansion, which titanium correctly rejects as a protected-term redefinition.
         val preparedFragment =
             if (doGeoPropertyTransformation)
-                fragment
-                    .mapValues(transformGeoPropertyToWKT())
-                    .plus(JSONLD_CONTEXT_KW to contexts)
+                fragment.mapValues(transformGeoPropertyToWKT()).minus(JSONLD_CONTEXT_KW)
             else
-                fragment.plus(JSONLD_CONTEXT_KW to contexts)
+                fragment.minus(JSONLD_CONTEXT_KW)
 
         return try {
             val expansionProcess = coroutineScope.async {
-                JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))
-                    .options(jsonLdOptions)
-                    .get()
+                val document = JsonDocument.of(serializeObject(preparedFragment).byteInputStream())
+                CachedContextExpansion.expand(document, contexts, expandOptionsFor(contexts), frameExpansion = false)
             }
             val expandedFragment = expansionProcess.await()
             if (expandedFragment.isEmpty())

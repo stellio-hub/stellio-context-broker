@@ -20,7 +20,15 @@ dependencies {
     implementation("org.springframework:spring-jdbc")
     // implementation (and not runtime) because we are using the native jsonb encoding provided by PG
     implementation("org.postgresql:r2dbc-postgresql")
+    // implementation (and not runtime) because DatabaseTenantConfig binds Micrometer gauges directly
+    // against io.r2dbc.pool.ConnectionPool's PoolMetrics
+    implementation("io.r2dbc:r2dbc-pool")
     implementation(project(":shared"))
+
+    // perf-test only: detects blocking calls on Reactor/Netty non-blocking threads. Inert unless
+    // BLOCKHOUND_ENABLED=true (see SearchServiceApplication.main) - reconsider keeping this
+    // dependency before merging to develop.
+    implementation("io.projectreactor.tools:blockhound:1.0.11.RELEASE")
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")
 
@@ -28,7 +36,6 @@ dependencies {
 
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
-    runtimeOnly("io.r2dbc:r2dbc-pool")
 
     testImplementation("org.wiremock:wiremock-standalone:3.13.2")
     testImplementation("org.testcontainers:testcontainers-postgresql")
@@ -44,7 +51,15 @@ tasks.bootRun {
     environment("SPRING_PROFILES_ACTIVE", "dev")
 }
 
-jib.from.image = project.ext["jibFromImage"].toString()
+// perf-test only: BlockHound's self-attach needs the jdk.attach module, which the -jre jlink image
+// below excludes ("No compatible attachment provider is available" at startup otherwise). Swap to
+// the full JDK image only for a BlockHound run, keyed off the same BLOCKHOUND_ENABLED flag used at
+// runtime so this reverts automatically once that's unset.
+jib.from.image =
+    if (System.getenv("BLOCKHOUND_ENABLED") == "true")
+        project.ext["jibFromImage"].toString().replace("-jre", "")
+    else
+        project.ext["jibFromImage"].toString()
 jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParameters>)
 jib.to.image = "stellio/stellio-search-service:${project.version}"
 jib.container.ports = listOf("8083")

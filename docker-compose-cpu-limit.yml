@@ -1,0 +1,20 @@
+# perf-test only: constrains search-service to a fixed number of CPUs, to test whether PAU-3
+# throughput scales with CPU allocation on this host (a proxy for "would more vCPUs help", without
+# needing to actually resize the VPS). No default on purpose - always pass SEARCH_SERVICE_CPU_LIMIT
+# explicitly so it's never silently left over from a previous run.
+#
+# Usage:
+#   SEARCH_SERVICE_CPU_LIMIT=2 docker compose -f docker-compose.yml -f docker-compose-cpu-limit.yml up -d --force-recreate search-service
+#   SEARCH_SERVICE_CPU_LIMIT=4 docker compose -f docker-compose.yml -f docker-compose-cpu-limit.yml up -d --force-recreate search-service
+#   SEARCH_SERVICE_CPU_LIMIT=8 docker compose -f docker-compose.yml -f docker-compose-cpu-limit.yml up -d --force-recreate search-service
+# Run PAU-3 after each recreate. No image rebuild needed between values - this is a runtime cgroup
+# limit, not a code change.
+#
+# To go back to the normal, unconstrained run: docker compose -f docker-compose.yml up -d --force-recreate search-service
+# (omit this override file entirely).
+services:
+  search-service:
+    deploy:
+      resources:
+        limits:
+          cpus: '${SEARCH_SERVICE_CPU_LIMIT}'

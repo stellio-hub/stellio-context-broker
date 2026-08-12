@@ -5,9 +5,9 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.invalidInputElementKeyMessage
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.invalidServiceExecutionInputMessage
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.missingServiceExecutionInputMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.invalidInputElementKeyMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.invalidServiceExecutionInputMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.missingServiceExecutionInputMessage
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 

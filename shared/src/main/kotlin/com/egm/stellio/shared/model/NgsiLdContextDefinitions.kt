@@ -144,6 +144,7 @@ const val NGSILD_SUBSCRIPTION_TERM = "Subscription"
 const val NGSILD_NOTIFICATION_TERM = "Notification"
 const val NGSILD_CSR_TERM = "ContextSourceRegistration"
 const val NGSILD_SERVICE_REGISTRATION_TERM = "ServiceRegistration"
+const val NGSILD_SERVICE_EXECUTION_TERM = "ServiceExecution"
 
 // Data types for values (4.6.3)
 

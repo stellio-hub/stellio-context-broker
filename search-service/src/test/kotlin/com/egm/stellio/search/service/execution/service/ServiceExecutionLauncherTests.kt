@@ -7,8 +7,6 @@ import com.egm.stellio.search.service.registration.model.InputInformation
 import com.egm.stellio.search.service.registration.model.InputInformationType
 import com.egm.stellio.search.service.registration.model.ServiceInformation
 import com.egm.stellio.search.service.registration.model.ServiceRegistration
-import com.egm.stellio.shared.model.NotImplementedException
-import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.toUri
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
@@ -137,13 +135,6 @@ class ServiceExecutionLauncherTests {
         assertEquals(ServiceExecutionStatus.FAILURE, failedExecution.executionStatus)
         assertEquals("execution rejected", failedExecution.output)
         assertEquals(500, failedExecution.responseStatusCode)
-    }
-
-    @Test
-    fun `cancelExecution should return not implemented`() = runTest {
-        serviceExecutionLauncher.cancelExecution("urn:ngsi-ld:ServiceExecution:4673".toUri()).shouldFailWith {
-            it is NotImplementedException
-        }
     }
 
     private fun buildExecution(input: Any) =

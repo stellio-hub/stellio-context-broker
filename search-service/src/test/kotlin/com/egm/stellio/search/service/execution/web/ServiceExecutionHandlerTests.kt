@@ -135,6 +135,8 @@ class ServiceExecutionHandlerTests {
                         it.serviceName == null &&
                         it.input == 125 &&
                         it.completion == null &&
+                        it.output == null &&
+                        it.responseStatusCode == null &&
                         it.executionStatus == ServiceExecutionStatus.PENDING
                 },
                 synchronousRegistration
@@ -189,27 +191,31 @@ class ServiceExecutionHandlerTests {
     }
 
     @Test
-    fun `create should reject completion`() = runTest {
-        webClient.post()
-            .uri(resourceUri)
-            .bodyValue(
-                """
-                {
-                  "id": "$executionId",
-                  "type": "ServiceExecution",
-                  "serviceId": "$serviceId",
-                  "entityId": "urn:ngsi-ld:Light:001",
-                  "entityType": "Light",
-                  "input": 125,
-                  "executionStatus": "pending",
-                  "completion": 0.5
-                }
-                """.trimIndent()
-            )
-            .exchange()
-            .expectStatus().isBadRequest
+    fun `create should reject result members`() = runTest {
+        listOf(
+            """"completion": 0.5""",
+            """"output": "Brightness successfully changed."""",
+            """"responseStatusCode": 200""",
+            """"executionStatus": "pending""""
+        ).forEach { prohibitedMember ->
+            webClient.post()
+                .uri(resourceUri)
+                .bodyValue(
+                    serviceExecutionPayload.replace(
+                        """"input": 125""",
+                        """
+                        "input": 125,
+                          $prohibitedMember
+                        """.trimIndent()
+                    )
+                )
+                .exchange()
+                .expectStatus().isBadRequest
+        }
 
+        coVerify(exactly = 0) { serviceExecutionService.create(any()) }
         coVerify(exactly = 0) { serviceExecutionLauncher.invoke(any(), any()) }
+        coVerify(exactly = 0) { serviceExecutionLauncher.invokeAsynchronousService(any(), any()) }
     }
 
     @Test
@@ -245,6 +251,18 @@ class ServiceExecutionHandlerTests {
             .jsonPath("$.output").isEqualTo("Brightness successfully changed.")
             .jsonPath("$.responseStatusCode").isEqualTo(200)
             .jsonPath("$.createdAt").doesNotExist()
+    }
+
+    @Test
+    fun `retrieve should propagate a not found error`() = runTest {
+        coEvery {
+            serviceExecutionService.getById(executionId)
+        } returns ResourceNotFoundException("not found").left()
+
+        webClient.get()
+            .uri("$resourceUri/$executionId")
+            .exchange()
+            .expectStatus().isNotFound
     }
 
     @Test
@@ -360,18 +378,6 @@ class ServiceExecutionHandlerTests {
         coVerify(exactly = 0) { serviceExecutionService.delete(any()) }
     }
 
-    @Test
-    fun `retrieve should propagate a not found error`() = runTest {
-        coEvery {
-            serviceExecutionService.getById(executionId)
-        } returns ResourceNotFoundException("not found").left()
-
-        webClient.get()
-            .uri("$resourceUri/$executionId")
-            .exchange()
-            .expectStatus().isNotFound
-    }
-
     private val serviceExecutionPayload =
         """
         {
@@ -380,8 +386,7 @@ class ServiceExecutionHandlerTests {
           "serviceId": "$serviceId",
           "entityId": "urn:ngsi-ld:Light:001",
           "entityType": "Light",
-          "input": 125,
-          "executionStatus": "pending"
+          "input": 125
         }
         """.trimIndent()
 }

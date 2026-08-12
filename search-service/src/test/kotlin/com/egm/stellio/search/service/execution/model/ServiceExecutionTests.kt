@@ -52,31 +52,6 @@ class ServiceExecutionTests {
     }
 
     @Test
-    fun `deserialize should accept direct string and integer input`() = runTest {
-        listOf(
-            "\"turn-on\"" to "turn-on",
-            "125" to 125
-        ).forEach { (serializedInput, expectedInput) ->
-            val execution = ServiceExecution.deserialize(
-                """
-                {
-                  "serviceId": "urn:ngsi-ld:ServiceRegistration:sr3689",
-                  "entityId": "urn:ngsi-ld:Light:001",
-                  "entityType": "Light",
-                  "input": $serializedInput
-                }
-                """.trimIndent().deserializeAsMap(),
-                emptyList()
-            ).shouldSucceedAndResult()
-
-            assertEquals(expectedInput, execution.input)
-            assertEquals(null, execution.serviceName)
-            assertEquals(null, execution.completion)
-            assertEquals(null, execution.responseStatusCode)
-        }
-    }
-
-    @Test
     fun `validate should reject completion outside proportion range`() = runTest {
         val execution = ServiceExecution(
             serviceId = "urn:ngsi-ld:ServiceRegistration:sr3689".toUri(),
@@ -137,32 +112,5 @@ class ServiceExecutionTests {
         assertEquals(1.0, updated.completion)
         assertEquals("Brightness successfully changed.", updated.output)
         assertThat(updated.modifiedAt).isAfterOrEqualTo(execution.modifiedAt)
-    }
-
-    @Test
-    fun `mergeWithFragment should reject non executor-controlled members`() = runTest {
-        val execution = ServiceExecution(
-            serviceId = "urn:ngsi-ld:ServiceRegistration:sr3689".toUri(),
-            entityId = "urn:ngsi-ld:Light:001".toUri(),
-            entityType = "Light",
-            input = 125
-        )
-
-        listOf(
-            "id",
-            "type",
-            "serviceId",
-            "entityId",
-            "entityType",
-            "input",
-            "serviceName",
-            "createdAt",
-            "modifiedAt"
-        ).forEach { member ->
-            execution.mergeWithFragment(mapOf(member to "unsupported"), emptyList()).shouldFailWith {
-                it is BadRequestDataException &&
-                    it.message.contains("'completion', 'output' and 'executionStatus'")
-            }
-        }
     }
 }

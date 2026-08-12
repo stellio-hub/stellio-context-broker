@@ -19,7 +19,7 @@ import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QP
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.SERVICE_EXECUTION_COMPLETION_CREATE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.SERVICE_EXECUTION_CREATE_MEMBERS_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.SERVICE_EXECUTION_DELETE_OPTIONS_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.SERVICE_EXECUTION_UPDATE_MEMBERS_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
@@ -77,10 +77,10 @@ class ServiceExecutionHandler(
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
-        val serviceExecution = deserialize(body, contexts).bind()
-        ensure(serviceExecution.completion == null) {
-            BadRequestDataException(SERVICE_EXECUTION_COMPLETION_CREATE_MESSAGE)
+        ensure(body.keys.none(EXECUTION_RESULT_MEMBERS::contains)) {
+            BadRequestDataException(SERVICE_EXECUTION_CREATE_MEMBERS_MESSAGE)
         }
+        val serviceExecution = deserialize(body, contexts).bind()
 
         val serviceRegistration = serviceRegistrationService.getById(serviceExecution.serviceId).bind()
         serviceRegistration.serviceInformation.input?.checkValue(serviceExecution.input)?.bind()
@@ -142,7 +142,7 @@ class ServiceExecutionHandler(
         val currentExecution = serviceExecutionService.getById(serviceExecutionId).bind()
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
-        ensure((body.keys - JSONLD_CONTEXT_KW).all(PATCHABLE_MEMBERS::contains)) {
+        ensure((body.keys - JSONLD_CONTEXT_KW).all(EXECUTION_RESULT_MEMBERS::contains)) {
             BadRequestDataException(SERVICE_EXECUTION_UPDATE_MEMBERS_MESSAGE)
         }
 
@@ -177,7 +177,8 @@ class ServiceExecutionHandler(
         { it }
     )
     companion object {
-        private val PATCHABLE_MEMBERS = setOf("completion", "output", "executionStatus")
+        private val EXECUTION_RESULT_MEMBERS =
+            setOf("completion", "output", "responseStatusCode", "executionStatus")
 
         private enum class DeleteOption(val value: String) {
             REMOVE("remove"),

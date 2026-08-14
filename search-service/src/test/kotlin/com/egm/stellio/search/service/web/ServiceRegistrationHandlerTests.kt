@@ -135,6 +135,7 @@ class ServiceRegistrationHandlerTests {
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "1")
             .expectBody()
             .jsonPath("$[0].id").isEqualTo(registrationId.toString())
+            .jsonPath("$[0].endpointMethod").isEqualTo("POST")
             .jsonPath("$[0].serviceInformation.name").isEqualTo("setLight")
 
         coVerify {
@@ -183,6 +184,7 @@ class ServiceRegistrationHandlerTests {
             .expectStatus().isOk
             .expectBody()
             .jsonPath("$.id").isEqualTo(registrationId.toString())
+            .jsonPath("$.endpointMethod").isEqualTo("POST")
             .jsonPath("$.createdAt").doesNotExist()
             .jsonPath("$.modifiedAt").doesNotExist()
     }

@@ -59,6 +59,7 @@ data class ServiceRegistration(
         includeSysAttrs: Boolean = false
     ): String =
         DataTypes.convertTo<Map<String, Any>>(compact(contexts))
+            .plus("endpointMethod" to endpointMethod.name())
             .plus(JSONLD_CONTEXT_KW to contexts)
             .let { DataTypes.toFinalRepresentation(it, mediaType, includeSysAttrs) }
             .let { DataTypes.serialize(it) }

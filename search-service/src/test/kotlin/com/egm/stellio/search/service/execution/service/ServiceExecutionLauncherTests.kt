@@ -8,6 +8,7 @@ import com.egm.stellio.search.service.registration.model.InputInformationType
 import com.egm.stellio.search.service.registration.model.ServiceInformation
 import com.egm.stellio.search.service.registration.model.ServiceRegistration
 import com.egm.stellio.shared.util.toUri
+import com.github.tomakehurst.wiremock.client.WireMock.absent
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
@@ -38,7 +39,7 @@ class ServiceExecutionLauncherTests {
             InputInformation(
                 type = InputInformationType.INTEGER,
                 minimum = 0.toBigDecimal(),
-                maximum = 255.toBigDecimal()
+                maximum = 255.toBigDecimal(),
             )
         )
         stubFor(
@@ -54,6 +55,7 @@ class ServiceExecutionLauncherTests {
         assertEquals(200, successfulExecution.responseStatusCode)
         verify(
             postRequestedFor(urlPathEqualTo("/invoke"))
+                .withHeader("Service-Execution", absent())
                 .withRequestBody(equalTo("125"))
         )
     }
@@ -116,6 +118,10 @@ class ServiceExecutionLauncherTests {
         assertEquals(ServiceExecutionStatus.EXECUTING, successfulExecution.executionStatus)
         assertEquals(mapOf("accepted" to true), successfulExecution.output)
         assertEquals(200, successfulExecution.responseStatusCode)
+        verify(
+            postRequestedFor(urlPathEqualTo("/invoke"))
+                .withHeader("Service-Execution", equalTo(execution.id.toString()))
+        )
     }
 
     @Test

@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import com.egm.stellio.search.service.execution.model.ServiceExecution
 import com.egm.stellio.search.service.execution.model.ServiceExecutionStatus
+import com.egm.stellio.search.service.registration.model.ServiceInformation
 import com.egm.stellio.search.service.registration.model.ServiceRegistration
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.GatewayTimeoutException
@@ -74,6 +75,12 @@ class ServiceExecutionLauncher {
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(DataTypes.serialize(serviceExecution.input))
 
+            if (serviceRegistration.serviceInformation.mode == ServiceInformation.ServiceMode.ASYNCHRONOUS) {
+                request.apply {
+                    header(SERVICE_EXECUTION_HEADER, serviceRegistration.id.toString())
+                }
+            }
+
             val (statusCode, responseBody) = request.awaitExchange { response ->
                 response.statusCode() to response.awaitBodyOrNull<String>()
             }
@@ -96,4 +103,8 @@ class ServiceExecutionLauncher {
 
     suspend fun cancelExecution(serviceExecutionId: URI): Either<APIException, Unit> =
         NotImplementedException(serviceExecutionCancellationNotImplementedMessage(serviceExecutionId)).left()
+
+    companion object {
+        private const val SERVICE_EXECUTION_HEADER = "Service-Execution"
+    }
 }

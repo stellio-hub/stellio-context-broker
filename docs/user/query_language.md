@@ -130,6 +130,27 @@ q=temperature.unitCode=="CEL"
 
 ---
 
+## DatasetId selectors
+
+Append `#{datasetId}` to the main attribute name to restrict a query to one attribute instance. The dataset ID is
+expanded against the request context, so it can be either an absolute URI or a compact IRI.
+
+```
+# compare only the temperature instance identified by this datasetId
+q=temperature#{urn:ngsi-ld:Dataset:WeatherApi}==12
+
+# traverse a member of the selected attribute instance
+q=weatherData#{my:datasetId}.modifiedAt
+
+# check that the selected instance does not exist
+q=!temperature#{urn:ngsi-ld:Dataset:WeatherApi}
+```
+
+The selector must immediately follow the main attribute. When writing a request URL manually, percent-encode `#`
+as `%23` so it is sent as part of the query parameter instead of being interpreted as a URL fragment.
+
+---
+
 ## Language tag filtering
 
 Append `[lang]` to a LanguageProperty attribute to filter by language tag.

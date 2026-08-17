@@ -128,10 +128,41 @@ class AttributePathTests {
     }
 
     @Test
+    fun `buildJsonBExistsPath should select an attribute instance by datasetId`() = runTest {
+        val datasetId = "urn:ngsi-ld:Dataset:01"
+        val attrPath = AttributePath(
+            "$INCOMING_TERM#{$datasetId}.$NGSILD_MODIFIED_AT_TERM",
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        assertEquals(datasetId, attrPath.rawDatasetId)
+        assertEquals(datasetId, attrPath.datasetId)
+        assertEquals(
+            """$."$INCOMING_IRI"[*] ? (@."$NGSILD_DATASET_ID_IRI"[*]."$JSONLD_ID_KW" == """ +
+                """${"$"}datasetId)."$NGSILD_MODIFIED_AT_IRI"""",
+            attrPath.buildJsonBExistsPath()
+        )
+    }
+
+    @Test
     fun `buildJsonBPropertyPath should build property path for a simple attribute`() = runTest {
         val attrPath = AttributePath(INCOMING_TERM, APIC_COMPOUND_CONTEXTS)
         assertEquals(
             """$."$INCOMING_IRI"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW"""",
+            attrPath.buildJsonBPropertyPath()
+        )
+    }
+
+    @Test
+    fun `buildJsonBPropertyPath should select a property value by datasetId`() = runTest {
+        val attrPath = AttributePath(
+            "$INCOMING_TERM#{urn:ngsi-ld:Dataset:01}",
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        assertEquals(
+            """$."$INCOMING_IRI"[*] ? (@."$NGSILD_DATASET_ID_IRI"[*]."$JSONLD_ID_KW" == """ +
+                """${"$"}datasetId)."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW"""",
             attrPath.buildJsonBPropertyPath()
         )
     }

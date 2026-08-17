@@ -193,6 +193,31 @@ class QParserTests {
     }
 
     @Test
+    fun `parseQQuery should parse a datasetId selector on a comparison`() {
+        parseQQuery("temperature#{my:datasetId}==12").shouldSucceedWith { node ->
+            node as ComparisonNode
+            assertEquals("temperature#{my:datasetId}", node.rawPath)
+            assertEquals("12", (node.value as SingleValue).raw)
+        }
+    }
+
+    @Test
+    fun `parseQQuery should parse a datasetId selector before a nested path`() {
+        parseQQuery("jsonAttribute#{mysecond:datasetId}.modifiedAt").shouldSucceedWith { node ->
+            node as ExistsNode
+            assertEquals("jsonAttribute#{mysecond:datasetId}.modifiedAt", node.rawPath)
+        }
+    }
+
+    @Test
+    fun `parseQQuery should allow query delimiters inside a datasetId selector`() {
+        parseQQuery("temperature#{urn:dataset;part=value|other}==12").shouldSucceedWith { node ->
+            node as ComparisonNode
+            assertEquals("temperature#{urn:dataset;part=value|other}", node.rawPath)
+        }
+    }
+
+    @Test
     fun `parseQQuery should return BadRequest for empty query`() {
         parseQQuery("").shouldFail { ex ->
             assertInstanceOf(BadRequestDataException::class.java, ex)
@@ -216,6 +241,27 @@ class QParserTests {
     @Test
     fun `parseQQuery should return BadRequest for unclosed string value`() {
         parseQQuery("temperature==\"unclosed").shouldFail { ex ->
+            assertInstanceOf(BadRequestDataException::class.java, ex)
+        }
+    }
+
+    @Test
+    fun `parseQQuery should return BadRequest for an unclosed datasetId selector`() {
+        parseQQuery("temperature#{urn:ngsi-ld:Dataset:01==12").shouldFail { ex ->
+            assertInstanceOf(BadRequestDataException::class.java, ex)
+        }
+    }
+
+    @Test
+    fun `parseQQuery should return BadRequest for an empty datasetId selector`() {
+        parseQQuery("temperature#{}==12").shouldFail { ex ->
+            assertInstanceOf(BadRequestDataException::class.java, ex)
+        }
+    }
+
+    @Test
+    fun `parseQQuery should return BadRequest for a datasetId selector on a nested attribute`() {
+        parseQQuery("incoming.temperature#{urn:ngsi-ld:Dataset:01}==12").shouldFail { ex ->
             assertInstanceOf(BadRequestDataException::class.java, ex)
         }
     }

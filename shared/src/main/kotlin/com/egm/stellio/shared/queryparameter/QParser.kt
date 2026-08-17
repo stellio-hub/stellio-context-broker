@@ -18,6 +18,7 @@ import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidQQueryMes
  *   term       = "!" attr-path
  *              | "(" query ")"
  *              | attr-path [ comparison-op query-value ]
+ *   attr-path  = attribute [ "#{" dataset-id "}" ] [ nested-path ]
  *   query-value = simple-value ".." simple-value   (range)
  *              | simple-value ( "," simple-value )+ (list)
  *              | simple-value
@@ -99,29 +100,64 @@ private class QParserImpl(private val raw: String) {
     }
 
     private fun parseRawAttributePath(): Either<String, String> = either {
-        val start = pos
+        val path = StringBuilder()
+        var hasDatasetIdSelector = false
         var inBracket = false
         var done = false
         while (pos < raw.length && !done) {
             val c = raw[pos]
             when {
+                raw.startsWith("#{", pos) -> {
+                    ensure(!hasDatasetIdSelector) { "Only one datasetId selector is allowed per attribute path" }
+                    val rawDatasetId = parseDatasetIdSelector(path).bind()
+                    path.append("#{").append(rawDatasetId).append('}')
+                    hasDatasetIdSelector = true
+                }
                 c == '[' -> {
                     inBracket = true
+                    path.append(c)
                     pos++
                 }
                 c == ']' -> {
                     inBracket = false
+                    path.append(c)
                     pos++
                     done = true
                 }
-                inBracket -> pos++
+                inBracket -> {
+                    path.append(c)
+                    pos++
+                }
                 c == ';' || c == '|' || c == ')' || isOperatorChar(c) -> done = true
-                else -> pos++
+                else -> {
+                    path.append(c)
+                    pos++
+                }
             }
         }
         ensure(!inBracket) { "Unclosed bracket in value" }
-        raw.substring(start, pos)
+        path.toString()
     }
+
+    private fun parseDatasetIdSelector(path: StringBuilder): Either<String, String> = either {
+        ensure(path.isNotEmpty() && !path.contains('.') && !path.contains('[')) {
+            "The datasetId selector must immediately follow the main attribute"
+        }
+        pos += 2
+        val datasetIdStart = pos
+        while (pos < raw.length && raw[pos] != '}') pos++
+        ensure(pos < raw.length) { "Unclosed datasetId selector" }
+        ensure(pos > datasetIdStart) { "DatasetId selector cannot be empty" }
+        val rawDatasetId = raw.substring(datasetIdStart, pos)
+        pos++
+        ensure(isValidDatasetIdSelectorContinuation()) {
+            "Unexpected character after datasetId selector at position $pos: '${raw[pos]}'"
+        }
+        rawDatasetId
+    }
+
+    private fun isValidDatasetIdSelectorContinuation(): Boolean =
+        pos >= raw.length || raw[pos] in setOf('.', '[', ';', '|', ')') || isOperatorChar(raw[pos])
 
     private fun isOperatorChar(c: Char): Boolean = c in setOf('=', '!', '>', '<', '~')
 

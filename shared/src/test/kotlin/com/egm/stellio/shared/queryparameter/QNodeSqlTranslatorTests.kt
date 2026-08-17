@@ -2,8 +2,10 @@ package com.egm.stellio.shared.queryparameter
 
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
+import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
@@ -33,6 +35,7 @@ class QNodeSqlTranslatorTests {
     private val minPh = $$"$min"
     private val maxPh = $$"$max"
     private val langPh = $$"$lang"
+    private val datasetIdPh = $$"$datasetId"
 
     // shared jsonpath segments built from the same NGSI-LD constants as the production code
     private val incomingPropertyPath =
@@ -103,6 +106,37 @@ class QNodeSqlTranslatorTests {
         assertEquals(
             existsWhere(temperaturePropertyPath, """@ == $valuePh""", """{"value": 42}"""),
             buildSql("$TEMPERATURE_TERM==42")
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should restrict a comparison to the selected datasetId`() {
+        val datasetId = "urn:ngsi-ld:Dataset:01"
+        val selectedTemperaturePath =
+            """$."$TEMPERATURE_IRI"[*] ? (@."$NGSILD_DATASET_ID_IRI"[*]."$JSONLD_ID_KW" == """ +
+                """$datasetIdPh)."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW""""
+
+        assertEquals(
+            existsWhere(
+                selectedTemperaturePath,
+                """@ == $valuePh""",
+                """{"datasetId": "$datasetId", "value": 42}"""
+            ),
+            buildSql("$TEMPERATURE_TERM#{$datasetId}==42")
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should restrict a nested existence check to the selected datasetId`() {
+        val datasetId = "urn:ngsi-ld:Dataset:01"
+        val selectedModifiedAtPath =
+            """$."$INCOMING_IRI"[*] ? (@."$NGSILD_DATASET_ID_IRI"[*]."$JSONLD_ID_KW" == """ +
+                """$datasetIdPh)."$NGSILD_MODIFIED_AT_IRI""""
+
+        assertEquals(
+            """jsonb_path_exists(entity_payload.payload, '$selectedModifiedAtPath', """ +
+                """'{"datasetId": "$datasetId"}')""",
+            buildSql("$INCOMING_TERM#{$datasetId}.modifiedAt")
         )
     }
 

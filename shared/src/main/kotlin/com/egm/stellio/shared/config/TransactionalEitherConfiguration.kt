@@ -32,6 +32,7 @@ import kotlin.coroutines.Continuation
 import kotlin.reflect.jvm.kotlinFunction
 
 @Configuration(proxyBeanMethods = false)
+@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 class TransactionalEitherConfiguration {
 
     @Bean

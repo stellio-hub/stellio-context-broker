@@ -71,7 +71,7 @@ class ServiceExecutionHandlerTests {
         entityType = "Light",
         input = 125,
         executionStatus = ServiceExecutionStatus.SUCCESS,
-        completion = 1.0,
+        progress = 1.0,
         output = "Brightness successfully changed.",
         responseStatusCode = 200
     )
@@ -110,7 +110,7 @@ class ServiceExecutionHandlerTests {
 
     @Test
     fun `create should return 201 with the synchronous execution result`() = runTest {
-        coEvery { serviceExecutionLauncher.invoke(any(), any()) } returns execution
+        coEvery { serviceExecutionLauncher.invokeService(any(), any()) } returns execution
 
         webClient.post()
             .uri(resourceUri)
@@ -121,12 +121,12 @@ class ServiceExecutionHandlerTests {
             .expectBody()
             .jsonPath("$.id").isEqualTo(executionId.toString())
             .jsonPath("$.executionStatus").isEqualTo("success")
-            .jsonPath("$.completion").isEqualTo(1.0)
+            .jsonPath("$.progress").isEqualTo(1.0)
             .jsonPath("$.output").isEqualTo("Brightness successfully changed.")
             .jsonPath("$.responseStatusCode").isEqualTo(200)
 
         coVerify {
-            serviceExecutionLauncher.invoke(
+            serviceExecutionLauncher.invokeService(
                 match {
                     it.id == executionId &&
                         it.serviceId == serviceId &&
@@ -134,7 +134,7 @@ class ServiceExecutionHandlerTests {
                         it.entityType == "${NGSILD_DEFAULT_VOCAB}Light" &&
                         it.serviceName == null &&
                         it.input == 125 &&
-                        it.completion == null &&
+                        it.progress == null &&
                         it.output == null &&
                         it.responseStatusCode == null &&
                         it.executionStatus == ServiceExecutionStatus.PENDING
@@ -152,7 +152,7 @@ class ServiceExecutionHandlerTests {
         )
         val acknowledgedExecution = execution.copy(
             executionStatus = ServiceExecutionStatus.EXECUTING,
-            completion = null,
+            progress = null,
             output = mapOf("accepted" to true),
             responseStatusCode = 202
         )
@@ -170,7 +170,7 @@ class ServiceExecutionHandlerTests {
             .expectBody()
             .jsonPath("$.id").isEqualTo(executionId.toString())
             .jsonPath("$.executionStatus").isEqualTo("executing")
-            .jsonPath("$.completion").doesNotExist()
+            .jsonPath("$.progress").doesNotExist()
             .jsonPath("$.output.accepted").isEqualTo(true)
             .jsonPath("$.responseStatusCode").isEqualTo(202)
 
@@ -193,7 +193,7 @@ class ServiceExecutionHandlerTests {
     @Test
     fun `create should reject result members`() = runTest {
         listOf(
-            """"completion": 0.5""",
+            """"progress": 0.5""",
             """"output": "Brightness successfully changed."""",
             """"responseStatusCode": 200""",
             """"executionStatus": "pending""""
@@ -214,7 +214,7 @@ class ServiceExecutionHandlerTests {
         }
 
         coVerify(exactly = 0) { serviceExecutionService.create(any()) }
-        coVerify(exactly = 0) { serviceExecutionLauncher.invoke(any(), any()) }
+        coVerify(exactly = 0) { serviceExecutionLauncher.invokeService(any(), any()) }
         coVerify(exactly = 0) { serviceExecutionLauncher.invokeAsynchronousService(any(), any()) }
     }
 
@@ -232,7 +232,7 @@ class ServiceExecutionHandlerTests {
             .expectStatus().isBadRequest
 
         coVerify(exactly = 0) { serviceExecutionService.create(any()) }
-        coVerify(exactly = 0) { serviceExecutionLauncher.invoke(any(), any()) }
+        coVerify(exactly = 0) { serviceExecutionLauncher.invokeService(any(), any()) }
     }
 
     @Test
@@ -247,7 +247,7 @@ class ServiceExecutionHandlerTests {
             .jsonPath("$.id").isEqualTo(executionId.toString())
             .jsonPath("$.serviceId").isEqualTo(serviceId.toString())
             .jsonPath("$.executionStatus").isEqualTo("success")
-            .jsonPath("$.completion").isEqualTo(1.0)
+            .jsonPath("$.progress").isEqualTo(1.0)
             .jsonPath("$.output").isEqualTo("Brightness successfully changed.")
             .jsonPath("$.responseStatusCode").isEqualTo(200)
             .jsonPath("$.createdAt").doesNotExist()
@@ -279,7 +279,7 @@ class ServiceExecutionHandlerTests {
                 """
                 {
                   "executionStatus": "success",
-                  "completion": 1.0,
+                  "progress": 1.0,
                   "output": "Brightness successfully changed."
                 }
                 """.trimIndent()
@@ -291,7 +291,7 @@ class ServiceExecutionHandlerTests {
             serviceExecutionService.upsert(
                 match {
                     it.executionStatus == ServiceExecutionStatus.SUCCESS &&
-                        it.completion == 1.0 &&
+                        it.progress == 1.0 &&
                         it.output == "Brightness successfully changed."
                 }
             )

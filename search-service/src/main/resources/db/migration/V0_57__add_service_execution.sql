@@ -7,7 +7,7 @@ CREATE TABLE service_execution
     input jsonb NOT NULL,
     service_name text,
     execution_status text NOT NULL,
-    completion double precision,
+    progress double precision,
     output jsonb,
     response_status_code integer,
     sub text,

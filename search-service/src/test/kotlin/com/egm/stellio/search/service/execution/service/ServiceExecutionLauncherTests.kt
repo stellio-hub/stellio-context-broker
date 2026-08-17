@@ -31,7 +31,7 @@ class ServiceExecutionLauncherTests {
     private val serviceId = "urn:ngsi-ld:ServiceRegistration:sr3689".toUri()
 
     @Test
-    fun `invoke should post and return a successful execution`() = runTest {
+    fun `invokeService should post and return a successful execution`() = runTest {
         val execution = buildExecution(125)
         val registration = buildRegistration(
             HttpMethod.POST,
@@ -46,10 +46,10 @@ class ServiceExecutionLauncherTests {
                 .willReturn(okJson("""{"accepted":true}"""))
         )
 
-        val successfulExecution = serviceExecutionLauncher.invoke(execution, registration)
+        val successfulExecution = serviceExecutionLauncher.invokeService(execution, registration)
 
         assertEquals(ServiceExecutionStatus.SUCCESS, successfulExecution.executionStatus)
-        assertEquals(null, successfulExecution.completion)
+        assertEquals(null, successfulExecution.progress)
         assertEquals(mapOf("accepted" to true), successfulExecution.output)
         assertEquals(200, successfulExecution.responseStatusCode)
         verify(
@@ -59,7 +59,7 @@ class ServiceExecutionLauncherTests {
     }
 
     @Test
-    fun `invoke should use the registered GET method`() = runTest {
+    fun `invokeService should use the registered GET method`() = runTest {
         val execution = buildExecution("turn-on")
         val registration = buildRegistration(
             HttpMethod.GET,
@@ -70,7 +70,7 @@ class ServiceExecutionLauncherTests {
                 .willReturn(okJson("\"done\""))
         )
 
-        val successfulExecution = serviceExecutionLauncher.invoke(execution, registration)
+        val successfulExecution = serviceExecutionLauncher.invokeService(execution, registration)
 
         assertEquals("done", successfulExecution.output)
         assertEquals(200, successfulExecution.responseStatusCode)
@@ -81,7 +81,7 @@ class ServiceExecutionLauncherTests {
     }
 
     @Test
-    fun `invoke should return failure when the endpoint responds with an error`() = runTest {
+    fun `invokeService should return failure when the endpoint responds with an error`() = runTest {
         val execution = buildExecution(125)
         val registration = buildRegistration(
             HttpMethod.POST,
@@ -92,7 +92,7 @@ class ServiceExecutionLauncherTests {
                 .willReturn(serverError().withBody("""{"error":"execution rejected"}"""))
         )
 
-        val failedExecution = serviceExecutionLauncher.invoke(execution, registration)
+        val failedExecution = serviceExecutionLauncher.invokeService(execution, registration)
 
         assertEquals(ServiceExecutionStatus.FAILURE, failedExecution.executionStatus)
         assertEquals(mapOf("error" to "execution rejected"), failedExecution.output)

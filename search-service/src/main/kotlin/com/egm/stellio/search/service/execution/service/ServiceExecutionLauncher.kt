@@ -9,8 +9,9 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.util.DataTypes
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.serviceEndpointContactErrorMessage
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.serviceExecutionCancellationNotImplementedMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.serviceEndpointContactErrorMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.serviceExecutionCancellationNotImplementedMessage
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatusCode
@@ -26,7 +27,7 @@ import java.net.URI
 class ServiceExecutionLauncher {
     private val webClient = WebClient.create()
 
-    suspend fun invoke(
+    suspend fun invokeService(
         serviceExecution: ServiceExecution,
         serviceRegistration: ServiceRegistration
     ): ServiceExecution {
@@ -90,8 +91,7 @@ class ServiceExecutionLauncher {
         responseBody
             ?.takeUnless(String::isBlank)
             ?.let { body ->
-                runCatching { DataTypes.mapper.readValue(body, Any::class.java) }
-                    .getOrElse { body }
+                runCatching { deserializeAs<Any>(body) }.getOrElse { body }
             }
 
     suspend fun cancelExecution(serviceExecutionId: URI): Either<APIException, Unit> =

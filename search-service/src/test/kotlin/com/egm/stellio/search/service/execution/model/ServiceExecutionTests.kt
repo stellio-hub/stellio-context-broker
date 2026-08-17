@@ -30,7 +30,7 @@ class ServiceExecutionTests {
                 }
               },
               "executionStatus": "pending",
-              "completion": 0.25,
+              "progress": 0.25,
               "responseStatusCode": 202
             }
             """.trimIndent().deserializeAsMap(),
@@ -46,13 +46,13 @@ class ServiceExecutionTests {
         assertEquals(125, input["brightness"])
         assertThat(input["transition"]).isEqualTo(mapOf("duration" to 2))
         assertEquals(ServiceExecutionStatus.PENDING, execution.executionStatus)
-        assertEquals(0.25, execution.completion)
+        assertEquals(0.25, execution.progress)
         assertEquals(202, execution.responseStatusCode)
         execution.validate().shouldSucceed()
     }
 
     @Test
-    fun `validate should reject completion outside proportion range`() = runTest {
+    fun `validate should reject progress outside proportion range`() = runTest {
         val execution = ServiceExecution(
             serviceId = "urn:ngsi-ld:ServiceRegistration:sr3689".toUri(),
             entityId = "urn:ngsi-ld:Light:001".toUri(),
@@ -60,9 +60,9 @@ class ServiceExecutionTests {
             input = 125
         )
 
-        listOf(-0.1, 1.1, Double.NaN, Double.POSITIVE_INFINITY).forEach { completion ->
-            execution.copy(completion = completion).validate().shouldFailWith {
-                it is BadRequestDataException && it.message.contains("completion")
+        listOf(-0.1, 1.1, Double.NaN, Double.POSITIVE_INFINITY).forEach { progress ->
+            execution.copy(progress = progress).validate().shouldFailWith {
+                it is BadRequestDataException && it.message.contains("progress")
             }
         }
     }
@@ -102,14 +102,14 @@ class ServiceExecutionTests {
         val updated = execution.mergeWithFragment(
             mapOf(
                 "executionStatus" to "success",
-                "completion" to 1.0,
+                "progress" to 1.0,
                 "output" to "Brightness successfully changed."
             ),
             emptyList()
         ).shouldSucceedAndResult()
 
         assertEquals(ServiceExecutionStatus.SUCCESS, updated.executionStatus)
-        assertEquals(1.0, updated.completion)
+        assertEquals(1.0, updated.progress)
         assertEquals("Brightness successfully changed.", updated.output)
         assertThat(updated.modifiedAt).isAfterOrEqualTo(execution.modifiedAt)
     }

@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.right
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
@@ -12,13 +13,17 @@ import com.egm.stellio.search.common.util.toJsonString
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.service.execution.model.ServiceExecution
+import com.egm.stellio.search.service.execution.model.ServiceExecution.Companion.EXECUTION_RESULT_MEMBERS
 import com.egm.stellio.search.service.execution.model.ServiceExecutionStatus
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.DataTypes
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.serviceExecutionAlreadyExistsMessage
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.serviceExecutionNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.SERVICE_EXECUTION_INVALID_UPDATE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.serviceExecutionAlreadyExistsMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.serviceExecutionNotFoundMessage
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -43,6 +48,22 @@ class ServiceExecutionService(
     }
 
     @Transactional
+    suspend fun merge(
+        currentID: URI,
+        body: Map<String, Any>,
+        contexts: List<String>
+    ): Either<APIException, Unit> = either {
+        val currentExecution = getById(currentID).bind()
+        ensure((body.keys - JSONLD_CONTEXT_KW).all(EXECUTION_RESULT_MEMBERS::contains)) {
+            BadRequestDataException(SERVICE_EXECUTION_INVALID_UPDATE_MESSAGE)
+        }
+
+        val updatedExecution = currentExecution.mergeWithFragment(body, contexts).bind()
+
+        upsert(updatedExecution).bind()
+    }
+
+    @Transactional
     suspend fun upsert(serviceExecution: ServiceExecution): Either<APIException, Unit> = either {
         serviceExecution.validate().bind()
 
@@ -50,11 +71,11 @@ class ServiceExecutionService(
             """
             INSERT INTO service_execution(
                 id, service_id, entity_id, entity_type, input, service_name,
-                execution_status, completion, output, response_status_code, sub, created_at, modified_at
+                execution_status, progress, output, response_status_code, sub, created_at, modified_at
             )
             VALUES(
                 :id, :service_id, :entity_id, :entity_type, :input, :service_name,
-                :execution_status, :completion, :output, :response_status_code, :sub, :created_at, :modified_at
+                :execution_status, :progress, :output, :response_status_code, :sub, :created_at, :modified_at
             )
             ON CONFLICT (id)
             DO UPDATE SET
@@ -64,7 +85,7 @@ class ServiceExecutionService(
                 input = :input,
                 service_name = :service_name,
                 execution_status = :execution_status,
-                completion = :completion,
+                progress = :progress,
                 output = :output,
                 response_status_code = :response_status_code,
                 sub = :sub,
@@ -78,7 +99,7 @@ class ServiceExecutionService(
             .bind("input", Json.of(DataTypes.serialize(serviceExecution.input)))
             .bind("service_name", serviceExecution.serviceName)
             .bind("execution_status", serviceExecution.executionStatus.name.lowercase())
-            .bind("completion", serviceExecution.completion)
+            .bind("progress", serviceExecution.progress)
             .bind("output", serviceExecution.output?.let { Json.of(DataTypes.serialize(it)) })
             .bind("response_status_code", serviceExecution.responseStatusCode)
             .bind("sub", getSubFromSecurityContext())
@@ -117,7 +138,7 @@ class ServiceExecutionService(
         databaseClient.sql(
             """
             SELECT id, service_id, entity_id, entity_type, input, service_name,
-                execution_status, completion, output, response_status_code, created_at, modified_at
+                execution_status, progress, output, response_status_code, created_at, modified_at
             FROM service_execution
             WHERE id = :id
             """.trimIndent()
@@ -135,26 +156,24 @@ class ServiceExecutionService(
             .bind()
     }
 
-    companion object {
-        private val rowToServiceExecution: (Map<String, Any>) -> ServiceExecution = { row ->
-            ServiceExecution(
-                id = toUri(row["id"]),
-                serviceId = toUri(row["service_id"]),
-                entityId = toUri(row["entity_id"]),
-                entityType = row["entity_type"] as String,
-                input = DataTypes.mapper.readValue(toJsonString(row["input"]), Any::class.java),
-                serviceName = row["service_name"] as? String,
-                executionStatus = ServiceExecutionStatus.valueOf(
-                    (row["execution_status"] as String).uppercase()
-                ),
-                completion = row["completion"] as? Double,
-                output = row["output"]?.let {
-                    DataTypes.mapper.readValue(toJsonString(it), Any::class.java)
-                },
-                responseStatusCode = row["response_status_code"] as? Int,
-                createdAt = toZonedDateTime(row["created_at"]),
-                modifiedAt = toZonedDateTime(row["modified_at"])
-            )
-        }
+    private val rowToServiceExecution: (Map<String, Any>) -> ServiceExecution = { row ->
+        ServiceExecution(
+            id = toUri(row["id"]),
+            serviceId = toUri(row["service_id"]),
+            entityId = toUri(row["entity_id"]),
+            entityType = row["entity_type"] as String,
+            input = DataTypes.mapper.readValue(toJsonString(row["input"]), Any::class.java),
+            serviceName = row["service_name"] as? String,
+            executionStatus = ServiceExecutionStatus.valueOf(
+                (row["execution_status"] as String).uppercase()
+            ),
+            progress = row["progress"] as? Double,
+            output = row["output"]?.let {
+                DataTypes.mapper.readValue(toJsonString(it), Any::class.java)
+            },
+            responseStatusCode = row["response_status_code"] as? Int,
+            createdAt = toZonedDateTime(row["created_at"]),
+            modifiedAt = toZonedDateTime(row["modified_at"])
+        )
     }
 }

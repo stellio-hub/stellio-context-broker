@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
+import com.egm.stellio.search.service.execution.model.ServiceExecution.Companion.EXECUTION_RESULT_MEMBERS
 import com.egm.stellio.search.service.execution.model.ServiceExecution.Companion.deserialize
 import com.egm.stellio.search.service.execution.service.ServiceExecutionLauncher
 import com.egm.stellio.search.service.execution.service.ServiceExecutionService
@@ -15,13 +16,11 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InvalidRequestException
-import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QP
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.SERVICE_EXECUTION_CREATE_MEMBERS_MESSAGE
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.SERVICE_EXECUTION_DELETE_OPTIONS_MESSAGE
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.SERVICE_EXECUTION_UPDATE_MEMBERS_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.SERVICE_EXECUTION_INVALID_OPTIONS_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.SERVICE_EXECUTION_RESERVED_MEMBERS_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
@@ -78,7 +77,7 @@ class ServiceExecutionHandler(
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
         val mediaType = getApplicableMediaType(httpHeaders).bind()
         ensure(body.keys.none(EXECUTION_RESULT_MEMBERS::contains)) {
-            BadRequestDataException(SERVICE_EXECUTION_CREATE_MEMBERS_MESSAGE)
+            BadRequestDataException(SERVICE_EXECUTION_RESERVED_MEMBERS_MESSAGE)
         }
         val serviceExecution = deserialize(body, contexts).bind()
 
@@ -89,7 +88,7 @@ class ServiceExecutionHandler(
         val launchedExecution = if (serviceRegistration.serviceInformation.mode == ServiceMode.ASYNCHRONOUS) {
             serviceExecutionLauncher.invokeAsynchronousService(serviceExecution, serviceRegistration)
         } else {
-            serviceExecutionLauncher.invoke(serviceExecution, serviceRegistration)
+            serviceExecutionLauncher.invokeService(serviceExecution, serviceRegistration)
         }
         serviceExecutionService.upsert(launchedExecution).bind()
 
@@ -139,16 +138,10 @@ class ServiceExecutionHandler(
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
         authorizationService.userIsAdmin().bind()
-        val currentExecution = serviceExecutionService.getById(serviceExecutionId).bind()
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body, applicationProperties.contexts.core).bind()
-        ensure((body.keys - JSONLD_CONTEXT_KW).all(EXECUTION_RESULT_MEMBERS::contains)) {
-            BadRequestDataException(SERVICE_EXECUTION_UPDATE_MEMBERS_MESSAGE)
-        }
 
-        val updatedExecution = currentExecution.mergeWithFragment(body, contexts).bind()
-
-        serviceExecutionService.upsert(updatedExecution).bind()
+        serviceExecutionService.merge(serviceExecutionId, body, contexts).bind()
 
         ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
@@ -177,8 +170,6 @@ class ServiceExecutionHandler(
         { it }
     )
     companion object {
-        private val EXECUTION_RESULT_MEMBERS =
-            setOf("completion", "output", "responseStatusCode", "executionStatus")
 
         private enum class DeleteOption(val value: String) {
             REMOVE("remove"),
@@ -187,7 +178,7 @@ class ServiceExecutionHandler(
             companion object {
                 fun fromString(option: String): Either<APIException, DeleteOption> =
                     entries.find { it.value == option }?.right()
-                        ?: InvalidRequestException(SERVICE_EXECUTION_DELETE_OPTIONS_MESSAGE).left()
+                        ?: InvalidRequestException(SERVICE_EXECUTION_INVALID_OPTIONS_MESSAGE).left()
             }
         }
     }

@@ -5,9 +5,9 @@
 - Unlike in the document, `required` applies to the value described by its own `InputInformation`.
 - The document used `completed` but also `success` and `failure` i choose `success` and `failure` model.
 - The `Service-Execution` header is not used for the base Service execution CRUD.
-- added `completion` in the ServiceExecution who is `null` on creation and can be set through executor `PATCH` to a proportion from `0` to `1`.
+- added `progress` in the ServiceExecution who is `null` on creation and can be set through executor `PATCH` to a proportion from `0` to `1`.
 - `DELETE` accepts `options=remove`, `options=cancel`, or `options=remove,cancel` and defaults to `cancel`; cancellation currently returns `NotImplemented`.
-- patch only supports executionStatus, output, completion and responseStatusCode
+- patch only supports executionStatus, output, progress and responseStatusCode
 
 
 #Thomas

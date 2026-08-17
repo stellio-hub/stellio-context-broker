@@ -117,17 +117,17 @@ object ErrorMessages {
             "Member 'serviceInformation.name' must be a non-empty string"
     }
 
-    object ServiceExecutionErrorMessages {
+    object ServiceExecution {
         fun serviceExecutionNotFoundMessage(id: URI) = "Service execution $id does not exist"
         fun serviceExecutionAlreadyExistsMessage(id: URI) = "Service execution $id already exists"
         fun serviceExecutionFailedToParseMessage(cause: String?) =
             "Service execution cannot be parsed: $cause"
-        const val SERVICE_EXECUTION_CREATE_MEMBERS_MESSAGE =
-            "Members 'completion', 'output', 'responseStatusCode' and 'executionStatus' are reserved " +
+        const val SERVICE_EXECUTION_RESERVED_MEMBERS_MESSAGE =
+            "Members 'progress', 'output', 'responseStatusCode' and 'executionStatus' are reserved " +
                 "for reporting the service response"
-        const val SERVICE_EXECUTION_UPDATE_MEMBERS_MESSAGE =
-            "Service execution update is only for reporting 'completion', 'output', and 'executionStatus'"
-        const val SERVICE_EXECUTION_DELETE_OPTIONS_MESSAGE =
+        const val SERVICE_EXECUTION_INVALID_UPDATE_MESSAGE =
+            "Service execution update is only for reporting 'progress', 'output', and 'executionStatus'"
+        const val SERVICE_EXECUTION_INVALID_OPTIONS_MESSAGE =
             "Query parameter 'options' must be one of 'remove', 'cancel' or 'remove,cancel'"
         fun serviceExecutionCancellationNotImplementedMessage(id: URI) =
             "Cancellation of service execution $id is not implemented"

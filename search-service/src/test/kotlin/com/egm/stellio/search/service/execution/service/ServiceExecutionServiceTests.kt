@@ -44,7 +44,7 @@ class ServiceExecutionServiceTests : WithTimescaleContainer, WithKafkaContainer(
     fun `create and retrieve should preserve the complete execution`() = runTest {
         val execution = buildExecution().copy(
             executionStatus = ServiceExecutionStatus.SUCCESS,
-            completion = 1.0,
+            progress = 1.0,
             output = "Brightness successfully changed.",
             responseStatusCode = 200
         )
@@ -59,7 +59,7 @@ class ServiceExecutionServiceTests : WithTimescaleContainer, WithKafkaContainer(
             assertEquals(execution.serviceName, it.serviceName)
             assertEquals(execution.input, it.input)
             assertEquals(ServiceExecutionStatus.SUCCESS, it.executionStatus)
-            assertEquals(1.0, it.completion)
+            assertEquals(1.0, it.progress)
             assertEquals(execution.output, it.output)
             assertEquals(200, it.responseStatusCode)
         }
@@ -81,14 +81,14 @@ class ServiceExecutionServiceTests : WithTimescaleContainer, WithKafkaContainer(
         serviceExecutionService.create(execution).shouldSucceed()
         val updated = execution.copy(
             executionStatus = ServiceExecutionStatus.EXECUTING,
-            completion = 0.4,
+            progress = 0.4,
             modifiedAt = ngsiLdDateTime()
         )
 
         serviceExecutionService.upsert(updated).shouldSucceed()
         serviceExecutionService.getById(execution.id).shouldSucceedWith {
             assertEquals(ServiceExecutionStatus.EXECUTING, it.executionStatus)
-            assertEquals(0.4, it.completion)
+            assertEquals(0.4, it.progress)
         }
 
         serviceExecutionService.delete(execution.id).shouldSucceed()

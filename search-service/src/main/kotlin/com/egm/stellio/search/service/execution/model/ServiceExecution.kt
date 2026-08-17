@@ -13,7 +13,7 @@ import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidUriMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.memberIsInvalidMessage
-import com.egm.stellio.shared.util.ErrorMessages.ServiceExecutionErrorMessages.serviceExecutionFailedToParseMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.serviceExecutionFailedToParseMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
@@ -37,7 +37,7 @@ data class ServiceExecution(
     /** Name-based service resolution is not implemented; [serviceId] is used instead. */
     val serviceName: String? = null,
     val executionStatus: ServiceExecutionStatus = ServiceExecutionStatus.PENDING,
-    val completion: Double? = null,
+    val progress: Double? = null,
     val output: Any? = null,
     val responseStatusCode: Int? = null,
     val createdAt: ZonedDateTime = ngsiLdDateTime(),
@@ -70,8 +70,8 @@ data class ServiceExecution(
             BadRequestDataException(invalidUriMessage(serviceId.toString())).left().bind<Unit>()
         if (entityType.isBlank())
             BadRequestDataException(memberIsInvalidMessage("entityType")).left().bind<Unit>()
-        if (completion?.let { !it.isFinite() || it !in 0.0..1.0 } == true)
-            BadRequestDataException(memberIsInvalidMessage("completion")).left().bind<Unit>()
+        if (progress?.let { !it.isFinite() || it !in 0.0..1.0 } == true)
+            BadRequestDataException(memberIsInvalidMessage("progress")).left().bind<Unit>()
     }
 
     fun mergeWithFragment(
@@ -84,6 +84,9 @@ data class ServiceExecution(
     }
 
     companion object {
+        val EXECUTION_RESULT_MEMBERS =
+            setOf("progress", "output", "responseStatusCode", "executionStatus")
+
         fun deserialize(
             input: Map<String, Any>,
             contexts: List<String>

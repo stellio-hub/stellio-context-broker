@@ -16,9 +16,11 @@ import com.egm.stellio.search.service.registration.model.ServiceInformation.Serv
 import com.egm.stellio.search.service.registration.model.ServiceRegistration
 import com.egm.stellio.search.service.registration.service.ServiceRegistrationService
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.toUri
@@ -266,12 +268,15 @@ class ServiceExecutionHandlerTests {
     }
 
     @Test
-    fun `update should merge executor-controlled members`() = runTest {
-        coEvery { serviceExecutionService.getById(executionId) } returns execution.copy(
-            executionStatus = ServiceExecutionStatus.EXECUTING,
-            output = null
-        ).right()
-        coEvery { serviceExecutionService.upsert(any()) } returns Unit.right()
+    fun `update should delegate merge and return 204`() = runTest {
+        val fragment = mapOf<String, Any>(
+            "executionStatus" to "success",
+            "progress" to 1.0,
+            "output" to "Brightness successfully changed."
+        )
+        coEvery {
+            serviceExecutionService.merge(executionId, fragment, APIC_COMPOUND_CONTEXTS)
+        } returns Unit.right()
 
         webClient.patch()
             .uri("$resourceUri/$executionId")
@@ -287,20 +292,15 @@ class ServiceExecutionHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        coVerify {
-            serviceExecutionService.upsert(
-                match {
-                    it.executionStatus == ServiceExecutionStatus.SUCCESS &&
-                        it.progress == 1.0 &&
-                        it.output == "Brightness successfully changed."
-                }
-            )
-        }
+        coVerify { serviceExecutionService.merge(executionId, fragment, APIC_COMPOUND_CONTEXTS) }
     }
 
     @Test
-    fun `update should reject changes to non executor-controlled members`() = runTest {
-        coEvery { serviceExecutionService.getById(executionId) } returns execution.right()
+    fun `update should propagate a merge failure`() = runTest {
+        val fragment = mapOf<String, Any>("entityId" to "urn:ngsi-ld:Light:002")
+        coEvery {
+            serviceExecutionService.merge(executionId, fragment, APIC_COMPOUND_CONTEXTS)
+        } returns BadRequestDataException("invalid update").left()
 
         webClient.patch()
             .uri("$resourceUri/$executionId")
@@ -314,7 +314,7 @@ class ServiceExecutionHandlerTests {
             .exchange()
             .expectStatus().isBadRequest
 
-        coVerify(exactly = 0) { serviceExecutionService.upsert(any()) }
+        coVerify { serviceExecutionService.merge(executionId, fragment, APIC_COMPOUND_CONTEXTS) }
     }
 
     @Test

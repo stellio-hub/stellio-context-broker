@@ -5,8 +5,8 @@ import com.egm.stellio.search.service.execution.model.ServiceExecutionStatus
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedWith
@@ -76,24 +76,46 @@ class ServiceExecutionServiceTests : WithTimescaleContainer, WithKafkaContainer(
     }
 
     @Test
-    fun `update and delete should complete the lifecycle`() = runTest {
+    fun `merge and delete should complete the lifecycle`() = runTest {
         val execution = buildExecution()
         serviceExecutionService.create(execution).shouldSucceed()
-        val updated = execution.copy(
-            executionStatus = ServiceExecutionStatus.EXECUTING,
-            progress = 0.4,
-            modifiedAt = ngsiLdDateTime()
-        )
 
-        serviceExecutionService.upsert(updated).shouldSucceed()
+        serviceExecutionService.merge(
+            execution.id,
+            mapOf(
+                "executionStatus" to "executing",
+                "progress" to 0.4,
+                "output" to "Brightness is changing."
+            ),
+            emptyList()
+        ).shouldSucceed()
         serviceExecutionService.getById(execution.id).shouldSucceedWith {
             assertEquals(ServiceExecutionStatus.EXECUTING, it.executionStatus)
             assertEquals(0.4, it.progress)
+            assertEquals("Brightness is changing.", it.output)
         }
 
         serviceExecutionService.delete(execution.id).shouldSucceed()
         serviceExecutionService.getById(execution.id).shouldFail {
             assertInstanceOf<ResourceNotFoundException>(it)
+        }
+    }
+
+    @Test
+    fun `merge should reject changes to non executor-controlled members`() = runTest {
+        val execution = buildExecution()
+        serviceExecutionService.create(execution).shouldSucceed()
+
+        serviceExecutionService.merge(
+            execution.id,
+            mapOf("entityId" to "urn:ngsi-ld:Light:002"),
+            emptyList()
+        ).shouldFail {
+            assertInstanceOf<BadRequestDataException>(it)
+        }
+
+        serviceExecutionService.getById(execution.id).shouldSucceedWith {
+            assertEquals(execution.entityId, it.entityId)
         }
     }
 

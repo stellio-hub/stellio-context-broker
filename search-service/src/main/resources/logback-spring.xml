@@ -9,6 +9,7 @@
     </appender>
 
     <logger name="com.egm.stellio" level="DEBUG"/>
+    <logger name="com.egm.stellio.shared.config.DefaultTimeoutR2dbcTransactionManager" level="INFO"/>
     <logger name="org.flywaydb" level="DEBUG"/>
     <logger name="org.apache.kafka" level="WARN"/>
     <logger name="db.migration" level="DEBUG" />

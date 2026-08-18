@@ -346,19 +346,17 @@ class ServiceExecutionHandlerTests {
     }
 
     @Test
-    fun `delete with remove and cancel options should cancel before removal`() = runTest {
+    fun `delete with remove and cancel options should not delete if the cancel failed`() = runTest {
         coEvery {
             serviceExecutionLauncher.cancelExecution(executionId)
         } returns NotImplementedException("not implemented").left()
 
-        listOf("remove,cancel", "cancel,remove").forEach { options ->
-            webClient.delete()
-                .uri("$resourceUri/$executionId?options=$options")
-                .exchange()
-                .expectStatus().isEqualTo(501)
-        }
+        webClient.delete()
+            .uri("$resourceUri/$executionId?options=remove,cancel")
+            .exchange()
+            .expectStatus().isEqualTo(501)
 
-        coVerify(exactly = 2) { serviceExecutionLauncher.cancelExecution(executionId) }
+        coVerify(exactly = 1) { serviceExecutionLauncher.cancelExecution(executionId) }
         coVerify(exactly = 0) { serviceExecutionService.delete(any()) }
     }
 

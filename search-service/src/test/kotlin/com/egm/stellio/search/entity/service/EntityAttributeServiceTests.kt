@@ -19,7 +19,6 @@ import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
-import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI

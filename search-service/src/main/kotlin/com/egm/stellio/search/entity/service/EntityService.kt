@@ -465,7 +465,7 @@ class EntityService(
             modifiedAt
         ).bind().wrapToList()
 
-        handleSuccessOperationActions(entityId, originalEntity, operationResult, modifiedAt).bind()
+        // handleSuccessOperationActions(entityId, originalEntity, operationResult, modifiedAt).bind()
 
         UpdateResult(operationResult)
     }

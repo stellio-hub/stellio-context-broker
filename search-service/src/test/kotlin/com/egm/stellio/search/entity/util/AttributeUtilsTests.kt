@@ -194,6 +194,38 @@ class AttributeUtilsTests {
     }
 
     @Test
+    fun `guessAttributeValueType should guess the value type of list attributes`() = runTest {
+        val expandedListProperty = expandAttribute(
+            "listProperty",
+            mapOf(
+                "type" to "ListProperty",
+                "valueList" to listOf(12, "ordered", true)
+            ),
+            NGSILD_TEST_CORE_CONTEXTS
+        )
+        val expandedListRelationship = expandAttribute(
+            "listRelationship",
+            mapOf(
+                "type" to "ListRelationship",
+                "objectList" to listOf("urn:ngsi-ld:Entity:01", "urn:ngsi-ld:Entity:02")
+            ),
+            NGSILD_TEST_CORE_CONTEXTS
+        )
+
+        assertEquals(
+            Attribute.AttributeValueType.ARRAY,
+            guessAttributeValueType(AttributeType.ListProperty, expandedListProperty.second[0]).shouldSucceedAndResult()
+        )
+        assertEquals(
+            Attribute.AttributeValueType.ARRAY,
+            guessAttributeValueType(
+                AttributeType.ListRelationship,
+                expandedListRelationship.second[0]
+            ).shouldSucceedAndResult()
+        )
+    }
+
+    @Test
     fun `hasNgsiLdNullValue should find a Property whose value is NGSI-LD Null`() = runTest {
         val expandedProperty = expandAttribute(
             """
@@ -261,6 +293,34 @@ class AttributeUtilsTests {
         ).second[0]
 
         assertTrue(hasNgsiLdNullValue(expandedProperty, AttributeType.Relationship))
+    }
+    @Test
+    fun `hasNgsiLdNullValue should find list attributes whose value is NGSI-LD Null`() = runTest {
+        val expandedListProperty = expandAttribute(
+            """
+                {
+                    "listProperty": {
+                        "type": "ListProperty",
+                        "valueList": ["urn:ngsi-ld:null"]
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+        val expandedListRelationship = expandAttribute(
+            """
+                {
+                    "listRelationship": {
+                        "type": "ListRelationship",
+                        "objectList": ["urn:ngsi-ld:null"]
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        assertTrue(hasNgsiLdNullValue(expandedListProperty, AttributeType.ListProperty))
+        assertTrue(hasNgsiLdNullValue(expandedListRelationship, AttributeType.ListRelationship))
     }
 
     @Test

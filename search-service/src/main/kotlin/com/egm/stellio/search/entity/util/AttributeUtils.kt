@@ -23,6 +23,8 @@ import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
@@ -31,11 +33,15 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdJsonPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdLanguagePropertyInstance
+import com.egm.stellio.shared.model.NgsiLdListPropertyInstance
+import com.egm.stellio.shared.model.NgsiLdListRelationshipInstance
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.NgsiLdVocabPropertyInstance
 import com.egm.stellio.shared.model.RelationshipObjects
 import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.model.getListPropertyValues
+import com.egm.stellio.shared.model.getListRelationshipObjects
 import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.getRelationshipId
@@ -45,6 +51,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeCannotGetValueM
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.toUri
 import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
@@ -101,6 +108,18 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
                 Attribute.AttributeValueType.ARRAY,
                 Triple(this.vocab.asJsonB(), null, null)
             )
+        is NgsiLdListPropertyInstance ->
+            Triple(
+                AttributeType.ListProperty,
+                Attribute.AttributeValueType.ARRAY,
+                Triple(this.valueList.asJsonB(), null, null)
+            )
+        is NgsiLdListRelationshipInstance ->
+            Triple(
+                AttributeType.ListRelationship,
+                Attribute.AttributeValueType.ARRAY,
+                Triple(this.objectList.asJsonB(), null, null)
+            )
     }
     if (attributeValue == Triple(null, null, null)) {
         JsonLdUtils.logger.warn("Unable to get a value from attribute: $this")
@@ -132,6 +151,8 @@ fun guessAttributeValueType(
         AttributeType.JsonProperty -> Attribute.AttributeValueType.JSON
         AttributeType.LanguageProperty -> Attribute.AttributeValueType.ARRAY
         AttributeType.VocabProperty -> Attribute.AttributeValueType.ARRAY
+        AttributeType.ListProperty -> Attribute.AttributeValueType.ARRAY
+        AttributeType.ListRelationship -> Attribute.AttributeValueType.ARRAY
     }
 }
 
@@ -274,13 +295,20 @@ fun hasNgsiLdNullValue(
     expandedAttributeInstance: ExpandedAttributeInstance,
     attributeType: AttributeType
 ): Boolean =
-    if (attributeType == AttributeType.Relationship) {
-        val value = expandedAttributeInstance.getRelationshipId()
-        value is URI && value.toString() == NGSILD_NULL
-    } else {
-        val value = expandedAttributeInstance
-            .getMemberValue(attributeType.toExpandedValueMember()).getOrNull()
-        value is String && value == NGSILD_NULL
+    when (attributeType) {
+        AttributeType.Relationship -> {
+            val value = expandedAttributeInstance.getRelationshipId()
+            value is URI && value.toString() == NGSILD_NULL
+        }
+        AttributeType.ListProperty ->
+            expandedAttributeInstance.getListPropertyValues().getOrNull() == listOf(NGSILD_NULL)
+        AttributeType.ListRelationship ->
+            expandedAttributeInstance.getListRelationshipObjects().getOrNull() == listOf(NGSILD_NULL.toUri())
+        else -> {
+            val value = expandedAttributeInstance
+                .getMemberValue(attributeType.toExpandedValueMember()).getOrNull()
+            value is String && value == NGSILD_NULL
+        }
     }
 
 fun Json.toExpandedAttributeInstance(): ExpandedAttributeInstance =

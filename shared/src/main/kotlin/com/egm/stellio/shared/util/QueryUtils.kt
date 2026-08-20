@@ -17,7 +17,7 @@ fun Iterable<String>.toTypeSelection() = this.joinToString(",")
 // Work for String and URI
 // can't do two functions with the same name since Uri are String in the jvm
 fun Iterable<Any>.toSqlList(): String =
-    "(${this.joinToString(",") { "'${it.toString().escapeSingleQuotes()}'" }} )"
+    "(${this.joinToString(",") { "'${it.toString().escapeSingleQuotes()}'" }})"
 
 fun Iterable<Any?>.toSqlArray(): String =
     "ARRAY[${this.joinToString(",") { "'${it.toString().escapeSingleQuotes()}'" }}]"

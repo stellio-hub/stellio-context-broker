@@ -321,6 +321,80 @@ interface AttributeChangesInjectionSource {
                 """
             )
 
+        private val listPropertyMonoInstanceSingleEntity =
+            Arguments.arguments(
+                """
+                [{
+                   "id": "$APIARY_ID",
+                   "type": "Apiary",
+                   "name": {
+                      "type":"ListProperty",
+                      "valueList": ["new", "ordered", "values"]
+                   },
+                   "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+                }]
+                """,
+                false,
+                """
+                {
+                   "name": {
+                      "type": "ListProperty",
+                      "valueList": ["previous", "ordered", "values"]
+                   }
+                }
+                """,
+                """
+                {
+                  "type":"ListProperty",
+                  "previousValueList": ["previous", "ordered", "values"],
+                  "valueList": ["new", "ordered", "values"]
+                }
+                """
+            )
+
+        private val listRelationshipMonoInstanceSingleEntity =
+            Arguments.arguments(
+                """
+                [{
+                   "id": "$APIARY_ID",
+                   "type": "Apiary",
+                   "name": {
+                      "type":"ListRelationship",
+                      "objectList": [
+                        { "object": "urn:ngsi-ld:Entity:02" },
+                        { "object": "urn:ngsi-ld:Entity:01" }
+                      ]
+                   },
+                   "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+                }]
+                """,
+                false,
+                """
+                {
+                   "name": {
+                      "type": "ListRelationship",
+                      "objectList": [
+                        { "object": "urn:ngsi-ld:Entity:01" },
+                        { "object": "urn:ngsi-ld:Entity:02" }
+                      ]
+                   }
+                }
+                """,
+                """
+                {
+                  "type":"ListRelationship",
+                  "previousObjectList": [
+                    { "object": "urn:ngsi-ld:Entity:01" },
+                    { "object": "urn:ngsi-ld:Entity:02" }
+                  ],
+                  "objectList": [
+                    { "object": "urn:ngsi-ld:Entity:02" },
+                    { "object": "urn:ngsi-ld:Entity:01" }
+                  ]
+                }
+                """
+            )
+
         private val propertyMonoInstanceMultiEntities =
             Arguments.arguments(
                 """
@@ -420,6 +494,8 @@ interface AttributeChangesInjectionSource {
                 jsonPropertyMonoInstanceSingleEntity,
                 languagePropertyMonoInstanceSingleEntity,
                 vocabPropertyMonoInstanceSingleEntity,
+                listPropertyMonoInstanceSingleEntity,
+                listRelationshipMonoInstanceSingleEntity,
                 propertyMonoInstanceMultiEntities,
                 propertyMultiInstanceMultiEntities
             )

@@ -47,7 +47,6 @@ class ServiceExecutionService(
         upsert(serviceExecution).bind()
     }
 
-    @Transactional
     suspend fun merge(
         currentID: URI,
         body: Map<String, Any>,

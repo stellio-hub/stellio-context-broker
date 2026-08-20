@@ -13,6 +13,7 @@ import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidUriMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.memberIsInvalidMessage
+import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.SERVICE_EXECUTION_RESERVED_MEMBERS_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.serviceExecutionFailedToParseMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
@@ -72,6 +73,15 @@ data class ServiceExecution(
             BadRequestDataException(memberIsInvalidMessage("entityType")).left().bind<Unit>()
         if (progress?.let { !it.isFinite() || it !in 0.0..1.0 } == true)
             BadRequestDataException(memberIsInvalidMessage("progress")).left().bind<Unit>()
+    }
+
+    fun verifyThatNoResultMembersArePresent(): Either<APIException, Unit> = either {
+        val execution = this@ServiceExecution
+        val hasNonNullResultMembers =
+            listOf(execution.executionStatus, execution.progress, execution.output, execution.responseStatusCode)
+                .any { it != null }
+        if (hasNonNullResultMembers)
+            BadRequestDataException(SERVICE_EXECUTION_RESERVED_MEMBERS_MESSAGE).left().bind()
     }
 
     fun mergeWithFragment(

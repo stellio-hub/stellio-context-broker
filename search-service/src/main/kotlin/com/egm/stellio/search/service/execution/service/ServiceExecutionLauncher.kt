@@ -2,9 +2,12 @@ package com.egm.stellio.search.service.execution.service
 
 import arrow.core.Either
 import arrow.core.left
+import arrow.core.raise.either
 import com.egm.stellio.search.service.execution.model.ServiceExecution
 import com.egm.stellio.search.service.execution.model.ServiceExecutionStatus
+import com.egm.stellio.search.service.registration.model.ServiceInformation.ServiceMode
 import com.egm.stellio.search.service.registration.model.ServiceRegistration
+import com.egm.stellio.search.service.registration.service.ServiceRegistrationService
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.model.NotImplementedException
@@ -24,10 +27,30 @@ import org.springframework.web.reactive.function.client.awaitExchange
 import java.net.URI
 
 @Component
-class ServiceExecutionLauncher {
+class ServiceExecutionLauncher(
+    private val serviceExecutionService: ServiceExecutionService,
+    private val serviceRegistrationService: ServiceRegistrationService,
+) {
     private val webClient = WebClient.create()
 
     suspend fun invokeService(
+        serviceExecution: ServiceExecution
+    ): Either<APIException, ServiceExecution> = either {
+        serviceExecution.verifyThatNoResultMembersArePresent().bind()
+        val serviceRegistration = serviceRegistrationService.getById(serviceExecution.serviceId).bind()
+        serviceRegistration.serviceInformation.input?.checkValue(serviceExecution.input)?.bind()
+
+        serviceExecutionService.create(serviceExecution).bind()
+        val serviceExecutionWithAnswer = if (serviceRegistration.serviceInformation.mode == ServiceMode.ASYNCHRONOUS) {
+            invokeAsynchronousService(serviceExecution, serviceRegistration)
+        } else {
+            invokeSynchronousService(serviceExecution, serviceRegistration)
+        }
+        serviceExecutionService.upsert(serviceExecutionWithAnswer).bind()
+        serviceExecutionWithAnswer
+    }
+
+    suspend fun invokeSynchronousService(
         serviceExecution: ServiceExecution,
         serviceRegistration: ServiceRegistration
     ): ServiceExecution {

@@ -128,6 +128,17 @@
       "type": "Relationship",
       "object": ["urn:ngsi-ld:AnotherEntity:03","urn:ngsi-ld:AnotherEntity:04"]
   },
+  "listProperty": {
+    "type": "ListProperty",
+    "valueList": [2, "second", false]
+  },
+  "listRelationship": {
+    "type": "ListRelationship",
+    "objectList": [
+      { "object": "urn:ngsi-ld:AnotherEntity:03" },
+      { "object": "urn:ngsi-ld:AnotherEntity:04" }
+    ]
+  },
   "location": {
     "type": "GeoProperty",
     "value": {

@@ -23,8 +23,6 @@ import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
-import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST
-import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB

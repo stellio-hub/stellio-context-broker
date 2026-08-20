@@ -1065,6 +1065,38 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entity by id should correctly serialize list attributes`() = runTest {
+        initializeRetrieveEntityMocks()
+        val entity = """
+            {
+                "id": "$beehiveId",
+                "type": "Beehive",
+                "listProperty": {
+                    "type": "ListProperty",
+                    "valueList": [12, "ordered", true]
+                },
+                "listRelationship": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        { "object": "urn:ngsi-ld:LinkedEntity:02" },
+                        { "object": "urn:ngsi-ld:LinkedEntity:01" }
+                    ]
+                },
+                "@context": "${applicationProperties.contexts.core}"
+            }
+        """.trimIndent()
+
+        coEvery { entityQueryService.queryEntity(any()) } returns expandJsonLdEntity(entity).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$beehiveId")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(entity)
+    }
+
+    @Test
     fun `get entity by id should include createdAt & modifiedAt if query param sysAttrs is present`() {
         initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any()) } returns ExpandedEntity(

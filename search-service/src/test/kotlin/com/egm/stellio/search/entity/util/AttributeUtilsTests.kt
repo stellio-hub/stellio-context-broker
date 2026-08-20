@@ -294,6 +294,7 @@ class AttributeUtilsTests {
 
         assertTrue(hasNgsiLdNullValue(expandedProperty, AttributeType.Relationship))
     }
+
     @Test
     fun `hasNgsiLdNullValue should find list attributes whose value is NGSI-LD Null`() = runTest {
         val expandedListProperty = expandAttribute(

@@ -9,8 +9,6 @@ import com.egm.stellio.shared.model.JsonParseApiException
 import com.egm.stellio.shared.model.NotAcceptableException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.UnsupportedMediaTypeStatusApiException
-import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.NOT_ACCEPTABLE_MESSAGE
-import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.UNSUPPORTED_MEDIA_TYPE_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Json.JSON_PARSING_ERROR_MESSAGE
 import jakarta.validation.ConstraintViolationException
 import org.springframework.core.codec.CodecException
@@ -36,10 +34,10 @@ class ExceptionHandler {
             is JacksonException, is CodecException ->
                 JsonParseApiException(cause.message ?: JSON_PARSING_ERROR_MESSAGE).toErrorResponse()
             is UnsupportedMediaTypeStatusException ->
-                UnsupportedMediaTypeStatusApiException(cause.message ?: UNSUPPORTED_MEDIA_TYPE_MESSAGE)
+                UnsupportedMediaTypeStatusApiException(cause.message)
                     .toErrorResponse()
             is NotAcceptableStatusException ->
-                NotAcceptableException(cause.message ?: NOT_ACCEPTABLE_MESSAGE).toErrorResponse()
+                NotAcceptableException(cause.message).toErrorResponse()
             is MethodNotAllowedException ->
                 ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(cause.body)
             is ConstraintViolationException -> {

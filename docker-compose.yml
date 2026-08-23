@@ -9,6 +9,14 @@ services:
     image: stellio/stellio-api-gateway:${STELLIO_DOCKER_TAG}
     environment:
       - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+      # perf-test only: logback-spring.xml hardcodes org.zalando.logbook at TRACE, which activates
+      # Logbook's default writer (synchronous, full request+response body logging, gated only by
+      # logger.isTraceEnabled()) for every request matching /ngsi-ld/v1/** (see application.yml's
+      # logbook.predicate.include) - i.e. every request under test. Spring Boot's logging.level.*
+      # override takes precedence over the XML-configured level, so this can disable it without a
+      # rebuild to test whether it explains api-gateway's cost. Defaults to the existing TRACE
+      # behavior; set LOGBOOK_LOG_LEVEL=OFF to test with it disabled.
+      - LOGGING_LEVEL_ORG_ZALANDO_LOGBOOK=${LOGBOOK_LOG_LEVEL:-TRACE}
     ports:
       - "${API_GATEWAY_PORT:-8080}:8080"
   search-service:
@@ -16,7 +24,7 @@ services:
     image: stellio/stellio-search-service:${STELLIO_DOCKER_TAG}
     environment:
       - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
-      - SPRING_R2DBC_URL=r2dbc:pool:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
+      - SPRING_R2DBC_URL=r2dbc:pool:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}?maxSize=${SEARCH_SERVICE_DB_POOL_MAX_SIZE:-60}
       - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
       - SPRING_R2DBC_USERNAME=${POSTGRES_USER}
       - SPRING_R2DBC_PASSWORD=${POSTGRES_PASS}
@@ -28,6 +36,20 @@ services:
       - APPLICATION_PAGINATION_LIMIT-DEFAULT=${APPLICATION_PAGINATION_LIMIT_DEFAULT}
       - APPLICATION_PAGINATION_LIMIT-MAX=${APPLICATION_PAGINATION_LIMIT_MAX}
       - APPLICATION_PAGINATION_TEMPORAL-LIMIT=${APPLICATION_PAGINATION_TEMPORAL_LIMIT}
+      - APPLICATION_TRANSACTION_TIMEOUT=${APPLICATION_TRANSACTION_TIMEOUT:-50s}
+      # perf-test only: exposes GET-only /actuator/metrics (JVM, R2DBC pool, HTTP server timings, ...)
+      # for ad-hoc inspection during load tests - does not touch the shared.properties prod default
+      # (management.endpoints.access.default = none), only opens this one read-only endpoint
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,metrics
+      - MANAGEMENT_ENDPOINT_METRICS_ACCESS=read_only
+      # perf-test only: BlockHound diagnostic pass, off by default. Set BLOCKHOUND_ENABLED=true to
+      # enable for a run; the JVM flag is required on JDK 13+ regardless (harmless no-op otherwise).
+      - BLOCKHOUND_ENABLED=${BLOCKHOUND_ENABLED:-false}
+      # java.security.egd: prefer the non-blocking /dev/urandom source for SecureRandom (used by
+      # UUID.randomUUID(), called on every attribute write - see AttributeInstance.generateRandomInstanceId).
+      # Without this, NativePRNG can block reading /dev/random when the container's entropy pool is
+      # low, synchronously stalling whatever Netty event-loop thread is handling the request.
+      - JAVA_TOOL_OPTIONS=-XX:+AllowRedefinitionToAddDeleteMethods -Djava.security.egd=file:/dev/./urandom
 
     ports:
       - "${SEARCH_SERVICE_PORT:-8083}:8083"

@@ -25,8 +25,14 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASS=${POSTGRES_PASS}
       - POSTGRES_DBNAME=${POSTGRES_DBNAME}
-      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,timescaledb,pgcrypto
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,timescaledb,pgcrypto,pg_stat_statements
       - ACCEPT_TIMESCALE_TUNING=TRUE
+      # kartoza/docker-postgis's own mechanism (scripts/setup-conf.sh) for shared_preload_libraries -
+      # cleaner than an ALTER SYSTEM + restart, since the entrypoint writes it correctly on its own.
+      # If unset, it auto-computes to "timescaledb,pg_cron" (what we had); this just adds
+      # pg_stat_statements to that same set. Only takes effect on a container's first boot for a given
+      # data volume - see /settings/.postgresql.conf.lock if it needs to be forced on an existing one.
+      - SHARED_PRELOAD_LIBRARIES=timescaledb,pg_cron,pg_stat_statements
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:

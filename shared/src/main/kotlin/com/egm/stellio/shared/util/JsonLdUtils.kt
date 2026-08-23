@@ -74,7 +74,6 @@ object JsonLdUtils {
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     private const val DOCUMENT_CACHE_CAPACITY = 256
-    private const val NANOS_PER_MICRO = 1000L
 
     // JsonLdOptions provides a context cache that is not populated
     // and planned for removal in V2 (https://github.com/filip26/titanium-json-ld/pull/304#pullrequestreview-1799564976)

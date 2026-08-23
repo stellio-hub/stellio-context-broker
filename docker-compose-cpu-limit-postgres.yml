@@ -1,0 +1,23 @@
+# perf-test only: constrains postgres to a fixed number of CPUs, same methodology as
+# docker-compose-cpu-limit.yml did for search-service (see that file) - now that search-service's own
+# CPU allocation showed clear diminishing returns past ~4 cores, this tests whether postgres is the
+# next ceiling. No default on purpose - always pass POSTGRES_CPU_LIMIT explicitly.
+#
+# Keep search-service itself unconstrained during this run (i.e. don't also apply
+# docker-compose-cpu-limit.yml) so this stays a single-variable experiment.
+#
+# Usage:
+#   POSTGRES_CPU_LIMIT=2 docker compose -f docker-compose.yml -f docker-compose-cpu-limit-postgres.yml up -d --force-recreate postgres
+#   POSTGRES_CPU_LIMIT=4 docker compose -f docker-compose.yml -f docker-compose-cpu-limit-postgres.yml up -d --force-recreate postgres
+#   POSTGRES_CPU_LIMIT=8 docker compose -f docker-compose.yml -f docker-compose-cpu-limit-postgres.yml up -d --force-recreate postgres
+# Run PAU-3 after each recreate. Recreating postgres restarts the container but keeps its data volume,
+# so no data is lost between steps - just a brief connection interruption while it restarts.
+#
+# To go back to normal: docker compose -f docker-compose.yml up -d --force-recreate postgres
+# (omit this override file entirely).
+services:
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: '${POSTGRES_CPU_LIMIT}'

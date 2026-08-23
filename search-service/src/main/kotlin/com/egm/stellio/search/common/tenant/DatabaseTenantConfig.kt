@@ -44,7 +44,7 @@ class DatabaseTenantConfig(
         connectionFactory.setDefaultTargetConnectionFactory(defaultFactory)
         connectionFactory.setTargetConnectionFactories(tenantConnectionFactories)
         connectionFactory.setLenientFallback(false)
-        // bindPoolMetrics("default", defaultFactory)
+        bindPoolMetrics("default", defaultFactory)
         return connectionFactory
     }
 
@@ -95,14 +95,12 @@ class DatabaseTenantConfig(
                 .build()
         )
         tenantConnectionFactories.putIfAbsent(name, tenantConnectionFactory)
-        // bindPoolMetrics(name, tenantConnectionFactory)
+        bindPoolMetrics(name, tenantConnectionFactory)
     }
 
     // Exposes r2dbc-pool's own PoolMetrics (acquired/allocated/idle/pending connection counts) as
     // Micrometer gauges, tagged by tenant, so pool exhaustion (pendingAcquireSize > 0, acquiredSize
     // pinned at maxAllocatedSize) can be told apart from genuine query slowness under load.
-    // Call sites are toggled on/off per perf-test run - suppressed rather than removed.
-    @Suppress("UnusedPrivateMember")
     private fun bindPoolMetrics(tenant: String, connectionFactory: ConnectionFactory) {
         val pool = connectionFactory as? ConnectionPool ?: return
         val metrics = pool.metrics.orElse(null) ?: return

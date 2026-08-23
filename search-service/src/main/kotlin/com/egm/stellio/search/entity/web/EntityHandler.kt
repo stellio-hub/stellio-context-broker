@@ -4,6 +4,7 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.common.util.DiagnosticTimers
 import com.egm.stellio.search.csr.model.addWarnings
 import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
 import com.egm.stellio.search.csr.service.DistributedEntityProvisionService
@@ -525,7 +526,9 @@ class EntityHandler(
 
         val expandedAttribute = expandAttribute(attrId, body, contexts)
 
-        entityService.partialUpdateAttribute(entityId, expandedAttribute).bind()
+        DiagnosticTimers.time("partialAttributeUpdate.entityService") {
+            entityService.partialUpdateAttribute(entityId, expandedAttribute)
+        }.bind()
             .let {
                 if (it.updated.isEmpty())
                     ResourceNotFoundException(attributeNotFoundMessage(attrId, entityId)).left()

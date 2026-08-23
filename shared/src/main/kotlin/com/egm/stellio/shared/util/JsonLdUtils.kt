@@ -65,6 +65,7 @@ import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
 import java.net.URI
 import java.time.ZonedDateTime
+import java.util.concurrent.atomic.LongAdder
 
 object JsonLdUtils {
 
@@ -73,6 +74,7 @@ object JsonLdUtils {
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     private const val DOCUMENT_CACHE_CAPACITY = 256
+    private const val NANOS_PER_MICRO = 1000L
 
     // JsonLdOptions provides a context cache that is not populated
     // and planned for removal in V2 (https://github.com/filip26/titanium-json-ld/pull/304#pullrequestreview-1799564976)
@@ -104,6 +106,40 @@ object JsonLdUtils {
     // it is actually being hit rather than silently falling through on every call
     fun jsonLdContextCacheStats(): Pair<Long, Long> =
         CachedContextExpansion.cacheHits() to CachedContextExpansion.cacheMisses()
+
+    // diagnostic-only: total wall-clock time (ns) and call count spent in JSON-LD expansion/compaction,
+    // to measure their share of an operation's total cost under load. Each successful call to
+    // doJsonLdExpansion / compactEntity / compactEntities / compactAttribute / compactTerm adds to these;
+    // failed calls are not counted, since they are not representative of the operation's real cost.
+    // Global and cumulative by design (perf-test instrumentation, not a production metric) - reset with
+    // resetJsonLdTimingStats() at the start of a measurement window (e.g. right after a k6 setup() phase)
+    // to isolate a specific run from whatever ran before it.
+    private val expansionTimeNanos = LongAdder()
+    private val expansionCount = LongAdder()
+    private val compactionTimeNanos = LongAdder()
+    private val compactionCount = LongAdder()
+
+    fun jsonLdExpansionTimingStats(): Pair<Long, Long> = expansionTimeNanos.sum() to expansionCount.sum()
+    fun jsonLdCompactionTimingStats(): Pair<Long, Long> = compactionTimeNanos.sum() to compactionCount.sum()
+
+    fun resetJsonLdTimingStats() {
+        expansionTimeNanos.reset()
+        expansionCount.reset()
+        compactionTimeNanos.reset()
+        compactionCount.reset()
+    }
+
+    private fun recordExpansion(elapsedNanos: Long) {
+        expansionTimeNanos.add(elapsedNanos)
+        expansionCount.increment()
+        // logger.debug("JSON-LD expansion took {} µs", elapsedNanos / NANOS_PER_MICRO)
+    }
+
+    private fun recordCompaction(elapsedNanos: Long) {
+        compactionTimeNanos.add(elapsedNanos)
+        compactionCount.increment()
+        // logger.debug("JSON-LD compaction took {} µs", elapsedNanos / NANOS_PER_MICRO)
+    }
 
     fun deleteAndReload(context: URI, reload: Boolean): Either<APIException, Unit> {
         val documentCache = jsonLdOptions.documentCache as RemovableLruCache
@@ -230,6 +266,7 @@ object JsonLdUtils {
             else
                 fragment.minus(JSONLD_CONTEXT_KW)
 
+        val startNanos = System.nanoTime()
         return try {
             val expansionProcess = coroutineScope.async {
                 val document = JsonDocument.of(serializeObject(preparedFragment).byteInputStream())
@@ -242,7 +279,9 @@ object JsonLdUtils {
             val outputStream = ByteArrayOutputStream()
             val jsonWriter = Json.createWriter(outputStream)
             jsonWriter.write(expandedFragment.getJsonObject(0))
-            deserializeObject(outputStream.toString())
+            val result = deserializeObject(outputStream.toString())
+            recordExpansion(System.nanoTime() - startNanos)
+            result
         } catch (e: JsonLdError) {
             logger.error("Unable to expand fragment with context $contexts: ${e.message}")
             throw e.toAPIException(e.cause?.cause?.message)
@@ -320,8 +359,9 @@ object JsonLdUtils {
     fun compactEntity(
         expandedEntity: ExpandedEntity,
         contexts: List<String>
-    ): CompactedEntity =
-        JsonLd.compact(
+    ): CompactedEntity {
+        val startNanos = System.nanoTime()
+        val result = JsonLd.compact(
             JsonDocument.of(serializeObject(expandedEntity.members).byteInputStream()),
             JsonDocument.of(buildContextDocument(contexts))
         )
@@ -329,6 +369,9 @@ object JsonLdUtils {
             .get()
             .toPrimitiveMap()
             .mapValues(restoreGeoPropertyFromWKT())
+        recordCompaction(System.nanoTime() - startNanos)
+        return result
+    }
 
     private fun JsonObject.toPrimitiveMap(): Map<String, Any> {
         val outputStream = ByteArrayOutputStream()
@@ -344,12 +387,14 @@ object JsonLdUtils {
         // do not try to compact an empty list, it will fail
         if (entities.isEmpty()) return emptyList()
 
+        val startNanos = System.nanoTime()
         val jsonObject = JsonLd.compact(
             JsonDocument.of(serializeObject(entities.map { it.members }).byteInputStream()),
             JsonDocument.of(buildContextDocument(contexts))
         )
             .options(jsonLdOptions)
             .get()
+        recordCompaction(System.nanoTime() - startNanos)
 
         return if (entities.size == 1)
             listOf(jsonObject.toPrimitiveMap().mapValues(restoreGeoPropertyFromWKT()))
@@ -383,8 +428,9 @@ object JsonLdUtils {
     /**
      * Compact a term (type, attribute name, ...) using the provided context.
      */
-    fun compactTerm(term: String, contexts: List<String>): String =
-        JsonLd.compact(
+    fun compactTerm(term: String, contexts: List<String>): String {
+        val startNanos = System.nanoTime()
+        val result = JsonLd.compact(
             JsonDocument.of(serializeObject(mapOf(term to emptyMap<String, Any>())).byteInputStream()),
             JsonDocument.of(buildContextDocument(contexts))
         )
@@ -392,6 +438,9 @@ object JsonLdUtils {
             .get()
             .keys
             .elementAtOrElse(0) { _ -> term }
+        recordCompaction(System.nanoTime() - startNanos)
+        return result
+    }
 
     /**
      * Compact a term using the provided context, memoizing the result in the caller-provided cache so a term
@@ -407,8 +456,9 @@ object JsonLdUtils {
     fun compactAttribute(
         attribute: ExpandedAttributes,
         contexts: List<String>
-    ): Map<String, CompactedAttributeInstance> =
-        JsonLd.compact(
+    ): Map<String, CompactedAttributeInstance> {
+        val startNanos = System.nanoTime()
+        val result = JsonLd.compact(
             JsonDocument.of(serializeObject(attribute).byteInputStream()),
             JsonDocument.of(buildContextDocument(contexts))
         )
@@ -418,6 +468,9 @@ object JsonLdUtils {
             .mapValues(restoreGeoPropertyFromWKT())
             .minus(JSONLD_CONTEXT_KW)
             .mapValues { it.value as CompactedAttributeInstance }
+        recordCompaction(System.nanoTime() - startNanos)
+        return result
+    }
 
     /**
      * Build the expanded payload of a property.

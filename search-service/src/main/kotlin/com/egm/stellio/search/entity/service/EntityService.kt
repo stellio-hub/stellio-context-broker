@@ -8,6 +8,7 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.permission.model.Action
 import com.egm.stellio.search.authorization.permission.model.getSpecificAccessPolicy
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
+import com.egm.stellio.search.common.util.DiagnosticTimers
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.executeExpected
 import com.egm.stellio.search.common.util.oneToResult
@@ -453,7 +454,9 @@ class EntityService(
         entityId: URI,
         expandedAttribute: ExpandedAttribute
     ): Either<APIException, UpdateResult> = either {
-        entityQueryService.checkEntityExistence(entityId).bind()
+        DiagnosticTimers.time("partialAttributeUpdate.checkEntityExistence") {
+            entityQueryService.checkEntityExistence(entityId)
+        }.bind()
         authorizationService.userCanUpdateEntity(entityId).bind()
 
         val modifiedAt = ngsiLdDateTime()

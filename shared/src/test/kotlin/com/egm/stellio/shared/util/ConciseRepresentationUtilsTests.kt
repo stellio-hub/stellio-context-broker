@@ -312,6 +312,43 @@ class ConciseRepresentationUtilsTests {
     }
 
     @Test
+    fun `normalizeEntityFragment should normalize list attributes`() {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Entity:01",
+            "type" to "MyType",
+            "listProperty" to mapOf("valueList" to listOf(12, "ordered", true)),
+            "listRelationship" to mapOf(
+                "objectList" to listOf(
+                    "urn:ngsi-ld:Entity:02",
+                    "urn:ngsi-ld:Entity:01"
+                )
+            )
+        )
+
+        val expectedNormalizedRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "MyType",
+                "listProperty": {
+                    "type": "ListProperty",
+                    "valueList": [12, "ordered", true]
+                },
+                "listRelationship": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        "urn:ngsi-ld:Entity:02",
+                        "urn:ngsi-ld:Entity:01"
+                    ]
+                }
+            }
+        """.trimIndent()
+
+        val result = normalizeEntityFragment(payload)
+
+        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
+    }
+
+    @Test
     fun `normalizeEntityFragment should normalize a multi-instance Attribute`() {
         val payload = mapOf(
             "id" to "urn:ngsi-ld:E:01",

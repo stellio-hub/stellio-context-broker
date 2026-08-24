@@ -25,10 +25,12 @@ import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.ConciseRepresentationUtils.normalizeEntityFragment
 import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_MESSAGE
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
@@ -303,6 +305,110 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                         it.measuredValue == null &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
                         it.time.isAfter(ngsiLdDateTime().minusMinutes(1))
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should create entries for list attributes`() = runTest {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:BeeHive:TESTC",
+              "type": "BeeHive",
+              "listProperty": {
+                "type": "ListProperty",
+                "valueList": [12, "ordered", true]
+              },
+              "listRelationship": {
+                "type": "ListRelationship",
+                "objectList": [
+                  "urn:ngsi-ld:LinkedEntity:02",
+                  "urn:ngsi-ld:LinkedEntity:01"
+                ]
+              },
+              "@context": [
+                "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+              ]
+            }
+            """.trimIndent()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val attributes = entityAttributeService.getAllForEntity(beehiveTestCId)
+        assertThat(attributes.map { it.attributeType })
+            .containsExactlyInAnyOrder(Attribute.AttributeType.ListProperty, Attribute.AttributeType.ListRelationship)
+
+        coVerify {
+            attributeInstanceService.create(
+                match {
+                    it.value?.deserializeTemporalValue() == listOf(12, "ordered", true) &&
+                        it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT
+                }
+            )
+            attributeInstanceService.create(
+                match {
+                    it.value?.deserializeTemporalValue() == listOf(
+                        "urn:ngsi-ld:LinkedEntity:02",
+                        "urn:ngsi-ld:LinkedEntity:01"
+                    ) &&
+                        it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should create entries for concise list attributes without type`() = runTest {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:BeeHive:TESTC",
+              "type": "BeeHive",
+              "listProperty": {
+                "valueList": [12, "ordered", true]
+              },
+              "listRelationship": {
+                "objectList": [
+                  "urn:ngsi-ld:LinkedEntity:02",
+                  "urn:ngsi-ld:LinkedEntity:01"
+                ]
+              },
+              "@context": [
+                "http://localhost:8093/jsonld-contexts/apic-compound.jsonld"
+              ]
+            }
+            """.trimIndent()
+
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        val normalizedEntity = serializeObject(normalizeEntityFragment(rawEntity.deserializeAsMap()))
+
+        entityAttributeService.createAttributes(normalizedEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+        val attributes = entityAttributeService.getAllForEntity(beehiveTestCId)
+        assertThat(attributes.map { it.attributeType })
+            .containsExactlyInAnyOrder(Attribute.AttributeType.ListProperty, Attribute.AttributeType.ListRelationship)
+        assertThat(attributes.map { it.payload.asString() })
+            .allSatisfy { assertThat(it).contains("@type") }
+
+        coVerify {
+            attributeInstanceService.create(
+                match {
+                    it.value?.deserializeTemporalValue() == listOf(12, "ordered", true) &&
+                        it.payload.asString().contains("ListProperty")
+                }
+            )
+            attributeInstanceService.create(
+                match {
+                    it.value?.deserializeTemporalValue() == listOf(
+                        "urn:ngsi-ld:LinkedEntity:02",
+                        "urn:ngsi-ld:LinkedEntity:01"
+                    ) &&
+                        it.payload.asString().contains("ListRelationship")
                 }
             )
         }

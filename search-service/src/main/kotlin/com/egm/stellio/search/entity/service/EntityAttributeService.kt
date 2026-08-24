@@ -63,6 +63,8 @@ import com.egm.stellio.shared.model.flatOnInstances
 import com.egm.stellio.shared.model.getAndCheckExpiresAt
 import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.model.getDatasetId
+import com.egm.stellio.shared.model.getListPropertyValues
+import com.egm.stellio.shared.model.getListRelationshipObjects
 import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.getPropertyValue
@@ -78,6 +80,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -984,6 +987,18 @@ class EntityAttributeService(
             Attribute.AttributeType.VocabProperty ->
                 Triple(
                     attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VOCAB).bind().asJsonB(),
+                    null,
+                    null
+                )
+            Attribute.AttributeType.ListProperty ->
+                Triple(
+                    attributePayload.getListPropertyValues().bind().asJsonB(),
+                    null,
+                    null
+                )
+            Attribute.AttributeType.ListRelationship ->
+                Triple(
+                    attributePayload.getListRelationshipObjects().bind().asJsonB(),
                     null,
                     null
                 )

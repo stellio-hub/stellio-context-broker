@@ -9,6 +9,10 @@ import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_TERM
 import com.egm.stellio.shared.model.NGSILD_JSON_TERM
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEMAP_TERM
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_TERM
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_TERM
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST_TERM
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_TERM
 import com.egm.stellio.shared.model.NGSILD_OBJECT_TERM
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_TERM
@@ -62,6 +66,14 @@ object ConciseRepresentationUtils {
                     compactedAttributeInstance.containsKey(NGSILD_VOCAB_TERM) ->
                         normalizeSubAttrs(
                             compactedAttributeInstance.plus(NGSILD_TYPE_TERM to NGSILD_VOCABPROPERTY_TERM)
+                        )
+                    compactedAttributeInstance.containsKey(NGSILD_LISTPROPERTY_VALUE_LIST_TERM) ->
+                        normalizeSubAttrs(
+                            compactedAttributeInstance.plus(NGSILD_TYPE_TERM to NGSILD_LISTPROPERTY_TERM)
+                        )
+                    compactedAttributeInstance.containsKey(NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM) ->
+                        normalizeSubAttrs(
+                            compactedAttributeInstance.plus(NGSILD_TYPE_TERM to NGSILD_LISTRELATIONSHIP_TERM)
                         )
                     compactedAttributeInstance.containsKey(NGSILD_VALUE_TERM) &&
                         isGeoJsonGeometry(compactedAttributeInstance[NGSILD_VALUE_TERM]) ->

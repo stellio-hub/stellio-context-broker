@@ -1313,6 +1313,7 @@ class NgsiLdEntityTests {
                 )
             }
     }
+
     @Test
     fun `toNgsiLdEntity should parse an entity with a normalized ListRelationship`() = runTest {
         val rawEntity =
@@ -1435,5 +1436,4 @@ class NgsiLdEntityTests {
                 }
         }
     }
-
 }

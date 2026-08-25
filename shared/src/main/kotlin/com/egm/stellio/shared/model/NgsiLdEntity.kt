@@ -5,7 +5,6 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
-import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_MISSING_ID_PROPERTY_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_MISSING_TYPE_PROPERTY_MESSAGE

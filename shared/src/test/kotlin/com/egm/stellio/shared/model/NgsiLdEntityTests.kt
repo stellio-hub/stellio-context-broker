@@ -1268,4 +1268,172 @@ class NgsiLdEntityTests {
                 )
             }
     }
+
+    @Test
+    fun `toNgsiLdEntity should parse an entity with a ListProperty`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "listProperty": {
+                    "type": "ListProperty",
+                    "valueList": [12, "ordered", true]
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val listProperty = ngsiLdEntity.listProperties.single()
+        assertEquals("${NGSILD_DEFAULT_VOCAB}listProperty", listProperty.name)
+        assertEquals(listOf(12, "ordered", true), listProperty.instances.single().valueList)
+    }
+
+    @Test
+    fun `toNgsiLdEntity should not parse an entity with a ListProperty without a valueList member`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "listProperty": {
+                    "type": "ListProperty",
+                    "value": [12, "ordered", true]
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertEquals(
+                    "ListProperty ${NGSILD_DEFAULT_VOCAB}listProperty has an instance without a valueList member",
+                    it.message
+                )
+            }
+    }
+    @Test
+    fun `toNgsiLdEntity should parse an entity with a normalized ListRelationship`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "listRelationship": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        { "object": "urn:ngsi-ld:Device:01" },
+                        { "object": "urn:ngsi-ld:Device:02" }
+                    ]
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val listRelationship = ngsiLdEntity.listRelationships.single()
+        assertEquals("${NGSILD_DEFAULT_VOCAB}listRelationship", listRelationship.name)
+        assertEquals(
+            listOf("urn:ngsi-ld:Device:01".toUri(), "urn:ngsi-ld:Device:02".toUri()),
+            listRelationship.instances.single().objectList
+        )
+    }
+
+    @Test
+    fun `toNgsiLdEntity should parse an entity with an empty ListRelationship`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "listRelationship": {
+                    "type": "ListRelationship",
+                    "objectList": []
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        assertTrue(ngsiLdEntity.listRelationships.single().instances.single().objectList.isEmpty())
+    }
+
+    @Test
+    fun `toNgsiLdEntity should reject a normalized ListRelationship object with additional members`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "listRelationship": {
+                    "type": "ListRelationship",
+                    "objectList": [{
+                        "object": "urn:ngsi-ld:Device:01",
+                        "name": "not allowed"
+                    }]
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+            }
+    }
+
+    @Test
+    fun `toNgsiLdEntity should parse an entity with a concise ListRelationship`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "listRelationship": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        "urn:ngsi-ld:Device:01",
+                        "urn:ngsi-ld:Device:02"
+                    ]
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        assertEquals(
+            listOf("urn:ngsi-ld:Device:01".toUri(), "urn:ngsi-ld:Device:02".toUri()),
+            ngsiLdEntity.listRelationships.single().instances.single().objectList
+        )
+    }
+
+    @Test
+    fun `checkAttributeHasNoForbiddenMembers should reject list members on incompatible attribute types`() {
+        val invalidAttributes = listOf(
+            PROPERTIES_FORBIDDEN_MEMBERS to NGSILD_LISTPROPERTY_VALUE_LIST,
+            RELATIONSHIPS_FORBIDDEN_MEMBERS to NGSILD_LISTRELATIONSHIP_OBJECT_LIST,
+            LISTPROPERTIES_FORBIDDEN_MEMBERS to NGSILD_LISTRELATIONSHIP_OBJECT_LIST,
+            LISTRELATIONSHIPS_FORBIDDEN_MEMBERS to NGSILD_LISTPROPERTY_VALUE_LIST
+        )
+
+        invalidAttributes.forEach { (forbiddenMembers, forbiddenMember) ->
+            val attributeName = "${NGSILD_DEFAULT_VOCAB}attribute"
+            val attributeInstance: ExpandedAttributeInstance = mapOf(
+                forbiddenMember to emptyList()
+            )
+
+            checkAttributeHasNoForbiddenMembers(attributeName, attributeInstance, forbiddenMembers)
+                .shouldFail {
+                    assertInstanceOf(BadRequestDataException::class.java, it)
+                    assertEquals(
+                        "Attribute $attributeName has an instance with a forbidden member: $forbiddenMember",
+                        it.message
+                    )
+                }
+        }
+    }
+
 }

@@ -739,9 +739,8 @@ fun checkAttributeHasNoForbiddenMembers(
 ): Either<APIException, Unit> = either {
     forbiddenMembers.find {
         instance.containsKey(it)
-    }.let {
-        if (it != null) BadRequestDataException(attributeForbiddenMemberMessage(name, it)).left()
-        else Unit.right()
+    }?.let {
+        BadRequestDataException(attributeForbiddenMemberMessage(name, it)).left().bind()
     }
 }
 

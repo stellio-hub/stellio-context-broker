@@ -215,6 +215,29 @@ class CompactedEntityLinkedTests {
     }
 
     @Test
+    fun `getRelationshipsNamesWithObjects should extract and inline a ListRelationship in order`() = runTest {
+        val linkingEntity = """
+            {
+                "id": "urn:ngsi-ld:LinkingEntity:01",
+                "type": "LinkingEntity",
+                "rel": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        { "object": "urn:ngsi-ld:LinkedEntity:02" },
+                        { "object": "urn:ngsi-ld:LinkedEntity:01" }
+                    ]
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        assertThat(linkingEntity.getRelationshipsNamesWithObjects()["rel"])
+            .containsExactlyInAnyOrder(
+                "urn:ngsi-ld:LinkedEntity:01".toUri(),
+                "urn:ngsi-ld:LinkedEntity:02".toUri()
+            )
+    }
+
+    @Test
     fun `inlineLinkedEntities should inline an entity with two single instance relationhips`() = runTest {
         val linkingEntity = """
             {
@@ -581,6 +604,59 @@ class CompactedEntityLinkedTests {
         )
     }
 
+    @Test
+    fun `inlineLinkedEntities should  inline a ListRelationship in order`() = runTest {
+        val linkingEntity = """
+            {
+                "id": "urn:ngsi-ld:LinkingEntity:01",
+                "type": "LinkingEntity",
+                "rel": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        { "object": "urn:ngsi-ld:LinkedEntity:02" },
+                        { "object": "urn:ngsi-ld:LinkedEntity:01" }
+                    ]
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+        val linkedEntities = mapOf(
+            "urn:ngsi-ld:LinkedEntity:01" to mapOf(
+                "id" to "urn:ngsi-ld:LinkedEntity:01",
+                "type" to "LinkedEntity"
+            ),
+            "urn:ngsi-ld:LinkedEntity:02" to mapOf(
+                "id" to "urn:ngsi-ld:LinkedEntity:02",
+                "type" to "LinkedEntity"
+            )
+        )
+
+        assertJsonPayloadsAreEqual(
+            """
+            {
+                "id": "urn:ngsi-ld:LinkingEntity:01",
+                "type": "LinkingEntity",
+                "rel": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        { "object": "urn:ngsi-ld:LinkedEntity:02" },
+                        { "object": "urn:ngsi-ld:LinkedEntity:01" }
+                    ],
+                    "entityList": [
+                        {
+                            "id": "urn:ngsi-ld:LinkedEntity:02",
+                            "type": "LinkedEntity"
+                        },
+                        {
+                            "id": "urn:ngsi-ld:LinkedEntity:01",
+                            "type": "LinkedEntity"
+                        }
+                    ]
+                }
+            }
+            """.trimIndent(),
+            serializeObject(linkingEntity.inlineLinkedEntities(linkedEntities))
+        )
+    }
     @Test
     fun `withoutSysAttrs should remove sysAttrs from inlined entities`() = runTest {
         val inlineLinkingEntity = """

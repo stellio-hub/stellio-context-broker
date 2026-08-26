@@ -720,6 +720,122 @@ class TemporalEntityParameterizedSource {
                 loadSampleData("expectations/beehive_location_property_temporal_values.jsonld")
             )
 
+        private val beehiveListPropertyTemporalValues =
+            Arguments.arguments(
+                emptyList<ScopeInstanceResult>(),
+                mapOf(
+                    Attribute(
+                        entityId = entityId,
+                        attributeName = "https://ontology.eglobalmark.com/apic#orderedValues",
+                        attributeType = Attribute.AttributeType.ListProperty,
+                        attributeValueType = Attribute.AttributeValueType.ARRAY,
+                        datasetId = null,
+                        createdAt = now,
+                        payload = EMPTY_JSON_PAYLOAD
+                    ) to
+                        listOf(
+                            SimplifiedAttributeInstanceResult(
+                                attributeUuid = UUID.randomUUID(),
+                                value = deserializeObject(
+                                    """
+                                    {
+                                      "@list": [
+                                        { "@value": 12 },
+                                        { "@value": "ordered" },
+                                        { "@value": true }
+                                      ]
+                                    }
+                                    """.trimIndent()
+                                ),
+                                time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                            ),
+                            SimplifiedAttributeInstanceResult(
+                                attributeUuid = UUID.randomUUID(),
+                                value = deserializeObject(
+                                    """
+                                    {
+                                      "@list": [
+                                        { "@value": 34 },
+                                        { "@value": "still ordered" },
+                                        { "@value": false }
+                                      ]
+                                    }
+                                    """.trimIndent()
+                                ),
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                            )
+                        )
+                ),
+                TemporalRepresentation.TEMPORAL_VALUES,
+                false,
+                loadSampleData("expectations/beehive_list_property_temporal_values.jsonld")
+            )
+
+        private val beehiveListRelationshipTemporalValues =
+            Arguments.arguments(
+                emptyList<ScopeInstanceResult>(),
+                mapOf(
+                    Attribute(
+                        entityId = entityId,
+                        attributeName = "https://ontology.eglobalmark.com/apic#orderedRelationships",
+                        attributeType = Attribute.AttributeType.ListRelationship,
+                        attributeValueType = Attribute.AttributeValueType.ARRAY,
+                        datasetId = null,
+                        createdAt = now,
+                        payload = EMPTY_JSON_PAYLOAD
+                    ) to
+                        listOf(
+                            SimplifiedAttributeInstanceResult(
+                                attributeUuid = UUID.randomUUID(),
+                                value = deserializeObject(
+                                    """
+                                    {
+                                      "@list": [
+                                        {
+                                          "https://uri.etsi.org/ngsi-ld/hasObject": [
+                                            { "@id": "urn:ngsi-ld:Entity:1234" }
+                                          ]
+                                        },
+                                        {
+                                          "https://uri.etsi.org/ngsi-ld/hasObject": [
+                                            { "@id": "urn:ngsi-ld:Entity:5678" }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                    """.trimIndent()
+                                ),
+                                time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                            ),
+                            SimplifiedAttributeInstanceResult(
+                                attributeUuid = UUID.randomUUID(),
+                                value = deserializeObject(
+                                    """
+                                    {
+                                      "@list": [
+                                        {
+                                          "https://uri.etsi.org/ngsi-ld/hasObject": [
+                                            { "@id": "urn:ngsi-ld:Entity:5678" }
+                                          ]
+                                        },
+                                        {
+                                          "https://uri.etsi.org/ngsi-ld/hasObject": [
+                                            { "@id": "urn:ngsi-ld:Entity:1234" }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                    """.trimIndent()
+                                ),
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                            )
+                        )
+                ),
+                TemporalRepresentation.TEMPORAL_VALUES,
+                false,
+                loadSampleData("expectations/beehive_list_relationship_temporal_values.jsonld")
+            )
+
         @JvmStatic
         fun rawResultsProvider(): Stream<Arguments> {
             return Stream.of(
@@ -739,7 +855,9 @@ class TemporalEntityParameterizedSource {
                 beehiveJsonPropertyTemporalValues,
                 beehiveLanguagePropertyTemporalValues,
                 beehiveVocabPropertyTemporalValues,
-                beehiveLocationPropertyTemporalValues
+                beehiveLocationPropertyTemporalValues,
+                beehiveListPropertyTemporalValues,
+                beehiveListRelationshipTemporalValues,
             )
         }
     }

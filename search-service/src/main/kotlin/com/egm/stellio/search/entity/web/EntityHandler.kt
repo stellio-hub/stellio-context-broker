@@ -526,8 +526,9 @@ class EntityHandler(
 
         val expandedAttribute = expandAttribute(attrId, body, contexts)
 
+        val dispatchStartNanos = System.nanoTime()
         DiagnosticTimers.time("partialAttributeUpdate.entityService") {
-            entityService.partialUpdateAttribute(entityId, expandedAttribute)
+            entityService.partialUpdateAttribute(entityId, expandedAttribute, dispatchStartNanos)
         }.bind()
             .let {
                 if (it.updated.isEmpty())

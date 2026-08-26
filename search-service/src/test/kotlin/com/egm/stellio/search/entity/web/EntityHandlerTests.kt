@@ -2031,7 +2031,7 @@ class EntityHandlerTests {
         )
 
         coEvery {
-            entityService.partialUpdateAttribute(any(), any())
+            entityService.partialUpdateAttribute(any(), any(), any())
         } returns updateResult.right()
 
         webClient.patch()
@@ -2043,7 +2043,7 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            entityService.partialUpdateAttribute(eq(entityId), any())
+            entityService.partialUpdateAttribute(eq(entityId), any(), any())
         }
     }
 
@@ -2057,7 +2057,7 @@ class EntityHandlerTests {
         )
 
         coEvery {
-            entityService.partialUpdateAttribute(any(), any())
+            entityService.partialUpdateAttribute(any(), any(), any())
         } returns updateResult.right()
 
         val conciseFragment = """
@@ -2076,7 +2076,7 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         coVerify {
-            entityService.partialUpdateAttribute(eq(entityId), any())
+            entityService.partialUpdateAttribute(eq(entityId), any(), any())
         }
     }
 
@@ -2087,7 +2087,7 @@ class EntityHandlerTests {
         val attrId = "fishNumber"
 
         coEvery {
-            entityService.partialUpdateAttribute(any(), any())
+            entityService.partialUpdateAttribute(any(), any(), any())
         } returns ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
 
         webClient.patch()
@@ -2106,7 +2106,7 @@ class EntityHandlerTests {
         val attrId = "fishNumber"
 
         coEvery {
-            entityService.partialUpdateAttribute(any(), any())
+            entityService.partialUpdateAttribute(any(), any(), any())
         } returns UpdateResult(
             updated = arrayListOf(),
             notUpdated = arrayListOf(
@@ -2126,7 +2126,7 @@ class EntityHandlerTests {
             .expectStatus().isNotFound
 
         coVerify {
-            entityService.partialUpdateAttribute(eq(entityId), any())
+            entityService.partialUpdateAttribute(eq(entityId), any(), any())
         }
     }
 
@@ -2137,7 +2137,7 @@ class EntityHandlerTests {
         val attrId = "fishNumber"
 
         coEvery {
-            entityService.partialUpdateAttribute(any(), any())
+            entityService.partialUpdateAttribute(any(), any(), any())
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN").left()
 
         webClient.patch()

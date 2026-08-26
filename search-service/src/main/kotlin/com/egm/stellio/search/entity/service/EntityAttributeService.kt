@@ -7,6 +7,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.fx.coroutines.parMap
+import com.egm.stellio.search.common.util.DiagnosticTimers
 import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.asJsonB
 import com.egm.stellio.search.common.util.deserializeAsMap
@@ -748,7 +749,9 @@ class EntityAttributeService(
         ensure(datasetId.toString() != NGSILD_NULL) {
             BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE)
         }
-        val currentAttribute = getForEntityAndAttribute(entityId, attributeName, datasetId).fold({ null }, { it })
+        val currentAttribute = DiagnosticTimers.time("partialAttributeUpdate.getForEntityAndAttribute") {
+            getForEntityAndAttribute(entityId, attributeName, datasetId)
+        }.fold({ null }, { it })
         val attributeOperationResult =
             if (currentAttribute == null || currentAttribute.deletedAt != null) {
                 FailedAttributeOperationResult(
@@ -793,7 +796,9 @@ class EntityAttributeService(
             partialUpdatePatch(attribute.payload.toExpandedAttributeInstance(), attributeValues).bind()
         val value = getValueFromPartialAttributePayload(attribute, updatedAttributeInstance).bind()
         val attributeValueType = guessAttributeValueType(attribute.attributeType, updatedAttributeInstance).bind()
-        update(attribute.id, attributeValueType, modifiedAt, expiresAt, jsonTargetObject).bind()
+        DiagnosticTimers.time("partialAttributeUpdate.update") {
+            update(attribute.id, attributeValueType, modifiedAt, expiresAt, jsonTargetObject)
+        }.bind()
 
         // then update attribute instance
         val attributeInstance = createContextualAttributeInstance(
@@ -802,7 +807,9 @@ class EntityAttributeService(
             value,
             modifiedAt
         )
-        attributeInstanceService.create(attributeInstance).bind()
+        DiagnosticTimers.time("partialAttributeUpdate.attributeInstanceCreate") {
+            attributeInstanceService.create(attributeInstance)
+        }.bind()
 
         SucceededAttributeOperationResult(
             attribute.attributeName,

@@ -1,11 +1,17 @@
 package com.egm.stellio.search
 
+import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
+import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.EnableScheduling
+import org.springframework.stereotype.Component
 import reactor.blockhound.BlockHound
+import reactor.core.scheduler.Schedulers
+import reactor.util.Metrics
 
 @SpringBootApplication(scanBasePackages = ["com.egm.stellio.search", "com.egm.stellio.shared"])
 @ConfigurationPropertiesScan("com.egm.stellio.search.common.config", "com.egm.stellio.shared.config")
@@ -38,6 +44,33 @@ private fun installBlockHoundIfEnabled() {
         }
         .install()
     blockHoundLogger.warn("BlockHound installed (diagnostic mode: logging only, not throwing)")
+}
+
+// Diagnostic-only: registers Micrometer executor metrics (executor.queued, executor.active,
+// executor.pool.size, ...) on every Reactor scheduler's backing ExecutorService, tagged by scheduler
+// name via the reactor.scheduler.id tag. Schedulers.enableMetrics() defaults to Micrometer's static
+// global registry, not the MeterRegistry bean Spring Boot exposes via /actuator/metrics - useRegistry()
+// must point it at the real bean first, or every query 404s despite the decorator being active. This
+// needs a Spring bean, so it can't run in main() like BlockHound above.
+//
+// Known gap: Schedulers.parallel()/boundedElastic() are cached singletons, created lazily on first use
+// and never re-wrapped afterward - the decorator only affects schedulers created after it's installed.
+// Something during Spring's own startup touches Schedulers.parallel() before ApplicationReadyEvent
+// fires, so it stays uninstrumented (boundedElastic isn't touched that early and works correctly).
+// Schedulers.shutdownNow() was tried to force a fresh, instrumented recreation, but disposes the
+// existing instance outright - anything already holding a direct reference to it (rather than calling
+// Schedulers.parallel() fresh) then throws ReactorRejectedExecutionException("Scheduler unavailable")
+// on every subsequent use, which broke entity creation. Reverted; parallel's own executor metrics are
+// not available via this mechanism, only boundedElastic's.
+@Component
+class SchedulerMetricsInitializer(private val meterRegistry: MeterRegistry) {
+
+    @EventListener(ApplicationReadyEvent::class)
+    fun enableSchedulerMetrics() {
+        Metrics.MicrometerConfiguration.useRegistry(meterRegistry)
+        @Suppress("DEPRECATION")
+        Schedulers.enableMetrics()
+    }
 }
 
 @Suppress("SpreadOperator")

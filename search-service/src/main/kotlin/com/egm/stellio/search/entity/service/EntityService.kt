@@ -452,21 +452,35 @@ class EntityService(
     @Transactional
     suspend fun partialUpdateAttribute(
         entityId: URI,
-        expandedAttribute: ExpandedAttribute
+        expandedAttribute: ExpandedAttribute,
+        dispatchStartNanos: Long? = null
     ): Either<APIException, UpdateResult> = either {
+        // Diagnostic-only: brackets AOP proxy dispatch + transaction BEGIN, neither of which any
+        // internal timer can reach - dispatchStartNanos is captured by the caller before this
+        // transactional method is even entered.
+        dispatchStartNanos?.let {
+            DiagnosticTimers.record("partialAttributeUpdate.dispatchInAndBegin", System.nanoTime() - it)
+        }
+        DiagnosticTimers.timeCommit("partialAttributeUpdate.commit")
         DiagnosticTimers.time("partialAttributeUpdate.checkEntityExistence") {
             entityQueryService.checkEntityExistence(entityId)
         }.bind()
-        authorizationService.userCanUpdateEntity(entityId).bind()
+        DiagnosticTimers.time("partialAttributeUpdate.userCanUpdateEntity") {
+            authorizationService.userCanUpdateEntity(entityId)
+        }.bind()
 
         val modifiedAt = ngsiLdDateTime()
-        val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
+        val originalEntity = DiagnosticTimers.time("partialAttributeUpdate.retrieve") {
+            entityQueryService.retrieve(entityId)
+        }.bind().toExpandedEntity()
 
-        val operationResult = entityAttributeService.partialUpdateAttribute(
-            entityId,
-            expandedAttribute,
-            modifiedAt
-        ).bind().wrapToList()
+        val operationResult = DiagnosticTimers.time("partialAttributeUpdate.entityAttributeService") {
+            entityAttributeService.partialUpdateAttribute(
+                entityId,
+                expandedAttribute,
+                modifiedAt
+            )
+        }.bind().wrapToList()
 
         // handleSuccessOperationActions(entityId, originalEntity, operationResult, modifiedAt).bind()
 

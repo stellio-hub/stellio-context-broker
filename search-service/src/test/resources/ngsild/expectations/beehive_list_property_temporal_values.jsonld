@@ -1,0 +1,67 @@
+{
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
+  ],
+  "https://ontology.eglobalmark.com/apic#orderedValues": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/ListProperty"
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasValueLists": [
+        {
+          "@list": [
+            {
+              "@list": [
+                {
+                  "https://uri.etsi.org/ngsi-ld/hasValueList": [
+                    {
+                      "@list": [
+                        {
+                          "@value": 12
+                        },
+                        {
+                          "@value": "ordered"
+                        },
+                        {
+                          "@value": true
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "@value": "2020-03-25T08:29:17.965206Z"
+                }
+              ]
+            },
+            {
+              "@list": [
+                {
+                  "https://uri.etsi.org/ngsi-ld/hasValueList": [
+                    {
+                      "@list": [
+                        {
+                          "@value": 34
+                        },
+                        {
+                          "@value": "still ordered"
+                        },
+                        {
+                          "@value": false
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "@value": "2020-03-25T08:33:17.965206Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

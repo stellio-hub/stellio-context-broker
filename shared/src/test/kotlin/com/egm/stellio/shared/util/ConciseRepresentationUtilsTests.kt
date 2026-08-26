@@ -336,8 +336,12 @@ class ConciseRepresentationUtilsTests {
                 "listRelationship": {
                     "type": "ListRelationship",
                     "objectList": [
-                        "urn:ngsi-ld:Entity:02",
-                        "urn:ngsi-ld:Entity:01"
+                        {
+                            "object": "urn:ngsi-ld:Entity:02"
+                        },
+                        {
+                            "object": "urn:ngsi-ld:Entity:01"
+                        }
                     ]
                 }
             }

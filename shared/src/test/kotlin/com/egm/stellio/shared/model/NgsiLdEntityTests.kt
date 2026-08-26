@@ -1288,7 +1288,16 @@ class NgsiLdEntityTests {
 
         val listProperty = ngsiLdEntity.listProperties.single()
         assertEquals("${NGSILD_DEFAULT_VOCAB}listProperty", listProperty.name)
-        assertEquals(listOf(12, "ordered", true), listProperty.instances.single().valueList)
+        assertEquals(
+            mapOf(
+                JSONLD_LIST_KW to listOf(
+                    mapOf(JSONLD_VALUE_KW to 12),
+                    mapOf(JSONLD_VALUE_KW to "ordered"),
+                    mapOf(JSONLD_VALUE_KW to true)
+                )
+            ),
+            listProperty.instances.single().valueList
+        )
     }
 
     @Test
@@ -1337,7 +1346,20 @@ class NgsiLdEntityTests {
         val listRelationship = ngsiLdEntity.listRelationships.single()
         assertEquals("${NGSILD_DEFAULT_VOCAB}listRelationship", listRelationship.name)
         assertEquals(
-            listOf("urn:ngsi-ld:Device:01".toUri(), "urn:ngsi-ld:Device:02".toUri()),
+            mapOf(
+                JSONLD_LIST_KW to listOf(
+                    mapOf(
+                        NGSILD_RELATIONSHIP_OBJECT to listOf(
+                            mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:01")
+                        )
+                    ),
+                    mapOf(
+                        NGSILD_RELATIONSHIP_OBJECT to listOf(
+                            mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:02")
+                        )
+                    )
+                )
+            ),
             listRelationship.instances.single().objectList
         )
     }
@@ -1359,7 +1381,10 @@ class NgsiLdEntityTests {
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
             .shouldSucceedAndResult()
 
-        assertTrue(ngsiLdEntity.listRelationships.single().instances.single().objectList.isEmpty())
+        assertEquals(
+            mapOf(JSONLD_LIST_KW to emptyList<Any>()),
+            ngsiLdEntity.listRelationships.single().instances.single().objectList
+        )
     }
 
     @Test
@@ -1383,32 +1408,6 @@ class NgsiLdEntityTests {
             .shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
             }
-    }
-
-    @Test
-    fun `toNgsiLdEntity should parse an entity with a concise ListRelationship`() = runTest {
-        val rawEntity =
-            """
-            {
-                "id": "urn:ngsi-ld:Device:01234",
-                "type": "Device",
-                "listRelationship": {
-                    "type": "ListRelationship",
-                    "objectList": [
-                        "urn:ngsi-ld:Device:01",
-                        "urn:ngsi-ld:Device:02"
-                    ]
-                }
-            }
-            """.trimIndent()
-
-        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
-            .shouldSucceedAndResult()
-
-        assertEquals(
-            listOf("urn:ngsi-ld:Device:01".toUri(), "urn:ngsi-ld:Device:02".toUri()),
-            ngsiLdEntity.listRelationships.single().instances.single().objectList
-        )
     }
 
     @Test

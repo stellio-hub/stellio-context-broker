@@ -48,7 +48,6 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeCannotGetValueM
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
-import com.egm.stellio.shared.util.toUri
 import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI

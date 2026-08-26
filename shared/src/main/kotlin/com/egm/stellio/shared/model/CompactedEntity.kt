@@ -33,6 +33,8 @@ val JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS =
         NGSILD_JSON_TERM,
         NGSILD_VOCAB_TERM,
         NGSILD_LANGUAGEMAP_TERM,
+        NGSILD_LISTPROPERTY_VALUE_LIST_TERM,
+        NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM,
         NGSILD_UNIT_CODE_TERM,
         NGSILD_DATASET_ID_TERM,
         NGSILD_CREATED_AT_TERM,
@@ -47,12 +49,16 @@ fun CompactedEntity.getRelationshipsNamesWithObjects(): Map<String, Set<URI>> =
             { value ->
                 if (value[NGSILD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM)
                     value.getRelationshipObjectIds().map { it.toUri() }.toSet()
+                else if (value[NGSILD_TYPE_TERM] == NGSILD_LISTRELATIONSHIP_TERM)
+                    value.getListRelationshipObjectIds().map { it.toUri() }.toSet()
                 else emptySet()
             },
             { values ->
                 values.flatMap { attributeInstance ->
                     if (attributeInstance[NGSILD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM)
                         attributeInstance.getRelationshipObjectIds()
+                    else if (attributeInstance[NGSILD_TYPE_TERM] == NGSILD_LISTRELATIONSHIP_TERM)
+                        attributeInstance.getListRelationshipObjectIds()
                     else emptyList()
                 }.map { it.toUri() }.toSet()
             }
@@ -187,6 +193,8 @@ fun CompactedAttributeInstance.getTypeAndValue(): Pair<String, Any?> {
         JSONPROPERTY -> Pair(NGSILD_JSONPROPERTY_TERM, this[NGSILD_JSON_TERM])
         LANGUAGEPROPERTY -> Pair(NGSILD_LANGUAGEPROPERTY_TERM, this[NGSILD_LANGUAGEMAP_TERM])
         VOCABPROPERTY -> Pair(NGSILD_VOCABPROPERTY_TERM, this[NGSILD_VOCAB_TERM])
+        LISTPROPERTY -> Pair(NGSILD_LISTPROPERTY_TERM, this[NGSILD_LISTPROPERTY_VALUE_LIST_TERM])
+        LISTRELATIONSHIP -> Pair(NGSILD_LISTRELATIONSHIP_TERM, this[NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM])
     }
 }
 
@@ -361,7 +369,9 @@ enum class AttributeCompactedType(val key: String) {
     GEOPROPERTY(NGSILD_GEOPROPERTY_TERM),
     JSONPROPERTY(NGSILD_JSONPROPERTY_TERM),
     LANGUAGEPROPERTY(NGSILD_LANGUAGEPROPERTY_TERM),
-    VOCABPROPERTY(NGSILD_VOCABPROPERTY_TERM);
+    VOCABPROPERTY(NGSILD_VOCABPROPERTY_TERM),
+    LISTPROPERTY(NGSILD_LISTPROPERTY_TERM),
+    LISTRELATIONSHIP(NGSILD_LISTRELATIONSHIP_TERM);
 
     companion object {
         fun forKey(key: String): AttributeCompactedType? =

@@ -204,6 +204,11 @@ private fun CompactedAttributeInstance.getRelationshipObjectIds(): List<String> 
         else -> emptyList()
     }
 
+private fun CompactedAttributeInstance.getListRelationshipObjectIds(): List<String> =
+    (this[NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM] as? List<*>)
+        ?.mapNotNull { (it as? Map<*, *>)?.get(NGSILD_OBJECT_TERM) as? String }
+        ?: emptyList()
+
 fun CompactedAttributeInstance.getTypeAndValue(): Pair<String, Any?> {
     val attributeCompactedType = AttributeCompactedType.forKey(this[NGSILD_TYPE_TERM] as String)!!
     return when (attributeCompactedType) {
@@ -267,9 +272,9 @@ private fun filterLanguageProperty(value: Map<String, Any>, transformationParame
             .plus(NGSILD_LANG_TERM to bestLocaleMatch)
     } else value.map { entry ->
         when {
-            entry.key == NGSILD_ENTITY_TERM && entry.value is Map<*, *> ->
+            entry.key in setOf(NGSILD_ENTITY_TERM, NGSILD_ENTITY_LIST_TERM) && entry.value is Map<*, *> ->
                 entry.key to (entry.value as CompactedEntity).toFilteredLanguageProperties(languageFilter)
-            entry.key == NGSILD_ENTITY_TERM && entry.value is List<*> ->
+            entry.key in setOf(NGSILD_ENTITY_TERM, NGSILD_ENTITY_LIST_TERM) && entry.value is List<*> ->
                 entry.key to (entry.value as List<CompactedEntity>).map {
                     it.toFilteredLanguageProperties(languageFilter)
                 }
@@ -303,7 +308,7 @@ fun CompactedEntity.withoutSysAttrs(sysAttrToKeep: String?): Map<String, Any> {
     val removeSysAttrsFromAttrInstance = { attrValue: Map<*, *> ->
         attrValue.minus(sysAttrsToRemove)
             .mapValues { entry ->
-                if (entry.key == NGSILD_ENTITY_TERM) {
+                if (entry.key in setOf(NGSILD_ENTITY_TERM, NGSILD_ENTITY_LIST_TERM)) {
                     when (val linkedEntity = entry.value) {
                         is Map<*, *> -> (linkedEntity as CompactedEntity).withoutSysAttrs(sysAttrToKeep)
                         is List<*> -> linkedEntity.map {

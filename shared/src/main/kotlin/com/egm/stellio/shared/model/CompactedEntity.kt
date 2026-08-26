@@ -7,6 +7,8 @@ import arrow.core.right
 import com.egm.stellio.shared.model.AttributeCompactedType.GEOPROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.JSONPROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.LANGUAGEPROPERTY
+import com.egm.stellio.shared.model.AttributeCompactedType.LISTPROPERTY
+import com.egm.stellio.shared.model.AttributeCompactedType.LISTRELATIONSHIP
 import com.egm.stellio.shared.model.AttributeCompactedType.PROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.RELATIONSHIP
 import com.egm.stellio.shared.model.AttributeCompactedType.VOCABPROPERTY
@@ -76,16 +78,19 @@ fun List<CompactedEntity>.getRelationshipsNamesWithObjects(): Map<String, Set<UR
     }
 
 /**
- * Returns the objects of the Relationships annotated with an objectType, associated to their declared types.
+ * Returns the objects of Relationships and ListRelationships annotated with an objectType and their declared types.
  *
  * As per TS 104 175 §7.7.1, these are the only non locally stored entities that can be retrieved as Linked Entities.
  */
 fun List<CompactedEntity>.getRelationshipsObjectsWithObjectTypes(): Map<URI, Set<String>> =
     this.flatMap { it.getAttributeInstances() }
-        .filter { it[NGSILD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM }
+        .filter { it[NGSILD_TYPE_TERM] in setOf(NGSILD_RELATIONSHIP_TERM, NGSILD_LISTRELATIONSHIP_TERM) }
         .flatMap { relationship ->
             val objectTypes = relationship.getRelationshipObjectTypes()
-            relationship.getRelationshipObjectIds().map { objectId -> objectId.toUri() to objectTypes }
+            val objectIds = if (relationship[NGSILD_TYPE_TERM] == NGSILD_LISTRELATIONSHIP_TERM)
+                relationship.getListRelationshipObjectIds()
+            else relationship.getRelationshipObjectIds()
+            objectIds.map { objectId -> objectId.toUri() to objectTypes }
         }
         .groupBy({ (objectId, _) -> objectId }, { (_, objectTypes) -> objectTypes })
         .mapValues { (_, objectTypes) -> objectTypes.flatten().toSet() }
@@ -113,18 +118,30 @@ private fun CompactedAttributeInstance.getRelationshipObjectTypes(): List<String
 private fun CompactedAttributeInstance.applyInlineLinkedEntity(
     linkedEntityFor: (String) -> CompactedEntity?
 ): CompactedAttributeInstance =
-    if (this[NGSILD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM)
-        this.getRelationshipObjectIds()
-            .mapNotNull { linkedEntityFor(it) }
-            .let {
-                when (it.size) {
-                    0 -> this
-                    1 -> this.plus(NGSILD_ENTITY_TERM to it.first())
-                    else -> this.plus(NGSILD_ENTITY_TERM to it)
+    when (this[NGSILD_TYPE_TERM]) {
+        NGSILD_RELATIONSHIP_TERM -> {
+            this.getRelationshipObjectIds()
+                .mapNotNull { linkedEntityFor(it) }
+                .let {
+                    when (it.size) {
+                        0 -> this
+                        1 -> this.plus(NGSILD_ENTITY_TERM to it.first())
+                        else -> this.plus(NGSILD_ENTITY_TERM to it)
+                    }
                 }
-            }
-    else
-        this
+        }
+
+        NGSILD_LISTRELATIONSHIP_TERM -> {
+            this.getListRelationshipObjectIds()
+                .mapNotNull { linkedEntityFor(it) }
+                .let {
+                    if (it.isEmpty()) this
+                    else this.plus(NGSILD_ENTITY_LIST_TERM to it)
+                }
+        }
+
+        else -> this
+    }
 
 fun CompactedEntity.inlineLinkedEntities(linkedEntities: Map<String, CompactedEntity>): CompactedEntity =
     this.inlineLinkedEntities { _, objectId -> linkedEntities[objectId] }
@@ -195,6 +212,12 @@ private fun simplifyAttribute(value: Map<String, Any>): Any {
         JSONPROPERTY -> mapOf(NGSILD_JSON_TERM to value.getOrDefault(NGSILD_JSON_TERM, value))
         LANGUAGEPROPERTY -> mapOf(NGSILD_LANGUAGEMAP_TERM to value.getOrDefault(NGSILD_LANGUAGEMAP_TERM, value))
         VOCABPROPERTY -> mapOf(NGSILD_VOCAB_TERM to value.getOrDefault(NGSILD_VOCAB_TERM, value))
+        LISTPROPERTY -> value[NGSILD_LISTPROPERTY_VALUE_LIST_TERM] ?: value
+        LISTRELATIONSHIP ->
+            when (val linkedEntities = value[NGSILD_ENTITY_LIST_TERM]) {
+                is List<*> -> linkedEntities.map { (it as CompactedEntity).toSimplifiedAttributes() }
+                else -> value.getListRelationshipObjectIds()
+            }
     }
 }
 

@@ -19,6 +19,8 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.jsonPropertyInvalidJsonM
 import com.egm.stellio.shared.util.ErrorMessages.Entity.jsonPropertyMissingJsonMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.languagePropertyInvalidLanguageMapMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.languagePropertyMissingLanguageMapMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.listPropertyMissingValueListMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.listRelationshipMissingObjectListMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.propertyMissingValueMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipInvalidObjectTypeValueMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.vocabPropertyInvalidVocabMessage
@@ -572,7 +574,7 @@ class NgsiLdVocabPropertyInstance private constructor(
 }
 
 class NgsiLdListPropertyInstance private constructor(
-    val valueList: List<Any>,
+    val valueList: Any,
     val unitCode: String?,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
@@ -584,7 +586,10 @@ class NgsiLdListPropertyInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdListPropertyInstance> = either {
-            val valueList = values.getListPropertyValues(name).bind()
+            val valueList = values[NGSILD_LISTPROPERTY_VALUE_LIST]
+            ensureNotNull(valueList) {
+                BadRequestDataException(listPropertyMissingValueListMessage(name))
+            }
             val unitCode = values.getMemberValueAsString(NGSILD_UNIT_CODE_IRI)
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
@@ -610,7 +615,7 @@ class NgsiLdListPropertyInstance private constructor(
 }
 
 class NgsiLdListRelationshipInstance private constructor(
-    val objectList: List<URI>,
+    val objectList: Any,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
     expiresAt: ZonedDateTime?,
@@ -621,7 +626,10 @@ class NgsiLdListRelationshipInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdListRelationshipInstance> = either {
-            val objectList = values.getListRelationshipObjects(name).bind()
+            val objectList = values[NGSILD_LISTRELATIONSHIP_OBJECT_LIST]
+            ensureNotNull(objectList){
+                BadRequestDataException(listRelationshipMissingObjectListMessage(name))
+            }
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
             val expiresAt = values.getAndCheckExpiresAt().bind()

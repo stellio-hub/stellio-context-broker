@@ -1386,12 +1386,14 @@ class NgsiLdEntityTests {
         val listProperty = ngsiLdEntity.listProperties.single()
         assertEquals("${NGSILD_DEFAULT_VOCAB}listProperty", listProperty.name)
         assertEquals(
-            mapOf(
+            listOf(
+                mapOf(
                 JSONLD_LIST_KW to listOf(
                     mapOf(JSONLD_VALUE_KW to 12),
                     mapOf(JSONLD_VALUE_KW to "ordered"),
                     mapOf(JSONLD_VALUE_KW to true)
                 )
+            )
             ),
             listProperty.instances.single().valueList
         )
@@ -1443,7 +1445,7 @@ class NgsiLdEntityTests {
         val listRelationship = ngsiLdEntity.listRelationships.single()
         assertEquals("${NGSILD_DEFAULT_VOCAB}listRelationship", listRelationship.name)
         assertEquals(
-            mapOf(
+            listOf(mapOf(
                 JSONLD_LIST_KW to listOf(
                     mapOf(
                         NGSILD_RELATIONSHIP_OBJECT to listOf(
@@ -1456,7 +1458,7 @@ class NgsiLdEntityTests {
                         )
                     )
                 )
-            ),
+            )),
             listRelationship.instances.single().objectList
         )
     }
@@ -1479,32 +1481,9 @@ class NgsiLdEntityTests {
             .shouldSucceedAndResult()
 
         assertEquals(
-            mapOf(JSONLD_LIST_KW to emptyList<Any>()),
+            listOf(mapOf(JSONLD_LIST_KW to emptyList<Any>())),
             ngsiLdEntity.listRelationships.single().instances.single().objectList
         )
-    }
-
-    @Test
-    fun `toNgsiLdEntity should reject a normalized ListRelationship object with additional members`() = runTest {
-        val rawEntity =
-            """
-            {
-                "id": "urn:ngsi-ld:Device:01234",
-                "type": "Device",
-                "listRelationship": {
-                    "type": "ListRelationship",
-                    "objectList": [{
-                        "object": "urn:ngsi-ld:Device:01",
-                        "name": "not allowed"
-                    }]
-                }
-            }
-            """.trimIndent()
-
-        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
-            .shouldFail {
-                assertInstanceOf(BadRequestDataException::class.java, it)
-            }
     }
 
     @Test

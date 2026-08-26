@@ -1,0 +1,77 @@
+{
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
+  "@type": [
+    "https://ontology.eglobalmark.com/apic#BeeHive"
+  ],
+  "https://ontology.eglobalmark.com/apic#orderedRelationships": [
+    {
+      "@type": [
+        "https://uri.etsi.org/ngsi-ld/ListRelationship"
+      ],
+      "https://uri.etsi.org/ngsi-ld/hasObjectLists": [
+        {
+          "@list": [
+            {
+              "@list": [
+                {
+                  "https://uri.etsi.org/ngsi-ld/hasObjectList": [
+                    {
+                      "@list": [
+                        {
+                          "https://uri.etsi.org/ngsi-ld/hasObject": [
+                            {
+                              "@id": "urn:ngsi-ld:Entity:1234"
+                            }
+                          ]
+                        },
+                        {
+                          "https://uri.etsi.org/ngsi-ld/hasObject": [
+                            {
+                              "@id": "urn:ngsi-ld:Entity:5678"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "@value": "2020-03-25T08:29:17.965206Z"
+                }
+              ]
+            },
+            {
+              "@list": [
+                {
+                  "https://uri.etsi.org/ngsi-ld/hasObjectList": [
+                    {
+                      "@list": [
+                        {
+                          "https://uri.etsi.org/ngsi-ld/hasObject": [
+                            {
+                              "@id": "urn:ngsi-ld:Entity:5678"
+                            }
+                          ]
+                        },
+                        {
+                          "https://uri.etsi.org/ngsi-ld/hasObject": [
+                            {
+                              "@id": "urn:ngsi-ld:Entity:1234"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "@value": "2020-03-25T08:33:17.965206Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -13,6 +13,7 @@ import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_TERM
 import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST_TERM
 import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM
 import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_TERM
+import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_OBJECT_TERM
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_TERM
@@ -73,7 +74,9 @@ object ConciseRepresentationUtils {
                         )
                     compactedAttributeInstance.containsKey(NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM) ->
                         normalizeSubAttrs(
-                            compactedAttributeInstance.plus(NGSILD_TYPE_TERM to NGSILD_LISTRELATIONSHIP_TERM)
+                            compactedAttributeInstance
+                                .normalizeListRelationshipObjectList()
+                                .plus(NGSILD_TYPE_TERM to NGSILD_LISTRELATIONSHIP_TERM)
                         )
                     compactedAttributeInstance.containsKey(NGSILD_VALUE_TERM) &&
                         isGeoJsonGeometry(compactedAttributeInstance[NGSILD_VALUE_TERM]) ->
@@ -100,6 +103,22 @@ object ConciseRepresentationUtils {
             else element
         }
         else normalizeAttributeFragment(value)
+
+    private fun CompactedAttributeInstance.normalizeListRelationshipObjectList(): CompactedAttributeInstance =
+        this[NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM]
+            ?.let { objectList ->
+                plus(NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM to normalizeListRelationshipObjectList(objectList))
+            }
+            ?: this
+
+    private fun normalizeListRelationshipObjectList(objectList: Any): Any =
+        if (objectList is List<*>)
+            objectList.map {
+                if (it is String && it != NGSILD_NULL)
+                    mapOf(NGSILD_OBJECT_TERM to it)
+                else it
+            }
+        else objectList
 
     private fun isGeoJsonGeometry(value: Any?): Boolean {
         if (value !is Map<*, *>) return false

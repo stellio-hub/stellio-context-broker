@@ -48,6 +48,8 @@ import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PREFIX
@@ -63,8 +65,6 @@ import com.egm.stellio.shared.model.flatOnInstances
 import com.egm.stellio.shared.model.getAndCheckExpiresAt
 import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.model.getDatasetId
-import com.egm.stellio.shared.model.getListPropertyValues
-import com.egm.stellio.shared.model.getListRelationshipObjects
 import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.getPropertyValue
@@ -992,13 +992,13 @@ class EntityAttributeService(
                 )
             Attribute.AttributeType.ListProperty ->
                 Triple(
-                    attributePayload.getListPropertyValues().bind().asJsonB(),
+                    attributePayload.getMemberValue(NGSILD_LISTPROPERTY_VALUE_LIST).bind().asJsonB(),
                     null,
                     null
                 )
             Attribute.AttributeType.ListRelationship ->
                 Triple(
-                    attributePayload.getListRelationshipObjects().bind().asJsonB(),
+                    attributePayload.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST).bind().asJsonB(),
                     null,
                     null
                 )

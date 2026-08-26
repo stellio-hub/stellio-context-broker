@@ -108,7 +108,7 @@ const val NGSILD_JSONPROPERTY_JSONS = "${NGSILD_PREFIX}jsons"
 const val NGSILD_LANGUAGEPROPERTY_LANGUAGEMAPS = "${NGSILD_PREFIX}hasLanguageMaps"
 const val NGSILD_VOCABPROPERTY_VOCABS = "${NGSILD_PREFIX}hasVocabs"
 const val NGSILD_LISTPROPERTY_VALUE_LISTS = "${NGSILD_PREFIX}hasValueLists"
-const val NGSILD_LISTRELATIONSHIP_OBJECT_LISTS = "${NGSILD_PREFIX}hasObjectsLists"
+const val NGSILD_LISTRELATIONSHIP_OBJECT_LISTS = "${NGSILD_PREFIX}hasObjectLists"
 
 // Core terms and IRIs
 
@@ -125,7 +125,7 @@ const val NGSILD_LANGUAGEMAPS_TERM = "languageMaps"
 const val NGSILD_VOCAB_TERM = "vocab"
 const val NGSILD_VOCABS_TERM = "vocabs"
 const val NGSILD_VALUE_LISTS_TERM = "valueLists"
-const val NGSILD_OBJECTS_LISTS_TERM = "objectsLists"
+const val NGSILD_OBJECTS_LISTS_TERM = "objectLists"
 const val NGSILD_SCOPE_TERM = "scope"
 const val NGSILD_SCOPE_IRI = "${NGSILD_PREFIX}$NGSILD_SCOPE_TERM"
 const val NGSILD_LANG_TERM = "lang"

@@ -20,6 +20,8 @@ import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.model.NGSILD_PREFIX
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
@@ -165,6 +167,22 @@ object TemporalEntityBuilder {
                         Attribute.AttributeType.VocabProperty -> {
                             listOf(
                                 mapOf(NGSILD_VOCABPROPERTY_VOCAB to attributeInstanceResult.value),
+                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
+                            )
+                        }
+                        Attribute.AttributeType.ListProperty -> {
+                            listOf(
+                                mapOf(
+                                    NGSILD_LISTPROPERTY_VALUE_LIST to listOf(attributeInstanceResult.value)
+                                ),
+                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
+                            )
+                        }
+                        Attribute.AttributeType.ListRelationship -> {
+                            listOf(
+                                mapOf(
+                                    NGSILD_LISTRELATIONSHIP_OBJECT_LIST to listOf(attributeInstanceResult.value)
+                                ),
                                 mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
                             )
                         }

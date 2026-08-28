@@ -79,23 +79,18 @@ jobs:
         with:
           image: "localbuild/api-gateway:latest-scan"
           severity-cutoff: critical
-          fail-build: false
       - name: Security Scan for Search Service image
         id: scan-search-service
         uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2
         with:
           image: "localbuild/search-service:latest-scan"
           severity-cutoff: critical
-          fail-build: false
       - name: Security Scan for Subscription Service image
         id: scan-subscription-service
         uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2
         with:
           image: "localbuild/subscription-service:latest-scan"
           severity-cutoff: critical
-          fail-build: false
-      - name: Inspect Search Service SARIF report
-        run: cat ${{ steps.scan-search-service.outputs.sarif }}
       - name: Upload Anchore scan SARIF report for Search Service
         uses: github/codeql-action/upload-sarif@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28
         if: always()
@@ -114,30 +109,3 @@ jobs:
         with:
           sarif_file: ${{ steps.scan-subscription-service.outputs.sarif }}
           category: anchore-subscription-service
-      - name: Check for critical vulnerabilities
-        if: always()
-        run: |
-          CRITICAL_COUNT=0
-          
-          if [ -f "${{ steps.scan-api-gateway.outputs.sarif }}" ]; then
-            COUNT=$(jq '[.runs[0].results[] | select(.level == "error")] | length' "${{ steps.scan-api-gateway.outputs.sarif }}")
-            echo "Found $COUNT critical vulnerabilities for API Gateway"
-            CRITICAL_COUNT=$((CRITICAL_COUNT + COUNT))
-          fi
-          
-          if [ -f "${{ steps.scan-search-service.outputs.sarif }}" ]; then
-            COUNT=$(jq '[.runs[0].results[] | select(.level == "error")] | length' "${{ steps.scan-search-service.outputs.sarif }}")
-            echo "Found $COUNT critical vulnerabilities for Search Service"
-            CRITICAL_COUNT=$((CRITICAL_COUNT + COUNT))
-          fi
-          
-          if [ -f "${{ steps.scan-subscription-service.outputs.sarif }}" ]; then
-            COUNT=$(jq '[.runs[0].results[] | select(.level == "error")] | length' "${{ steps.scan-subscription-service.outputs.sarif }}")
-            echo "Found $COUNT critical vulnerabilities for Subscription Service"
-            CRITICAL_COUNT=$((CRITICAL_COUNT + COUNT))
-          fi
-          
-          if [ $CRITICAL_COUNT -gt 0 ]; then
-            echo "Found $CRITICAL_COUNT critical vulnerabilities in total"
-            exit 1
-          fi

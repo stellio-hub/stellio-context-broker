@@ -11,7 +11,7 @@ buildscript {
     }
 }
 
-extra["springCloudVersion"] = "2025.1.0"
+extra["springCloudVersion"] = "2025.1.3"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java

@@ -45,7 +45,7 @@ jobs:
           cache-provider: basic
       - name: Build
         env:
-          JAVA_HOME: ${{ steps.setup-jdk21.outputs.java-home }}
+          JAVA_HOME: ${{ steps.setup-jdk21.outputs.path }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew build
@@ -57,7 +57,7 @@ jobs:
       - name: Perform SonarQube analysis
         if: github.actor != 'dependabot[bot]'
         env:
-          JAVA_HOME: ${{ steps.setup-jdk21.outputs.java-home }}
+          JAVA_HOME: ${{ steps.setup-jdk21.outputs.path }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew sonarqube --info

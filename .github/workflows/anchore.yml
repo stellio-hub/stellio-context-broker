@@ -113,6 +113,7 @@ jobs:
           sarif_file: ${{ steps.scan-subscription-service.outputs.sarif }}
           category: anchore-subscription-service
       - name: Check for critical vulnerabilities
+        if: always()
         run: |
           CRITICAL_COUNT=0
           

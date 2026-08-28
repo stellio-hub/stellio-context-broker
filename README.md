@@ -2,7 +2,6 @@
 
 [![FIWARE Core Context Management](docs/style/core-badge.svg)](https://www.fiware.org/developers/catalogue/)
 [![License: Apache-2.0](https://img.shields.io/github/license/stellio-hub/stellio-context-broker.svg)](https://spdx.org/licenses/Apache-2.0.html)
-![Status](https://nexus.lab.fiware.org/static/badges/statuses/full.svg)
 [![NGSI-LD badge](https://img.shields.io/badge/NGSI-LD-red.svg)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf)
 [![SOF support badge](docs/style/stackoverflow-badge.svg)](http://stackoverflow.com/questions/tagged/fiware)
 <br>
@@ -19,8 +18,8 @@ Stellio is an NGSI-LD compliant context broker developed by EGM. NGSI-LD is an O
 context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.08.01_60/gs_CIM009v010801p.pdf).
 
 Stellio is a [FIWARE](https://www.fiware.org/) Generic Enabler. Therefore, it can be integrated as part of any platform “Powered by FIWARE”. 
-FIWARE is a curated framework of open source platform components which can be assembled together with other third-party 
-platform components to accelerate the development of Smart Solutions. For more information check the FIWARE Catalogue entry for
+FIWARE is a curated framework of open source platform components which can be assembled with other third-party 
+platform components to speed up the development of Smart Solutions. For more information check the FIWARE Catalogue entry for
 [Core Context](https://github.com/Fiware/catalogue/tree/master/core). The roadmap of this FIWARE GE is described [here](https://github.com/stellio-hub/stellio-context-broker/projects/1).
 
 You can find more info at the [FIWARE developers](https://developers.fiware.org/) website and the [FIWARE](https://fiware.org/) website.
@@ -30,16 +29,16 @@ The complete list of FIWARE GEs and Incubated FIWARE GEs can be found in the [FI
 
 The NGSI-LD Specification is regularly updated and published by ETSI. The latest specification is [version 1.9.1](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf) which was published in July 2025.
 
--  An Excel file detailing the current compatibility of the development version of the Stellio Context Broker against the features of the 1.8.1 specification can be downloaded [here](https://docs.google.com/spreadsheets/d/e/2PACX-1vRxOjsDf3lqhwuypJ---pZN2OlqFRl0jyoTV0ewQ1WFnpe7xQary3uxRjunbgJkwQ/pub?output=xlsx)
+-  An Excel file detailing the current compatibility regarding the development version of the Stellio Context Broker against the features of the 1.9.1 specification can be downloaded [here](https://docs.google.com/spreadsheets/d/18tq0_PZFl5WCfYUElcdI6M3Vlin4hP-M/edit#gid=1285470800)
 
 | :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/u/stellio) | :dart: [Roadmap](./docs/roadmap.md) |
 |---------------------------------------------------|--------------------------------------------------------|-------------------------------------|
 
 ## Overview
 
-Stellio is composed of 2 business services:
-* Search service is in charge of managing the information context and handling the temporal (and geospatial) queries, it is backed by a [TimescaleDB](https://www.timescale.com/) database
-* Subscription service is in charge of managing subscriptions and subsequent notifications, it is backed by a [TimescaleDB](https://www.timescale.com/) database
+Stellio is composed of two business services:
+* Search service is in charge of managing the information context and handling the temporal (and geospatial) queries. It is backed by a [TimescaleDB](https://www.timescale.com/) database
+* Subscription service is in charge of managing subscriptions and later notifications. It is backed by a [TimescaleDB](https://www.timescale.com/) database
 
 It is completed with:
 * An API Gateway module that dispatches requests to downstream services
@@ -117,7 +116,7 @@ It mainly makes use of the following libraries and frameworks (dependencies of d
 | WireMock            | APL v2  |
 | Testcontainers      | MIT     |
 
-© 2020 - 2025 EGM
+© 2020 - 2026 EGM
 
 ## Contribution and development
 

@@ -92,10 +92,12 @@ subprojects {
 
     kotlin {
         compilerOptions {
+            // https://kotlinlang.org/docs/whatsnew2020.html#data-class-copy-function-to-have-the-same-visibility-as-constructor
+            // https://youtrack.jetbrains.com/issue/KT-73255
             freeCompilerArgs.addAll(
                 "-Xjsr305=strict",
-                "-Xannotation-default-target=param-property",
-                "-Xconsistent-data-class-copy-visibility"
+                "-Xconsistent-data-class-copy-visibility",
+                "-Xannotation-default-target=param-property"
             )
             languageVersion.set(KotlinVersion.KOTLIN_2_3)
             apiVersion.set(KotlinVersion.KOTLIN_2_3)
@@ -126,6 +128,7 @@ subprojects {
         buildUponDefaultConfig = true
         baseline.set(file("$projectDir/config/detekt/baseline.xml"))
         source("src/main/kotlin", "src/test/kotlin", "src/testFixtures/kotlin")
+        // until detekt 2.0.0 is released (with Java 25 compatibility), stick to Java 21 
         jvmTarget = "21"
 
         reports {
@@ -138,11 +141,11 @@ subprojects {
         config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
         buildUponDefaultConfig.set(true)
         baseline.set(file("$projectDir/config/detekt/baseline.xml"))
+        // until detekt 2.0.0 is released (with Java 25 compatibility), stick to Java 21
         jvmTarget = "21"
     }
 
     // see https://docs.gradle.org/current/userguide/jacoco_plugin.html for configuration instructions
-    // 0.8.12+ is required for Java 25 support
     jacoco {
         toolVersion = "0.8.13"
     }

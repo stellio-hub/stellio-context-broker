@@ -11,6 +11,7 @@ import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult.A
 import com.egm.stellio.search.temporal.model.EntityTemporalResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.util.TemporalEntityBuilder.wrapSingleValuesToList
 import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.util.BEEHIVE_IRI
@@ -21,6 +22,7 @@ import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
@@ -33,6 +35,92 @@ import java.time.ZonedDateTime
 class TemporalEntityBuilderTests {
 
     private val now = ngsiLdDateTime()
+
+    @Test
+    fun `temporal values should normalize ListRelationship list containers after JSON-LD compaction`() {
+        val compactedEntity = mapOf(
+            "isParkedIn" to mapOf(
+                "type" to "ListRelationship",
+                "ngsi-ld:hasObjectLists" to mapOf(
+                    "@list" to listOf(
+                        mapOf(
+                            "@list" to listOf(
+                                mapOf(
+                                    "objectList" to listOf(
+                                        mapOf("object" to "urn:ngsi-ld:Parking:01")
+                                    )
+                                ),
+                                "2020-03-25T08:29:17Z"
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        assertEquals(
+            listOf(
+                listOf(
+                    mapOf("objectList" to listOf(mapOf("object" to "urn:ngsi-ld:Parking:01"))),
+                    "2020-03-25T08:29:17Z"
+                )
+            ),
+            (
+                compactedEntity.wrapSingleValuesToList(TemporalRepresentation.TEMPORAL_VALUES)["isParkedIn"]
+                    as Map<*, *>
+                )["objectLists"]
+        )
+    }
+
+    @Test
+    fun `temporal values should preserve a null ListProperty value as a list`() {
+        val compactedEntity = mapOf(
+            "airQualityLevel" to mapOf(
+                "type" to "ListProperty",
+                "valueLists" to listOf(
+                    listOf(
+                        mapOf("ngsi-ld:hasValueList" to "urn:ngsi-ld:null"),
+                        "2020-03-25T08:29:17Z"
+                    )
+                )
+            )
+        )
+
+        val normalizedAttribute =
+            compactedEntity.wrapSingleValuesToList(TemporalRepresentation.TEMPORAL_VALUES)["airQualityLevel"]
+                as Map<*, *>
+        assertEquals(
+            mapOf("valueList" to listOf("urn:ngsi-ld:null")),
+            (normalizedAttribute["valueLists"] as List<*>).first().let { it as List<*> }.first()
+        )
+    }
+
+    @Test
+    fun `temporal values should preserve a null ListRelationship value as a list`() {
+        val compactedEntity = mapOf(
+            "isParkedIn" to mapOf(
+                "type" to "ListRelationship",
+                "ngsi-ld:hasObjectLists" to mapOf(
+                    "@list" to listOf(
+                        mapOf(
+                            "@list" to listOf(
+                                mapOf("ngsi-ld:hasObjectList" to "urn:ngsi-ld:null"),
+                                "2020-03-25T08:29:17Z"
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val normalizedAttribute =
+            compactedEntity.wrapSingleValuesToList(TemporalRepresentation.TEMPORAL_VALUES)["isParkedIn"]
+                as Map<*, *>
+        assertEquals(
+            mapOf("objectList" to listOf("urn:ngsi-ld:null")),
+            (normalizedAttribute["objectLists"] as List<*>).first().let { it as List<*> }.first()
+        )
+    }
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.temporal.util.TemporalEntityParameterizedSource#rawResultsProvider")

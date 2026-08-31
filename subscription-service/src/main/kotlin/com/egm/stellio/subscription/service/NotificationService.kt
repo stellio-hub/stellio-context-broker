@@ -5,6 +5,7 @@ import arrow.core.raise.Raise
 import arrow.core.raise.either
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AttributeRepresentation
+import com.egm.stellio.shared.model.AttributesValuesMapping
 import com.egm.stellio.shared.model.AttributesValuesMapping.Companion.fromAttributeNameTerm
 import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.CompactedEntity
@@ -12,6 +13,7 @@ import com.egm.stellio.shared.model.EntityRepresentation
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_NULL
@@ -220,13 +222,21 @@ class NotificationService(
         return mapOf(
             NGSILD_TYPE_TERM to compactedAttributeTypeAndValue.first,
             attributeValueMappings.previousValueTerm to compactedAttributeTypeAndValue.second,
-            attributeValueMappings.valueTerm to NGSILD_NULL
+            attributeValueMappings.valueTerm to attributeValueMappings.nullValue()
         ).let {
             if (instanceValue[NGSILD_DATASET_ID_TERM] != null)
                 it.plus(NGSILD_DATASET_ID_TERM to instanceValue[NGSILD_DATASET_ID_TERM])
             else it
         }
     }
+
+    private fun AttributesValuesMapping.nullValue(): Any =
+        when (this) {
+            AttributesValuesMapping.LISTPROPERTY,
+            AttributesValuesMapping.LISTRELATIONSHIP -> listOf(NGSILD_NULL)
+            AttributesValuesMapping.LANGUAGEPROPERTY -> mapOf(JSONLD_NONE_KW to NGSILD_NULL)
+            else -> NGSILD_NULL
+        }
 
     private fun updateWithPreviousAttributeValue(
         updatedAttribute: Pair<ExpandedTerm, URI?>,

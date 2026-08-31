@@ -8,6 +8,8 @@ import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
@@ -87,6 +89,24 @@ data class AttributePath(
             """$.$mainPathString.**{0 to 2}."$JSONLD_ID_KW""""
         else
             """$."${mainPath[0]}"."$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
+    }
+
+    fun buildJsonBListPropertyPath(): String {
+        val mainPathString = mainPath.toQuotedJsonPath()
+        return if (mainPath.size > 1)
+            """$.$mainPathString.**{0 to 2}."$NGSILD_LISTPROPERTY_VALUE_LIST"."@list"."$JSONLD_VALUE_KW""""
+        else
+            """$."${mainPath[0]}"."$NGSILD_LISTPROPERTY_VALUE_LIST"."@list"."$JSONLD_VALUE_KW""""
+    }
+
+    fun buildJsonBListRelationshipPath(): String {
+        val mainPathString = mainPath.toQuotedJsonPath()
+        return if (mainPath.size > 1)
+            """$.$mainPathString.**{0 to 2}."$NGSILD_LISTRELATIONSHIP_OBJECT_LIST"."@list".""" +
+                """$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
+        else
+            """$."${mainPath[0]}"."$NGSILD_LISTRELATIONSHIP_OBJECT_LIST"."@list".""" +
+                """$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
     }
 
     fun buildJsonBVocabPath(): String {

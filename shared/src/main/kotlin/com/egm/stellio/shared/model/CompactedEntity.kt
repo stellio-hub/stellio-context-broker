@@ -184,12 +184,18 @@ fun CompactedEntity.toConciseAttributes(): Map<String, Any> =
 private fun conciseAttribute(value: Map<String, Any>, isMultiInstanceAttribute: Boolean = false): Any =
     value.minus(NGSILD_TYPE_TERM)
         .mapValues { (key, value) ->
-            if (!JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(key))
-                conciseAttribute(value as Map<String, Any>)
-            else value
+            when {
+                key == NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM && value is List<*> ->
+                    value.map { (it as? Map<*, *>)?.get(NGSILD_OBJECT_TERM) ?: it }
+                key == NGSILD_ENTITY_LIST_TERM && value is List<*> ->
+                    value.map { (it as CompactedEntity).toConciseAttributes() }
+                !JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS.contains(key) ->
+                    conciseAttribute(value as Map<String, Any>)
+                else -> value
+            }
         }.let {
             when (value[NGSILD_TYPE_TERM] as String) {
-                PROPERTY.key, GEOPROPERTY.key ->
+                PROPERTY.key,  GEOPROPERTY.key ->
                     if (it.keys == setOf(NGSILD_VALUE_TERM) && !isMultiInstanceAttribute)
                         it[NGSILD_VALUE_TERM]!!
                     else it

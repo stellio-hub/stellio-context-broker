@@ -11,6 +11,15 @@ interface EntityChangesInjectionSource {
 
         private const val APIARY_ID = "urn:ngsi-ld:Apiary:XYZ01"
 
+        private val deletedEntityPayload = """
+            [{
+               "id": "$APIARY_ID",
+               "type": "Apiary",
+               "deletedAt": "2025-08-15T00:00:00.000Z",
+               "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+            }]
+        """
+
         private val entityWithSingleProperty = Arguments.arguments(
             """
             [{
@@ -151,12 +160,76 @@ interface EntityChangesInjectionSource {
             """
         )
 
+        private val entityWithListProperty = Arguments.arguments(
+            deletedEntityPayload,
+            """
+            {
+               "id": "$APIARY_ID",
+               "type": "Apiary",
+               "name": {
+                  "type": "ListProperty",
+                  "valueList": ["first", "second"]
+               },
+               "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+            }
+            """,
+            """
+            {
+               "id": "$APIARY_ID",
+               "type": "Apiary",
+               "deletedAt": "2025-08-15T00:00:00.000Z",
+               "name": {
+                  "type": "ListProperty",
+                  "previousValueList": ["first", "second"],
+                  "valueList": ["urn:ngsi-ld:null"]
+               },
+               "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+            }
+            """
+        )
+
+        private val entityWithListRelationship = Arguments.arguments(
+            deletedEntityPayload,
+            """
+            {
+               "id": "$APIARY_ID",
+               "type": "Apiary",
+               "name": {
+                  "type": "ListRelationship",
+                  "objectList": [
+                     { "object": "urn:ngsi-ld:Entity:01" },
+                     { "object": "urn:ngsi-ld:Entity:02" }
+                  ]
+               },
+               "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+            }
+            """,
+            """
+            {
+               "id": "$APIARY_ID",
+               "type": "Apiary",
+               "deletedAt": "2025-08-15T00:00:00.000Z",
+               "name": {
+                  "type": "ListRelationship",
+                  "previousObjectList": [
+                     { "object": "urn:ngsi-ld:Entity:01" },
+                     { "object": "urn:ngsi-ld:Entity:02" }
+                  ],
+                  "objectList": ["urn:ngsi-ld:null"]
+               },
+               "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+            }
+            """
+        )
+
         @JvmStatic
         fun showChangesDataProvider(): Stream<Arguments> {
             return Stream.of(
                 entityWithSingleProperty,
                 entityWithMultiInstanceProperty,
-                entityWithManyAttributes
+                entityWithManyAttributes,
+                entityWithListProperty,
+                entityWithListRelationship
             )
         }
     }

@@ -21,8 +21,14 @@ import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LISTS
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST_TERM
 import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LISTS
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM
+import com.egm.stellio.shared.model.NGSILD_OBJECTS_LISTS_TERM
 import com.egm.stellio.shared.model.NGSILD_PREFIX
+import com.egm.stellio.shared.model.NGSILD_VALUE_LISTS_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SUB
@@ -304,12 +310,73 @@ object TemporalEntityBuilder {
      * (even if there is only one element and if it is kind of overwriting of normal JSON-LD compaction).
      */
     fun CompactedEntity.wrapSingleValuesToList(temporalRepresentation: TemporalRepresentation): CompactedEntity =
-        if (temporalRepresentation == TemporalRepresentation.NORMALIZED) {
-            this.mapValues { (_, value) ->
-                if (value is Map<*, *>) listOf(value)
-                else value
+        when (temporalRepresentation) {
+            TemporalRepresentation.NORMALIZED -> {
+                this.mapValues { (_, value) ->
+                    if (value is Map<*, *>) listOf(value)
+                    else value
+                }
             }
-        } else this
+            TemporalRepresentation.TEMPORAL_VALUES -> normalizeListTemporalValues()
+            else -> this
+        }
+
+    private fun CompactedEntity.normalizeListTemporalValues(): CompactedEntity =
+        mapValues { (_, value) ->
+            when (value) {
+                is Map<*, *> -> normalizeListTemporalAttribute(value as Map<String, Any>)
+                is List<*> -> value.map { instance ->
+                    if (instance is Map<*, *>) normalizeListTemporalAttribute(instance as Map<String, Any>)
+                    else instance
+                }
+                else -> value
+            }
+        }
+
+    private fun normalizeListTemporalAttribute(attribute: Map<String, Any>): Map<String, Any> =
+        attribute.entries.associate { (key, value) ->
+            when {
+                key == NGSILD_VALUE_LISTS_TERM || key.represents(NGSILD_LISTPROPERTY_VALUE_LISTS) ->
+                    NGSILD_VALUE_LISTS_TERM to normalizeListContainer(
+                        value,
+                        NGSILD_LISTPROPERTY_VALUE_LIST,
+                        NGSILD_LISTPROPERTY_VALUE_LIST_TERM
+                    )
+                key == NGSILD_OBJECTS_LISTS_TERM || key.represents(NGSILD_LISTRELATIONSHIP_OBJECT_LISTS) ->
+                    NGSILD_OBJECTS_LISTS_TERM to normalizeListContainer(
+                        value,
+                        NGSILD_LISTRELATIONSHIP_OBJECT_LIST,
+                        NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM
+                    )
+                else -> key to value
+            }
+        }
+
+    private fun normalizeListContainer(value: Any, innerIri: String, innerTerm: String): Any =
+        when (value) {
+            is List<*> -> value.map { item ->
+                if (item != null) normalizeListContainer(item, innerIri, innerTerm) else item
+            }
+            is Map<*, *> -> {
+                val mapValue = value as Map<String, Any>
+                if (mapValue.keys == setOf(JSONLD_LIST_KW)) {
+                    normalizeListContainer(mapValue.getValue(JSONLD_LIST_KW), innerIri, innerTerm)
+                } else {
+                    mapValue.entries.associate { (key, item) ->
+                        if (key.represents(innerIri)) {
+                            val normalizedItem = normalizeListContainer(item, innerIri, innerTerm)
+                            innerTerm to if (normalizedItem is List<*>) normalizedItem else listOf(normalizedItem)
+                        } else {
+                            key to normalizeListContainer(item, innerIri, innerTerm)
+                        }
+                    }
+                }
+            }
+            else -> value
+        }
+
+    private fun String.represents(iri: String): Boolean =
+        this == iri || substringAfterLast(':') == iri.substringAfterLast('/')
 
     fun List<CompactedEntity>.wrapSingleValuesToList(
         temporalRepresentation: TemporalRepresentation

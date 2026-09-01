@@ -344,6 +344,7 @@ object ErrorMessages {
 
     object Scope {
         const val SCOPE_DOES_NOT_EXIST_MESSAGE = "Scope does not exist and operation does not allow creating it"
+        const val SCOPE_NOT_A_TARGET_ATTRIBUTE_MESSAGE = "scope cannot be the target attribute of this operation"
         fun unrecognizedOperationTypeMessage(operationType: String) = "Unrecognized operation type: $operationType"
     }
 

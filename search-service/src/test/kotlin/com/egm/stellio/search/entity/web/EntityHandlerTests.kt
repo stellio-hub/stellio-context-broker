@@ -2385,7 +2385,7 @@ class EntityHandlerTests {
 
     @Test
     @SuppressWarnings("MaxLineLength")
-    fun `entity attributes update should return a 503 if JSON-LD context is not correct`() {
+    fun `entity attributes update should return a 504 if JSON-LD context is not correct`() {
         val payload =
             """
             {
@@ -2402,7 +2402,7 @@ class EntityHandlerTests {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(payload)
             .exchange()
-            .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
+            .expectStatus().isEqualTo(HttpStatus.GATEWAY_TIMEOUT)
             .expectBody().json(
                 """
                 {

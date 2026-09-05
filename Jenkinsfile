@@ -4,7 +4,7 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '10',daysToKeepStr: '30'))
     }
     tools {
-        jdk 'JDK 21'
+        jdk 'JDK 25'
     }
     environment {
         EGM_CI_DH = credentials('egm-ci-dh')

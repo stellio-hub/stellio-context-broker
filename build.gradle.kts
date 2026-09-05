@@ -19,10 +19,10 @@ plugins {
     `kotlin-dsl`
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "4.0.8" apply false
+    id("org.springframework.boot") version "4.1.1" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
-    kotlin("jvm") version "2.3.10" apply false
-    kotlin("plugin.spring") version "2.3.10" apply false
+    kotlin("jvm") version "2.3.21" apply false
+    kotlin("plugin.spring") version "2.3.21" apply false
     id("com.google.cloud.tools.jib") version "3.5.4" apply false
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
     id("org.sonarqube") version "7.3.1.8318"
@@ -35,13 +35,13 @@ subprojects {
         maven { url = uri("https://jitpack.io") }
     }
 
-    apply(plugin = "io.spring.dependency-management")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.kotlin.plugin.spring")
+    apply(plugin = "io.spring.dependency-management")
     apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "jacoco")
 
-    java.sourceCompatibility = JavaVersion.VERSION_21
+    java.sourceCompatibility = JavaVersion.VERSION_25
 
     the<DependencyManagementExtension>().apply {
         imports {
@@ -60,7 +60,7 @@ subprojects {
         implementation("org.springframework.boot:spring-boot-starter-validation")
 
         implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
-        implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.25.0-alpha")
+        implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.30.0-alpha")
 
         implementation("org.springframework.boot:spring-boot-starter-kafka")
 
@@ -99,10 +99,11 @@ subprojects {
                 "-Xconsistent-data-class-copy-visibility",
                 "-Xannotation-default-target=param-property"
             )
-            apiVersion.set(KotlinVersion.KOTLIN_2_2)
-            jvmTarget.set(JvmTarget.JVM_21)
+            languageVersion.set(KotlinVersion.KOTLIN_2_3)
+            apiVersion.set(KotlinVersion.KOTLIN_2_3)
+            jvmTarget.set(JvmTarget.JVM_25)
         }
-        jvmToolchain(21)
+        jvmToolchain(25)
     }
     tasks.withType<Test> {
         environment("SPRING_PROFILES_ACTIVE", "test")
@@ -127,6 +128,8 @@ subprojects {
         buildUponDefaultConfig = true
         baseline.set(file("$projectDir/config/detekt/baseline.xml"))
         source("src/main/kotlin", "src/test/kotlin", "src/testFixtures/kotlin")
+        // until detekt 2.0.0 is released (with Java 25 compatibility), stick to Java 21 
+        jvmTarget = "21"
 
         reports {
             xml.required.set(true)
@@ -138,11 +141,13 @@ subprojects {
         config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
         buildUponDefaultConfig.set(true)
         baseline.set(file("$projectDir/config/detekt/baseline.xml"))
+        // until detekt 2.0.0 is released (with Java 25 compatibility), stick to Java 21
+        jvmTarget = "21"
     }
 
     // see https://docs.gradle.org/current/userguide/jacoco_plugin.html for configuration instructions
     jacoco {
-        toolVersion = "0.8.9"
+        toolVersion = "0.8.13"
     }
     tasks.test {
         finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
@@ -159,7 +164,7 @@ subprojects {
         notCompatibleWithConfigurationCache("Jib does not support configuration cache")
     }
 
-    project.ext.set("jibFromImage", "eclipse-temurin:21-jre-jammy")
+    project.ext.set("jibFromImage", "eclipse-temurin:25-jre-noble")
     project.ext.set(
         "jibFromPlatforms",
         listOf(
@@ -189,7 +194,7 @@ subprojects {
                     NGSI-LD is an Open API and data model specification for context management published by ETSI.
                 """.trimIndent(),
             "org.opencontainers.image.source" to "https://github.com/stellio-hub/stellio-context-broker",
-            "com.java.version" to "${JavaVersion.VERSION_21}"
+            "com.java.version" to "${JavaVersion.VERSION_25}"
         )
     )
 }
@@ -200,7 +205,6 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven { url = uri("https://repo.spring.io/milestone") }
     }
 
     sonarqube {

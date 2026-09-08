@@ -41,6 +41,7 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.attributeOrInstanceNotFoundMessage
+import com.egm.stellio.shared.util.escapeSingleQuotes
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
@@ -265,9 +266,10 @@ class AttributeInstanceService(
         // if querying temporal entities, timeAt is mandatory and will be used if origin is null
         if (aggrPeriodDuration != WHOLE_TIME_RANGE_DURATION) {
             val computedOrigin = origin ?: temporalQuery.timeAt
+            val escapedAggrPeriodDuration = aggrPeriodDuration.escapeSingleQuotes()
             """
                 SELECT temporal_entity_attribute,
-                    public.time_bucket('$aggrPeriodDuration', time, '${searchProperties.timezoneForTimeBuckets}', TIMESTAMPTZ '${computedOrigin!!}') as start,
+                    public.time_bucket('$escapedAggrPeriodDuration', time, '${searchProperties.timezoneForTimeBuckets}', TIMESTAMPTZ '${computedOrigin!!}') as start,
                     $allAggregates
             """.trimIndent()
         } else

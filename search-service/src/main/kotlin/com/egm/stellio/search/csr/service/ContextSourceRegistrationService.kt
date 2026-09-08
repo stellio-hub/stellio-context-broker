@@ -32,6 +32,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Csr.csrAlreadyExistsMessage
 import com.egm.stellio.shared.util.ErrorMessages.Csr.csrNotFoundMessage
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildTypeQuery
+import com.egm.stellio.shared.util.escapeSingleQuotes
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toSqlArray
@@ -299,18 +300,22 @@ class ContextSourceRegistrationService(
         private val validationRegex = "($operationRegex\\|?)+\$".toRegex()
 
         private fun buildWhereStatement(csrFilters: CSRFilters): String {
-            val idFilter = if (csrFilters.ids.isNotEmpty())
+            val escapedIds = csrFilters.ids.map { it.toString().escapeSingleQuotes() }
+            val idFilter = if (escapedIds.isNotEmpty()) {
+                val idsSqlList = escapedIds.joinToString(",", "(", ")") { "'$it'" }
                 """
             (
                 entity_info.id is null OR
-                entity_info.id in ('${csrFilters.ids.joinToString("', '")}')
+                entity_info.id in $idsSqlList
             ) AND
             (
                 entity_info."idPattern" is null OR 
-                ${csrFilters.ids.joinToString(" OR ") { "'$it' ~ entity_info.\"idPattern\"" }}
+                ${escapedIds.joinToString(" OR ") {
+                    "'$it' ~ entity_info.\"idPattern\""
+                }}
             )
                 """.trimIndent()
-            else null
+            } else null
             val typeFilter = buildTypeQuery(csrFilters.typeSelection, columnName = "type")
                 ?.let { typeQuery ->
                     """
@@ -327,7 +332,7 @@ class ContextSourceRegistrationService(
                 """
                 (
                     entity_info.id is null OR
-                    entity_info.id ~ ('${csrFilters.idPattern}')
+                    entity_info.id ~ ('${csrFilters.idPattern.escapeSingleQuotes()}')
                 )
                 """.trimIndent()
             else null

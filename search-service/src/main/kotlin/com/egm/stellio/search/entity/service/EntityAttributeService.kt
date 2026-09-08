@@ -81,6 +81,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.toSqlList
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
 import org.springframework.r2dbc.core.DatabaseClient
@@ -527,26 +528,18 @@ class EntityAttributeService(
     ): String {
         val pickAttributes =
             if (pick.isNotEmpty())
-                pick.joinToString(
-                    separator = ",",
-                    prefix = "attribute_name in (",
-                    postfix = ")"
-                ) { "'$it'" }
+                "attribute_name in ${pick.toSqlList()}"
             else null
         val omitAttributes =
             if (omit.isNotEmpty())
-                omit.joinToString(
-                    separator = ",",
-                    prefix = "attribute_name not in (",
-                    postfix = ")"
-                ) { "'$it'" }
+                "attribute_name not in ${omit.toSqlList()}"
             else null
 
         val datasetIdFilter =
             if (datasetIds.isNotEmpty()) {
-                val datasetIdsList = datasetIds.joinToString(",") { "'$it'" }
-                "((dataset_id IS NOT NULL AND dataset_id in ($datasetIdsList)) " +
-                    "OR (dataset_id IS NULL AND '$JSONLD_NONE_KW' in ($datasetIdsList)))"
+                val datasetIdsList = datasetIds.toSqlList()
+                "((dataset_id IS NOT NULL AND dataset_id in $datasetIdsList) " +
+                    "OR (dataset_id IS NULL AND '$JSONLD_NONE_KW' in $datasetIdsList))"
             } else null
 
         val filters = listOfNotNull(pickAttributes, omitAttributes, datasetIdFilter)

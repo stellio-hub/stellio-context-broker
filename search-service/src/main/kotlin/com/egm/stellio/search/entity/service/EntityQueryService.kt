@@ -23,7 +23,9 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
+import com.egm.stellio.shared.util.escapeSingleQuotes
 import com.egm.stellio.shared.util.toSqlArray
+import com.egm.stellio.shared.util.toSqlList
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import java.net.URI
@@ -180,24 +182,16 @@ class EntityQueryService(
     ): String {
         val formattedIds =
             if (entitiesQuery.ids.isNotEmpty())
-                entitiesQuery.ids.joinToString(
-                    separator = ",",
-                    prefix = "entity_payload.entity_id in(",
-                    postfix = ")"
-                ) { "'$it'" }
+                "entity_payload.entity_id in ${entitiesQuery.ids.toSqlList()}"
             else null
         val formattedIdPattern =
             if (!entitiesQuery.idPattern.isNullOrEmpty())
-                "entity_payload.entity_id ~ '${entitiesQuery.idPattern}'"
+                "entity_payload.entity_id ~ '${entitiesQuery.idPattern.escapeSingleQuotes()}'"
             else null
         val formattedType = buildTypeQuery(entitiesQuery.typeSelection)
         val formattedAttrs =
             if (entitiesQuery.attrs.isNotEmpty())
-                entitiesQuery.attrs.joinToString(
-                    separator = ",",
-                    prefix = "attribute_name in (",
-                    postfix = ")"
-                ) { "'$it'" }
+                "attribute_name in ${entitiesQuery.attrs.toSqlList()}"
             else null
 
         val queryFilter =
@@ -216,20 +210,18 @@ class EntityQueryService(
         entitiesQuery: EntitiesQueryFromPost,
         accessRightFilter: String?
     ): String {
+        val formattedAttrs =
+            if (entitiesQuery.attrs.isNotEmpty())
+                "attribute_name in ${entitiesQuery.attrs.toSqlList()}"
+            else null
         val entitySelectorFilter = entitiesQuery.entitySelectors?.map { entitySelector ->
             val formattedId =
-                entitySelector.id?.let { "entity_payload.entity_id = '${entitySelector.id}'" }
+                entitySelector.id?.toString()?.escapeSingleQuotes()
+                    ?.let { "entity_payload.entity_id = '$it'" }
             val formattedIdPattern =
-                entitySelector.idPattern?.let { "entity_payload.entity_id ~ '${entitySelector.idPattern}'" }
+                entitySelector.idPattern?.escapeSingleQuotes()
+                    ?.let { "entity_payload.entity_id ~ '$it'" }
             val formattedType = buildTypeQuery(entitySelector.typeSelection)
-            val formattedAttrs =
-                if (entitiesQuery.attrs.isNotEmpty())
-                    entitiesQuery.attrs.joinToString(
-                        separator = ",",
-                        prefix = "attribute_name in (",
-                        postfix = ")"
-                    ) { "'$it'" }
-                else null
 
             listOfNotNull(
                 formattedId,

@@ -19,6 +19,7 @@ import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.decode
+import com.egm.stellio.shared.util.escapeSingleQuotes
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.model.Endpoint
@@ -345,7 +346,8 @@ class SubscriptionService(
                 OR status = 'OK')
             ${
                 if (updatedAttribute != null)
-                    "AND (string_to_array(watched_attributes, ',') && '{ ${updatedAttribute.first} }'" +
+                    "AND (string_to_array(watched_attributes, ',') && " +
+                        "'{ ${updatedAttribute.first.escapeSingleQuotes()} }'" +
                         "  OR watched_attributes IS NULL)"
                 else ""
             }
@@ -391,10 +393,13 @@ class SubscriptionService(
         if (entities.isNullOrEmpty()) null
         else {
             val entityTypes = expandedEntity.types
+            val escapedEntityId = expandedEntity.id.toString().escapeSingleQuotes()
             entities.joinToString(" OR ") {
                 val typeSelectionQuery = buildTypeQuery(it.typeSelection, target = entityTypes)
-                val idQuery = it.id?.let { " '${expandedEntity.id}' = '$it' " }
-                val idPatternQuery = it.idPattern?.let { " '${expandedEntity.id}' ~ '$it' " }
+                val idQuery = it.id?.toString()?.escapeSingleQuotes()
+                    ?.let { " '$escapedEntityId' = '$it' " }
+                val idPatternQuery = it.idPattern?.escapeSingleQuotes()
+                    ?.let { " '$escapedEntityId' ~ '$it' " }
                 listOfNotNull(typeSelectionQuery, idQuery, idPatternQuery)
                     .joinToString(separator = " AND ")
                     .ifEmpty { "true" }

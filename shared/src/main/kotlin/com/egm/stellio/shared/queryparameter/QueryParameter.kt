@@ -52,6 +52,11 @@ enum class QueryParameter(
     TARGET_SCOPEQ("targetScopeQ"),
     DETAILS_PICK("detailsPick"),
 
+    // service executions
+    SERVICE_ID("serviceId"),
+    ENTITY_ID("entityId"),
+    EXECUTION_STATUS("executionStatus"),
+
     // pagination
     COUNT("count"),
     OFFSET("offset"),

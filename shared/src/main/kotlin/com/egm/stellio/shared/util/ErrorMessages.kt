@@ -347,6 +347,8 @@ object ErrorMessages {
         fun invalidFormatValueMessage(format: String) = "'$format' is not a valid value for the format query parameter"
         fun invalidOptionsValueMessage(option: String) =
             "'$option' is not a valid value for the options query parameter"
+        fun invalidExecutionStatusValueMessage(rawStatus: String) =
+            "'$rawStatus' is not a valid value for the executionStatus query parameter"
         fun invalidOrderingDirectionMessage(direction: String) =
             "'$direction' is not a valid ordering direction parameter"
 

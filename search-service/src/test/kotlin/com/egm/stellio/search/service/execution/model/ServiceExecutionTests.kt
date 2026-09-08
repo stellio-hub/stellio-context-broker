@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class ServiceExecutionTests {
+
     @Test
     fun `deserialize should parse a simple service execution`() = runTest {
         val execution = ServiceExecution.deserialize(

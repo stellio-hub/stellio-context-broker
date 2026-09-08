@@ -36,6 +36,7 @@ import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
 import com.egm.stellio.shared.util.containStellioAdmin
+import com.egm.stellio.shared.util.escapeSingleQuotes
 import com.egm.stellio.shared.util.toSqlArray
 import com.egm.stellio.shared.util.toSqlList
 import com.egm.stellio.shared.util.toUri
@@ -165,7 +166,9 @@ class PermissionService(
     suspend fun checkDuplicate(
         permission: Permission
     ): Either<APIException, Unit> {
-        val targetIdIsIncludedFilter = permission.target.id?.let { " target_id = '$it'" } ?: "target_id is null"
+        val targetIdIsIncludedFilter = permission.target.id?.toString()?.escapeSingleQuotes()
+            ?.let { " target_id = '$it'" }
+            ?: "target_id is null"
         val targetTypesAreIncludedFilter =
             permission.target.types?.let { "(target_types is null OR target_types @> ${it.toSqlArray()})" }
                 ?: "target_types is null"
@@ -183,10 +186,11 @@ class PermissionService(
                 FROM permission
                 WHERE action = :action
                 AND $targetIsIncludedFilter
-                AND assignee = '${permission.assignee}'                  
+                AND assignee = :assignee
             """.trimIndent()
         )
             .bind("action", permission.action.value)
+            .bind("assignee", permission.assignee)
             .allToMappedList { toUri(it["id"]) }
             .let {
                 if (it.isNotEmpty()) {
@@ -341,7 +345,7 @@ class PermissionService(
                         types,
                         COALESCE(scopes, ARRAY['@none']) as scopes
                     FROM entity_payload
-                    WHERE entity_id = '$entityId'                
+                    WHERE entity_id = :entity_id
                 )
                 
                 SELECT COUNT(id) as count
@@ -349,7 +353,7 @@ class PermissionService(
                 LEFT JOIN entity ON TRUE
                 WHERE ${buildIsAssigneeFilter(claims)}
                 AND (
-                    target_id = '$entityId'
+                    target_id = :entity_id
                     OR (
                         permission.target_id is null 
                         AND
@@ -361,6 +365,7 @@ class PermissionService(
                 AND action IN(:actions)
             """.trimIndent()
         )
+        .bind("entity_id", entityId)
         .bind("actions", actions.map { it.value })
         .oneToResult { it["count"] as Long >= 1L }
 
@@ -513,7 +518,7 @@ class PermissionService(
         }
 
         val assignerFilter = permissionFilters.assigner?.let { assigner ->
-            "assigner = '$assigner'"
+            "assigner = '${assigner.escapeSingleQuotes()}'"
         }
 
         //  targetTypeFilter also return permission targeting entity with this type

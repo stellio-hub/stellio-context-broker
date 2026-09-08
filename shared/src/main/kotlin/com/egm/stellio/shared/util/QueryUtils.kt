@@ -57,16 +57,17 @@ fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null, column
             matchResult.value.endsWith('#') ->
                 """
                 exists (select * from unnest(#{TARGET}#) as scope
-                where scope similar to '${matchResult.value.replace('#', '%')}')
+                where scope similar to '${matchResult.value.replace('#', '%').escapeSingleQuotes()}')
                 """.trimIndent()
             matchResult.value.contains('+') ->
                 """
                 exists (select * from unnest(#{TARGET}#) as scope
-                where scope similar to '${matchResult.value.replace("+", "[\\w\\d]+")}')
+                where scope similar to '${matchResult.value.replace("+", "[\\w\\d]+").escapeSingleQuotes()}')
                 """.trimIndent()
             else ->
                 """
-                exists (select * from unnest(#{TARGET}#) as scope where scope = '${matchResult.value}')
+                exists (select * from unnest(#{TARGET}#) as scope
+                where scope = '${matchResult.value.escapeSingleQuotes()}')
                 """.trimIndent()
         }
     }

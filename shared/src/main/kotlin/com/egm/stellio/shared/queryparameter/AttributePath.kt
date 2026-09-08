@@ -14,6 +14,8 @@ import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.escapeSingleQuotes
 import java.util.Locale
 
 data class AttributePath(
@@ -130,12 +132,12 @@ data class AttributePath(
     fun buildSqlOrderClause() = """
         jsonb_path_query_array(
             entity_payload.payload,
-            '${buildJsonBPropertyPath()}'
+            '${buildJsonBPropertyPath().escapeSingleQuotes()}'
         )
          ||
         jsonb_path_query_array(
             entity_payload.payload,
-            '${buildJsonBRelationshipPath()}'
+            '${buildJsonBRelationshipPath().escapeSingleQuotes()}'
         )
     """.trimIndent()
 
@@ -148,5 +150,5 @@ data class AttributePath(
         )
 
     private fun List<ExpandedTerm>.toQuotedJsonPath(): String =
-        this.joinToString(".") { "\"$it\"" }
+        this.joinToString(".") { serializeObject(it) }
 }

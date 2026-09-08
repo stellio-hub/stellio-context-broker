@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_SERVICE_EXECUTION_TERM
 import com.egm.stellio.shared.model.toAPIException
@@ -13,6 +14,7 @@ import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidUriMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.memberIsInvalidMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidExecutionStatusValueMessage
 import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.SERVICE_EXECUTION_RESERVED_MEMBERS_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.serviceExecutionFailedToParseMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -125,5 +127,18 @@ enum class ServiceExecutionStatus {
     FAILURE,
 
     @JsonProperty("cancelled")
-    CANCELLED
+    CANCELLED;
+
+    companion object {
+        fun fromString(rawStatus: String): Either<APIException, ServiceExecutionStatus> =
+            entries.find { it.name.equals(rawStatus, ignoreCase = true) }?.right()
+                ?: InvalidRequestException(invalidExecutionStatusValueMessage(rawStatus)).left()
+    }
 }
+
+fun List<ServiceExecution>.serialize(
+    contexts: List<String>,
+    mediaType: MediaType = JSON_LD_MEDIA_TYPE,
+    includeSysAttrs: Boolean = false
+): String =
+    map { it.serialize(contexts, mediaType, includeSysAttrs) }.toString()

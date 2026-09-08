@@ -6,6 +6,8 @@ import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.service.execution.model.ServiceExecution.Companion.deserialize
+import com.egm.stellio.search.service.execution.model.ServiceExecutionFilters
+import com.egm.stellio.search.service.execution.model.serialize
 import com.egm.stellio.search.service.execution.service.ServiceExecutionLauncher
 import com.egm.stellio.search.service.execution.service.ServiceExecutionService
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -13,6 +15,7 @@ import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.queryparameter.AllowedParameters
 import com.egm.stellio.shared.queryparameter.OptionsValue
+import com.egm.stellio.shared.queryparameter.PaginationQuery.Companion.parsePaginationParameters
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.SERVICE_EXECUTION_INVALID_OPTIONS_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
@@ -20,6 +23,7 @@ import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.buildContextLinkHeader
+import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
@@ -81,6 +85,50 @@ class ServiceExecutionHandler(
                     header(HttpHeaders.LINK, buildContextLinkHeader(contexts.first()))
             }
             .body(serviceExecutionWithAnswer.serialize(contexts, mediaType))
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun query(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @AllowedParameters(
+            implemented = [
+                QP.ID, QP.SERVICE_ID, QP.ENTITY_ID, QP.EXECUTION_STATUS,
+                QP.OPTIONS, QP.COUNT, QP.OFFSET, QP.LIMIT
+            ]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
+        authorizationService.userIsAdmin().bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
+        val filters = ServiceExecutionFilters.fromQueryParameters(queryParams).bind()
+        val paginationQuery = parsePaginationParameters(
+            queryParams,
+            applicationProperties.pagination.limitDefault,
+            applicationProperties.pagination.limitMax
+        ).bind()
+        val includeSysAttrs = queryParams.getOrDefault(QP.OPTIONS.key, emptyList())
+            .contains(OptionsValue.SYS_ATTRS.value)
+
+        val serviceExecutions = serviceExecutionService.getServiceExecutions(
+            filters,
+            paginationQuery.limit,
+            paginationQuery.offset
+        ).bind().serialize(contexts, mediaType, includeSysAttrs)
+        val serviceExecutionsCount = serviceExecutionService.getServiceExecutionsCount(filters).bind()
+
+        buildQueryResponse(
+            serviceExecutions,
+            serviceExecutionsCount,
+            "/ngsi-ld/v1/services",
+            paginationQuery,
+            queryParams,
+            mediaType,
+            contexts
+        )
     }.fold(
         { it.toErrorResponse() },
         { it }

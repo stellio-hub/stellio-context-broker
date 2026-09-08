@@ -5,6 +5,7 @@ import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.service.execution.model.ServiceExecution
+import com.egm.stellio.search.service.execution.model.ServiceExecutionFilters
 import com.egm.stellio.search.service.execution.model.ServiceExecutionStatus
 import com.egm.stellio.search.service.execution.service.ServiceExecutionLauncher
 import com.egm.stellio.search.service.execution.service.ServiceExecutionService
@@ -15,7 +16,9 @@ import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidExecutionStatusValueMessage
 import com.egm.stellio.shared.util.MOCK_USER_SUB
+import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -163,6 +166,57 @@ class ServiceExecutionHandlerTests {
             .expectStatus().isBadRequest
 
         coVerify(exactly = 1) { serviceExecutionLauncher.invokeService(any()) }
+        coVerify(exactly = 1) { serviceExecutionLauncher.invokeService(any()) }
+    }
+
+    @Test
+    fun `query should filter and paginate service executions`() = runTest {
+        coEvery {
+            serviceExecutionService.getServiceExecutions(any(), any(), any())
+        } returns listOf(execution).right()
+        coEvery {
+            serviceExecutionService.getServiceExecutionsCount(any())
+        } returns 1.right()
+
+        webClient.get()
+            .uri(
+                "$resourceUri?id=$executionId&serviceId=$serviceId&entityId=${execution.entityId}" +
+                    "&executionStatus=success&count=true&limit=10&offset=0"
+            )
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "1")
+            .expectBody()
+            .jsonPath("$[0].id").isEqualTo(executionId.toString())
+            .jsonPath("$[0].executionStatus").isEqualTo("success")
+            .jsonPath("$[0].createdAt").doesNotExist()
+
+        coVerify {
+            serviceExecutionService.getServiceExecutions(
+                match {
+                    it == ServiceExecutionFilters(
+                        ids = setOf(executionId),
+                        serviceIds = setOf(serviceId),
+                        entityIds = setOf(execution.entityId),
+                        executionStatuses = setOf(ServiceExecutionStatus.SUCCESS)
+                    )
+                },
+                10,
+                0
+            )
+        }
+    }
+
+    @Test
+    fun `query should reject an invalid execution status`() = runTest {
+        val rawStatus = "invalid"
+
+        webClient.get()
+            .uri("$resourceUri?executionStatus=$rawStatus")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath("$.title").isEqualTo(invalidExecutionStatusValueMessage(rawStatus))
     }
 
     @Test

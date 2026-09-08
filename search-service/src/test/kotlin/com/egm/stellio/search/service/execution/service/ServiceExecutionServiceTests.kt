@@ -1,6 +1,7 @@
 package com.egm.stellio.search.service.execution.service
 
 import com.egm.stellio.search.service.execution.model.ServiceExecution
+import com.egm.stellio.search.service.execution.model.ServiceExecutionFilters
 import com.egm.stellio.search.service.execution.model.ServiceExecutionStatus
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -116,6 +117,51 @@ class ServiceExecutionServiceTests : WithTimescaleContainer, WithKafkaContainer(
 
         serviceExecutionService.getById(execution.id).shouldSucceedWith {
             assertEquals(execution.entityId, it.entityId)
+        }
+    }
+
+    @Test
+    fun `query should filter, paginate and count service executions`() = runTest {
+        val successfulExecution = buildExecution("successful").copy(
+            executionStatus = ServiceExecutionStatus.SUCCESS
+        )
+        val pendingExecution = buildExecution("pending")
+        serviceExecutionService.create(successfulExecution).shouldSucceed()
+        serviceExecutionService.create(pendingExecution).shouldSucceed()
+
+        val filters = ServiceExecutionFilters(
+            ids = setOf(successfulExecution.id),
+            serviceIds = setOf(successfulExecution.serviceId),
+            entityIds = setOf(successfulExecution.entityId),
+            executionStatuses = setOf(ServiceExecutionStatus.SUCCESS)
+        )
+
+        serviceExecutionService.getServiceExecutions(filters).shouldSucceedWith {
+            assertEquals(listOf(successfulExecution.id), it.map(ServiceExecution::id))
+        }
+        serviceExecutionService.getServiceExecutionsCount(filters).shouldSucceedWith {
+            assertEquals(1, it)
+        }
+        serviceExecutionService.getServiceExecutions(limit = 1, offset = 1).shouldSucceedWith {
+            assertEquals(1, it.size)
+        }
+        serviceExecutionService.getServiceExecutionsCount().shouldSucceedWith {
+            assertEquals(2, it)
+        }
+    }
+
+    @Test
+    fun `getServiceExecutions should escape filter values`() = runTest {
+        serviceExecutionService.create(buildExecution("first")).shouldSucceed()
+        serviceExecutionService.create(buildExecution("second")).shouldSucceed()
+        val injectionShapedId = "urn:ngsi-ld:ServiceExecution:x')OR('1'='1".toUri()
+        val filters = ServiceExecutionFilters(ids = setOf(injectionShapedId))
+
+        serviceExecutionService.getServiceExecutions(filters).shouldSucceedWith {
+            assertEquals(emptyList<ServiceExecution>(), it)
+        }
+        serviceExecutionService.getServiceExecutionsCount(filters).shouldSucceedWith {
+            assertEquals(0, it)
         }
     }
 

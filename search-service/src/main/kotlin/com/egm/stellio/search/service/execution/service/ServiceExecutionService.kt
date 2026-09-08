@@ -6,14 +6,17 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
+import com.egm.stellio.search.common.util.allToMappedList
 import com.egm.stellio.search.common.util.execute
 import com.egm.stellio.search.common.util.oneToResult
 import com.egm.stellio.search.common.util.toBoolean
+import com.egm.stellio.search.common.util.toInt
 import com.egm.stellio.search.common.util.toJsonString
 import com.egm.stellio.search.common.util.toUri
 import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.service.execution.model.ServiceExecution
 import com.egm.stellio.search.service.execution.model.ServiceExecution.Companion.EXECUTION_RESULT_MEMBERS
+import com.egm.stellio.search.service.execution.model.ServiceExecutionFilters
 import com.egm.stellio.search.service.execution.model.ServiceExecutionStatus
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AlreadyExistsException
@@ -24,7 +27,9 @@ import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.SERVICE_EXECUTION_INVALID_UPDATE_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.serviceExecutionAlreadyExistsMessage
 import com.egm.stellio.shared.util.ErrorMessages.ServiceExecution.serviceExecutionNotFoundMessage
+import com.egm.stellio.shared.util.escapeSingleQuotes
 import com.egm.stellio.shared.util.getSubFromSecurityContext
+import com.egm.stellio.shared.util.toSqlList
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
@@ -147,6 +152,40 @@ class ServiceExecutionService(
             .bind()
     }
 
+    suspend fun getServiceExecutions(
+        filters: ServiceExecutionFilters = ServiceExecutionFilters(),
+        limit: Int = Int.MAX_VALUE,
+        offset: Int = 0,
+    ): Either<APIException, List<ServiceExecution>> = either {
+        val whereStatement = buildWhereStatement(filters)
+        databaseClient.sql(
+            """
+            SELECT id, service_id, entity_id, entity_type, input, service_name,
+                execution_status, progress, output, response_status_code, created_at, modified_at
+            FROM service_execution
+            WHERE $whereStatement
+            ORDER BY created_at
+            LIMIT :limit
+            OFFSET :offset
+            """.trimIndent()
+        )
+            .bind("limit", limit)
+            .bind("offset", offset)
+            .allToMappedList { rowToServiceExecution(it) }
+    }
+
+    suspend fun getServiceExecutionsCount(
+        filters: ServiceExecutionFilters = ServiceExecutionFilters()
+    ): Either<APIException, Int> =
+        databaseClient.sql(
+            """
+            SELECT count(*)
+            FROM service_execution
+            WHERE ${buildWhereStatement(filters)}
+            """.trimIndent()
+        )
+            .oneToResult { toInt(it["count"]) }
+
     suspend fun delete(id: URI): Either<APIException, Unit> = either {
         checkExistence(id).bind()
         r2dbcEntityTemplate.delete<ServiceExecution>()
@@ -174,5 +213,22 @@ class ServiceExecutionService(
             createdAt = toZonedDateTime(row["created_at"]),
             modifiedAt = toZonedDateTime(row["modified_at"])
         )
+    }
+
+    companion object {
+        private fun buildWhereStatement(filters: ServiceExecutionFilters): String =
+            listOfNotNull(
+                filters.ids?.takeIf { it.isNotEmpty() }?.let { "id IN ${it.toEscapedSqlList()}" },
+                filters.serviceIds?.takeIf { it.isNotEmpty() }
+                    ?.let { "service_id IN ${it.toEscapedSqlList()}" },
+                filters.entityIds?.takeIf { it.isNotEmpty() }
+                    ?.let { "entity_id IN ${it.toEscapedSqlList()}" },
+                filters.executionStatuses?.takeIf { it.isNotEmpty() }
+                    ?.map { it.name.lowercase() }
+                    ?.let { "execution_status IN ${it.toEscapedSqlList()}" }
+            ).ifEmpty { listOf("true") }.joinToString(" AND ")
+
+        private fun <T> Iterable<T>.toEscapedSqlList(): String =
+            map { it.toString().escapeSingleQuotes() }.toSqlList()
     }
 }

@@ -1,8 +1,5 @@
 package com.egm.stellio.subscription.listener
 
-import arrow.core.Either
-import arrow.core.raise.either
-import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.AttributeCreateEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
@@ -18,14 +15,13 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeExpandedPayload
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.service.NotificationService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.reactor.mono
+import kotlinx.coroutines.reactor.ReactorContext
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
-import reactor.core.Disposable
+import reactor.util.context.Context
 import java.net.URI
 
 @Component
@@ -34,13 +30,11 @@ class EntityEventListenerService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    private val coroutineScope = CoroutineScope(Dispatchers.Default)
-
+    // block the Kafka consumer poll thread until the event is fully processed, so only ack
+    // (and poll for more records) once downstream processing has actually kept up (see issue #1866)
     @KafkaListener(topics = ["cim.entity._CatchAll"], groupId = "context_subscription")
-    fun processMessage(content: String) {
-        coroutineScope.launch {
-            dispatchEntityEvent(content)
-        }
+    fun processMessage(content: String) = runBlocking {
+        dispatchEntityEvent(content)
     }
 
     internal suspend fun dispatchEntityEvent(content: String) {
@@ -101,13 +95,13 @@ class EntityEventListenerService(
         previousPayload: String? = null,
         updatedEntity: String,
         notificationTrigger: NotificationTrigger
-    ): Either<APIException, Disposable> = either {
+    ) {
         updatedAttribute?.let {
             logger.debug("Attribute considered in the event: {}", updatedAttribute)
         }
         val expandedEntity = ExpandedEntity(updatedEntity.deserializeAsMap())
 
-        mono {
+        val notificationResult = withContext(ReactorContext(Context.of(NGSILD_TENANT_HEADER, tenantName))) {
             notificationService.notifyMatchingSubscribers(
                 tenantName,
                 updatedAttribute,
@@ -115,18 +109,16 @@ class EntityEventListenerService(
                 expandedEntity,
                 notificationTrigger
             )
-        }.contextWrite {
-            it.put(NGSILD_TENANT_HEADER, tenantName)
-        }.subscribe { notificationResult ->
-            notificationResult.fold({
-                if (it is OperationNotSupportedException)
-                    logger.info(it.message)
-                else
-                    logger.error("Error when trying to notifiy subscribers: {}", it.message, it)
-            }, { results ->
-                val (succeeded, failed) = results.partition { it.third }.let { Pair(it.first.size, it.second.size) }
-                logger.debug("Notified ${succeeded + failed} subscribers (success : $succeeded / failure : $failed)")
-            })
         }
+
+        notificationResult.fold({
+            if (it is OperationNotSupportedException)
+                logger.info(it.message)
+            else
+                logger.error("Error when trying to notifiy subscribers: {}", it.message, it)
+        }, { results ->
+            val (succeeded, failed) = results.partition { it.third }.let { Pair(it.first.size, it.second.size) }
+            logger.debug("Notified ${succeeded + failed} subscribers (success : $succeeded / failure : $failed)")
+        })
     }
 }

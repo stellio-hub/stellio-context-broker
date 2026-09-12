@@ -1,8 +1,12 @@
 package com.egm.stellio.search.scope
 
+import arrow.core.right
+import com.egm.stellio.search.authorization.permission.service.AuthorizationService
 import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.Entity
+import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationType
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
 import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.util.toExpandedAttributeInstance
@@ -17,6 +21,7 @@ import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.getScopes
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.ErrorMessages.Scope.SCOPE_DOES_NOT_EXIST_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -25,14 +30,17 @@ import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.coEvery
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertInstanceOf
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -60,6 +68,9 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
+    @MockkBean
+    private lateinit var authorizationService: AuthorizationService
+
     private val beehiveTestCId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     @AfterEach
@@ -79,7 +90,19 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             Arguments.of(
                 "beehive_with_scope.jsonld",
                 listOf("/B", "/C"),
-                OperationType.REPLACE_ATTRIBUTE,
+                OperationType.MERGE_ENTITY,
+                listOf("/A", "/B", "/C")
+            ),
+            Arguments.of(
+                "beehive_with_scope.jsonld",
+                listOf("/B", "/C"),
+                OperationType.APPEND_ATTRIBUTES_OVERWRITE_ALLOWED,
+                listOf("/B", "/C")
+            ),
+            Arguments.of(
+                "beehive_with_scope.jsonld",
+                listOf("/B", "/C"),
+                OperationType.MERGE_ENTITY_OVERWRITE_ALLOWED,
                 listOf("/B", "/C")
             ),
             Arguments.of(
@@ -104,6 +127,7 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         operationType: OperationType,
         expectedScopes: List<String>?
     ) = runTest {
+        coEvery { authorizationService.createScopesOwnerRights(any()) } returns Unit.right()
         loadSampleData(initialEntity)
             .sampleDataToNgsiLdEntity()
             .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
@@ -122,13 +146,46 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             expandedAttributes[NGSILD_SCOPE_IRI]!!,
             ngsiLdDateTime(),
             operationType
-        ).shouldSucceed()
+        ).shouldSucceedWith {
+            if (expectedScopes != null) {
+                assertInstanceOf<SucceededAttributeOperationResult>(it)
+                assertEquals(expectedScopes, it.newExpandedValue.getScopes())
+            } else {
+                assertInstanceOf<FailedAttributeOperationResult>(it)
+                assertEquals(SCOPE_DOES_NOT_EXIST_MESSAGE, it.errorMessage)
+            }
+        }
 
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(expectedScopes, it.scopes)
                 val scopesInEntity = it.payload.toExpandedAttributeInstance().getScopes()
                 assertEquals(expectedScopes, scopesInEntity)
+            }
+    }
+
+    @Test
+    fun `update should not duplicate a scope value repeated within the same append fragment`() = runTest {
+        coEvery { authorizationService.createScopesOwnerRights(any()) } returns Unit.right()
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+
+        val expandedAttributes = JsonLdUtils.expandAttributes(
+            """{ "scope": ["/B", "/B"] }""",
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        scopeService.update(
+            beehiveTestCId,
+            expandedAttributes[NGSILD_SCOPE_IRI]!!,
+            ngsiLdDateTime(),
+            OperationType.APPEND_ATTRIBUTES
+        ).shouldSucceedWith { assertNotNull(it) }
+
+        entityQueryService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertEquals(listOf("/A", "/B"), it.scopes)
             }
     }
 
@@ -421,18 +478,21 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
-    fun `delete should remove the scope and its history`() = runTest {
+    fun `delete should remove the scope and keep the scope history`() = runTest {
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createScopesOwnerRights(any()) } returns Unit.right()
+
         loadSampleData("beehive_with_scope.jsonld")
             .sampleDataToNgsiLdEntity()
-            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+            .map { entityService.createEntity(it.second, it.first).shouldSucceed() }
 
         scopeService.delete(beehiveTestCId).shouldSucceed()
 
-        scopeService.retrieve(beehiveTestCId)
-            .shouldSucceedWith {
-                assertNull(it.first)
-                assertNull(it.second.toExpandedAttributeInstance().getScopes())
-            }
+        entityQueryService.retrieve(beehiveTestCId).shouldSucceedWith {
+            assertNull(it.payload.toExpandedAttributeInstance().getScopes())
+            assertNull(it.scopes)
+        }
         val scopeHistoryEntries = scopeService.retrieveHistory(
             listOf(beehiveTestCId),
             TemporalEntitiesQueryFromGet(
@@ -440,11 +500,46 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
                     paginationQuery = PaginationQuery(limit = 100, offset = 0),
                     contexts = APIC_COMPOUND_CONTEXTS
                 ),
-                temporalQuery = buildDefaultTestTemporalQuery(),
+                temporalQuery = buildDefaultTestTemporalQuery(
+                    timeproperty = TemporalProperty.CREATED_AT,
+                ),
                 temporalRepresentation = TemporalRepresentation.NORMALIZED,
                 withAudit = false
             )
         ).shouldSucceedAndResult()
-        assertTrue(scopeHistoryEntries.isEmpty())
+        assertThat(scopeHistoryEntries).hasSize(1)
+    }
+
+    @Test
+    fun `permanentlyDelete should remove the scope, and clear its history`() = runTest {
+        coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
+        coEvery { authorizationService.createEntityOwnerRight(any()) } returns Unit.right()
+        coEvery { authorizationService.createScopesOwnerRights(any()) } returns Unit.right()
+
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntity(it.second, it.first).shouldSucceed() }
+
+        scopeService.permanentlyDelete(beehiveTestCId, ngsiLdDateTime()).shouldSucceed()
+
+        entityQueryService.retrieve(beehiveTestCId).shouldSucceedWith {
+            assertNull(it.payload.toExpandedAttributeInstance().getScopes())
+            assertNull(it.scopes)
+        }
+        val scopeHistoryEntries = scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
+                    paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                temporalQuery = buildDefaultTestTemporalQuery(
+                    timeproperty = TemporalProperty.CREATED_AT,
+                ),
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
+            )
+        ).shouldSucceedAndResult()
+        assertThat(scopeHistoryEntries).isEmpty()
     }
 }

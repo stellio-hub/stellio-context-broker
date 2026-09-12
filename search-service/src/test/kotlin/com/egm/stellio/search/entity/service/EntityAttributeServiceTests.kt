@@ -9,7 +9,8 @@ import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationStatus
-import com.egm.stellio.search.entity.model.getSucceededAttributesOperations
+import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
+import com.egm.stellio.search.entity.model.getSucceededOperations
 import com.egm.stellio.search.support.EMPTY_JSON_PAYLOAD
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -17,18 +18,23 @@ import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.NGSILD_CREATED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.model.NGSILD_DELETED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.getMemberValueAsDateTime
 import com.egm.stellio.shared.model.toNgsiLdAttribute
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_MESSAGE
 import com.egm.stellio.shared.util.INCOMING_IRI
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
@@ -387,7 +393,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         val createdAt = ngsiLdDateTime()
         val newProperty = loadSampleData("fragments/beehive_new_incoming_property.json")
         val expandedAttribute = expandAttribute(newProperty, APIC_COMPOUND_CONTEXTS)
-        entityAttributeService.addOrReplaceAttribute(
+        val result = entityAttributeService.addOrReplaceAttribute(
             beehiveTestCId,
             INCOMING_IRI,
             AttributeMetadata(
@@ -402,7 +408,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             createdAt,
             expandedAttribute.second[0],
             true
-        ).shouldSucceed()
+        ).shouldSucceedAndResult()
 
         entityAttributeService.getForEntityAndAttribute(
             beehiveTestCId,
@@ -414,8 +420,69 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             assertJsonPayloadsAreEqual(serializeObject(expandedAttribute.second[0]), it.payload.asString())
             assertTrue(it.createdAt.isBefore(createdAt))
             assertEquals(createdAt, it.modifiedAt)
+            assertSysAttrs(result.newExpandedValue, it.createdAt, it.modifiedAt)
         }
     }
+
+    @Test
+    fun `upsertAttributes should create the attribute when it does not exist yet`() = runTest {
+        coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+
+        val createdAt = ngsiLdDateTime()
+        val expandedAttributes = expandAttributes(
+            loadSampleData("fragments/beehive_mergeAttribute.json"),
+            APIC_COMPOUND_CONTEXTS
+        )
+        val ngsiLdAttribute = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()[0]
+
+        val result = entityAttributeService.upsertAttributes(
+            beehiveTestCId,
+            ngsiLdAttribute,
+            expandedAttributes.toMap(),
+            createdAt
+        ).shouldSucceedAndResult()
+
+        assertThat(result)
+            .isNotNull
+            .extracting("operationStatus").isEqualTo(OperationStatus.CREATED)
+
+        entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_IRI)
+            .shouldSucceedWith { assertEquals(createdAt, it.createdAt) }
+    }
+
+    @Test
+    fun `upsertAttributes should add an observed instance and return no result when the attribute already exists`() =
+        runTest {
+            val rawEntity = loadSampleData()
+            coEvery { attributeInstanceService.create(any()) } returns Unit.right()
+            entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS).shouldSucceed()
+
+            val existingAttribute = entityAttributeService.getForEntityAndAttribute(
+                beehiveTestCId,
+                INCOMING_IRI
+            ).shouldSucceedAndResult()
+
+            coEvery {
+                attributeInstanceService.addObservedAttributeInstance(any(), any(), any())
+            } returns Unit.right()
+
+            val expandedAttributes = expandAttributes(
+                loadSampleData("fragments/beehive_mergeAttribute.json"),
+                APIC_COMPOUND_CONTEXTS
+            )
+            val ngsiLdAttribute = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()[0]
+
+            entityAttributeService.upsertAttributes(
+                beehiveTestCId,
+                ngsiLdAttribute,
+                expandedAttributes.toMap(),
+                ngsiLdDateTime()
+            ).shouldSucceedWith { assertNull(it) }
+
+            coVerify {
+                attributeInstanceService.addObservedAttributeInstance(existingAttribute.id, any(), any())
+            }
+        }
 
     @Test
     fun `mergeAttribute should merge an entity attribute`() = runTest {
@@ -434,7 +501,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         val mergedAt = ngsiLdDateTime()
         val propertyToMerge = loadSampleData("fragments/beehive_mergeAttribute.json")
         val expandedAttribute = expandAttribute(propertyToMerge, APIC_COMPOUND_CONTEXTS)
-        entityAttributeService.mergeAttribute(
+        val result = entityAttributeService.mergeAttribute(
             attribute,
             AttributeMetadata(
                 null,
@@ -448,7 +515,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             mergedAt,
             null,
             expandedAttribute.second[0]
-        ).shouldSucceed()
+        ).shouldSucceedAndResult()
 
         val expectedMergedPayload = expandAttribute(
             """
@@ -476,6 +543,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             assertJsonPayloadsAreEqual(serializeObject(expectedMergedPayload.second[0]), it.payload.asString())
             assertTrue(it.createdAt.isBefore(mergedAt))
             assertEquals(mergedAt, it.modifiedAt)
+            assertSysAttrs(result.newExpandedValue, it.createdAt, it.modifiedAt)
         }
     }
 
@@ -497,7 +565,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceed()
 
         val propertyToMerge = loadSampleData("fragments/beehive_mergeAttribute.json")
-        val expandedAttributes = JsonLdUtils.expandAttributes(propertyToMerge, APIC_COMPOUND_CONTEXTS)
+        val expandedAttributes = expandAttributes(propertyToMerge, APIC_COMPOUND_CONTEXTS)
         entityAttributeService.mergeAttributes(
             beehiveTestCId,
             expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult(),
@@ -526,7 +594,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         val createdAt = ngsiLdDateTime()
         val attributesToMerge = loadSampleData("fragments/beehive_mergeAttributes.json")
-        val expandedAttributes = JsonLdUtils.expandAttributes(attributesToMerge, APIC_COMPOUND_CONTEXTS)
+        val expandedAttributes = expandAttributes(attributesToMerge, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
         entityAttributeService.mergeAttributes(
             beehiveTestCId,
@@ -535,7 +603,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             createdAt,
             null
         ).shouldSucceedWith { operationResults ->
-            val successfulOperations = operationResults.getSucceededAttributesOperations()
+            val successfulOperations = operationResults.getSucceededOperations()
             assertEquals(6, successfulOperations.size)
             assertEquals(4, successfulOperations.filter { it.operationStatus == OperationStatus.UPDATED }.size)
             assertEquals(2, successfulOperations.filter { it.operationStatus == OperationStatus.CREATED }.size)
@@ -588,7 +656,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         val createdAt = ngsiLdDateTime()
         val observedAt = ZonedDateTime.parse("2019-12-04T12:00:00.00Z")
         val propertyToMerge = loadSampleData("fragments/beehive_mergeAttribute_without_observedAt.json")
-        val expandedAttributes = JsonLdUtils.expandAttributes(propertyToMerge, APIC_COMPOUND_CONTEXTS)
+        val expandedAttributes = expandAttributes(propertyToMerge, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
         entityAttributeService.mergeAttributes(
             beehiveTestCId,
@@ -597,7 +665,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             createdAt,
             observedAt
         ).shouldSucceedWith { operationResults ->
-            val successfulOperations = operationResults.getSucceededAttributesOperations()
+            val successfulOperations = operationResults.getSucceededOperations()
             assertEquals(1, successfulOperations.size)
             assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.UPDATED }.size)
         }
@@ -627,7 +695,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         val createdAt = ngsiLdDateTime()
         val propertyToDelete = loadSampleData("fragments/beehive_mergeAttribute_null.json")
-        val expandedAttributes = JsonLdUtils.expandAttributes(propertyToDelete, APIC_COMPOUND_CONTEXTS)
+        val expandedAttributes = expandAttributes(propertyToDelete, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
         entityAttributeService.mergeAttributes(
             beehiveTestCId,
@@ -636,7 +704,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             createdAt,
             null
         ).shouldSucceedWith { operationResults ->
-            val successfulOperations = operationResults.getSucceededAttributesOperations()
+            val successfulOperations = operationResults.getSucceededOperations()
             assertEquals(1, successfulOperations.size)
             assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.DELETED }.size)
         }
@@ -673,7 +741,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         val createdAt = ngsiLdDateTime()
         val propertyToDelete = loadSampleData("fragments/beehive_mergeAttribute_null.json")
-        val expandedAttributes = JsonLdUtils.expandAttributes(propertyToDelete, APIC_COMPOUND_CONTEXTS)
+        val expandedAttributes = expandAttributes(propertyToDelete, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
         entityAttributeService.updateAttributes(
             beehiveTestCId,
@@ -681,7 +749,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             expandedAttributes,
             createdAt
         ).shouldSucceedWith { operationResults ->
-            val successfulOperations = operationResults.getSucceededAttributesOperations()
+            val successfulOperations = operationResults.getSucceededOperations()
             assertEquals(1, successfulOperations.size)
             assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.DELETED }.size)
         }
@@ -723,7 +791,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         ).shouldSucceed()
 
         val propertyToDelete = loadSampleData("fragments/beehive_new_incoming_property.json")
-        val expandedAttributes = JsonLdUtils.expandAttributes(propertyToDelete, APIC_COMPOUND_CONTEXTS)
+        val expandedAttributes = expandAttributes(propertyToDelete, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
         entityAttributeService.updateAttributes(
             beehiveTestCId,
@@ -731,7 +799,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             expandedAttributes,
             ngsiLdDateTime()
         ).shouldSucceedWith { operationResults ->
-            val successfulOperations = operationResults.getSucceededAttributesOperations()
+            val successfulOperations = operationResults.getSucceededOperations()
             assertEquals(1, successfulOperations.size)
             assertEquals(1, successfulOperations.filter { it.operationStatus == OperationStatus.CREATED }.size)
         }
@@ -805,13 +873,12 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             APIC_COMPOUND_CONTEXTS
         )
 
-        entityAttributeService.partialUpdateAttribute(
+        val result = entityAttributeService.partialUpdateAttribute(
             beehiveTestCId,
             expandedAttribute,
             updatedAt
-        ).shouldSucceedWith { operationResult ->
-            assertEquals(OperationStatus.UPDATED, operationResult.operationStatus)
-        }
+        ).shouldSucceedAndResult()
+        assertEquals(OperationStatus.UPDATED, result.operationStatus)
 
         val expectedPayload = expandAttribute(
             """
@@ -838,6 +905,11 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             assertEquals(Attribute.AttributeValueType.NUMBER, it.attributeValueType)
             assertJsonPayloadsAreEqual(serializeObject(expectedPayload.second[0]), it.payload.asString())
             assertEquals(updatedAt, it.modifiedAt)
+            assertSysAttrs(
+                (result as SucceededAttributeOperationResult).newExpandedValue,
+                it.createdAt,
+                it.modifiedAt
+            )
         }
     }
 
@@ -979,7 +1051,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
                 }
             }
         """.trimIndent()
-        val expandedAttributes = JsonLdUtils.expandAttributes(nullAttribute, APIC_COMPOUND_CONTEXTS)
+        val expandedAttributes = expandAttributes(nullAttribute, APIC_COMPOUND_CONTEXTS)
         val ngsiLdAttributes = expandedAttributes.toMap().toNgsiLdAttributes().shouldSucceedAndResult()
 
         entityAttributeService.appendAttributes(
@@ -1052,13 +1124,13 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
         val deletedAt = ngsiLdDateTime()
-        entityAttributeService.deleteAttribute(
+        val results = entityAttributeService.deleteAttribute(
             beehiveTestDId,
             INCOMING_IRI,
             null,
             false,
             deletedAt
-        ).shouldSucceed()
+        ).shouldSucceedAndResult()
 
         coVerify {
             attributeInstanceService.addDeletedAttributeInstance(
@@ -1081,6 +1153,7 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         entityAttributeService.getForEntityAndAttribute(beehiveTestDId, INCOMING_IRI)
             .shouldSucceedWith {
                 assertEquals(deletedAt, it.deletedAt)
+                assertSysAttrs(results.first().newExpandedValue, it.createdAt, it.modifiedAt, deletedAt)
             }
     }
 
@@ -1122,17 +1195,22 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
 
         entityAttributeService.createAttributes(rawEntity, APIC_COMPOUND_CONTEXTS)
 
-        entityAttributeService.deleteAttributes(
+        val deletedAt = ngsiLdDateTime()
+        val results = entityAttributeService.deleteAttributes(
             beehiveTestCId,
-            ngsiLdDateTime()
-        ).shouldSucceed()
+            deletedAt
+        ).shouldSucceedAndResult()
 
         coVerify(exactly = 4) {
             attributeInstanceService.addDeletedAttributeInstance(any(), any(), any(), any())
         }
 
         entityAttributeService.getForEntityAndAttribute(beehiveTestCId, INCOMING_IRI)
-            .shouldSucceedWith { assertTrue(it.deletedAt != null) }
+            .shouldSucceedWith { attribute ->
+                assertTrue(attribute.deletedAt != null)
+                val result = results.first { it.attributeName == INCOMING_IRI }
+                assertSysAttrs(result.newExpandedValue, attribute.createdAt, attribute.modifiedAt, deletedAt)
+            }
     }
 
     @Test
@@ -1342,5 +1420,21 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
         assertThat(attributes)
             .hasSize(3)
             .matches { it.all { tea -> tea.attributeName == INCOMING_IRI || tea.attributeName == NAME_IRI } }
+    }
+
+    private fun assertSysAttrs(
+        expandedInstance: ExpandedAttributeInstance,
+        createdAt: ZonedDateTime,
+        modifiedAt: ZonedDateTime,
+        deletedAt: ZonedDateTime? = null
+    ) {
+        val createdAtMember = expandedInstance.getMemberValueAsDateTime(NGSILD_CREATED_AT_IRI)
+        val modifiedAtMember = expandedInstance.getMemberValueAsDateTime(NGSILD_MODIFIED_AT_IRI)
+        assertEquals(createdAt, createdAtMember)
+        assertEquals(modifiedAt, modifiedAtMember)
+        if (deletedAt != null) {
+            val deletedAtMember = expandedInstance.getMemberValueAsDateTime(NGSILD_DELETED_AT_IRI)
+            assertEquals(deletedAt, deletedAtMember)
+        }
     }
 }

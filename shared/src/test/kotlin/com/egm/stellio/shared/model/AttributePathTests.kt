@@ -128,6 +128,15 @@ class AttributePathTests {
     }
 
     @Test
+    fun `buildJsonBExistsPath should escape a term that does not expand against the context`() = runTest {
+        val attrPath = AttributePath("""attr"injected""", APIC_COMPOUND_CONTEXTS)
+        assertEquals(
+            """$."https://uri.etsi.org/ngsi-ld/default-context/attr\"injected"""",
+            attrPath.buildJsonBExistsPath()
+        )
+    }
+
+    @Test
     fun `buildJsonBPropertyPath should build property path for a simple attribute`() = runTest {
         val attrPath = AttributePath(INCOMING_TERM, APIC_COMPOUND_CONTEXTS)
         assertEquals(

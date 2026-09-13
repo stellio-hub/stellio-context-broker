@@ -17,4 +17,26 @@ class QueryUtilsTests {
     fun `toSqlList should escape single quotes`() = runTest {
         assertEquals("('placed''italie')", listOf("placed'italie").toSqlList())
     }
+
+    @Test
+    fun `buildScopeQQuery should escape single quotes in an exact match scope`() = runTest {
+        assertEquals(
+            """
+            exists (select * from unnest(scopes) as scope
+            where scope = '/agri''food')
+            """.trimIndent(),
+            buildScopeQQuery("/agri'food")
+        )
+    }
+
+    @Test
+    fun `buildScopeQQuery should escape single quotes in a pattern-based scope`() = runTest {
+        assertEquals(
+            """
+            exists (select * from unnest(scopes) as scope
+            where scope similar to '/agri''food%')
+            """.trimIndent(),
+            buildScopeQQuery("/agri'food#")
+        )
+    }
 }

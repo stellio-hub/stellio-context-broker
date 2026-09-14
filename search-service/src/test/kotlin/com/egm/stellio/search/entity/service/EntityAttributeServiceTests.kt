@@ -17,6 +17,7 @@ import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.service.AttributeInstanceService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -37,6 +38,7 @@ import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
+import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
@@ -55,7 +57,6 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -318,12 +319,10 @@ class EntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer()
             )
         } throws RuntimeException("Unexpected DB error!")
 
-        assertThrows<RuntimeException>("it should have thrown a RuntimeException") {
-            entityAttributeService.createAttributes(
-                rawEntity,
-                APIC_COMPOUND_CONTEXTS
-            ).shouldSucceed()
-        }
+        entityAttributeService.createAttributes(
+            rawEntity,
+            APIC_COMPOUND_CONTEXTS
+        ).shouldFailWith { it is InternalErrorException }
 
         val attributes = entityAttributeService.getAllForEntity("urn:ngsi-ld:BeeHive:TESTC".toUri())
         assertTrue(attributes.isEmpty())

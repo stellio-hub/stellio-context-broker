@@ -40,6 +40,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Scope.SCOPE_DOES_NOT_EXIST_MESS
 import com.egm.stellio.shared.util.ErrorMessages.Scope.unrecognizedOperationTypeMessage
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.INCONSISTENT_VALUES_IN_AGGREGATION_MESSAGE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.escapeSingleQuotes
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import io.r2dbc.postgresql.codec.Json
@@ -172,9 +173,10 @@ class ScopeService(
             // if querying temporal entities, timeAt is mandatory and will be used if origin is null
             if (aggrPeriodDuration != WHOLE_TIME_RANGE_DURATION) {
                 val computedOrigin = origin ?: temporalQuery.timeAt
+                val escapedAggrPeriodDuration = aggrPeriodDuration!!.escapeSingleQuotes()
                 """
                 SELECT entity_id,
-                   public.time_bucket('$aggrPeriodDuration', time, '${searchProperties.timezoneForTimeBuckets}', TIMESTAMPTZ '${computedOrigin!!}') as start,
+                   public.time_bucket('$escapedAggrPeriodDuration', time, '${searchProperties.timezoneForTimeBuckets}', TIMESTAMPTZ '${computedOrigin!!}') as start,
                    $allAggregates
                 """
             } else

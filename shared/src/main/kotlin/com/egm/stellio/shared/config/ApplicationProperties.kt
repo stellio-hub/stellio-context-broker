@@ -1,14 +1,19 @@
 package com.egm.stellio.shared.config
 
 import org.springframework.boot.context.properties.ConfigurationProperties
+import java.time.Duration
+
+private const val DEFAULT_TRANSACTION_TIMEOUT_SECONDS = 50L
 
 @ConfigurationProperties("application")
 data class ApplicationProperties(
     val authentication: Authentication,
     val pagination: Pagination,
     val tenants: List<TenantConfiguration>,
-    val contexts: Contexts
+    val contexts: Contexts,
+    val transactionTimeout: Duration = Duration.ofSeconds(DEFAULT_TRANSACTION_TIMEOUT_SECONDS)
 ) {
+
     data class Authentication(
         val enabled: Boolean,
         val claimsPaths: List<String>

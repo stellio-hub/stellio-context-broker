@@ -24,6 +24,7 @@ import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityOrAttrsNotFoundMessage
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -37,6 +38,7 @@ class TemporalQueryService(
     private val applicationProperties: ApplicationProperties
 ) {
 
+    @Transactional(readOnly = true)
     suspend fun queryTemporalEntity(
         entityId: URI,
         temporalEntitiesQuery: TemporalEntitiesQuery
@@ -113,6 +115,7 @@ class TemporalQueryService(
         }
     }
 
+    @Transactional(readOnly = true)
     suspend fun queryTemporalEntities(
         temporalEntitiesQuery: TemporalEntitiesQuery
     ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {

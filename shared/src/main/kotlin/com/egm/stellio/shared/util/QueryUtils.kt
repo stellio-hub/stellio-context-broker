@@ -16,16 +16,18 @@ fun Iterable<String>.toTypeSelection() = this.joinToString(",")
 
 // Work for String and URI
 // can't do two functions with the same name since Uri are String in the jvm
-fun Iterable<Any>.toSqlList(): String = "(${this.joinToString(",") { "'$it'"} })"
+fun Iterable<Any>.toSqlList(): String =
+    "(${this.joinToString(",") { "'${it.toString().escapeSingleQuotes()}'" }})"
 
-fun Iterable<Any?>.toSqlArray(): String = "ARRAY[${this.joinToString(",") { "'$it'"} }]"
+fun Iterable<Any?>.toSqlArray(): String =
+    "ARRAY[${this.joinToString(",") { "'${it.toString().escapeSingleQuotes()}'" }}]"
 fun Sequence<String?>.toSqlArray(): String = this.toList().toSqlArray()
 
 fun buildTypeQuery(rawQuery: String?, columnName: String = "types", target: List<ExpandedTerm>? = null): String? =
     if (rawQuery.isNullOrBlank() || rawQuery.isWildcardTypeSelection()) null
     else rawQuery.replace(typeSelectionRegex) { matchResult ->
         """
-        #{TARGET}# && ARRAY['${matchResult.value}']
+        #{TARGET}# && ARRAY['${matchResult.value.escapeSingleQuotes()}']
         """.trimIndent()
     }
         .replace(";", " AND ")
@@ -57,16 +59,17 @@ fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null, column
             matchResult.value.endsWith('#') ->
                 """
                 exists (select * from unnest(#{TARGET}#) as scope
-                where scope similar to '${matchResult.value.replace('#', '%')}')
+                where scope similar to '${matchResult.value.replace('#', '%').escapeSingleQuotes()}')
                 """.trimIndent()
             matchResult.value.contains('+') ->
                 """
                 exists (select * from unnest(#{TARGET}#) as scope
-                where scope similar to '${matchResult.value.replace("+", "[\\w\\d]+")}')
+                where scope similar to '${matchResult.value.replace("+", "[\\w\\d]+").escapeSingleQuotes()}')
                 """.trimIndent()
             else ->
                 """
-                exists (select * from unnest(#{TARGET}#) as scope where scope = '${matchResult.value}')
+                exists (select * from unnest(#{TARGET}#) as scope
+                where scope = '${matchResult.value.escapeSingleQuotes()}')
                 """.trimIndent()
         }
     }

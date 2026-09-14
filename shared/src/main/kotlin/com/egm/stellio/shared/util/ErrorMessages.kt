@@ -50,6 +50,11 @@ object ErrorMessages {
             "Payload cannot be deserialized into a list of object. Make sure the provided payload is a list"
     }
 
+    object Database {
+        const val DATABASE_TIMEOUT_MESSAGE = "The database operation timed out"
+        const val DATABASE_TRANSACTION_FAILURE_MESSAGE = "The database transaction failed"
+    }
+
     object Csr {
         fun csrNotFoundMessage(id: URI) = "Context source registration $id does not exist"
         fun csrAlreadyExistsMessage(id: URI) = "Context source registration $id already exists"

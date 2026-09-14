@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -38,6 +39,31 @@ class GeoUtilsTests {
 
         assertEquals(
             "LINESTRING Z(21.7 38.2 110.5, 21.8 38.3 111.5)",
+            geoJsonToWkt(geoJson).shouldSucceedAndResult()
+        )
+    }
+
+    @Test
+    fun `geoJsonToWkt should reject a GeometryCollection`() {
+        val geoJson =
+            """
+            {
+                "type": "GeometryCollection",
+                "geometries": [{ "type": "Point", "coordinates": [21.7, 38.2] }]
+            }
+            """.trimIndent()
+
+        geoJsonToWkt(geoJson).shouldFail {
+            assertEquals(BadRequestDataException::class, it::class)
+        }
+    }
+
+    @Test
+    fun `geoJsonToWkt should accept a MultiPoint`() {
+        val geoJson = """{ "type": "MultiPoint", "coordinates": [[21.7, 38.2], [21.8, 38.3]] }"""
+
+        assertEquals(
+            "MULTIPOINT ((21.7 38.2), (21.8 38.3))",
             geoJsonToWkt(geoJson).shouldSucceedAndResult()
         )
     }

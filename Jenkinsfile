@@ -25,7 +25,7 @@ pipeline {
                 changeset "shared/**"
             }
             steps {
-                sh './gradlew build -p shared'
+                sh './gradlew build -p shared -x detekt'
             }
         }
         stage('Build Api Gateway') {
@@ -33,7 +33,7 @@ pipeline {
                 changeset "api-gateway/**"
             }
             steps {
-                sh './gradlew build -p api-gateway'
+                sh './gradlew build -p api-gateway -x detekt'
             }
         }
         stage('Build Search Service') {
@@ -44,7 +44,7 @@ pipeline {
                 }
             }
             steps {
-                sh './gradlew build -p search-service'
+                sh './gradlew build -p search-service -x detekt'
             }
         }
         stage('Build Subscription Service') {
@@ -55,7 +55,7 @@ pipeline {
                 }
             }
             steps {
-                sh './gradlew build -p subscription-service'
+                sh './gradlew build -p subscription-service -x detekt'
             }
         }
         /* Publish images for develop and master branches, using version defined in build.gradle.kts

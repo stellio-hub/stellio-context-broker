@@ -218,6 +218,8 @@ object ErrorMessages {
 
         fun invalidGeometryDefinitionMessage(geoJsonPayload: String, error: String) =
             "Invalid geometry definition: $geoJsonPayload ($error)"
+        fun unsupportedGeometryDefinitionMessage(geoJsonPayload: String, geometryType: String) =
+            "Unsupported geometry type: $geometryType is not allowed in NGSI-LD ($geoJsonPayload)"
     }
 
     object HttpRequest {

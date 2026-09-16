@@ -495,7 +495,8 @@ li.toctree-l1.current:hover:after {
     font-weight: 500;
     padding: 4px 10px 5px 40px;
     margin: 16px 8px 0px 8px;
-    background-image: url("https://www.fiware.org/wp-content/uploads/ico_search.png") !important;
+    background-image: url("search.svg") !important;
+    background-size: 18px 18px;
     background-position: 4% !important;
     background-repeat: no-repeat !important;
     width: 94%;
@@ -511,7 +512,7 @@ li.toctree-l1.current:hover:after {
 
 .wy-side-nav-search input[type="text"]:-internal-autofill-selected {
     appearance: none !important;
-    background-image: url("https://www.fiware.org/wp-content/uploads/ico_search.png") !important;
+    background-image: url("search.svg") !important;
     background-position: 4% !important;
     background-repeat: no-repeat !important;
     background-color: #fff !important;

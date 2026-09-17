@@ -173,6 +173,25 @@ class AttributePathTests {
     }
 
     @Test
+    fun `buildJsonBListPropertyPath should build a path to list members`() = runTest {
+        val attrPath = AttributePath(INCOMING_TERM, APIC_COMPOUND_CONTEXTS)
+        assertEquals(
+            """$."$INCOMING_IRI"."$NGSILD_LISTPROPERTY_VALUE_LIST"."@list"."$JSONLD_VALUE_KW"""",
+            attrPath.buildJsonBListPropertyPath()
+        )
+    }
+
+    @Test
+    fun `buildJsonBListRelationshipPath should build a path to list object members`() = runTest {
+        val attrPath = AttributePath(INCOMING_TERM, APIC_COMPOUND_CONTEXTS)
+        assertEquals(
+            """$."$INCOMING_IRI"."$NGSILD_LISTRELATIONSHIP_OBJECT_LIST"."@list".""" +
+                """$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW"""",
+            attrPath.buildJsonBListRelationshipPath()
+        )
+    }
+
+    @Test
     fun `buildJsonBRelationshipPath should build a wildcard traversal path for a composed attribute`() = runTest {
         val attrPath = AttributePath("$INCOMING_TERM.$TEMPERATURE_TERM", APIC_COMPOUND_CONTEXTS)
         assertEquals(

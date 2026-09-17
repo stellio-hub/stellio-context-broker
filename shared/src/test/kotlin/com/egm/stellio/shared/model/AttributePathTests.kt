@@ -195,7 +195,7 @@ class AttributePathTests {
         val attrPath = AttributePath(INCOMING_TERM, APIC_COMPOUND_CONTEXTS)
         assertEquals(
             """$."$INCOMING_IRI"."$NGSILD_LISTRELATIONSHIP_OBJECT_LIST"."@list".""" +
-                """$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW"""",
+                """"$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW"""",
             attrPath.buildJsonBListRelationshipPath()
         )
     }

@@ -103,10 +103,10 @@ data class AttributePath(
         val mainPathString = mainPath.toQuotedJsonPath()
         return if (mainPath.size > 1)
             """$.$mainPathString.**{0 to 2}."$NGSILD_LISTRELATIONSHIP_OBJECT_LIST"."@list".""" +
-                """$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
+                """"$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
         else
             """$."${mainPath[0]}"."$NGSILD_LISTRELATIONSHIP_OBJECT_LIST"."@list".""" +
-                """$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
+                """"$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
     }
 
     fun buildJsonBVocabPath(): String {

@@ -54,6 +54,7 @@ class DatabaseTenantConfig(
                 .from(ConnectionFactoryOptions.parse(r2dbcProperties.url!!))
                 .option(ConnectionFactoryOptions.USER, r2dbcProperties.username as String)
                 .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password as String)
+                .withDefaultStatementTimeout()
                 .build()
         )
     }
@@ -86,8 +87,14 @@ class DatabaseTenantConfig(
                 }
                 .option(ConnectionFactoryOptions.USER, r2dbcProperties.username as String)
                 .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password as CharSequence)
+                .withDefaultStatementTimeout()
                 .build()
         )
         tenantConnectionFactories.putIfAbsent(name, tenantConnectionFactory)
     }
+
+    private fun ConnectionFactoryOptions.Builder.withDefaultStatementTimeout(): ConnectionFactoryOptions.Builder =
+        if (applicationProperties.transactionTimeout.isPositive)
+            option(ConnectionFactoryOptions.STATEMENT_TIMEOUT, applicationProperties.transactionTimeout)
+        else this
 }

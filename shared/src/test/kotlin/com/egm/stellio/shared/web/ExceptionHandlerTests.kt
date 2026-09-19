@@ -51,7 +51,7 @@ class ExceptionHandlerTests {
             .uri("/router/mockkedroute/validate-json-ld-fragment")
             .bodyValue(invalidJsonPayload)
             .exchange()
-            .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
+            .expectStatus().isEqualTo(HttpStatus.GATEWAY_TIMEOUT)
             .expectBody()
             .jsonPath("$..type")
             .isEqualTo("https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable")

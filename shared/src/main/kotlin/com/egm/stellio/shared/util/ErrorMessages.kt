@@ -180,6 +180,14 @@ object ErrorMessages {
             "VocabProperty $name has an instance without a vocab member"
         fun vocabPropertyInvalidVocabMessage(name: String) =
             "VocabProperty $name has a vocab member that is not a string, nor an array of string"
+        fun listPropertyMissingValueListMessage(name: String) =
+            "ListProperty $name has an instance without a valueList member"
+        fun listPropertyInvalidValueListMessage(name: String) =
+            "ListProperty $name has an invalid valueList member"
+        fun listRelationshipMissingObjectListMessage(name: String) =
+            "ListRelationship $name does not have an objectList field"
+        fun listRelationshipInvalidObjectMessage(name: String, objectValue: Any?) =
+            "ListRelationship $name has an invalid object: $objectValue"
 
         fun relationshipMissingObjectMessage(name: String) = "Relationship $name does not have an object field"
         fun relationshipEmptyMessage(name: String) = "Relationship $name is empty"

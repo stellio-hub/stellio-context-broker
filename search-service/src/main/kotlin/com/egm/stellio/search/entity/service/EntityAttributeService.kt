@@ -48,6 +48,8 @@ import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PREFIX
@@ -78,6 +80,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -977,6 +980,18 @@ class EntityAttributeService(
             Attribute.AttributeType.VocabProperty ->
                 Triple(
                     attributePayload.getMemberValue(NGSILD_VOCABPROPERTY_VOCAB).bind().asJsonB(),
+                    null,
+                    null
+                )
+            Attribute.AttributeType.ListProperty ->
+                Triple(
+                    attributePayload.getMemberValue(NGSILD_LISTPROPERTY_VALUE_LIST).bind().asJsonB(),
+                    null,
+                    null
+                )
+            Attribute.AttributeType.ListRelationship ->
+                Triple(
+                    attributePayload.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST).bind().asJsonB(),
                     null,
                     null
                 )

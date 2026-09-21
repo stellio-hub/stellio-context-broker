@@ -582,6 +582,121 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    fun `updateAttributes should update the modifiedAt member when entity exists`() = runTest {
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.updateAttributes(any(), any(), any(), any())
+        } returns listOf(
+            SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.UPDATED, emptyMap())
+        ).right()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        val expandedAttributes = expandAttributes(
+            """{ "$INCOMING_TERM": { "type": "Property", "value": 10 } }""",
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        entityService.updateAttributes(entity01Uri, expandedAttributes).shouldSucceed()
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { entity -> assertModifiedAtWasBumpedInPayload(entity, now) }
+    }
+
+    @Test
+    fun `partialUpdateAttribute should update the modifiedAt member when entity exists`() = runTest {
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.partialUpdateAttribute(any(), any(), any())
+        } returns SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.UPDATED, emptyMap()).right()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        val expandedAttribute = expandAttribute(
+            """{ "$INCOMING_TERM": { "type": "Property", "value": 10 } }""",
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        entityService.partialUpdateAttribute(entity01Uri, expandedAttribute).shouldSucceed()
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { entity -> assertModifiedAtWasBumpedInPayload(entity, now) }
+    }
+
+    @Test
+    fun `deleteAttribute should update the modifiedAt member when an attribute is deleted`() = runTest {
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any())
+        } returns Unit.right()
+        coEvery {
+            entityAttributeService.deleteAttribute(any(), any(), any(), any(), any())
+        } returns listOf(
+            SucceededAttributeOperationResult(INCOMING_IRI, null, OperationStatus.DELETED, emptyMap())
+        ).right()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        entityService.deleteAttribute(entity01Uri, INCOMING_IRI, null).shouldSucceed()
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { entity -> assertModifiedAtWasBumpedInPayload(entity, now) }
+    }
+
+    @Test
+    fun `permanentlyDeleteAttribute should update the modifiedAt member when a single instance is deleted`() = runTest {
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
+        } returns Unit.right()
+        coEvery {
+            entityAttributeService.permanentlyDeleteAttribute(any(), any(), any(), false)
+        } returns Unit.right()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        entityService.permanentlyDeleteAttribute(entity01Uri, INCOMING_IRI, null, deleteAll = false).shouldSucceed()
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { entity -> assertModifiedAtWasBumpedInPayload(entity, now) }
+    }
+
+    @Test
+    fun `permanentlyDeleteAttribute should update the modifiedAt member when all instances are deleted`() = runTest {
+        coEvery { authorizationService.userCanUpdateEntity(any()) } returns Unit.right()
+        coEvery {
+            entityAttributeService.checkEntityAndAttributeExistence(any(), any(), any(), any(), any())
+        } returns Unit.right()
+        coEvery {
+            entityAttributeService.permanentlyDeleteAttribute(any(), any(), any(), true)
+        } returns Unit.right()
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        entityService.permanentlyDeleteAttribute(entity01Uri, INCOMING_IRI, null, deleteAll = true).shouldSucceed()
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { entity -> assertModifiedAtWasBumpedInPayload(entity, now) }
+    }
+
+    private fun assertModifiedAtWasBumpedInPayload(entity: Entity, before: ZonedDateTime) {
+        assertTrue(entity.modifiedAt > before)
+        val modifiedAtMember =
+            (entity.toExpandedEntity().members[NGSILD_MODIFIED_AT_IRI] as List<*>).first() as Map<*, *>
+        assertEquals(entity.modifiedAt.toNgsiLdFormat(), modifiedAtMember[JSONLD_VALUE_KW])
+    }
+
+    @Test
     fun `updateTypes should add a type to an entity`() = runTest {
         val entityPayload = loadSampleData("beehive.jsonld")
         entityPayload.sampleDataToNgsiLdEntity().map {

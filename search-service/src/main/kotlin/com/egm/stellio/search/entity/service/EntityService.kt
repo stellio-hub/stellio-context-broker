@@ -966,17 +966,21 @@ class EntityService(
         modifiedAt: ZonedDateTime,
         attributeName: ExpandedTerm
     ): Either<APIException, Unit> = either {
+        val modifiedAtPatch = Json.of(
+            serializeObject(mapOf(NGSILD_MODIFIED_AT_IRI to buildNonReifiedTemporalValue(modifiedAt)))
+        )
         databaseClient.sql(
             """
             UPDATE entity_payload
             SET modified_at = :modified_at,
-                payload = payload - :attribute_name::text
+                payload = (payload - :attribute_name::text) || :modified_at_patch::jsonb
             WHERE entity_id = :entity_id
             """.trimIndent()
         )
             .bind("entity_id", entityId)
             .bind("modified_at", modifiedAt)
             .bind("attribute_name", attributeName)
+            .bind("modified_at_patch", modifiedAtPatch)
             .executeExpected { notFoundIfNoRowsUpdated(it) }
             .bind()
     }

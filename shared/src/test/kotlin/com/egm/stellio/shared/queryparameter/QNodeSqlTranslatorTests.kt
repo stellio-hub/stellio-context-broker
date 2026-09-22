@@ -4,6 +4,8 @@ import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
@@ -46,12 +48,19 @@ class QNodeSqlTranslatorTests {
         """$."$INCOMING_IRI"."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW""""
     private val incomingLangMapPath =
         """$."$INCOMING_IRI"."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW""""
+    private val incomingListPropertyPath =
+        """$."$INCOMING_IRI"."$NGSILD_LISTPROPERTY_VALUE_LIST"."@list"."$JSONLD_VALUE_KW""""
+    private val incomingListRelationshipPath =
+        """$."$INCOMING_IRI"."$NGSILD_LISTRELATIONSHIP_OBJECT_LIST"."@list".""" +
+            """"$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
     private val incomingLangFilterPath =
         """$."$INCOMING_IRI"."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]"""
     private val incomingJsonKeyPath =
         """$."$INCOMING_IRI"."$NGSILD_JSONPROPERTY_JSON"."$JSONLD_VALUE_KW"."$TEMPERATURE_TERM""""
     private val temperaturePropertyPath =
         """$."$TEMPERATURE_IRI"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW""""
+    private val temperatureListPropertyPath =
+        """$."$TEMPERATURE_IRI"."$NGSILD_LISTPROPERTY_VALUE_LIST"."@list"."$JSONLD_VALUE_KW""""
 
     private fun exists(path: String) =
         """jsonb_path_exists(entity_payload.payload, '$path')"""
@@ -79,9 +88,13 @@ class QNodeSqlTranslatorTests {
     fun `toSqlJsonPath should generate AND clause for semicolon operator`() {
         val incomingOpenSql = """
             (${existsWhere(incomingPropertyPath, """@ == $valuePh""", """{"value": "open"}""")} OR
-                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")})
+                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")} OR
+                ${existsWhere(incomingListPropertyPath, """@ == $valuePh""", """{"value": "open"}""")})
         """
-        val temperatureGt0Sql = existsWhere(temperaturePropertyPath, """@ > $valuePh""", """{"value": 0}""")
+        val temperatureGt0Sql = """
+            (${existsWhere(temperaturePropertyPath, """@ > $valuePh""", """{"value": 0}""")} OR
+                ${existsWhere(temperatureListPropertyPath, """@ > $valuePh""", """{"value": 0}""")})
+        """
         assertEquals(
             "($incomingOpenSql) AND ($temperatureGt0Sql)".removeNoise(),
             buildSql("$INCOMING_TERM==\"open\";$TEMPERATURE_TERM>0").removeNoise()
@@ -92,9 +105,13 @@ class QNodeSqlTranslatorTests {
     fun `toSqlJsonPath should generate OR clause for pipe operator`() {
         val incomingOpenSql = """
             (${existsWhere(incomingPropertyPath, """@ == $valuePh""", """{"value": "open"}""")} OR
-                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")})
+                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")} OR
+                ${existsWhere(incomingListPropertyPath, """@ == $valuePh""", """{"value": "open"}""")})
         """
-        val temperatureGt0Sql = existsWhere(temperaturePropertyPath, """@ > $valuePh""", """{"value": 0}""")
+        val temperatureGt0Sql = """
+            (${existsWhere(temperaturePropertyPath, """@ > $valuePh""", """{"value": 0}""")} OR
+                ${existsWhere(temperatureListPropertyPath, """@ > $valuePh""", """{"value": 0}""")})
+        """
         assertEquals(
             "($incomingOpenSql) OR ($temperatureGt0Sql)".removeNoise(),
             buildSql("$INCOMING_TERM==\"open\"|$TEMPERATURE_TERM>0").removeNoise()
@@ -103,17 +120,19 @@ class QNodeSqlTranslatorTests {
 
     @Test
     fun `toSqlJsonPath should generate numeric comparison using hasValue`() {
-        assertEquals(
-            existsWhere(temperaturePropertyPath, """@ == $valuePh""", """{"value": 42}"""),
-            buildSql("$TEMPERATURE_TERM==42")
-        )
+        val expected = """
+            (${existsWhere(temperaturePropertyPath, """@ == $valuePh""", """{"value": 42}""")} OR
+                ${existsWhere(temperatureListPropertyPath, """@ == $valuePh""", """{"value": 42}""")})
+        """
+        assertEquals(expected.removeNoise(), buildSql("$TEMPERATURE_TERM==42").removeNoise())
     }
 
     @Test
     fun `toSqlJsonPath should generate string comparison targeting both hasValue and language map`() {
         val expected = """
             (${existsWhere(incomingPropertyPath, """@ == $valuePh""", """{"value": "open"}""")} OR
-                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")})
+                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")} OR
+                ${existsWhere(incomingListPropertyPath, """@ == $valuePh""", """{"value": "open"}""")})
         """
         assertEquals(expected.removeNoise(), buildSql("$INCOMING_TERM==\"open\"").removeNoise())
     }
@@ -126,48 +145,65 @@ class QNodeSqlTranslatorTests {
             (${existsWhere(incomingRelPath, """@ == $valuePh""", params)} OR
                 ${existsWhere(incomingPropertyPath, """@ == $valuePh""", params)} OR
                 ${existsWhere(incomingVocabPath, """@ == $valuePh""", params)} OR
-                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", params)})
+                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", params)} OR
+                ${existsWhere(incomingListPropertyPath, """@ == $valuePh""", params)} OR
+                ${existsWhere(incomingListRelationshipPath, """@ == $valuePh""", params)})
             """
         assertEquals(expected.removeNoise(), buildSql("""$INCOMING_TERM=="$uri"""").removeNoise())
     }
 
     @Test
     fun `toSqlJsonPath should generate range comparison`() {
-        assertEquals(
-            existsWhere(
-                temperaturePropertyPath,
-                """@ >= $minPh && @ <= $maxPh""",
-                """{"min": 10, "max": 20}"""
-            ),
-            buildSql("$TEMPERATURE_TERM==10..20")
-        )
+        val expected = """
+            (${existsWhere(
+            temperaturePropertyPath,
+            """@ >= $minPh && @ <= $maxPh""",
+            """{"min": 10, "max": 20}"""
+        )} OR ${existsWhere(
+            temperatureListPropertyPath,
+            """@ >= $minPh && @ <= $maxPh""",
+            """{"min": 10, "max": 20}"""
+        )})
+        """
+        assertEquals(expected.removeNoise(), buildSql("$TEMPERATURE_TERM==10..20").removeNoise())
     }
 
     @Test
     fun `toSqlJsonPath should generate boolean comparison`() {
         val activePath =
             """$."https://uri.etsi.org/ngsi-ld/default-context/active"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW""""
-        assertEquals(
-            exists("""$activePath ? (@ == true)"""),
-            buildSql("active==true")
-        )
+        val activeListPath =
+            """$."https://uri.etsi.org/ngsi-ld/default-context/active"."$NGSILD_LISTPROPERTY_VALUE_LIST"."@list"."$JSONLD_VALUE_KW""""
+        val expected = """(${exists("""$activePath ? (@ == true)""")} OR """ +
+            """${exists("""$activeListPath ? (@ == true)""")})"""
+        assertEquals(expected, buildSql("active==true"))
     }
 
     @Test
     fun `toSqlJsonPath should generate list comparison using inline filter`() {
-        assertEquals(
-            exists("""$temperaturePropertyPath ? (@ == 10 || @ == 20 || @ == 30)"""),
-            buildSql("$TEMPERATURE_TERM==10,20,30")
-        )
+        val expected = """
+            (${exists("""$temperaturePropertyPath ? (@ == 10 || @ == 20 || @ == 30)""")} OR
+                ${exists("""$temperatureListPropertyPath ? (@ == 10 || @ == 20 || @ == 30)""")})
+        """
+        assertEquals(expected.removeNoise(), buildSql("$TEMPERATURE_TERM==10,20,30").removeNoise())
     }
 
     @Test
     fun `toSqlJsonPath should generate NEQ range as attribute existence and not in range`() {
-        val inRange =
-            existsWhere(temperaturePropertyPath, """@ >= $minPh && @ <= $maxPh""", """{"min": 10, "max": 20}""")
+        val inRange = """
+            (${existsWhere(
+            temperaturePropertyPath,
+            """@ >= $minPh && @ <= $maxPh""",
+            """{"min": 10, "max": 20}"""
+        )} OR ${existsWhere(
+            temperatureListPropertyPath,
+            """@ >= $minPh && @ <= $maxPh""",
+            """{"min": 10, "max": 20}"""
+        )})
+        """
         assertEquals(
-            """(${exists("""$."$TEMPERATURE_IRI"""")}) AND NOT ($inRange)""",
-            buildSql("$TEMPERATURE_TERM!=10..20")
+            """(${exists("""$."$TEMPERATURE_IRI"""")}) AND NOT (${inRange.removeNoise()})""".removeNoise(),
+            buildSql("$TEMPERATURE_TERM!=10..20").removeNoise()
         )
     }
 
@@ -175,7 +211,8 @@ class QNodeSqlTranslatorTests {
     fun `toSqlJsonPath should generate NEQ single value as attribute existence and no equal value`() {
         val eqSql = """
             (${existsWhere(incomingPropertyPath, """@ == $valuePh""", """{"value": "open"}""")} OR
-                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")})
+                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")} OR
+                ${existsWhere(incomingListPropertyPath, """@ == $valuePh""", """{"value": "open"}""")})
         """
         assertEquals(
             """(${exists("""$."$INCOMING_IRI"""")}) AND NOT ($eqSql)""".removeNoise(),
@@ -185,10 +222,13 @@ class QNodeSqlTranslatorTests {
 
     @Test
     fun `toSqlJsonPath should generate NEQ list as attribute existence and none of the values`() {
+        val equalToAnyValue = """
+            (${exists("""$temperaturePropertyPath ? (@ == 10 || @ == 20)""")} OR
+                ${exists("""$temperatureListPropertyPath ? (@ == 10 || @ == 20)""")})
+        """
         assertEquals(
-            """(${exists("""$."$TEMPERATURE_IRI"""")}) AND NOT (""" +
-                """${exists("""$temperaturePropertyPath ? (@ == 10 || @ == 20)""")})""",
-            buildSql("$TEMPERATURE_TERM!=10,20")
+            """(${exists("""$."$TEMPERATURE_IRI"""")}) AND NOT (${equalToAnyValue.removeNoise()})""".removeNoise(),
+            buildSql("$TEMPERATURE_TERM!=10,20").removeNoise()
         )
     }
 
@@ -233,7 +273,9 @@ class QNodeSqlTranslatorTests {
             (${existsWhere(incomingRelPath, """@ == $valuePh""", params)} OR
             ${existsWhere(incomingPropertyPath, """@ == $valuePh""", params)} OR
             ${existsWhere(incomingVocabPath, """@ == $valuePh""", params)} OR
-            ${existsWhere(incomingLangMapPath, """@ == $valuePh""", params)})
+            ${existsWhere(incomingLangMapPath, """@ == $valuePh""", params)} OR
+            ${existsWhere(incomingListPropertyPath, """@ == $valuePh""", params)} OR
+            ${existsWhere(incomingListRelationshipPath, """@ == $valuePh""", params)})
         """.trimIndent()
         assertEquals(
             expected.removeNoise(),
@@ -287,7 +329,8 @@ class QNodeSqlTranslatorTests {
     @Test
     fun `toSqlJsonPath should generate like_regex comparison for LIKE_REGEX operator`() {
         val expected = """(${exists("""$incomingPropertyPath ? (@ like_regex "test.*")""")} OR """ +
-            """${exists("""$incomingLangMapPath ? (@ like_regex "test.*")""")})"""
+            """${exists("""$incomingLangMapPath ? (@ like_regex "test.*")""")} OR """ +
+            """${exists("""$incomingListPropertyPath ? (@ like_regex "test.*")""")})"""
         assertEquals(expected.removeNoise(), buildSql("""$INCOMING_TERM~="test.*"""").removeNoise())
     }
 
@@ -295,7 +338,8 @@ class QNodeSqlTranslatorTests {
     fun `toSqlJsonPath should generate NOT like_regex for NOT_LIKE_REGEX operator`() {
         val expected = """
             NOT ((${exists("""$incomingPropertyPath ? (@ like_regex "test.*")""")} OR
-                ${exists("""$incomingLangMapPath ? (@ like_regex "test.*")""")}))
+                ${exists("""$incomingLangMapPath ? (@ like_regex "test.*")""")} OR
+                ${exists("""$incomingListPropertyPath ? (@ like_regex "test.*")""")}))
         """
         assertEquals(expected.removeNoise(), buildSql("""$INCOMING_TERM!~="test.*"""").removeNoise())
     }

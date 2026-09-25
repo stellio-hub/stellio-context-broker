@@ -14,19 +14,15 @@
             {
               "@list": [
                 {
-                  "https://uri.etsi.org/ngsi-ld/hasValueList": [
+                  "@list": [
                     {
-                      "@list": [
-                        {
-                          "@value": 12
-                        },
-                        {
-                          "@value": "ordered"
-                        },
-                        {
-                          "@value": true
-                        }
-                      ]
+                      "@value": 12
+                    },
+                    {
+                      "@value": "ordered"
+                    },
+                    {
+                      "@value": true
                     }
                   ]
                 },
@@ -38,19 +34,15 @@
             {
               "@list": [
                 {
-                  "https://uri.etsi.org/ngsi-ld/hasValueList": [
+                  "@list": [
                     {
-                      "@list": [
-                        {
-                          "@value": 34
-                        },
-                        {
-                          "@value": "still ordered"
-                        },
-                        {
-                          "@value": false
-                        }
-                      ]
+                      "@value": 34
+                    },
+                    {
+                      "@value": "still ordered"
+                    },
+                    {
+                      "@value": false
                     }
                   ]
                 },

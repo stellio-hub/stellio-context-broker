@@ -6,6 +6,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_VALUE_TYPE_IRI
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
@@ -226,6 +227,21 @@ class AttributeUtilsTests {
                 AttributeType.ListRelationship,
                 expandedListRelationship.second[0]
             ).shouldSucceedAndResult()
+        )
+    }
+
+    @Test
+    fun `simplifyListRelationshipValue should unnest the object id`() = runTest {
+        val uris = listOf("urn:entity:2", "urn:entity:1", "urn:entity:2")
+        val expanded = expandAttribute(
+            "orderedRelationships",
+            mapOf("type" to "ListRelationship", "objectList" to uris.map { mapOf("object" to it) }),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        assertEquals(
+            mapOf("@list" to uris.map { mapOf("@value" to it) }),
+            expanded[NGSILD_LISTRELATIONSHIP_OBJECT_LIST]!!.simplifyListRelationshipValue()
         )
     }
 

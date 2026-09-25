@@ -27,6 +27,7 @@ import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_VALUE_TYPE_IRI
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NgsiLdAttributeInstance
 import com.egm.stellio.shared.model.NgsiLdEntity
@@ -115,7 +116,7 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
             Triple(
                 AttributeType.ListRelationship,
                 Attribute.AttributeValueType.ARRAY,
-                Triple(this.objectList.asJsonB(), null, null)
+                Triple(this.objectList.simplifyListRelationshipValue().asJsonB(), null, null)
             )
     }
     if (attributeValue == Triple(null, null, null)) {
@@ -288,6 +289,22 @@ private fun applyPropertyNgsiLdNullRemoval(
     }.keys
 
     return if (nullKeys.isEmpty()) merged else merged.filterKeys { it !in nullKeys }
+}
+
+// Extracts an ordered expanded URI list for temporal storage.
+fun Any.simplifyListRelationshipValue(): Map<String, Any> {
+    val listObject = (if (this is List<*>) single() else this) as Map<*, *>
+    val entries = listObject[JSONLD_LIST_KW] as List<Map<String, Any>>
+    return mapOf(
+        JSONLD_LIST_KW to entries.flatMap { entry ->
+            if (entry.containsKey(NGSILD_RELATIONSHIP_OBJECT)) {
+                val objects = entry[NGSILD_RELATIONSHIP_OBJECT] as List<Map<String, Any>>
+                objects.map { mapOf(JSONLD_VALUE_KW to it[JSONLD_ID_KW]!!) }
+            } else {
+                listOf(mapOf(JSONLD_VALUE_KW to (entry[JSONLD_ID_KW] ?: entry[JSONLD_VALUE_KW])!!))
+            }
+        }
+    )
 }
 
 /**

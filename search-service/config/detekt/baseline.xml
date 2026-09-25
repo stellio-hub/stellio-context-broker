@@ -8,6 +8,7 @@
     <ID>ComplexCondition:EntitiesQueryUtils.kt$typeSelection.isNullOrEmpty() &amp;&amp; keep.isEmpty() &amp;&amp; drop.isEmpty() &amp;&amp; q == null &amp;&amp; geoQuery == null &amp;&amp; !local</ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
+    <ID>LongMethod:AttributeUtils.kt$fun NgsiLdAttributeInstance.toAttributeMetadata(): Either&lt;APIException, AttributeMetadata&gt;</ID>
     <ID>LongMethod:ContextSourceRegistrationService.kt$ContextSourceRegistrationService$@Transactional suspend fun upsert( csr: ContextSourceRegistration ): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EntitiesQueryUtils.kt$fun composeEntitiesQueryFromPost( defaultPagination: ApplicationProperties.Pagination, query: Query, queryParams: MultiValueMap&lt;String, String&gt;, contexts: List&lt;String&gt; ): Either&lt;APIException, EntitiesQueryFromPost&gt;</ID>
     <ID>LongMethod:EntitiesQueryUtilsTests.kt$EntitiesQueryUtilsTests$@Test fun `composeEntitiesQueryFromPost should parse a valid complete Query datatype`()</ID>

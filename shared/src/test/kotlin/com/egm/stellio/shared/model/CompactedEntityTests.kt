@@ -921,7 +921,7 @@ class CompactedEntityTests {
         assertJsonPayloadsAreEqual(expectedSimplifiedRepresentation, serializeObject(simplifiedRepresentation))
     }
 
-     @Test
+    @Test
     fun `toSimplifiedAttributes should simplify a ListProperty`() {
         val compactedEntity = mapOf(
             "listProperty" to mapOf(
@@ -1428,8 +1428,6 @@ class CompactedEntityTests {
             conciseListRelationship[NGSILD_ENTITY_LIST_TERM]
         )
     }
-
-
 
     @Test
     fun `toFinalRepresentation should apply concise transformation when CONCISE is requested`() {

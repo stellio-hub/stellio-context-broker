@@ -791,16 +791,8 @@ class TemporalEntityParameterizedSource {
                                     """
                                     {
                                       "@list": [
-                                        {
-                                          "https://uri.etsi.org/ngsi-ld/hasObject": [
-                                            { "@id": "urn:ngsi-ld:Entity:1234" }
-                                          ]
-                                        },
-                                        {
-                                          "https://uri.etsi.org/ngsi-ld/hasObject": [
-                                            { "@id": "urn:ngsi-ld:Entity:5678" }
-                                          ]
-                                        }
+                                        { "@value": "urn:ngsi-ld:Entity:1234" },
+                                        { "@value": "urn:ngsi-ld:Entity:5678" }
                                       ]
                                     }
                                     """.trimIndent()
@@ -813,16 +805,8 @@ class TemporalEntityParameterizedSource {
                                     """
                                     {
                                       "@list": [
-                                        {
-                                          "https://uri.etsi.org/ngsi-ld/hasObject": [
-                                            { "@id": "urn:ngsi-ld:Entity:5678" }
-                                          ]
-                                        },
-                                        {
-                                          "https://uri.etsi.org/ngsi-ld/hasObject": [
-                                            { "@id": "urn:ngsi-ld:Entity:1234" }
-                                          ]
-                                        }
+                                        { "@value": "urn:ngsi-ld:Entity:5678" },
+                                        { "@value": "urn:ngsi-ld:Entity:1234" }
                                       ]
                                     }
                                     """.trimIndent()

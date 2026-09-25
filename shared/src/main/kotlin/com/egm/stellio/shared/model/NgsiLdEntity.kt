@@ -621,7 +621,7 @@ class NgsiLdListRelationshipInstance private constructor(
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdListRelationshipInstance> = either {
             val objectList = values[NGSILD_LISTRELATIONSHIP_OBJECT_LIST]
-            ensureNotNull(objectList){
+            ensureNotNull(objectList) {
                 BadRequestDataException(listRelationshipMissingObjectListMessage(name))
             }
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)

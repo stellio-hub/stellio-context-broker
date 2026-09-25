@@ -657,6 +657,7 @@ class CompactedEntityLinkedTests {
             serializeObject(linkingEntity.inlineLinkedEntities(linkedEntities))
         )
     }
+
     @Test
     fun `withoutSysAttrs should remove sysAttrs from inlined entities`() = runTest {
         val inlineLinkingEntity = """

@@ -12,7 +12,6 @@ import com.egm.stellio.shared.model.AttributeCompactedType.LISTRELATIONSHIP
 import com.egm.stellio.shared.model.AttributeCompactedType.PROPERTY
 import com.egm.stellio.shared.model.AttributeCompactedType.RELATIONSHIP
 import com.egm.stellio.shared.model.AttributeCompactedType.VOCABPROPERTY
-import com.egm.stellio.shared.model.NGSILD_ENTITY_LIST_TERM
 import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.NO_ENTITY_MEMBER_AFTER_PROJECTION_MESSAGE
 import com.egm.stellio.shared.util.FEATURES_PROPERTY_TERM

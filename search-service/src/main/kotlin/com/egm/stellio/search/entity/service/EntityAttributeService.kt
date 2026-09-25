@@ -31,6 +31,7 @@ import com.egm.stellio.search.entity.util.hasNgsiLdNullValue
 import com.egm.stellio.search.entity.util.mergePatch
 import com.egm.stellio.search.entity.util.partialUpdatePatch
 import com.egm.stellio.search.entity.util.prepareAttributes
+import com.egm.stellio.search.entity.util.simplifyListRelationshipValue
 import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.entity.util.toExpandedAttributeInstance
 import com.egm.stellio.search.temporal.model.AttributeInstance
@@ -80,7 +81,6 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -383,9 +383,10 @@ class EntityAttributeService(
             }
 
         attributesToDeleteWithPayload.forEach { (attribute, expandedAttributePayload) ->
+            val value = expandedAttributePayload.getMemberValue(attribute.attributeType.toExpandedValueMember()).bind()
             attributeInstanceService.addDeletedAttributeInstance(
                 attributeUuid = attribute.id,
-                value = NGSILD_NULL.asJsonB(),
+                value = value.asJsonB(),
                 deletedAt = deletedAt,
                 attributeValues = expandedAttributePayload
             ).bind()
@@ -991,7 +992,8 @@ class EntityAttributeService(
                 )
             Attribute.AttributeType.ListRelationship ->
                 Triple(
-                    attributePayload.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST).bind().asJsonB(),
+                    attributePayload.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST)
+                        .bind().simplifyListRelationshipValue().asJsonB(),
                     null,
                     null
                 )

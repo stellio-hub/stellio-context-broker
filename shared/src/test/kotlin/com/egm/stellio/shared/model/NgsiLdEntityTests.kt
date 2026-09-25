@@ -1291,12 +1291,12 @@ class NgsiLdEntityTests {
         assertEquals(
             listOf(
                 mapOf(
-                JSONLD_LIST_KW to listOf(
-                    mapOf(JSONLD_VALUE_KW to 12),
-                    mapOf(JSONLD_VALUE_KW to "ordered"),
-                    mapOf(JSONLD_VALUE_KW to true)
+                    JSONLD_LIST_KW to listOf(
+                        mapOf(JSONLD_VALUE_KW to 12),
+                        mapOf(JSONLD_VALUE_KW to "ordered"),
+                        mapOf(JSONLD_VALUE_KW to true)
+                    )
                 )
-            )
             ),
             listProperty.instances.single().valueList
         )
@@ -1348,20 +1348,22 @@ class NgsiLdEntityTests {
         val listRelationship = ngsiLdEntity.listRelationships.single()
         assertEquals("${NGSILD_DEFAULT_VOCAB}listRelationship", listRelationship.name)
         assertEquals(
-            listOf(mapOf(
-                JSONLD_LIST_KW to listOf(
-                    mapOf(
-                        NGSILD_RELATIONSHIP_OBJECT to listOf(
-                            mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:01")
-                        )
-                    ),
-                    mapOf(
-                        NGSILD_RELATIONSHIP_OBJECT to listOf(
-                            mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:02")
+            listOf(
+                mapOf(
+                    JSONLD_LIST_KW to listOf(
+                        mapOf(
+                            NGSILD_RELATIONSHIP_OBJECT to listOf(
+                                mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:01")
+                            )
+                        ),
+                        mapOf(
+                            NGSILD_RELATIONSHIP_OBJECT to listOf(
+                                mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:02")
+                            )
                         )
                     )
                 )
-            )),
+            ),
             listRelationship.instances.single().objectList
         )
     }

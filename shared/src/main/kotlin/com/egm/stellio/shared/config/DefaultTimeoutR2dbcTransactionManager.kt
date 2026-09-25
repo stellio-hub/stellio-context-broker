@@ -34,6 +34,10 @@ class DefaultTimeoutR2dbcTransactionManager(
         connection: Connection,
         definition: TransactionDefinition
     ): Mono<Void> {
+        // if not specifically overriden for a transaction (@Transactional(timeout = ...), just return
+        if (definition.timeout == TransactionDefinition.TIMEOUT_DEFAULT)
+            return Mono.empty()
+
         val timeout = resolveTimeout(definition)
         if (!timeout.isPositive)
             return Mono.empty()

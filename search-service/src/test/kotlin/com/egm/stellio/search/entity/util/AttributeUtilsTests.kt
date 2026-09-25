@@ -3,6 +3,7 @@ package com.egm.stellio.search.entity.util
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Attribute.AttributeType
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
@@ -194,6 +195,53 @@ class AttributeUtilsTests {
     }
 
     @Test
+    fun `guessAttributeValueType should guess the value type of list attributes`() = runTest {
+        val expandedListProperty = expandAttribute(
+            "listProperty",
+            mapOf(
+                "type" to "ListProperty",
+                "valueList" to listOf(12, "ordered", true)
+            ),
+            NGSILD_TEST_CORE_CONTEXTS
+        )
+        val expandedListRelationship = expandAttribute(
+            "listRelationship",
+            mapOf(
+                "type" to "ListRelationship",
+                "objectList" to listOf("urn:ngsi-ld:Entity:01", "urn:ngsi-ld:Entity:02")
+            ),
+            NGSILD_TEST_CORE_CONTEXTS
+        )
+
+        assertEquals(
+            Attribute.AttributeValueType.ARRAY,
+            guessAttributeValueType(AttributeType.ListProperty, expandedListProperty.second[0]).shouldSucceedAndResult()
+        )
+        assertEquals(
+            Attribute.AttributeValueType.ARRAY,
+            guessAttributeValueType(
+                AttributeType.ListRelationship,
+                expandedListRelationship.second[0]
+            ).shouldSucceedAndResult()
+        )
+    }
+
+    @Test
+    fun `simplifyListRelationshipValue should unnest the object id`() = runTest {
+        val uris = listOf("urn:entity:2", "urn:entity:1", "urn:entity:2")
+        val expanded = expandAttribute(
+            "orderedRelationships",
+            mapOf("type" to "ListRelationship", "objectList" to uris.map { mapOf("object" to it) }),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        assertEquals(
+            mapOf("@list" to uris.map { mapOf("@value" to it) }),
+            expanded[NGSILD_LISTRELATIONSHIP_OBJECT_LIST]!!.simplifyListRelationshipValue()
+        )
+    }
+
+    @Test
     fun `hasNgsiLdNullValue should find a Property whose value is NGSI-LD Null`() = runTest {
         val expandedProperty = expandAttribute(
             """
@@ -261,6 +309,35 @@ class AttributeUtilsTests {
         ).second[0]
 
         assertTrue(hasNgsiLdNullValue(expandedProperty, AttributeType.Relationship))
+    }
+
+    @Test
+    fun `hasNgsiLdNullValue should find list attributes whose value is NGSI-LD Null`() = runTest {
+        val expandedListProperty = expandAttribute(
+            """
+                {
+                    "listProperty": {
+                        "type": "ListProperty",
+                        "valueList": ["urn:ngsi-ld:null"]
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+        val expandedListRelationship = expandAttribute(
+            """
+                {
+                    "listRelationship": {
+                        "type": "ListRelationship",
+                        "objectList": ["urn:ngsi-ld:null"]
+                    }
+                }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
+
+        assertTrue(hasNgsiLdNullValue(expandedListProperty, AttributeType.ListProperty))
+        assertTrue(hasNgsiLdNullValue(expandedListRelationship, AttributeType.ListRelationship))
     }
 
     @Test

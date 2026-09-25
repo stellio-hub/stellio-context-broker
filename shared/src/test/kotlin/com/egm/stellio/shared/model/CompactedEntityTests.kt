@@ -60,6 +60,39 @@ class CompactedEntityTests {
         }
         """.trimIndent()
 
+    private fun createListRelationshipEntity(withInlineEntities: Boolean = false): CompactedEntity {
+        val listRelationship = mapOf(
+            NGSILD_TYPE_TERM to NGSILD_LISTRELATIONSHIP_TERM,
+            NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM to listOf(
+                mapOf(NGSILD_OBJECT_TERM to "urn:ngsi-ld:Entity:02"),
+                mapOf(NGSILD_OBJECT_TERM to "urn:ngsi-ld:Entity:03")
+            )
+        ).let {
+            if (withInlineEntities)
+                it.plus(
+                    NGSILD_ENTITY_LIST_TERM to listOf(
+                        mapOf(
+                            NGSILD_ID_TERM to "urn:ngsi-ld:Entity:02",
+                            NGSILD_TYPE_TERM to "Entity",
+                            "name" to mapOf(NGSILD_TYPE_TERM to NGSILD_PROPERTY_TERM, NGSILD_VALUE_TERM to "second")
+                        ),
+                        mapOf(
+                            NGSILD_ID_TERM to "urn:ngsi-ld:Entity:03",
+                            NGSILD_TYPE_TERM to "Entity",
+                            "name" to mapOf(NGSILD_TYPE_TERM to NGSILD_PROPERTY_TERM, NGSILD_VALUE_TERM to "third")
+                        )
+                    )
+                )
+            else it
+        }
+
+        return mapOf(
+            NGSILD_ID_TERM to "urn:ngsi-ld:Entity:01",
+            NGSILD_TYPE_TERM to "Entity",
+            "listRelationship" to listRelationship
+        )
+    }
+
     @Test
     fun `filterPickAndOmit should filter the entity members based on pick parameter`() = runTest {
         val entity = loadSampleData("beehive_with_single_attribute_instances.jsonld").deserializeAsMap()
@@ -866,6 +899,57 @@ class CompactedEntityTests {
     }
 
     @Test
+    fun `toSimplifiedAttributes should simplify a ListProperty`() {
+        val compactedEntity = mapOf(
+            "listProperty" to mapOf(
+                NGSILD_TYPE_TERM to NGSILD_LISTPROPERTY_TERM,
+                NGSILD_LISTPROPERTY_VALUE_LIST_TERM to listOf(12, "ordered", true)
+            )
+        )
+
+        assertEquals(
+            listOf(12, "ordered", true),
+            compactedEntity.toSimplifiedAttributes()["listProperty"]
+        )
+    }
+
+    @Test
+    fun `toSimplifiedAttributes should simplify a ListRelationship`() {
+        assertEquals(
+            listOf("urn:ngsi-ld:Entity:02", "urn:ngsi-ld:Entity:03"),
+            createListRelationshipEntity().toSimplifiedAttributes()["listRelationship"]
+        )
+    }
+
+    @Test
+    fun `toSimplifiedAttributes should simplify an inline ListRelationship`() {
+        val inlinedEntity = createListRelationshipEntity(withInlineEntities = true)
+        val simplifiedRepresentation = inlinedEntity.toSimplifiedAttributes()
+
+        assertJsonPayloadsAreEqual(
+            """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "listRelationship": [
+                    {
+                        "id": "urn:ngsi-ld:Entity:02",
+                        "type": "Entity",
+                        "name": "second"
+                    },
+                    {
+                        "id": "urn:ngsi-ld:Entity:03",
+                        "type": "Entity",
+                        "name": "third"
+                    }
+                ]
+            }
+            """.trimIndent(),
+            serializeObject(simplifiedRepresentation)
+        )
+    }
+
+    @Test
     fun `getTypeAndValue should find the value of a property`() = runTest {
         val compactedAttributeInstance = mapOf(
             "type" to "Property",
@@ -888,6 +972,31 @@ class CompactedEntityTests {
         compactedAttributeInstance.getTypeAndValue().let {
             assertEquals(NGSILD_LANGUAGEPROPERTY_TERM, it.first)
             assertEquals(2, (it.second as Map<*, *>).size)
+        }
+    }
+
+    @Test
+    fun `getTypeAndValue should find the value of a ListProperty`() = runTest {
+        mapOf(
+            "type" to "ListProperty",
+            "valueList" to listOf(12, "ordered", true)
+        ).getTypeAndValue().let {
+            assertEquals(NGSILD_LISTPROPERTY_TERM, it.first)
+            assertEquals(listOf(12, "ordered", true), it.second)
+        }
+    }
+
+    @Test
+    fun `getTypeAndValue should find the value of a ListRelationship`() = runTest {
+        mapOf(
+            "type" to "ListRelationship",
+            "objectList" to listOf(
+                mapOf("object" to "urn:ngsi-ld:Entity:02"),
+                mapOf("object" to "urn:ngsi-ld:Entity:03")
+            )
+        ).getTypeAndValue().let {
+            assertEquals(NGSILD_LISTRELATIONSHIP_TERM, it.first)
+            assertEquals(2, (it.second as List<*>).size)
         }
     }
 
@@ -1268,6 +1377,33 @@ class CompactedEntityTests {
         val result = entity.toConciseAttributes()
 
         assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `toConciseAttributes should make a ListRelationship objectList concise`() {
+        val compactedEntity = createListRelationshipEntity()
+
+        val conciseListRelationship =
+            compactedEntity.toConciseAttributes()["listRelationship"] as Map<*, *>
+        assertEquals(
+            listOf("urn:ngsi-ld:Entity:02", "urn:ngsi-ld:Entity:03"),
+            conciseListRelationship[NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM]
+        )
+    }
+
+    @Test
+    fun `toConciseAttributes should make an inline ListRelationship concise`() {
+        val inlinedEntity = createListRelationshipEntity(withInlineEntities = true)
+
+        val conciseListRelationship =
+            inlinedEntity.toConciseAttributes()["listRelationship"] as Map<*, *>
+        assertEquals(
+            listOf(
+                mapOf("id" to "urn:ngsi-ld:Entity:02", "type" to "Entity", "name" to "second"),
+                mapOf("id" to "urn:ngsi-ld:Entity:03", "type" to "Entity", "name" to "third")
+            ),
+            conciseListRelationship[NGSILD_ENTITY_LIST_TERM]
+        )
     }
 
     @Test

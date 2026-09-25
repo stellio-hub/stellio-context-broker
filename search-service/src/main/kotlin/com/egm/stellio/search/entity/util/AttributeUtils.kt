@@ -18,6 +18,7 @@ import com.egm.stellio.shared.model.ExpandedLanguageMapValue
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
+import com.egm.stellio.shared.model.JSONLD_LIST_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
@@ -25,12 +26,15 @@ import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NgsiLdAttributeInstance
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdJsonPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdLanguagePropertyInstance
+import com.egm.stellio.shared.model.NgsiLdListPropertyInstance
+import com.egm.stellio.shared.model.NgsiLdListRelationshipInstance
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.NgsiLdVocabPropertyInstance
@@ -101,6 +105,18 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
                 Attribute.AttributeValueType.ARRAY,
                 Triple(this.vocab.asJsonB(), null, null)
             )
+        is NgsiLdListPropertyInstance ->
+            Triple(
+                AttributeType.ListProperty,
+                Attribute.AttributeValueType.ARRAY,
+                Triple(this.valueList.asJsonB(), null, null)
+            )
+        is NgsiLdListRelationshipInstance ->
+            Triple(
+                AttributeType.ListRelationship,
+                Attribute.AttributeValueType.ARRAY,
+                Triple(this.objectList.simplifyListRelationshipValue().asJsonB(), null, null)
+            )
     }
     if (attributeValue == Triple(null, null, null)) {
         JsonLdUtils.logger.warn("Unable to get a value from attribute: $this")
@@ -132,6 +148,8 @@ fun guessAttributeValueType(
         AttributeType.JsonProperty -> Attribute.AttributeValueType.JSON
         AttributeType.LanguageProperty -> Attribute.AttributeValueType.ARRAY
         AttributeType.VocabProperty -> Attribute.AttributeValueType.ARRAY
+        AttributeType.ListProperty -> Attribute.AttributeValueType.ARRAY
+        AttributeType.ListRelationship -> Attribute.AttributeValueType.ARRAY
     }
 }
 
@@ -180,8 +198,10 @@ private fun isNgsiLdNullDatasetId(attrName: ExpandedTerm, attrValue: List<Any>):
     attrName == NGSILD_DATASET_ID_IRI &&
         (attrValue.firstOrNull() as? Map<*, *>)?.get(JSONLD_ID_KW) == NGSILD_NULL
 
-private fun isNgsiLdNullValue(attrValue: List<Any>): Boolean =
-    (attrValue.firstOrNull() as? Map<*, *>)?.get(JSONLD_VALUE_KW) == NGSILD_NULL
+private fun isNgsiLdNullValue(attrValue: List<Any>): Boolean {
+    val value = attrValue.firstOrNull() as? Map<*, *> ?: return false
+    return value[JSONLD_VALUE_KW] == NGSILD_NULL || value.isNgsiLdNullJsonLdList()
+}
 
 private fun mergeLanguageProperty(
     source: ExpandedAttributeInstance,
@@ -267,6 +287,22 @@ private fun applyPropertyNgsiLdNullRemoval(
     return if (nullKeys.isEmpty()) merged else merged.filterKeys { it !in nullKeys }
 }
 
+// Extracts an ordered expanded URI list for temporal storage.
+fun Any.simplifyListRelationshipValue(): Map<String, Any> {
+    val listObject = (if (this is List<*>) single() else this) as Map<*, *>
+    val entries = listObject[JSONLD_LIST_KW] as List<Map<String, Any>>
+    return mapOf(
+        JSONLD_LIST_KW to entries.flatMap { entry ->
+            if (entry.containsKey(NGSILD_RELATIONSHIP_OBJECT)) {
+                val objects = entry[NGSILD_RELATIONSHIP_OBJECT] as List<Map<String, Any>>
+                objects.map { mapOf(JSONLD_VALUE_KW to it[JSONLD_ID_KW]!!) }
+            } else {
+                listOf(mapOf(JSONLD_VALUE_KW to (entry[JSONLD_ID_KW] ?: entry[JSONLD_VALUE_KW])!!))
+            }
+        }
+    )
+}
+
 /**
  * Returns whether the expanded attribute instance holds a NGSI-LD Null value
  */
@@ -274,14 +310,27 @@ fun hasNgsiLdNullValue(
     expandedAttributeInstance: ExpandedAttributeInstance,
     attributeType: AttributeType
 ): Boolean =
-    if (attributeType == AttributeType.Relationship) {
-        val value = expandedAttributeInstance.getRelationshipId()
-        value is URI && value.toString() == NGSILD_NULL
-    } else {
-        val value = expandedAttributeInstance
-            .getMemberValue(attributeType.toExpandedValueMember()).getOrNull()
-        value is String && value == NGSILD_NULL
+    when (attributeType) {
+        AttributeType.Relationship -> {
+            val value = expandedAttributeInstance.getRelationshipId()
+            value is URI && value.toString() == NGSILD_NULL
+        }
+        AttributeType.ListProperty,
+        AttributeType.ListRelationship ->
+            expandedAttributeInstance
+                .getMemberValue(attributeType.toExpandedValueMember())
+                .getOrNull()
+                .isNgsiLdNullJsonLdList()
+        else -> {
+            val value = expandedAttributeInstance
+                .getMemberValue(attributeType.toExpandedValueMember()).getOrNull()
+            value is String && value == NGSILD_NULL
+        }
     }
+
+// ["urn:ngsi-ld:null"] is expanded into {"@list": [{"@value": "urn:ngsi-ld:null"}]}
+private fun Any?.isNgsiLdNullJsonLdList(): Boolean =
+    this == mapOf(JSONLD_LIST_KW to listOf(mapOf(JSONLD_VALUE_KW to NGSILD_NULL)))
 
 fun Json.toExpandedAttributeInstance(): ExpandedAttributeInstance =
     this.deserializeAsMap() as ExpandedAttributeInstance

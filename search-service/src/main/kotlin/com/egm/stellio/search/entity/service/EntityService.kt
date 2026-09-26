@@ -355,30 +355,21 @@ class EntityService(
         newTypes: List<ExpandedTerm>,
         modifiedAt: ZonedDateTime
     ): Either<APIException, SucceededAttributeOperationResult> = either {
+        val allTypes = """
+            types || ARRAY(
+                SELECT t
+                FROM unnest(:new_types::text[]) WITH ORDINALITY AS u(t, ord)
+                WHERE t <> ALL(types)
+                ORDER BY ord
+            )
+        """.trimIndent()
         databaseClient.sql(
             """
-            WITH new_types AS (
-                SELECT COALESCE(
-                    (
-                        SELECT array_agg(new_type ORDER BY ordinality)
-                        FROM unnest(:new_types::text[]) WITH ORDINALITY AS u(new_type, ordinality)
-                        WHERE new_type <> ALL(ep.types)
-                    ),
-                    '{}'::text[]
-                ) AS to_add
-                FROM entity_payload ep
-                WHERE ep.entity_id = :entity_id
-                FOR UPDATE OF ep
-            )
             UPDATE entity_payload
-            SET types = entity_payload.types || new_types.to_add,
+            SET types = $allTypes,
                 modified_at = :modified_at,
-                payload = entity_payload.payload || jsonb_build_object(
-                    '@type',
-                    to_jsonb(entity_payload.types || new_types.to_add)
-                )
-            FROM new_types
-            WHERE entity_payload.entity_id = :entity_id
+                payload = payload || jsonb_build_object('$JSONLD_TYPE_KW', $allTypes)
+            WHERE entity_id = :entity_id
             RETURNING types
             """.trimIndent()
         )

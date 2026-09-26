@@ -67,6 +67,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -1080,6 +1081,29 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             }
         }
         """.trimIndent()
+
+    @Test
+    fun `updateTypes should not duplicate a type when concurrent requests add the same type`() = runBlocking {
+        val newType = "https://uri.etsi.org/ngsi-ld/default-context/AnotherType"
+
+        loadMinimalEntity(entity01Uri, setOf(BEEHIVE_IRI))
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, now) }
+
+        (1..12)
+            .map { async(Dispatchers.Default) { entityService.updateTypes(entity01Uri, listOf(newType), now) } }
+            .awaitAll()
+            .forEach { it.shouldSucceed() }
+
+        entityQueryService.retrieve(entity01Uri)
+            .shouldSucceedWith { entity ->
+                assertEquals(listOf(BEEHIVE_IRI, newType), entity.types)
+                assertEquals(
+                    listOf(BEEHIVE_IRI, newType),
+                    entity.toExpandedEntity().members[JSONLD_TYPE_KW]
+                )
+            }
+    }
 
     // Not using runTest here: this test needs updateTypes() and mergeAttribute() to genuinely race
     // against each other at the DB level, which requires real wall-clock concurrency rather than

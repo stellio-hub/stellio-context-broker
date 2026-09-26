@@ -368,6 +368,7 @@ class EntityService(
                 ) AS to_add
                 FROM entity_payload ep
                 WHERE ep.entity_id = :entity_id
+                FOR UPDATE OF ep
             )
             UPDATE entity_payload
             SET types = entity_payload.types || new_types.to_add,

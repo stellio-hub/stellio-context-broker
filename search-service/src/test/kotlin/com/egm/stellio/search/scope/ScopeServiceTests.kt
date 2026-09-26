@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertInstanceOf
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.EnumSource
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -186,6 +187,38 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         entityQueryService.retrieve(beehiveTestCId)
             .shouldSucceedWith {
                 assertEquals(listOf("/A", "/B"), it.scopes)
+            }
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+        OperationType::class,
+        names = ["UPDATE_ATTRIBUTES", "APPEND_ATTRIBUTES_OVERWRITE_ALLOWED", "MERGE_ENTITY_OVERWRITE_ALLOWED"]
+    )
+    fun `update should not duplicate a scope value in the payload when replacing scopes`(
+        operationType: OperationType
+    ) = runTest {
+        coEvery { authorizationService.createScopesOwnerRights(any()) } returns Unit.right()
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+
+        val expandedAttributes = JsonLdUtils.expandAttributes(
+            """{ "scope": ["/B", "/B"] }""",
+            APIC_COMPOUND_CONTEXTS
+        )
+
+        scopeService.update(
+            beehiveTestCId,
+            expandedAttributes[NGSILD_SCOPE_IRI]!!,
+            ngsiLdDateTime(),
+            operationType
+        ).shouldSucceedWith { assertNotNull(it) }
+
+        entityQueryService.retrieve(beehiveTestCId)
+            .shouldSucceedWith {
+                assertEquals(listOf("/B"), it.scopes)
+                assertEquals(listOf("/B"), it.payload.toExpandedAttributeInstance().getScopes())
             }
     }
 

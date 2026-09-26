@@ -263,7 +263,7 @@ class ScopeService(
             OperationType.UPDATE_ATTRIBUTES,
             OperationType.APPEND_ATTRIBUTES_OVERWRITE_ALLOWED,
             OperationType.MERGE_ENTITY_OVERWRITE_ALLOWED ->
-                Pair(scopes, performReplace(entityId, scopes, modifiedAt, expandedAttributeInstances).bind())
+                Pair(scopes, performReplace(entityId, scopes, modifiedAt).bind())
             OperationType.APPEND_ATTRIBUTES, OperationType.MERGE_ENTITY ->
                 performAppend(entityId, scopes, modifiedAt).bind()
             else -> return@either FailedAttributeOperationResult(
@@ -290,9 +290,9 @@ class ScopeService(
     internal suspend fun performReplace(
         entityId: URI,
         scopes: List<Scope>,
-        modifiedAt: ZonedDateTime,
-        scopeValue: ExpandedAttributeInstances
+        modifiedAt: ZonedDateTime
     ): Either<APIException, SucceededAttributeOperationResult> = either {
+        val scopeValue = scopes.map { mapOf(JSONLD_VALUE_KW to it) }
         val patch = mapOf(NGSILD_SCOPE_IRI to scopeValue)
         databaseClient.sql(
             """

@@ -1017,7 +1017,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val datasetIdY = "urn:ngsi-ld:Dataset:Y".toUri()
 
         // force both concurrent mergeAttribute() calls to be in-flight at the same time, so they
-        // genuinely race for the entity_payload row lock in patchEntityPayload
+        // genuinely race for the entity_payload row lock in applyAttributeOperationsToPayload
         listOf(datasetIdX, datasetIdY).forEach { datasetId ->
             coEvery {
                 entityAttributeService.mergeAttributes(

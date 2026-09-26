@@ -499,7 +499,7 @@ class EntityService(
         ).bind()
 
         if (operationResult.isNotEmpty()) {
-            val updatedEntity = patchEntityPayload(entityId, mergedAt, operationResult).bind()
+            val updatedEntity = applyAttributeOperationsToPayload(entityId, mergedAt, operationResult).bind()
             entityEventService.publishAttributeChangeEvents(null, originalEntity, updatedEntity, operationResult)
         }
 
@@ -529,7 +529,7 @@ class EntityService(
 
         // if only added history entries, operationResults is empty and nothing more has to be done
         if (operationResults.isNotEmpty())
-            patchEntityPayload(entityId, createdAt, operationResults).bind()
+            applyAttributeOperationsToPayload(entityId, createdAt, operationResults).bind()
     }
 
     @Transactional
@@ -569,7 +569,7 @@ class EntityService(
     ): Either<APIException, Unit> = either {
         if (operationResult.hasSuccessfulResult()) {
             val sub = getSubFromSecurityContext()
-            val updatedEntity = patchEntityPayload(
+            val updatedEntity = applyAttributeOperationsToPayload(
                 entityId,
                 createdAt,
                 operationResult.getSucceededOperations(false)
@@ -715,7 +715,7 @@ class EntityService(
                 deletedAt
             ).bind()
         }
-        val updatedEntity = patchEntityPayload(
+        val updatedEntity = applyAttributeOperationsToPayload(
             entityId,
             deletedAt,
             deleteAttributeResults.getSucceededOperations(false)
@@ -841,7 +841,7 @@ class EntityService(
                 removeAttributeFromPayload(entityId, modifiedAt, attributeName).bind()
             } else {
                 entityAttributeService.permanentlyDeleteAttribute(entityId, attributeName, datasetId, false).bind()
-                patchEntityPayload(
+                applyAttributeOperationsToPayload(
                     entityId,
                     modifiedAt,
                     listOf(
@@ -857,7 +857,7 @@ class EntityService(
         }
     }
 
-    private suspend fun patchEntityPayload(
+    private suspend fun applyAttributeOperationsToPayload(
         entityId: URI,
         modifiedAt: ZonedDateTime,
         operationResults: List<SucceededAttributeOperationResult>
@@ -870,61 +870,61 @@ class EntityService(
             .filter { it.attributeName !in EXPANDED_ENTITY_CORE_MEMBERS }
             .groupBy { it.attributeName }
 
-        val updatedPayload = mergeAttributesIntoPayload(entityId, attributesByNames, modifiedAt, modifiedAtPatch).bind()
+        val updatedPayload = mergeAttributeInstancesIntoPayload(
+            entityId,
+            attributesByNames,
+            modifiedAt,
+            modifiedAtPatch
+        ).bind()
         ExpandedEntity(updatedPayload.deserializeExpandedPayload())
     }
 
-    // For every distinct attribute touched by the operation, keeps that attribute's untouched instances,
-    // drops the touched ones, and appends the new/updated ones, all in a single UPDATE.
-    private suspend fun mergeAttributesIntoPayload(
+    // For every distinct attribute touched by the operation: keep the untouched instances, drop the touched ones,
+    // then append the new or updated ones. All in a single UPDATE statement.
+    private suspend fun mergeAttributeInstancesIntoPayload(
         entityId: URI,
         attributesByNames: Map<ExpandedTerm, List<SucceededAttributeOperationResult>>,
         modifiedAt: ZonedDateTime,
         modifiedAtPatch: Json
     ): Either<APIException, Json> {
         val batch = attributesByNames.map { (attrName, results) -> buildMergeBatchEntry(attrName, results) }
-        // computes the merged (kept + new) instance array for each attribute
-        // used twice below:
-        //   - once to find attribute names whose merged array is now empty (to remove from payload)
-        //   - once for the others (to set on payload)
-        val mergedInstancesPerAttribute = """
-            SELECT
-                item ->> 'attrName' AS attr_name,
-                COALESCE(
-                    (
-                        SELECT jsonb_agg(elem)
-                        FROM jsonb_array_elements(
-                            COALESCE(payload -> (item ->> 'attrName'), '[]'::jsonb)
-                        ) AS elem
-                        WHERE COALESCE(
-                            elem #>> '{$NGSILD_DATASET_ID_IRI,0,$JSONLD_ID_KW}', '$JSONLD_NONE_KW'
-                        ) <> ALL (ARRAY(SELECT jsonb_array_elements_text(item -> 'excludedDatasetIds')))
-                    ),
-                    '[]'::jsonb
-                ) || COALESCE(item -> 'newInstances', '[]'::jsonb) AS merged_instances
-            FROM jsonb_array_elements(:batch::jsonb) AS item
-        """.trimIndent()
-
+        // The CTE locks the entity row (FOR UPDATE) so that, under concurrent writes, the merged instances
+        // are computed from the latest committed payload, and is evaluated once for both aggregates below.
         return databaseClient.sql(
             """
+            WITH merged AS (
+                SELECT
+                    item ->> 'attrName' AS attr_name,
+                    COALESCE(
+                        (
+                            SELECT jsonb_agg(elem)
+                            FROM jsonb_array_elements(
+                                COALESCE(ep.payload -> (item ->> 'attrName'), '[]'::jsonb)
+                            ) AS elem
+                            WHERE COALESCE(
+                                elem #>> '{$NGSILD_DATASET_ID_IRI,0,$JSONLD_ID_KW}', '$JSONLD_NONE_KW'
+                            ) <> ALL (ARRAY(SELECT jsonb_array_elements_text(item -> 'excludedDatasetIds')))
+                        ),
+                        '[]'::jsonb
+                    ) || COALESCE(item -> 'newInstances', '[]'::jsonb) AS merged_instances
+                FROM entity_payload ep, jsonb_array_elements(:batch::jsonb) AS item
+                WHERE ep.entity_id = :entity_id
+                FOR UPDATE OF ep
+            )
             UPDATE entity_payload
             SET modified_at = :modified_at,
                 payload = (
                     (
                         payload - COALESCE(
-                            (
-                                SELECT array_agg(g.attr_name)
-                                FROM ($mergedInstancesPerAttribute) AS g
-                                WHERE g.merged_instances = '[]'::jsonb
-                            ),
+                            (SELECT array_agg(attr_name) FROM merged WHERE merged_instances = '[]'::jsonb),
                             '{}'::text[]
                         )
                     )
                     || COALESCE(
                         (
-                            SELECT jsonb_object_agg(g.attr_name, g.merged_instances)
-                            FROM ($mergedInstancesPerAttribute) AS g
-                            WHERE g.merged_instances <> '[]'::jsonb
+                            SELECT jsonb_object_agg(attr_name, merged_instances)
+                            FROM merged
+                            WHERE merged_instances <> '[]'::jsonb
                         ),
                         '{}'::jsonb
                     )
@@ -941,8 +941,8 @@ class EntityService(
             .oneToResult { toJson(it["payload"]) }
     }
 
-    // One entry for a given attribute name: the datasetIds whose existing instances must not be kept
-    // from the live payload (deleted or replaced by this operation), and the new/updated instances to append.
+    // For a given attribute, it calculates the datasetIds whose existing instances must not be kept
+    // (deleted or replaced by this operation), and the new/updated instances to append.
     private fun buildMergeBatchEntry(
         attrName: ExpandedTerm,
         results: List<SucceededAttributeOperationResult>
@@ -960,7 +960,7 @@ class EntityService(
         )
     }
 
-    // Only used for permanent deletion of an attribute (just drop the attribute from the entity payload)
+    // Only used for permanent deletion of an attribute
     private suspend fun removeAttributeFromPayload(
         entityId: URI,
         modifiedAt: ZonedDateTime,

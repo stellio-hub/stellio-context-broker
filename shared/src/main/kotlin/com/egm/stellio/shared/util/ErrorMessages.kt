@@ -101,6 +101,8 @@ object ErrorMessages {
     }
 
     object ServiceRegistration {
+        fun invalidServiceSchemaMessage(member: String) =
+            "Invalid service information '$member' schema"
         fun serviceRegistrationNotFoundMessage(id: URI) = "Service registration $id does not exist"
         fun serviceRegistrationAlreadyExistsMessage(id: URI) = "Service registration $id already exists"
         fun serviceRegistrationFailedToParseMessage(cause: String?) =
@@ -113,6 +115,7 @@ object ErrorMessages {
     }
 
     object ServiceExecution {
+        const val SERVICE_INPUT_SCHEMA_MISMATCH_MESSAGE = "Invalid service execution input"
         fun serviceExecutionNotFoundMessage(id: URI) = "Service execution $id does not exist"
         fun serviceExecutionAlreadyExistsMessage(id: URI) = "Service execution $id already exists"
         fun serviceExecutionFailedToParseMessage(cause: String?) =
@@ -126,12 +129,6 @@ object ErrorMessages {
             "Query parameter 'options' must be one of 'remove', 'cancel' or 'remove,cancel'"
         fun serviceExecutionCancellationNotImplementedMessage(id: URI) =
             "Cancellation of service execution $id is not implemented"
-        fun invalidServiceExecutionInputMessage(path: String, expected: String) =
-            "Invalid service execution input at '$path': expected $expected"
-        fun missingServiceExecutionInputMessage(path: String) =
-            "Invalid service execution input: required value '$path' is missing"
-        fun invalidInputElementKeyMessage(key: String) =
-            "Invalid InputInformation element key '$key': expected a non-negative index or '*'"
         fun serviceEndpointContactErrorMessage(serviceId: URI, endpoint: URI) =
             "Unable to contact service registration $serviceId at $endpoint"
     }

@@ -38,7 +38,7 @@ class ServiceExecutionLauncher(
     ): Either<APIException, ServiceExecution> = either {
         serviceExecution.verifyThatNoResultMembersArePresent().bind()
         val serviceRegistration = serviceRegistrationService.getById(serviceExecution.serviceId).bind()
-        serviceRegistration.serviceInformation.input?.checkValue(serviceExecution.input)?.bind()
+        serviceRegistration.serviceInformation.checkInput(serviceExecution.input).bind()
 
         serviceExecutionService.create(serviceExecution).bind()
         val serviceExecutionWithAnswer = if (serviceRegistration.serviceInformation.mode == ServiceMode.ASYNCHRONOUS) {

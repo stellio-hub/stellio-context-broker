@@ -18,6 +18,7 @@ nav:
   - User & Programmers Manual:
       - Information model : 'user/information_model.md'
       - API Walkthrough: 'user/API_walkthrough.md'
+      - Service registration and execution (beta): 'user/service_registration_and_execution.md'
       - NGSI-LD Query Language support: 'user/query_language.md'
       - Kafka telemetry ingestion: 'user/kafka_telemetry_ingestion.md'
       - Authentication and authorization: 'user/authentication_and_authorization.md'

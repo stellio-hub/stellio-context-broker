@@ -4,6 +4,8 @@ import com.egm.stellio.shared.model.EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.fasterxml.jackson.annotation.JsonIgnore
 import java.net.URI
+import java.time.ZonedDateTime
+import java.util.UUID
 
 /**
  * UpdateResult datatype as defined in 5.2.18
@@ -83,6 +85,17 @@ enum class OperationStatus {
 fun List<AttributeOperationResult>.hasSuccessfulResult(): Boolean =
     this.any { it is SucceededAttributeOperationResult }
 
-fun List<AttributeOperationResult>.getSucceededAttributesOperations(): List<SucceededAttributeOperationResult> =
+fun List<AttributeOperationResult>.getSucceededOperations(
+    onlyAttributes: Boolean = true
+): List<SucceededAttributeOperationResult> =
     this.filterIsInstance<SucceededAttributeOperationResult>()
-        .filter { it.attributeName !in EXPANDED_ENTITY_CORE_MEMBERS }
+        .let {
+            if (onlyAttributes)
+                it.filter { result -> result.attributeName !in EXPANDED_ENTITY_CORE_MEMBERS }
+            else it
+        }
+
+/**
+ * Result of an attribute upsert conveying the DB-generated UUID and timestamps to use when updating the entity payload
+ */
+internal data class AttributeUpsertResult(val id: UUID, val createdAt: ZonedDateTime, val modifiedAt: ZonedDateTime)

@@ -101,6 +101,7 @@ class ServiceExecutionLauncherTests {
         assertEquals(200, successfulExecution.responseStatusCode)
         verify(
             postRequestedFor(urlPathEqualTo("/invoke"))
+                .withHeader("Service-Execution", equalTo(execution.id.toString()))
                 .withRequestBody(equalTo("125"))
         )
     }
@@ -123,6 +124,7 @@ class ServiceExecutionLauncherTests {
         assertEquals(200, successfulExecution.responseStatusCode)
         verify(
             getRequestedFor(urlPathEqualTo("/invoke"))
+                .withHeader("Service-Execution", equalTo(execution.id.toString()))
                 .withRequestBody(equalTo("\"turn-on\""))
         )
     }
@@ -163,6 +165,11 @@ class ServiceExecutionLauncherTests {
         assertEquals(ServiceExecutionStatus.EXECUTING, successfulExecution.executionStatus)
         assertEquals(mapOf("accepted" to true), successfulExecution.output)
         assertEquals(200, successfulExecution.responseStatusCode)
+        verify(
+            postRequestedFor(urlPathEqualTo("/invoke"))
+                .withHeader("Service-Execution", equalTo(execution.id.toString()))
+                .withRequestBody(equalTo("125"))
+        )
     }
 
     @Test

@@ -4,7 +4,8 @@
 - Service information `input` and `output` contain JSON Schema documents, preserved as JSON.
 - Execution input is validated with NetworkNT before persistence and invocation; output validation is not implemented.
 - The document used `completed` but also `success` and `failure` i choose `success` and `failure` model.
-- The `Service-Execution` header is not used for the base Service execution CRUD.
+- Calls to the Service Executor include the execution ID in the `Service-Execution` header; the body contains only the input.
+- The base Service execution CRUD identifies executions by their resource URI, without requiring this header.
 - added `progress` in the ServiceExecution who is `null` on creation and can be set through executor `PATCH` to a proportion from `0` to `1`.
 - `DELETE` accepts `options=remove`, `options=cancel`, or `options=remove,cancel` and defaults to `cancel`; cancellation currently returns `NotImplemented`.
 - patch only supports executionStatus, output, progress and responseStatusCode

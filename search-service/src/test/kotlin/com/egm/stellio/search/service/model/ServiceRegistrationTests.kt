@@ -16,7 +16,7 @@ import org.springframework.http.HttpMethod
 
 class ServiceRegistrationTests {
     @Test
-    fun `serialization should preserve JSON Schema keywords and boolean schemas`() = runTest {
+    fun `serialize should preserve JSON Schema keywords and boolean schemas`() = runTest {
         val payload = """
             {
               "endpoint": "http://localhost:2345/setLight",

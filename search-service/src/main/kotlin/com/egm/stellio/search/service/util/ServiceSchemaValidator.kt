@@ -20,7 +20,7 @@ object ServiceSchemaValidator {
     private val registry: SchemaRegistry =
         SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12) { builder ->
             builder.schemaLoader { loader ->
-                // block usage of "$ref" to only the local schemas
+                // no remote/file/classpath loading; only in-document refs
                 loader.fetchRemoteResources(false).block { it.toString().startsWith("classpath:") }
             }
         }

@@ -60,13 +60,11 @@ pipeline {
         }
         /* Publish images for develop and master branches, using version defined in build.gradle.kts
         For develop branch, it is always set to latest-dev */
-        /* todo remove special service execution and change back build.gradle to latest-dev*/
         stage('Dockerize Services') {
             when {
                 anyOf {
                     branch 'develop'
                     branch 'master'
-                    branch 'feature/service-execution'
                 }
             }
             steps {

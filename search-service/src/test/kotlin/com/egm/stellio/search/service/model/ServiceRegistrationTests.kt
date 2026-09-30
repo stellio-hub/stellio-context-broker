@@ -1,10 +1,10 @@
 package com.egm.stellio.search.service.model
 
-import com.egm.stellio.search.service.registration.model.InputInformationType
 import com.egm.stellio.search.service.registration.model.ServiceInformation
 import com.egm.stellio.search.service.registration.model.ServiceRegistration
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.shouldFailWith
 import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
@@ -15,6 +15,35 @@ import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
 
 class ServiceRegistrationTests {
+    @Test
+    fun `serialize should preserve JSON Schema keywords and boolean schemas`() = runTest {
+        val payload = """
+            {
+              "endpoint": "http://localhost:2345/setLight",
+              "entities": [{"type": "Lamp"}],
+              "serviceInformation": {
+                "name": "setLight",
+                "input": {
+                  "${'$'}schema": "https://json-schema.org/draft/2020-12/schema",
+                  "${'$'}defs": {"level": {"type": ["integer", "null"]}},
+                  "type": "array",
+                  "items": {"${'$'}ref": "#/${'$'}defs/level"},
+                  "minItems": 1,
+                  "uniqueItems": true
+                },
+                "output": false
+              }
+            }
+        """.trimIndent()
+        val registration = ServiceRegistration.deserialize(payload.deserializeAsMap(), emptyList())
+            .shouldSucceedAndResult()
+
+        val serialized = mapper.readTree(registration.serialize(emptyList()))["serviceInformation"]
+        val original = mapper.readTree(payload)["serviceInformation"]
+        assertEquals(original["input"], serialized["input"])
+        assertEquals(original["output"], serialized["output"])
+    }
+
     @Test
     fun `deserialize should parse a complete service registration`() = runTest {
         val registration = ServiceRegistration.deserialize(
@@ -35,11 +64,10 @@ class ServiceRegistrationTests {
                 "mode": "asynchronous",
                 "input": {
                   "type": "object",
-                  "required": true,
+                  "required": ["brightness"],
                   "properties": {
                     "brightness": {
                       "type": "integer",
-                      "required": true,
                       "minimum": 0,
                       "maximum": 255
                     }
@@ -47,8 +75,8 @@ class ServiceRegistrationTests {
                 },
                 "output": {
                   "type": "string",
-                  "matchRegex": "[A-Z]+",
-                  "maxSize": 32
+                  "pattern": "[A-Z]+",
+                  "maxLength": 32
                 }
               }
             }
@@ -65,17 +93,16 @@ class ServiceRegistrationTests {
         assertEquals("setLight", registration.serviceInformation.title)
         assertEquals(ServiceInformation.ServiceMode.ASYNCHRONOUS, registration.serviceInformation.mode)
         val input = requireNotNull(registration.serviceInformation.input)
-        val brightness = requireNotNull(input.properties?.get("brightness"))
-        assertEquals(InputInformationType.OBJECT, input.type)
-        assertEquals(true, input.required)
-        assertEquals(InputInformationType.INTEGER, brightness.type)
-        assertEquals(true, brightness.required)
-        assertEquals(0.toBigDecimal(), brightness.minimum)
-        assertEquals(255.toBigDecimal(), brightness.maximum)
+        val brightness = input["properties"]["brightness"]
+        assertEquals("object", input["type"].asString())
+        assertEquals("brightness", input["required"][0].asString())
+        assertEquals("integer", brightness["type"].asString())
+        assertEquals(0, brightness["minimum"].asInt())
+        assertEquals(255, brightness["maximum"].asInt())
         val output = requireNotNull(registration.serviceInformation.output)
-        assertEquals(InputInformationType.STRING, output.type)
-        assertEquals("[A-Z]+", output.matchRegex)
-        assertEquals(32, output.maxSize)
+        assertEquals("string", output["type"].asString())
+        assertEquals("[A-Z]+", output["pattern"].asString())
+        assertEquals(32, output["maxLength"].asInt())
         registration.validate().shouldSucceed()
     }
 

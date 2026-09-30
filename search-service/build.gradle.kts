@@ -12,6 +12,7 @@ plugins {
 }
 
 dependencies {
+    implementation("com.networknt:json-schema-validator:3.0.7")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-flyway")

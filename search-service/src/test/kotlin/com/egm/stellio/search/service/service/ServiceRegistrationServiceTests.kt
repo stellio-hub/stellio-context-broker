@@ -2,8 +2,6 @@ package com.egm.stellio.search.service.service
 
 import com.egm.stellio.search.common.model.UnparsedGeoQuery
 import com.egm.stellio.search.csr.model.EntityInfo
-import com.egm.stellio.search.service.registration.model.InputInformation
-import com.egm.stellio.search.service.registration.model.InputInformationType
 import com.egm.stellio.search.service.registration.model.ServiceInformation
 import com.egm.stellio.search.service.registration.model.ServiceRegistration
 import com.egm.stellio.search.service.registration.model.ServiceRegistrationFilters
@@ -14,6 +12,7 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.DEVICE_IRI
+import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceed
@@ -200,19 +199,18 @@ class ServiceRegistrationServiceTests : WithTimescaleContainer, WithKafkaContain
                 title = "setLight",
                 description = "Set brightness of light",
                 mode = ServiceInformation.ServiceMode.ASYNCHRONOUS,
-                input = InputInformation(
-                    type = InputInformationType.OBJECT,
-                    required = true,
-                    properties = mapOf(
-                        "brightness" to InputInformation(
-                            type = InputInformationType.INTEGER,
-                            required = true,
-                            minimum = 0.toBigDecimal(),
-                            maximum = 255.toBigDecimal()
-                        )
-                    )
+                input = mapper.readTree(
+                    """
+                    {
+                      "type": "object",
+                      "required": ["brightness"],
+                      "properties": {
+                        "brightness": {"type": "integer", "minimum": 0, "maximum": 255}
+                      }
+                    }
+                    """.trimIndent()
                 ),
-                output = InputInformation(type = InputInformationType.STRING)
+                output = mapper.readTree("""{"type":"string"}""")
             )
         )
 }

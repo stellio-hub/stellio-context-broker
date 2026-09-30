@@ -20,7 +20,7 @@ class ServiceSchemaValidatorTests {
     )
 
     @Test
-    fun `schemas sharing an id should keep their own definitions during concurrent validation`() {
+    fun `validateInput should preserve separate definitions for schemas sharing an id`() {
         val schemas = listOf("integer", "string").map { type ->
             mapper.readTree(
                 """
@@ -45,20 +45,20 @@ class ServiceSchemaValidatorTests {
     }
 
     @Test
-    fun `input should match the registered regular expression`() {
+    fun `validateInput should enforce the registered regular expression`() {
         val schema = mapper.readTree("""{"type":"string","pattern":"^[A-Z]{3}-[0-9]{4}$"}""")
 
         ServiceSchemaValidator.validateInput(schema, "ABC-1234").shouldSucceed()
         listOf("abc-1234", "ABC-123", "prefixABC-1234", "ABC-1234suffix").forEach { input ->
             ServiceSchemaValidator.validateInput(schema, input).shouldFailWith {
                 it is BadRequestDataException &&
-                    it.message == "Invalid service execution input"
+                    it.message == "Service execution input does not conform to the registration schema"
             }
         }
     }
 
     @Test
-    fun `input should enforce required fields types bounds and additional properties`() {
+    fun `validateInput should enforce required fields types bounds and additional properties`() {
         ServiceSchemaValidator.validateInput(schema, mapOf("brightness" to 125)).shouldSucceed()
         listOf(
             emptyMap(),
@@ -73,7 +73,7 @@ class ServiceSchemaValidatorTests {
     }
 
     @Test
-    fun `input should resolve local references and validate array items`() {
+    fun `validateInput should resolve local references and validate array items`() {
         val schema = mapper.readTree(
             """
             {
@@ -85,12 +85,13 @@ class ServiceSchemaValidatorTests {
         ServiceSchemaValidator.validateInput(schema, listOf(1, 2)).shouldSucceed()
         ServiceSchemaValidator.validateInput(schema, listOf(1, -1)).shouldFailWith {
             it is BadRequestDataException &&
-                it.message == "Invalid service execution input" && it.detail?.contains("1") == true
+                it.message == "Service execution input does not conform to the registration schema" &&
+                it.detail?.contains("1") == true
         }
     }
 
     @Test
-    fun `boolean schemas should accept or reject every input`() {
+    fun `validateInput should accept or reject every input with boolean schemas`() {
         ServiceSchemaValidator.validateInput(mapper.readTree("true"), 1).shouldSucceed()
         ServiceSchemaValidator.validateInput(mapper.readTree("false"), 1).shouldFailWith {
             it is BadRequestDataException
@@ -98,7 +99,7 @@ class ServiceSchemaValidatorTests {
     }
 
     @Test
-    fun `registration should reject malformed input and output schemas`() {
+    fun `validate should reject malformed input and output schemas`() {
         listOf("42", "[]", "null", """{"type":"unknown"}""", """{"required":true}""").forEach { json ->
             val invalid = mapper.readTree(json)
             ServiceInformation(name = "test", input = invalid).validate().shouldFailWith {
@@ -113,7 +114,7 @@ class ServiceSchemaValidatorTests {
     }
 
     @Test
-    fun `registration should reject an invalid regular expression`() {
+    fun `validate should reject an invalid regular expression`() {
         val schema = mapper.readTree("""{"type":"string","pattern":"["}""")
         ServiceInformation(name = "test", input = schema).validate().shouldFailWith {
             it is BadRequestDataException
@@ -121,7 +122,7 @@ class ServiceSchemaValidatorTests {
     }
 
     @Test
-    fun `registration should reject unresolved external references without fetching them`() {
+    fun `validate should reject unresolved external references without fetching them`() {
         val schema = mapper.readTree("""{"${'$'}ref":"https://example.invalid/schema.json"}""")
         ServiceInformation(name = "test", input = schema).validate().shouldFailWith {
             it is BadRequestDataException
@@ -129,7 +130,7 @@ class ServiceSchemaValidatorTests {
     }
 
     @Test
-    fun `explicit draft four should use boolean exclusive minimum`() {
+    fun `validateInput should use boolean exclusive minimum for explicit draft four`() {
         val schema = mapper.readTree(
             """{"${'$'}schema":"http://json-schema.org/draft-04/schema#","minimum":5,"exclusiveMinimum":true}"""
         )

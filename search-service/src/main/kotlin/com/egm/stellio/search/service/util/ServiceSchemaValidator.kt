@@ -29,7 +29,7 @@ object ServiceSchemaValidator {
         Either.catch {
             val compiled = registry.getSchema(schema.toString(), InputFormat.JSON)
             val dialect = compiled.schemaContext.dialect.id
-            val errors = registry.getSchema(SchemaLocation.of(dialect)).validate(schema)
+            val errors = registry.getSchema(SchemaLocation.of(dialect)).validate(schema).toList()
             require(errors.isEmpty()) { errors.joinToString("; ") { it.message } }
             compiled.apply { initializeValidators() }
         }.mapLeft { BadRequestDataException(invalidServiceSchemaMessage(member), detail = it.message) }
@@ -39,7 +39,7 @@ object ServiceSchemaValidator {
 
     fun validateInput(schema: JsonNode, input: Any): Either<APIException, Unit> = either {
         val compiled = compile(schema, "input").bind()
-        val errors = Either.catch { compiled.validate(serializeObject(input), InputFormat.JSON) }
+        val errors = Either.catch { compiled.validate(serializeObject(input), InputFormat.JSON).toList() }
             .mapLeft { BadRequestDataException(SERVICE_INPUT_SCHEMA_MISMATCH_MESSAGE, detail = it.message) }.bind()
         ensure(errors.isEmpty()) {
             BadRequestDataException(

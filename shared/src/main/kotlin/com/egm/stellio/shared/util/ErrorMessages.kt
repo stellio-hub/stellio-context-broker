@@ -115,7 +115,8 @@ object ErrorMessages {
     }
 
     object ServiceExecution {
-        const val SERVICE_INPUT_SCHEMA_MISMATCH_MESSAGE = "Invalid service execution input"
+        const val SERVICE_INPUT_SCHEMA_MISMATCH_MESSAGE =
+            "Service execution input does not conform to the registration schema"
         fun serviceExecutionNotFoundMessage(id: URI) = "Service execution $id does not exist"
         fun serviceExecutionAlreadyExistsMessage(id: URI) = "Service execution $id already exists"
         fun serviceExecutionFailedToParseMessage(cause: String?) =

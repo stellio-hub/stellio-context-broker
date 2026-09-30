@@ -96,6 +96,7 @@ class ServiceExecutionLauncher(
                 .uri(serviceRegistration.endpoint)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
+                .header("Service-Execution", serviceExecution.id.toString())
                 .bodyValue(DataTypes.serialize(serviceExecution.input))
 
             val (statusCode, responseBody) = request.awaitExchange { response ->

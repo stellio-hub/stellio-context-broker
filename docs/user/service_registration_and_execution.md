@@ -1,7 +1,7 @@
 # Service registration and execution (beta)
 
 > **Beta — Stellio extension:** Service registration and execution are not yet part of the NGSI-LD specification.
-> **Everything is subject to change.** This include this documentation as well as the Service execution and registration api.
+> **Everything is subject to change.** This includes this documentation as well as the Service execution and registration API.
 
 ## Manage services
 
@@ -47,13 +47,13 @@ The following properties are used:
     It is used to validate the input data when creating a service execution.
     - `output`: optional [JSON Schema](https://json-schema.org/) describing the response data.
 
-Today `input` and `output` supports most of the Json-schema specification (Except that external references are disabled.)
+Today `input` and `output` support most of the JSON Schema specification (except that external references are disabled).
 
 > **Potential changes to the Registration data type** :
 > - `endpointMethod` is not yet part of the discussed implementation and may be removed in the future.
     (If you have use cases for it, please [create an issue](https://github.com/stellio-hub/stellio-context-broker/issues) 
      to let us know.)
-> - What part of json-schema will be supported in the ngsi-ld specification is not decided yet.
+> - What part of JSON Schema will be supported in the NGSI-LD specification is not decided yet.
     So the current implementation may allow schemas that will be rejected in future releases.
 
 #### Service registration provision
@@ -203,8 +203,8 @@ The following properties are used:
 
 > **Potential changes to the ServiceExecution data type** :
 > - `progress` is not yet discussed and might change when integrating the spec
-> - Error handling behaviors is not completely defined and will probably be subject to change,
-> - this includes the `responseStatusCode` and the way error message is relaid inside the service execution.
+> - Error handling behaviors are not completely defined and will probably be subject to change,
+> - this includes the `responseStatusCode` and the way error messages are relayed inside the service execution.
 
 ##### Execution modes
 
@@ -315,10 +315,10 @@ Returns the latest stored status and result. Add `options=sysAttrs` to include `
 
 You can filter executions with the following query parameters:
 
-- `id`: comma separated list of execution ID.
-- `serviceId`: comma separated list of service registration ID.
-- `entityId`: comma separated list of entity ID.
-- `executionStatus`: comma separated list of execution statuses, for example `success,failure`.
+- `id`: comma-separated list of execution IDs.
+- `serviceId`: comma-separated list of service registration IDs.
+- `entityId`: comma-separated list of entity IDs.
+- `executionStatus`: comma-separated list of execution statuses, for example `success,failure`.
 
 With no filters, the endpoint lists all executions using pagination.
 

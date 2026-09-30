@@ -3,6 +3,10 @@
 > **Beta — Stellio extension:** Service registration and execution are not yet part of the NGSI-LD specification.
 > **Everything is subject to change.** This includes this documentation as well as the Service execution and registration API.
 
+When authentication is enabled, all service registration and execution endpoints are currently
+restricted to users with the `stellio-admin` role. Specific authorization implementation for service-execution 
+will be added later.
+
 ## Manage services
 
 ### Introduction
@@ -14,7 +18,6 @@ The examples use a Stellio instance with authentication disabled and an HTTP ser
 Stellio's search service. For a secured broker, see
 [Authentication and authorization](authentication_and_authorization.md).
 
-Requests use `Content-Type: application/json` and responses use `Accept: application/json`.
 The examples use compact types with the broker's default JSON-LD context. Use the same context for
 registration, discovery, and execution. To use a custom context, provide a `Link` header as shown in
 the [API walkthrough](API_walkthrough.md).

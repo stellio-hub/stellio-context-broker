@@ -204,7 +204,7 @@ The following properties are used:
 > **Potential changes to the ServiceExecution data type** :
 > - `progress` is not yet discussed and might change when integrating the spec
 > - Error handling behaviors are not completely defined and will probably be subject to change,
-> - this includes the `responseStatusCode` and the way error messages are relayed inside the service execution.
+>   this includes the `responseStatusCode` and the way error messages are relayed inside the service execution.
 
 ##### Execution modes
 
@@ -239,7 +239,8 @@ The registration's `serviceInformation.mode` determines how Stellio handles the 
 
 Stellio calls the registered endpoint, with the `input` value as the request body.
 
-For example the previous service creation call the service executor with this body: 
+For example the previous service creation calls the service executor with this body:
+
 ```json
 {
     "lampId": "urn:ngsi-ld:Lamp:1",

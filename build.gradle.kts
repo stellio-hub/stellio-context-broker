@@ -128,7 +128,7 @@ subprojects {
         buildUponDefaultConfig = true
         baseline.set(file("$projectDir/config/detekt/baseline.xml"))
         source("src/main/kotlin", "src/test/kotlin", "src/testFixtures/kotlin")
-        // until detekt 2.0.0 is released (with Java 25 compatibility), stick to Java 21 
+        // until detekt 2.0.0 is released (with Java 25 compatibility), stick to Java 21
         jvmTarget = "21"
 
         reports {

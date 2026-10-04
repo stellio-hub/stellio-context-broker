@@ -2,12 +2,16 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>CyclomaticComplexMethod:ConciseRepresentationUtils.kt$ConciseRepresentationUtils$fun normalizeAttributeFragment(value: Any): Map&lt;String, Any&gt;</ID>
     <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `inlineLinkedEntities should inline an entity with a multi-instance multivalued relationship`()</ID>
     <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `inlineLinkedEntities should inline two entities with their respective relationhips`()</ID>
     <ID>LongMethod:CompactedEntityLinkedTests.kt$CompactedEntityLinkedTests$@Test fun `toSimplifiedAttributes should simplify relationships for inlined entities`()</ID>
     <ID>LongParameterList:ApiResponses.kt$( body: String, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:ApiResponses.kt$( entities: Any, count: Int, resourceUrl: String, paginationQuery: PaginationQuery, requestParams: MultiValueMap&lt;String, String&gt;, mediaType: MediaType, contexts: List&lt;String&gt; )</ID>
+    <ID>MaxLineLength:QNodeSqlTranslatorTests.kt$QNodeSqlTranslatorTests$"""$."https://uri.etsi.org/ngsi-ld/default-context/active"."$NGSILD_LISTPROPERTY_VALUE_LIST"."@list"."$JSONLD_VALUE_KW""""</ID>
     <ID>NestedBlockDepth:JsonLdUtils.kt$JsonLdUtils$fun expandJsonLdTerm(term: String, contexts: List&lt;String&gt;): String</ID>
+    <ID>TooManyFunctions:ErrorMessages.kt$ErrorMessages$Entity</ID>
     <ID>TooManyFunctions:JsonLdUtils.kt$JsonLdUtils</ID>
+    <ID>UseIfInsteadOfWhen:CompactedEntity.kt$when (val linkedEntities = value[NGSILD_ENTITY_LIST_TERM]) { is List&lt;*&gt; -&gt; linkedEntities.map { (it as CompactedEntity).toSimplifiedAttributes() } else -&gt; value.getListRelationshipObjectIds() }</ID>
   </CurrentIssues>
 </SmellBaseline>

@@ -14,6 +14,14 @@ import com.egm.stellio.shared.model.NGSILD_LANGUAGEMAP_TERM
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAPS
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LISTS
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST_TERM
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LISTS
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_TYPE
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_OBJECT_TERM
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TYPE
@@ -69,7 +77,9 @@ data class Attribute(
         GeoProperty,
         JsonProperty,
         LanguageProperty,
-        VocabProperty;
+        VocabProperty,
+        ListProperty,
+        ListRelationship;
 
         fun toExpandedName(): String =
             when (this) {
@@ -79,6 +89,8 @@ data class Attribute(
                 JsonProperty -> NGSILD_JSONPROPERTY_TYPE.uri
                 LanguageProperty -> NGSILD_LANGUAGEPROPERTY_TYPE.uri
                 VocabProperty -> NGSILD_VOCABPROPERTY_TYPE.uri
+                ListProperty -> NGSILD_LISTPROPERTY_TYPE.uri
+                ListRelationship -> NGSILD_LISTRELATIONSHIP_TYPE.uri
             }
 
         /**
@@ -94,6 +106,8 @@ data class Attribute(
                 JsonProperty -> NGSILD_JSONPROPERTY_JSON
                 LanguageProperty -> NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
                 VocabProperty -> NGSILD_VOCABPROPERTY_VOCAB
+                ListProperty -> NGSILD_LISTPROPERTY_VALUE_LIST
+                ListRelationship -> NGSILD_LISTRELATIONSHIP_OBJECT_LIST
             }
 
         /**
@@ -107,6 +121,8 @@ data class Attribute(
                 JsonProperty -> NGSILD_JSONPROPERTY_JSONS
                 LanguageProperty -> NGSILD_LANGUAGEPROPERTY_LANGUAGEMAPS
                 VocabProperty -> NGSILD_VOCABPROPERTY_VOCABS
+                ListProperty -> NGSILD_LISTPROPERTY_VALUE_LISTS
+                ListRelationship -> NGSILD_LISTRELATIONSHIP_OBJECT_LISTS
             }
 
         fun toNullCompactedRepresentation(datasetId: URI? = null): Map<String, Any> =
@@ -125,6 +141,16 @@ data class Attribute(
                     mapOf(
                         NGSILD_TYPE_TERM to this.name,
                         NGSILD_VOCABPROPERTY_VOCAB_TERM to NGSILD_NULL
+                    )
+                ListProperty ->
+                    mapOf(
+                        NGSILD_TYPE_TERM to this.name,
+                        NGSILD_LISTPROPERTY_VALUE_LIST_TERM to listOf(NGSILD_NULL)
+                    )
+                ListRelationship ->
+                    mapOf(
+                        NGSILD_TYPE_TERM to this.name,
+                        NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM to listOf(NGSILD_NULL)
                     )
                 Relationship ->
                     mapOf(

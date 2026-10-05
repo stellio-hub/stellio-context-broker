@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertInstanceOf
@@ -93,6 +94,69 @@ class SubscriptionTests {
 
         deserialize(subscription, emptyList()).shouldSucceedWith {
             assertNotNull(it)
+        }
+    }
+
+    @Test
+    fun `deserialize should parse jsonKeys and expandValues as comma separated strings`() = runTest {
+        val subscription = mapOf(
+            "id" to beehiveId,
+            "type" to "Subscription",
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")),
+            "jsonKeys" to "jsonProp1,jsonProp2",
+            "expandValues" to ""
+        )
+
+        deserialize(subscription, emptyList()).shouldSucceedWith {
+            assertEquals(setOf("jsonProp1", "jsonProp2"), it.jsonKeys)
+            assertNull(it.expandValues)
+        }
+    }
+
+    @Test
+    fun `deserialize should still parse jsonKeys and expandValues as arrays`() = runTest {
+        val subscription = mapOf(
+            "id" to beehiveId,
+            "type" to "Subscription",
+            "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")),
+            "jsonKeys" to listOf("jsonProp1", "jsonProp2"),
+            "expandValues" to listOf("vocabProp")
+        )
+
+        deserialize(subscription, emptyList()).shouldSucceedWith {
+            assertEquals(setOf("jsonProp1", "jsonProp2"), it.jsonKeys)
+            assertEquals(setOf("vocabProp"), it.expandValues)
+        }
+    }
+
+    @Test
+    fun `deserialize should reject jsonKeys and expandValues that are not a string or an array of strings`() =
+        runTest {
+            listOf(12, listOf("jsonProp1", 12), mapOf("a" to "b")).forEach { invalidValue ->
+                val subscription = mapOf(
+                    "id" to beehiveId,
+                    "type" to "Subscription",
+                    "entities" to listOf(mapOf("type" to BEEHIVE_IRI)),
+                    "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy")),
+                    "jsonKeys" to invalidValue
+                )
+
+                deserialize(subscription, emptyList()).shouldFail {
+                    assertInstanceOf(BadRequestDataException::class.java, it)
+                    assertThat(it.message).contains("Expected a comma separated String or an array of Strings")
+                }
+            }
+        }
+
+    @Test
+    fun `mergeWithFragment should keep jsonKeys and expandValues when they are not patched`() = runTest {
+        val subscription = subscription.copy(jsonKeys = setOf("jsonProp1", "jsonProp2"), expandValues = setOf("v"))
+
+        subscription.mergeWithFragment(mapOf("description" to "new"), APIC_COMPOUND_CONTEXTS).shouldSucceedWith {
+            assertEquals(setOf("jsonProp1", "jsonProp2"), it.jsonKeys)
+            assertEquals(setOf("v"), it.expandValues)
         }
     }
 
@@ -627,6 +691,18 @@ class SubscriptionTests {
 
         assertTrue(deserializedSub.containsKey("status"))
         assertEquals("active", deserializedSub["status"])
+    }
+
+    @Test
+    fun `prepareForRendering should render jsonKeys and expandValues as comma separated strings`() {
+        val subscription = subscription.copy(jsonKeys = setOf("jsonProp1", "jsonProp2"), expandValues = emptySet())
+
+        val serializedSub = subscription.prepareForRendering(NGSILD_TEST_CORE_CONTEXT)
+
+        val deserializedSub = deserializeObject(serializedSub)
+
+        assertEquals("jsonProp1,jsonProp2", deserializedSub["jsonKeys"])
+        assertFalse(deserializedSub.containsKey("expandValues"))
     }
 
     @Test

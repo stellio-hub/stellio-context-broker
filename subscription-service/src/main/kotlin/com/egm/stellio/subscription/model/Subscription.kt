@@ -13,6 +13,7 @@ import com.egm.stellio.shared.model.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.queryparameter.parseQQuery
+import com.egm.stellio.shared.util.CommaSeparatedToSetConverter
 import com.egm.stellio.shared.util.DataTypes.convertTo
 import com.egm.stellio.shared.util.DataTypes.deserializeAs
 import com.egm.stellio.shared.util.DataTypes.serialize
@@ -37,6 +38,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.SetToCommaSeparatedConverter
 import com.egm.stellio.shared.util.compactTypeSelection
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -50,6 +52,8 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.data.annotation.Id
 import org.springframework.http.MediaType
+import tools.jackson.databind.annotation.JsonDeserialize
+import tools.jackson.databind.annotation.JsonSerialize
 import tools.jackson.databind.exc.UnrecognizedPropertyException
 import java.net.URI
 import java.time.ZonedDateTime
@@ -91,8 +95,12 @@ data class Subscription(
     @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
     val jsonldContext: URI? = null,
     @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
+    @JsonDeserialize(converter = CommaSeparatedToSetConverter::class)
+    @JsonSerialize(converter = SetToCommaSeparatedConverter::class)
     val jsonKeys: Set<String>? = null,
     @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
+    @JsonDeserialize(converter = CommaSeparatedToSetConverter::class)
+    @JsonSerialize(converter = SetToCommaSeparatedConverter::class)
     val expandValues: Set<String>? = null
 ) {
     fun validate(): Either<APIException, Subscription> = either {

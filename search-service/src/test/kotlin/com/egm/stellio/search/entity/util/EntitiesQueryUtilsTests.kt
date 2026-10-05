@@ -28,6 +28,7 @@ import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEKEEPER_IRI
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.shouldFail
@@ -329,6 +330,52 @@ class EntitiesQueryUtilsTests {
             assertEquals(BEEHIVE_IRI, it.entitySelectors!![0].typeSelection)
             assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1"), it.attrs)
             assertInstanceOf(ComparisonNode::class.java, it.q)
+        }
+    }
+
+    @Test
+    fun `composeEntitiesQueryFromPost should parse jsonKeys and expandValues as comma separated strings or arrays`() =
+        runTest {
+            mapOf(
+                "a,b" to setOf("a", "b"),
+                " a , b," to setOf("a", "b"),
+                "a" to setOf("a"),
+                "" to emptySet(),
+                listOf("a", "b") to setOf("a", "b")
+            ).forEach { (input, expected) ->
+                val query = serializeObject(
+                    mapOf("type" to "Query", "q" to "temperature>32", "jsonKeys" to input, "expandValues" to input)
+                )
+
+                composeEntitiesQueryFromPostRequest(
+                    buildDefaultPagination(30, 100),
+                    query,
+                    LinkedMultiValueMap(),
+                    APIC_COMPOUND_CONTEXTS
+                ).shouldSucceedWith {
+                    assertEquals(expected, it.jsonKeys)
+                    assertEquals(expected, it.expandValues)
+                }
+            }
+        }
+
+    @Test
+    fun `composeEntitiesQueryFromPost should reject a non string jsonKeys`() = runTest {
+        val query = """
+            {
+                "type": "Query",
+                "q": "temperature>32",
+                "jsonKeys": 12
+            }
+        """.trimIndent()
+
+        composeEntitiesQueryFromPostRequest(
+            buildDefaultPagination(30, 100),
+            query,
+            LinkedMultiValueMap(),
+            APIC_COMPOUND_CONTEXTS
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
         }
     }
 

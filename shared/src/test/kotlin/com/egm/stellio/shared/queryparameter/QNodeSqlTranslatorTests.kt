@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_TERM
 import com.egm.stellio.shared.util.removeNoise
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -264,6 +265,23 @@ class QNodeSqlTranslatorTests {
             buildSql("$INCOMING_TERM==ngsi-ld:Foo", expandValues = setOf(INCOMING_TERM))
                 .contains(""""value": "https://uri.etsi.org/ngsi-ld/Foo"""")
         )
+    }
+
+    @Test
+    fun `toSqlJsonPath should escape single quotes in attribute paths`() {
+        val escapedKeyPath = """$."$INCOMING_IRI"."$NGSILD_JSONPROPERTY_JSON"."$JSONLD_VALUE_KW"."a''b""""
+        assertEquals(
+            existsWhere(escapedKeyPath, """@ == $valuePh""", """{"value": 12}"""),
+            buildSql("$INCOMING_TERM[a'b]==12", jsonKeys = setOf(INCOMING_TERM))
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should not consider a partially valid language tag as a language tag`() {
+        // Locale.forLanguageTag("en-'x") is en, the tag must not be embedded unescaped in the SQL
+        val sql = buildSql("""$INCOMING_TERM[en-'x]!="hello"""")
+        assertFalse(sql.contains("@language"))
+        assertFalse(sql.contains("en-'x"))
     }
 
     @Test

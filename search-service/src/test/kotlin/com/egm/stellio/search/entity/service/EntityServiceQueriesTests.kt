@@ -340,7 +340,10 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "jsonObject[aSimpleQuote]!=\"anything\", 1, urn:ngsi-ld:BeeHive:01",
         "propertyWithMetadata.source[author]!=\"EGM\", 0, ",
         "localizedName[fr]!=\"Ruche Une\", 0, ",
-        "localizedName[fr]!=\"anything\", 1, urn:ngsi-ld:BeeHive:01"
+        "localizedName[fr]!=\"anything\", 1, urn:ngsi-ld:BeeHive:01",
+        "'a''b==1', 0, ",
+        "'a''b', 0, ",
+        "'jsonObject[a''b]!=1', 0, "
     )
     fun `queryEntities should retrieve entities according to q parameter`(
         q: String,
@@ -661,6 +664,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "jsonProp[aNumber]==12..14, jsonProp, 1, urn:ngsi-ld:BeeHive:01",
         "jsonProp[aNumber]!=12..14, jsonProp, 1, urn:ngsi-ld:BeeHive:02",
         "jsonProp[unknownKey]!=12, jsonProp, 0, ",
+        "'jsonProp[a''b]==12', jsonProp, 0, ",
         "jsonProp[anObject.name]==\"City\", jsonProp, 1, urn:ngsi-ld:BeeHive:01",
         "jsonProp[anObject.name]==\"Sea\", jsonProp, 0, ",
         "jsonProp==\"flow monitoring\", jsonProp, 0, ",

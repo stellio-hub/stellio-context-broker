@@ -43,6 +43,11 @@ data class AttributePath(
                     languageTag = null
                     trailingPath = rawTerms
                 }
+                // wildcard language (attr[*]): any language, so the target element is the attribute itself
+                rawTerms == listOf("*") -> {
+                    languageTag = null
+                    trailingPath = emptyList()
+                }
                 rawTerms.size == 1 && isValidLanguageTag(rawTerms[0]) -> {
                     languageTag = rawTerms[0]
                     trailingPath = emptyList()

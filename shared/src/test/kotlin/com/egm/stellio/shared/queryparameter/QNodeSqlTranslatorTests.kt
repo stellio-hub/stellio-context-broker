@@ -159,14 +159,47 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `toSqlJsonPath should generate NEQ range as outside-bounds filter`() {
+    fun `toSqlJsonPath should generate NEQ range as attribute existence and not in range`() {
+        val inRange =
+            existsWhere(temperaturePropertyPath, """@ >= $minPh && @ <= $maxPh""", """{"min": 10, "max": 20}""")
         assertEquals(
-            existsWhere(
-                temperaturePropertyPath,
-                """@ < $minPh || @ > $maxPh""",
-                """{"min": 10, "max": 20}"""
-            ),
+            """(${exists("""$."$TEMPERATURE_IRI"""")}) AND NOT ($inRange)""",
             buildSql("$TEMPERATURE_TERM!=10..20")
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should generate NEQ single value as attribute existence and no equal value`() {
+        val eqSql = """
+            (${existsWhere(incomingPropertyPath, """@ == $valuePh""", """{"value": "open"}""")} OR
+                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")})
+        """
+        assertEquals(
+            """(${exists("""$."$INCOMING_IRI"""")}) AND NOT ($eqSql)""".removeNoise(),
+            buildSql("$INCOMING_TERM!=\"open\"").removeNoise()
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should generate NEQ list as attribute existence and none of the values`() {
+        assertEquals(
+            """(${exists("""$."$TEMPERATURE_IRI"""")}) AND NOT (""" +
+                """${exists("""$temperaturePropertyPath ? (@ == 10 || @ == 20)""")})""",
+            buildSql("$TEMPERATURE_TERM!=10,20")
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should guard NEQ with the existence of the language tag`() {
+        val eqSql = existsWhere(
+            incomingLangFilterPath,
+            """@."@language" == $langPh && @."@value" == $valuePh""",
+            """{"lang": "en", "value": "hello"}"""
+        )
+        val guard = existsWhere(incomingLangFilterPath, """@."@language" == $langPh""", """{"lang": "en"}""")
+        assertEquals(
+            "($guard) AND NOT ($eqSql)".removeNoise(),
+            buildSql("""$INCOMING_TERM[en]!="hello"""").removeNoise()
         )
     }
 
@@ -222,9 +255,10 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `toSqlJsonPath should generate NEQ range filter for jsonKeys attribute with bracket key`() {
+    fun `toSqlJsonPath should guard NEQ range filter for jsonKeys attribute with the existence of the key`() {
+        val inRange = existsWhere(incomingJsonKeyPath, """@ >= $minPh && @ <= $maxPh""", """{"min": 10, "max": 20}""")
         assertEquals(
-            existsWhere(incomingJsonKeyPath, """@ < $minPh || @ > $maxPh""", """{"min": 10, "max": 20}"""),
+            "(${exists(incomingJsonKeyPath)}) AND NOT ($inRange)",
             buildSql("$INCOMING_TERM[$TEMPERATURE_TERM]!=10..20", jsonKeys = setOf(INCOMING_TERM))
         )
     }

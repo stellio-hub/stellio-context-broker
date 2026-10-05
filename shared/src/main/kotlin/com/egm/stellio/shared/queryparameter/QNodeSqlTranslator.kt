@@ -152,10 +152,7 @@ private fun singleValueComparisonSql(
     value: SingleValue,
     contexts: List<String>
 ): String {
-    val effectiveValue = if (attrPath.isExpandValuesAttribute && value.type == ValueType.STRING) {
-        val expanded = JsonLdUtils.expandJsonLdTerm(value.raw.removeSurrounding("\""), contexts)
-        SingleValue(expanded, ValueType.URI)
-    } else value
+    val effectiveValue = if (attrPath.isExpandValuesAttribute) value.expandIfTerm(contexts) else value
 
     val scalarTypes = setOf(ValueType.NUMBER, ValueType.BOOLEAN, ValueType.DATE, ValueType.DATETIME, ValueType.TIME)
     return when {
@@ -258,9 +255,7 @@ private fun listComparisonSql(
             attrPath.buildJsonBVocabPath()
         )
         val effectiveValue = if (attrPath.isExpandValuesAttribute) {
-            ListValue(
-                value.items.map { SingleValue(JsonLdUtils.expandJsonLdTerm(it.raw, contexts), ValueType.URI) }
-            )
+            ListValue(value.items.map { it.expandIfTerm(contexts) })
         } else {
             value
         }
@@ -320,6 +315,13 @@ private fun listFilter(
     }
     return """jsonb_path_exists($targetExpr, '$jsonPath ? (${filter.escapeSingleQuotes()})')"""
 }
+
+// the value of an expandValues attribute is expanded as a term (without its surrounding quotes, if any)
+// URI values are expanded too, so that compact IRIs (e.g. ngsi-ld:Foo) are resolved, absolute IRIs are kept as is
+private fun SingleValue.expandIfTerm(contexts: List<String>): SingleValue =
+    if (type == ValueType.STRING || type == ValueType.URI)
+        SingleValue(JsonLdUtils.expandJsonLdTerm(raw.removeSurrounding("\""), contexts), ValueType.URI)
+    else this
 
 private fun SingleValue.toJsonParameterizedValue(): String =
     """{"value": ${this.toJsonValue()}}"""

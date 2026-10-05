@@ -7,6 +7,7 @@ import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.INCOMING_IRI
@@ -15,6 +16,7 @@ import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_TERM
 import com.egm.stellio.shared.util.removeNoise
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class QNodeSqlTranslatorTests {
@@ -235,6 +237,32 @@ class QNodeSqlTranslatorTests {
         assertEquals(
             expected.removeNoise(),
             buildSql("$INCOMING_TERM==\"BeeHive\"", expandValues = setOf(INCOMING_TERM)).removeNoise()
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should expand quoted and unquoted list values the same way for expandValues attributes`() {
+        assertEquals(
+            buildSql("$INCOMING_TERM==BeeHive,Apiary", expandValues = setOf(INCOMING_TERM)),
+            buildSql("""$INCOMING_TERM=="BeeHive","Apiary"""", expandValues = setOf(INCOMING_TERM))
+        )
+        assertEquals(
+            exists("""$incomingVocabPath ? (@ == "$BEEHIVE_IRI" || @ == "$APIARY_IRI")"""),
+            buildSql("""$INCOMING_TERM=="BeeHive","Apiary"""", expandValues = setOf(INCOMING_TERM))
+                .split(" OR ")[2]
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should expand compact IRIs and keep absolute IRIs for expandValues attributes`() {
+        assertEquals(
+            exists("""$incomingVocabPath ? (@ == "https://uri.etsi.org/ngsi-ld/Foo" || @ == "urn:ngsi-ld:Bar")"""),
+            buildSql("$INCOMING_TERM==ngsi-ld:Foo,urn:ngsi-ld:Bar", expandValues = setOf(INCOMING_TERM))
+                .split(" OR ")[2]
+        )
+        assertTrue(
+            buildSql("$INCOMING_TERM==ngsi-ld:Foo", expandValues = setOf(INCOMING_TERM))
+                .contains(""""value": "https://uri.etsi.org/ngsi-ld/Foo"""")
         )
     }
 

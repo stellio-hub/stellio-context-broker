@@ -700,6 +700,11 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "propWithVocabSub.vocabSub==\"Beekeeper\", propWithVocabSub, 0, ",
         "category!=\"BeeHive\", category, 0, ",
         "category!=\"Apiary\", category, 1, urn:ngsi-ld:BeeHive:01",
+        "'category==BeeHive,Apiary', category, 1, urn:ngsi-ld:BeeHive:01",
+        """'category=="BeeHive","Apiary"', category, 1, urn:ngsi-ld:BeeHive:01""",
+        """'category!="BeeHive","Apiary"', category, 0, """,
+        """'category!="Beekeeper","Apiary"', category, 1, urn:ngsi-ld:BeeHive:01""",
+        """'category=="Bee''s","Apiary"', category, 0, """,
     )
     fun `queryEntities should retrieve entities with q on a VocabProperty attribute and sub-attribute`(
         q: String,

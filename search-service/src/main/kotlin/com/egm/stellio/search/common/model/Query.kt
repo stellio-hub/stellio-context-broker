@@ -68,7 +68,8 @@ data class UnparsedTemporalQuery(
     val timeAt: String? = null,
     val endTimeAt: String? = null,
     val aggrPeriodDuration: String? = null,
-    val aggrMethods: List<String>? = null,
+    @JsonDeserialize(converter = CommaSeparatedToSetConverter::class)
+    val aggrMethods: Set<String>? = null,
     val lastN: Int? = null,
     val timeproperty: String = "observedAt"
 )

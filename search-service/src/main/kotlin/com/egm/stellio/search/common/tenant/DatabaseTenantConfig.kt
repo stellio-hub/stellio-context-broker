@@ -1,7 +1,7 @@
 package com.egm.stellio.search.common.tenant
 
 import com.egm.stellio.shared.config.ApplicationProperties
-import com.egm.stellio.shared.config.DefaultTimeoutR2dbcTransactionManager
+import io.r2dbc.postgresql.PostgresqlConnectionFactoryProvider
 import io.r2dbc.spi.ConnectionFactories
 import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.ConnectionFactoryOptions
@@ -15,6 +15,7 @@ import org.springframework.data.r2dbc.core.DefaultReactiveDataAccessStrategy
 import org.springframework.data.r2dbc.core.R2dbcEntityOperations
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.dialect.DialectResolver
+import org.springframework.r2dbc.connection.R2dbcTransactionManager
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.transaction.ReactiveTransactionManager
 import org.springframework.transaction.annotation.EnableTransactionManagement
@@ -30,7 +31,7 @@ class DatabaseTenantConfig(
 
     @Bean
     fun transactionManager(connectionFactory: ConnectionFactory): ReactiveTransactionManager =
-        DefaultTimeoutR2dbcTransactionManager(connectionFactory, applicationProperties.transactionTimeout)
+        R2dbcTransactionManager(connectionFactory)
 
     @Bean("connectionFactory")
     @Qualifier("connectionFactory")
@@ -54,6 +55,7 @@ class DatabaseTenantConfig(
                 .from(ConnectionFactoryOptions.parse(r2dbcProperties.url as String))
                 .option(ConnectionFactoryOptions.USER, r2dbcProperties.username as String)
                 .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password as String)
+                .withTransactionTimeout()
                 .build()
         )
     }
@@ -86,8 +88,18 @@ class DatabaseTenantConfig(
                 }
                 .option(ConnectionFactoryOptions.USER, r2dbcProperties.username as String)
                 .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password as String)
+                .withTransactionTimeout()
                 .build()
         )
         tenantConnectionFactories.putIfAbsent(name, tenantConnectionFactory)
     }
+
+    // transaction_timeout (PostgreSQL 17+) bounds the whole transaction, including implicit single-statement ones
+    private fun ConnectionFactoryOptions.Builder.withTransactionTimeout(): ConnectionFactoryOptions.Builder =
+        if (applicationProperties.transactionTimeout.isPositive)
+            option(
+                PostgresqlConnectionFactoryProvider.OPTIONS,
+                mapOf("transaction_timeout" to "${applicationProperties.transactionTimeout.toMillis()}ms")
+            )
+        else this
 }

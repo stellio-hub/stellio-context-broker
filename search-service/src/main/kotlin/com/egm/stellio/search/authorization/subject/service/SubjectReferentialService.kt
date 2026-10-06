@@ -49,7 +49,7 @@ class SubjectReferentialService(
             val paths = path.split(".")
             val nodes = paths.dropLast(1)
             val leaf = paths.last()
-            val claim: Map<String, Any> = nodes.fold(token.claims as Map<String, Any>) { currentClaim, node ->
+            val claim: Map<String, Any> = nodes.fold(token.claims) { currentClaim, node ->
                 currentClaim.getOrDefault(node, emptyMap<String, Any>()) as Map<String, Any>
             }
             claim.getOrDefault(leaf, emptyList<String>()) as List<String>

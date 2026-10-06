@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.WKTCoordinates
 import com.egm.stellio.shared.queryparameter.GeoQuery
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidGeometryDefinitionMessage
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.unsupportedGeometryDefinitionMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.locationtech.jts.io.WKTReader
@@ -20,6 +21,7 @@ private const val WKT_OUTPUT_DIMENSION = 3
 
 const val FEATURE_TYPE = "Feature"
 const val FEATURE_COLLECTION_TYPE = "FeatureCollection"
+const val GEOMETRY_COLLECTION_TYPE = "GeometryCollection"
 const val GEOMETRY_PROPERTY_TERM = "geometry"
 const val PROPERTIES_PROPERTY_TERM = "properties"
 const val FEATURES_PROPERTY_TERM = "features"
@@ -42,6 +44,10 @@ fun geoJsonToWkt(geoJsonPayload: Map<String, Any>): Either<APIException, String>
 fun geoJsonToWkt(geoJsonSerializedPayload: String): Either<APIException, String> =
     runCatching {
         val geoJson = GeoJsonReader().read(geoJsonSerializedPayload)
+        if (geoJson.geometryType == GEOMETRY_COLLECTION_TYPE)
+            return BadRequestDataException(
+                unsupportedGeometryDefinitionMessage(geoJsonSerializedPayload, GEOMETRY_COLLECTION_TYPE)
+            ).left()
         WKTWriter(WKT_OUTPUT_DIMENSION).write(geoJson)
     }.fold({
         it.right()

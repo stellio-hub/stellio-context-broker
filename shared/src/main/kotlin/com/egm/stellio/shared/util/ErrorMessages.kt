@@ -105,6 +105,40 @@ object ErrorMessages {
             "Context source $csrId returned an invalid payload, attribute is neither a List nor a Map: $attribute"
     }
 
+    object ServiceRegistration {
+        fun invalidServiceSchemaMessage(member: String) =
+            "Invalid service information '$member' schema"
+        fun serviceRegistrationNotFoundMessage(id: URI) = "Service registration $id does not exist"
+        fun serviceRegistrationAlreadyExistsMessage(id: URI) = "Service registration $id already exists"
+        fun serviceRegistrationFailedToParseMessage(cause: String?) =
+            "Service registration cannot be parsed: $cause"
+
+        const val SERVICE_REGISTRATION_QUERY_REQUIRED_MESSAGE =
+            "Parameters 'id' and 'type' are required to discover service registrations"
+        const val SERVICE_INFORMATION_NAME_REQUIRED_MESSAGE =
+            "Member 'serviceInformation.name' must be a non-empty string"
+    }
+
+    object ServiceExecution {
+        const val SERVICE_INPUT_SCHEMA_MISMATCH_MESSAGE =
+            "Service execution input does not conform to the registration schema"
+        fun serviceExecutionNotFoundMessage(id: URI) = "Service execution $id does not exist"
+        fun serviceExecutionAlreadyExistsMessage(id: URI) = "Service execution $id already exists"
+        fun serviceExecutionFailedToParseMessage(cause: String?) =
+            "Service execution cannot be parsed: $cause"
+        const val SERVICE_EXECUTION_RESERVED_MEMBERS_MESSAGE =
+            "Members 'progress', 'output', 'responseStatusCode' and 'executionStatus' are reserved " +
+                "for reporting the service response"
+        const val SERVICE_EXECUTION_INVALID_UPDATE_MESSAGE =
+            "Service execution update is only for reporting 'progress', 'output', and 'executionStatus'"
+        const val SERVICE_EXECUTION_INVALID_OPTIONS_MESSAGE =
+            "Query parameter 'options' must be one of 'remove', 'cancel' or 'remove,cancel'"
+        fun serviceExecutionCancellationNotImplementedMessage(id: URI) =
+            "Cancellation of service execution $id is not implemented"
+        fun serviceEndpointContactErrorMessage(serviceId: URI, endpoint: URI) =
+            "Unable to contact service registration $serviceId at $endpoint"
+    }
+
     object DataRepresentation {
         fun invalidCharacterInNameMessage(name: Any?) =
             "JSON-LD object contains a member with invalid characters (4.6.2): $name"
@@ -218,6 +252,8 @@ object ErrorMessages {
 
         fun invalidGeometryDefinitionMessage(geoJsonPayload: String, error: String) =
             "Invalid geometry definition: $geoJsonPayload ($error)"
+        fun unsupportedGeometryDefinitionMessage(geoJsonPayload: String, geometryType: String) =
+            "Unsupported geometry type: $geometryType is not allowed in NGSI-LD ($geoJsonPayload)"
     }
 
     object HttpRequest {
@@ -316,6 +352,8 @@ object ErrorMessages {
         fun invalidFormatValueMessage(format: String) = "'$format' is not a valid value for the format query parameter"
         fun invalidOptionsValueMessage(option: String) =
             "'$option' is not a valid value for the options query parameter"
+        fun invalidExecutionStatusValueMessage(rawStatus: String) =
+            "'$rawStatus' is not a valid value for the executionStatus query parameter"
         fun invalidOrderingDirectionMessage(direction: String) =
             "'$direction' is not a valid ordering direction parameter"
 

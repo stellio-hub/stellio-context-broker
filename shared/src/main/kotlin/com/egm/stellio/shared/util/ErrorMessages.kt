@@ -272,6 +272,9 @@ object ErrorMessages {
     }
 
     object Json {
+        fun notAStringOrArrayOfStringsMessage(value: Any) =
+            "Expected a comma separated String or an array of Strings, got: $value"
+
         const val JSON_PARSING_ERROR_MESSAGE = "JSON payload could not be parsed"
 
         fun cannotDeserializeToObjectMessage(cause: String? = null) =

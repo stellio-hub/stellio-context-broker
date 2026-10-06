@@ -7,6 +7,7 @@ import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.INCOMING_IRI
@@ -15,6 +16,8 @@ import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.TEMPERATURE_TERM
 import com.egm.stellio.shared.util.removeNoise
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class QNodeSqlTranslatorTests {
@@ -159,14 +162,47 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `toSqlJsonPath should generate NEQ range as outside-bounds filter`() {
+    fun `toSqlJsonPath should generate NEQ range as attribute existence and not in range`() {
+        val inRange =
+            existsWhere(temperaturePropertyPath, """@ >= $minPh && @ <= $maxPh""", """{"min": 10, "max": 20}""")
         assertEquals(
-            existsWhere(
-                temperaturePropertyPath,
-                """@ < $minPh || @ > $maxPh""",
-                """{"min": 10, "max": 20}"""
-            ),
+            """(${exists("""$."$TEMPERATURE_IRI"""")}) AND NOT ($inRange)""",
             buildSql("$TEMPERATURE_TERM!=10..20")
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should generate NEQ single value as attribute existence and no equal value`() {
+        val eqSql = """
+            (${existsWhere(incomingPropertyPath, """@ == $valuePh""", """{"value": "open"}""")} OR
+                ${existsWhere(incomingLangMapPath, """@ == $valuePh""", """{"value": "open"}""")})
+        """
+        assertEquals(
+            """(${exists("""$."$INCOMING_IRI"""")}) AND NOT ($eqSql)""".removeNoise(),
+            buildSql("$INCOMING_TERM!=\"open\"").removeNoise()
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should generate NEQ list as attribute existence and none of the values`() {
+        assertEquals(
+            """(${exists("""$."$TEMPERATURE_IRI"""")}) AND NOT (""" +
+                """${exists("""$temperaturePropertyPath ? (@ == 10 || @ == 20)""")})""",
+            buildSql("$TEMPERATURE_TERM!=10,20")
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should guard NEQ with the existence of the language tag`() {
+        val eqSql = existsWhere(
+            incomingLangFilterPath,
+            """@."@language" == $langPh && @."@value" == $valuePh""",
+            """{"lang": "en", "value": "hello"}"""
+        )
+        val guard = existsWhere(incomingLangFilterPath, """@."@language" == $langPh""", """{"lang": "en"}""")
+        assertEquals(
+            "($guard) AND NOT ($eqSql)".removeNoise(),
+            buildSql("""$INCOMING_TERM[en]!="hello"""").removeNoise()
         )
     }
 
@@ -206,6 +242,49 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
+    fun `toSqlJsonPath should expand quoted and unquoted list values the same way for expandValues attributes`() {
+        assertEquals(
+            buildSql("$INCOMING_TERM==BeeHive,Apiary", expandValues = setOf(INCOMING_TERM)),
+            buildSql("""$INCOMING_TERM=="BeeHive","Apiary"""", expandValues = setOf(INCOMING_TERM))
+        )
+        assertEquals(
+            exists("""$incomingVocabPath ? (@ == "$BEEHIVE_IRI" || @ == "$APIARY_IRI")"""),
+            buildSql("""$INCOMING_TERM=="BeeHive","Apiary"""", expandValues = setOf(INCOMING_TERM))
+                .split(" OR ")[2]
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should expand compact IRIs and keep absolute IRIs for expandValues attributes`() {
+        assertEquals(
+            exists("""$incomingVocabPath ? (@ == "https://uri.etsi.org/ngsi-ld/Foo" || @ == "urn:ngsi-ld:Bar")"""),
+            buildSql("$INCOMING_TERM==ngsi-ld:Foo,urn:ngsi-ld:Bar", expandValues = setOf(INCOMING_TERM))
+                .split(" OR ")[2]
+        )
+        assertTrue(
+            buildSql("$INCOMING_TERM==ngsi-ld:Foo", expandValues = setOf(INCOMING_TERM))
+                .contains(""""value": "https://uri.etsi.org/ngsi-ld/Foo"""")
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should escape single quotes in attribute paths`() {
+        val escapedKeyPath = """$."$INCOMING_IRI"."$NGSILD_JSONPROPERTY_JSON"."$JSONLD_VALUE_KW"."a''b""""
+        assertEquals(
+            existsWhere(escapedKeyPath, """@ == $valuePh""", """{"value": 12}"""),
+            buildSql("$INCOMING_TERM[a'b]==12", jsonKeys = setOf(INCOMING_TERM))
+        )
+    }
+
+    @Test
+    fun `toSqlJsonPath should not consider a partially valid language tag as a language tag`() {
+        // Locale.forLanguageTag("en-'x") is en, the tag must not be embedded unescaped in the SQL
+        val sql = buildSql("""$INCOMING_TERM[en-'x]!="hello"""")
+        assertFalse(sql.contains("@language"))
+        assertFalse(sql.contains("en-'x"))
+    }
+
+    @Test
     fun `toSqlJsonPath should generate like_regex comparison for LIKE_REGEX operator`() {
         val expected = """(${exists("""$incomingPropertyPath ? (@ like_regex "test.*")""")} OR """ +
             """${exists("""$incomingLangMapPath ? (@ like_regex "test.*")""")})"""
@@ -222,9 +301,10 @@ class QNodeSqlTranslatorTests {
     }
 
     @Test
-    fun `toSqlJsonPath should generate NEQ range filter for jsonKeys attribute with bracket key`() {
+    fun `toSqlJsonPath should guard NEQ range filter for jsonKeys attribute with the existence of the key`() {
+        val inRange = existsWhere(incomingJsonKeyPath, """@ >= $minPh && @ <= $maxPh""", """{"min": 10, "max": 20}""")
         assertEquals(
-            existsWhere(incomingJsonKeyPath, """@ < $minPh || @ > $maxPh""", """{"min": 10, "max": 20}"""),
+            "(${exists(incomingJsonKeyPath)}) AND NOT ($inRange)",
             buildSql("$INCOMING_TERM[$TEMPERATURE_TERM]!=10..20", jsonKeys = setOf(INCOMING_TERM))
         )
     }

@@ -43,6 +43,11 @@ data class AttributePath(
                     languageTag = null
                     trailingPath = rawTerms
                 }
+                // wildcard language (attr[*]): any language, so the target element is the attribute itself
+                rawTerms == listOf("*") -> {
+                    languageTag = null
+                    trailingPath = emptyList()
+                }
                 rawTerms.size == 1 && isValidLanguageTag(rawTerms[0]) -> {
                     languageTag = rawTerms[0]
                     trailingPath = emptyList()
@@ -74,9 +79,9 @@ data class AttributePath(
             mainPath.size > 1 ->
                 """$.$mainPathString.**{0 to 2}.$trailingPathString.**{0 to 1}."$JSONLD_VALUE_KW""""
             trailingPath.isEmpty() ->
-                """$."${mainPath[0]}"."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW""""
+                """$.$mainPathString."$NGSILD_PROPERTY_VALUE"."$JSONLD_VALUE_KW""""
             else ->
-                """$."${mainPath[0]}"."$NGSILD_PROPERTY_VALUE".$trailingPathString.**{0 to 1}."$JSONLD_VALUE_KW""""
+                """$.$mainPathString."$NGSILD_PROPERTY_VALUE".$trailingPathString.**{0 to 1}."$JSONLD_VALUE_KW""""
         }
     }
 
@@ -88,7 +93,7 @@ data class AttributePath(
         else if (mainPath.size > 1)
             """$.$mainPathString.**{0 to 2}."$JSONLD_ID_KW""""
         else
-            """$."${mainPath[0]}"."$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
+            """$.$mainPathString."$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
     }
 
     fun buildJsonBVocabPath(): String {
@@ -96,7 +101,7 @@ data class AttributePath(
         return if (mainPath.size > 1)
             """$.$mainPathString.**{0 to 2}."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW""""
         else
-            """$."${mainPath[0]}"."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW""""
+            """$.$mainPathString."$NGSILD_VOCABPROPERTY_VOCAB"[*]."$JSONLD_ID_KW""""
     }
 
     fun buildJsonBLanguageMapPath(): String {
@@ -104,7 +109,7 @@ data class AttributePath(
         return if (mainPath.size > 1)
             """$.$mainPathString.**{0 to 2}."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW""""
         else
-            """$."${mainPath[0]}"."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW""""
+            """$.$mainPathString."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]."$JSONLD_VALUE_KW""""
     }
 
     fun buildJsonBLanguageMapFilterPath(): String {
@@ -112,16 +117,13 @@ data class AttributePath(
         return if (mainPath.size > 1)
             """$.$mainPathString.**{0 to 2}."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]"""
         else
-            """$."${mainPath[0]}"."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]"""
+            """$.$mainPathString."$NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP"[*]"""
     }
 
     fun buildJsonBJsonPropertyPath(): String {
         val mainPathString = mainPath.toQuotedJsonPath()
         val keyPath = trailingPath.toQuotedJsonPath()
-        return if (mainPath.size > 1)
-            """$.$mainPathString."$NGSILD_JSONPROPERTY_JSON"."$JSONLD_VALUE_KW".$keyPath"""
-        else
-            """$."${mainPath[0]}"."$NGSILD_JSONPROPERTY_JSON"."$JSONLD_VALUE_KW".$keyPath"""
+        return """$.$mainPathString."$NGSILD_JSONPROPERTY_JSON"."$JSONLD_VALUE_KW".$keyPath"""
     }
 
     fun buildJsonBExistsPath(): String {
@@ -132,23 +134,24 @@ data class AttributePath(
     fun buildSqlOrderClause() = """
         jsonb_path_query_array(
             entity_payload.payload,
-            '${buildJsonBPropertyPath().escapeSingleQuotes()}'
+            '${buildJsonBPropertyPath()}'
         )
          ||
         jsonb_path_query_array(
             entity_payload.payload,
-            '${buildJsonBRelationshipPath().escapeSingleQuotes()}'
+            '${buildJsonBRelationshipPath()}'
         )
     """.trimIndent()
 
+    // forLanguageTag silently drops the ill-formed part of a tag (e.g. en-'x becomes en), so the tag must round-trip
+    // (it is embedded in SQL literals)
     private fun isValidLanguageTag(tag: String): Boolean =
         runCatching {
-            Locale.forLanguageTag(tag).isO3Language
-        }.fold(
-            { it.isNotEmpty() },
-            { false }
-        )
+            val locale = Locale.forLanguageTag(tag)
+            locale.isO3Language.isNotEmpty() && locale.toLanguageTag().equals(tag, ignoreCase = true)
+        }.getOrDefault(false)
 
+    // terms come from user input and the built paths are always embedded in a single-quoted SQL literal
     private fun List<ExpandedTerm>.toQuotedJsonPath(): String =
-        this.joinToString(".") { serializeObject(it) }
+        this.joinToString(".") { serializeObject(it).escapeSingleQuotes() }
 }

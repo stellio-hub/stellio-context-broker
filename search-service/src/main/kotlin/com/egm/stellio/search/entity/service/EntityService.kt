@@ -880,7 +880,7 @@ class EntityService(
         modifiedAtPatch: Json
     ): Either<APIException, Json> {
         val batch = attributesByNames.map { (attrName, results) -> buildMergeBatchEntry(attrName, results) }
-        // The CTE locks the entity row (FOR UPDATE) so that, under concurrent writes, the merged instances
+        // The CTE locks the entity row (FOR NO KEY UPDATE) so that, under concurrent writes, the merged instances
         // are computed from the latest committed payload, and is evaluated once for both aggregates below.
         return databaseClient.sql(
             """
@@ -901,7 +901,7 @@ class EntityService(
                     ) || COALESCE(item -> 'newInstances', '[]'::jsonb) AS merged_instances
                 FROM entity_payload ep, jsonb_array_elements(:batch::jsonb) AS item
                 WHERE ep.entity_id = :entity_id
-                FOR UPDATE OF ep
+                FOR NO KEY UPDATE OF ep
             )
             UPDATE entity_payload
             SET modified_at = :modified_at,

@@ -28,6 +28,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -206,6 +208,51 @@ class JsonLdUtilsTests {
         val expandedAttribute = expandAttribute("attribute", payload, NGSILD_TEST_CORE_CONTEXTS)
         assertEquals(NGSILD_DEFAULT_VOCAB + "attribute", expandedAttribute.first)
         assertThat(expandedAttribute.second).hasSize(1)
+    }
+
+    @Test
+    fun `expandAttribute should return the same result whether the active context is cached or freshly resolved`() =
+        runTest {
+            val fragment =
+                """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": "something"
+                        }
+                    }
+                """.trimIndent()
+
+            // first call resolves and caches the active context for NGSILD_TEST_CORE_CONTEXTS,
+            // second call should hit CachedContextExpansion's cache - results must be identical
+            val firstExpansion = expandAttribute(fragment, NGSILD_TEST_CORE_CONTEXTS)
+            val secondExpansion = expandAttribute(fragment, NGSILD_TEST_CORE_CONTEXTS)
+
+            assertEquals(firstExpansion.first, secondExpansion.first)
+            assertEquals(firstExpansion.second, secondExpansion.second)
+        }
+
+    @Test
+    fun `expandAttribute should produce correct, uncorrupted results under concurrent expansion`() = runTest {
+        // all share the same context list, so all hit the same cached ActiveContext concurrently -
+        // this would surface any thread-safety issue in reusing it across coroutines
+        val values = (1..20).map { "value-$it" }
+
+        val expandedAttributes = values.map { value ->
+            async {
+                value to expandAttribute(
+                    "attribute",
+                    mapOf("type" to "Property", "value" to value),
+                    NGSILD_TEST_CORE_CONTEXTS
+                )
+            }
+        }.awaitAll()
+
+        expandedAttributes.forEach { (value, expandedAttribute) ->
+            assertEquals(NGSILD_DEFAULT_VOCAB + "attribute", expandedAttribute.first)
+            // each concurrently-expanded attribute must reflect its own value, not another coroutine's
+            assertThat(serializeObject(expandedAttribute.second)).contains(value)
+        }
     }
 
     @Test

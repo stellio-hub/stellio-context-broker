@@ -90,10 +90,17 @@ object JsonLdUtils {
         return contextsArray.build()
     }
 
+    // Per-call copy (keeps the shared documentCache): setting expandContext on the shared options would race
+    private fun expandOptionsFor(contexts: List<String>): JsonLdOptions =
+        JsonLdOptions(jsonLdOptions).apply {
+            setExpandContext(JsonDocument.of(buildContextDocument(contexts)))
+        }
+
     fun deleteAndReload(context: URI, reload: Boolean): Either<APIException, Unit> {
         val documentCache = jsonLdOptions.documentCache as RemovableLruCache
         return if (documentCache.containsKey(context.toString())) {
             documentCache.remove(context.toString())
+            CachedContextExpansion.invalidate(context.toString())
             if (reload) {
                 // force a reload by expanding a random term from the core context
                 expandJsonLdTerm(NGSILD_UNIT_CODE_TERM, context.toString())
@@ -137,13 +144,9 @@ object JsonLdUtils {
             NGSILD_TYPE_TERM -> JSONLD_TYPE_KW
             NGSILD_SCOPE_TERM -> NGSILD_SCOPE_IRI
             else -> try {
-                val preparedTerm = mapOf(
-                    term to mapOf<String, Any>(),
-                    JSONLD_CONTEXT_KW to contexts
-                )
-                JsonLd.expand(JsonDocument.of(serializeObject(preparedTerm).byteInputStream()))
-                    .options(jsonLdOptions)
-                    .get()
+                val preparedTerm = mapOf(term to mapOf<String, Any>())
+                val document = JsonDocument.of(serializeObject(preparedTerm).byteInputStream())
+                CachedContextExpansion.expand(document, contexts, expandOptionsFor(contexts), frameExpansion = false)
                     .let {
                         if (it.isNotEmpty())
                             (it[0] as JsonObject).keys.first()
@@ -206,20 +209,18 @@ object JsonLdUtils {
         doGeoPropertyTransformation: Boolean = true
     ): Map<String, Any> {
         // transform the GeoJSON value of geo properties into WKT format before JSON-LD expansion
-        // since JSON-LD expansion breaks the data (e.g., flattening the lists of lists)
+        // since JSON-LD expansion breaks the data (e.g., flattening the lists of lists).
+        // Contexts are passed via the expand options (see CachedContextExpansion), so drop any embedded @context
         val preparedFragment =
             if (doGeoPropertyTransformation)
-                fragment
-                    .mapValues(transformGeoPropertyToWKT())
-                    .plus(JSONLD_CONTEXT_KW to contexts)
+                fragment.mapValues(transformGeoPropertyToWKT()).minus(JSONLD_CONTEXT_KW)
             else
-                fragment.plus(JSONLD_CONTEXT_KW to contexts)
+                fragment.minus(JSONLD_CONTEXT_KW)
 
         return try {
             val expansionProcess = coroutineScope.async {
-                JsonLd.expand(JsonDocument.of(serializeObject(preparedFragment).byteInputStream()))
-                    .options(jsonLdOptions)
-                    .get()
+                val document = JsonDocument.of(serializeObject(preparedFragment).byteInputStream())
+                CachedContextExpansion.expand(document, contexts, expandOptionsFor(contexts), frameExpansion = false)
             }
             val expandedFragment = expansionProcess.await()
             if (expandedFragment.isEmpty())

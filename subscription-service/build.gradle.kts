@@ -50,4 +50,5 @@ jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParame
 jib.to.image = "stellio/stellio-subscription-service:${project.version}"
 jib.container.ports = listOf("8084")
 jib.container.creationTime.set(project.ext["jibContainerCreationTime"].toString())
+jib.container.jvmFlags = project.ext["jibContainerJvmFlags"] as List<String>
 jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)

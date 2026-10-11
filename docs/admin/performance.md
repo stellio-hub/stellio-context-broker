@@ -6,6 +6,27 @@ Performance in Stellio is mainly related to the performance of the underlying da
 
 Thus, by default, the Stellio databases are configured to provide a good balance between writing and reading. If you have more specific scenarios in one or another area, you may have to adapt these settings. You may also have to fine tune the settings of PostgreSQL / Timescale (for instance, sizes of chunks to store the history of attributes can be a very important one).
 
+## JVM settings
+
+### Entropy source
+
+Stellio generates random identifiers on hot paths (for instance, a UUID on every attribute update). In a container, the default `SecureRandom` implementation may block while reading `/dev/random` when the entropy pool runs low, stalling the thread that processes the request. In our load tests, switching to `/dev/urandom` improved the throughput of partial attribute updates by 4.5% to 7%.
+
+The Docker images of all Stellio services are thus started with `-Djava.security.egd=file:/dev/./urandom`. Nothing has to be configured.
+
+### Heap size
+
+The JVM sizes its heap from the memory available to the container. By default, the maximum heap is 25% of that memory, which is conservative when the container only runs a Stellio service. In our load tests (8 vCPU server, 50 concurrent users), setting `-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=75` improved the throughput of partial attribute updates by about 7%.
+
+The right values depend on your deployment (memory limit of the container, load profile), so the Docker images do not set them. Keep enough room for the memory used outside the heap (metaspace, thread stacks, direct buffers): a maximum above 75% is generally not advised.
+
+They can be set with the `JDK_JAVA_OPTIONS` environment variable (see [Change the JVM parameters in a container](misc_configuration_tips.md#change-the-jvm-parameters-in-a-container)):
+
+```yaml
+    environment:
+      - JDK_JAVA_OPTIONS=-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=75
+```
+
 ## Load test campaign
 
 An NGSI-LD load test suite is available in [GitHub](https://github.com/stellio-hub/ngsild-load-tests). In the README, you will find instructions on how to install and configure it. There is a description of all the scenarions that are currently available. They are currently focused on the most typical endpoints used in everyday life of a project but it is planned to add new ones soon (for instance, the Merge Entity endpoint or the subscription endpoints).

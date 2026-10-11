@@ -502,6 +502,25 @@ class JsonLdUtilsTests {
         )
     }
 
+    @Test
+    fun `deleteAndReload should invalidate the cached active contexts built from the deleted context`() = runTest {
+        val contextName = "reloadable-context.jsonld"
+        val contextUrl = "http://localhost:8094/jsonld-contexts/$contextName"
+        val newIncomingIri = "https://vocab.egm.io/incoming"
+        fun contextContent(incomingIri: String) = """{ "@context": { "$INCOMING_TERM": "$incomingIri" } }"""
+
+        jsonLdContextServerExtension.stubContext(contextName, contextContent(INCOMING_IRI))
+        assertEquals(INCOMING_IRI, expandJsonLdTerm(INCOMING_TERM, listOf(contextUrl)))
+
+        // the context changes at its source: the cached version is still used until it is deleted
+        jsonLdContextServerExtension.stubContext(contextName, contextContent(newIncomingIri))
+        assertEquals(INCOMING_IRI, expandJsonLdTerm(INCOMING_TERM, listOf(contextUrl)))
+
+        deleteAndReload(contextUrl.toUri(), false).shouldSucceed()
+
+        assertEquals(newIncomingIri, expandJsonLdTerm(INCOMING_TERM, listOf(contextUrl)))
+    }
+
     companion object {
         // Create a specific instance of the JSON-LD context server extension to be able to call check methods on it
         @JvmStatic

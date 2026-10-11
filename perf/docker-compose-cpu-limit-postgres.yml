@@ -1,0 +1,11 @@
+# Limits the number of CPUs of postgres, to see how a scenario scales with CPU allocation.
+# No default value on purpose: POSTGRES_CPU_LIMIT must always be set explicitly.
+#   POSTGRES_CPU_LIMIT=4 docker compose -f docker-compose.yml -f perf/docker-compose-cpu-limit-postgres.yml \
+#     up -d --force-recreate postgres
+# To remove the limit, recreate the service without this file (data is kept in the volume).
+services:
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: '${POSTGRES_CPU_LIMIT:?POSTGRES_CPU_LIMIT must be set}'

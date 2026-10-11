@@ -12,6 +12,25 @@ An NGSI-LD load test suite is available in [GitHub](https://github.com/stellio-h
 
 The objective is to be as close as possible to data used in real life projects. Thus, the [template entity](https://github.com/stellio-hub/ngsild-load-tests/blob/master/src/data/template_entity.json) that is used in the different scenarios is composed of 6 properties (some being multi-instance ones), 1 relationship and 1 geolocation.
 
+### Launching Stellio for a load test campaign
+
+The `perf` folder contains Docker Compose override files to apply on top of `docker-compose.yml`:
+
+* `docker-compose-perf.yml` enables the tools used to analyze the results:
+    * the `pg_stat_statements` extension in PostgreSQL (only applied when the data volume is created, so start from a fresh volume),
+    * a read-only access to `/actuator/metrics` in search-service (JVM, HTTP server and connection pool metrics),
+    * the size of the connection pool of search-service (`SEARCH_SERVICE_DB_POOL_MAX_SIZE`, 10 by default),
+    * the log level of the requests and responses in api-gateway (`LOGBOOK_LOG_LEVEL`, `TRACE` by default).
+* `docker-compose-cpu-limit-search-service.yml` and `docker-compose-cpu-limit-postgres.yml` limit the number of CPUs of a service, to see how a scenario scales with CPU allocation. The limit (`SEARCH_SERVICE_CPU_LIMIT` or `POSTGRES_CPU_LIMIT`) has no default value and must always be set.
+
+```shell
+docker compose -f docker-compose.yml -f perf/docker-compose-perf.yml up -d
+SEARCH_SERVICE_CPU_LIMIT=4 docker compose -f docker-compose.yml -f perf/docker-compose-perf.yml \
+  -f perf/docker-compose-cpu-limit-search-service.yml up -d --force-recreate search-service
+```
+
+To compare the results with a previous campaign, check that the load tests target the same entry point: going through api-gateway or directly to search-service makes a significant difference.
+
 ## Current state of Stellio
 
 The results presented here have been obtained in September 2024 using the following setup:

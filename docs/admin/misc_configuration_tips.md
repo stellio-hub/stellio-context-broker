@@ -102,7 +102,7 @@ For this change to take effet, the Docker container has to be re-created.
 
 ## Change the JVM parameters in a container
 
-Starting from Stellio 2.11.0, Docker images built for the Stellio services do not have any default JVM settings (until version 2.11.0, they had default memory settings for the heap size, but the JVM is able to set [sensible default settings](https://learn.microsoft.com/en-us/azure/developer/java/containers/overview#understand-jvm-default-ergonomics) so they have been removed).
+Starting from Stellio 2.11.0, Docker images built for the Stellio services do not have any default memory settings (until version 2.11.0, they had default memory settings for the heap size, but the JVM is able to set [sensible default settings](https://learn.microsoft.com/en-us/azure/developer/java/containers/overview#understand-jvm-default-ergonomics) so they have been removed). The only JVM setting set by default is the entropy source (`-Djava.security.egd=file:/dev/./urandom`, see [Entropy source](performance.md#entropy-source)).
 
 If you want to add some specific JVM settings, you can do so by using the `JDK_JAVA_OPTIONS` environment variable. For instance, if you want to set the heap size memory:
 
@@ -110,6 +110,8 @@ If you want to add some specific JVM settings, you can do so by using the `JDK_J
     environment:
       - JDK_JAVA_OPTIONS=-Xms1024m -Xmx2048m
 ```
+
+See [Heap size](performance.md#heap-size) for settings that can improve performance.
 
 ## Launch Stellio with a different port binding
 You can launch Stellio with a different port binding using environment variables:

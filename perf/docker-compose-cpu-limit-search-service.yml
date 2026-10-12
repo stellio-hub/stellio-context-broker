@@ -1,0 +1,11 @@
+# Limits the number of CPUs of search-service, to see how a scenario scales with CPU allocation.
+# No default value on purpose: SEARCH_SERVICE_CPU_LIMIT must always be set explicitly.
+#   SEARCH_SERVICE_CPU_LIMIT=4 docker compose -f docker-compose.yml -f perf/docker-compose-cpu-limit-search-service.yml \
+#     up -d --force-recreate search-service
+# To remove the limit, recreate the service without this file.
+services:
+  search-service:
+    deploy:
+      resources:
+        limits:
+          cpus: '${SEARCH_SERVICE_CPU_LIMIT:?SEARCH_SERVICE_CPU_LIMIT must be set}'

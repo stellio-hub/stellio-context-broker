@@ -30,6 +30,7 @@ val JSONLD_COMPACTED_ATTRIBUTE_CORE_MEMBERS =
         NGSILD_TYPE_TERM,
         NGSILD_VALUE_TERM,
         NGSILD_OBJECT_TERM,
+        NGSILD_RELATIONSHIP_OBJECT_TYPE_TERM,
         NGSILD_JSON_TERM,
         NGSILD_VOCAB_TERM,
         NGSILD_LANGUAGEMAP_TERM,
@@ -65,6 +66,41 @@ fun List<CompactedEntity>.getRelationshipsNamesWithObjects(): Map<String, Set<UR
         (acc.keys + value.keys).associateWith {
             (acc[it] ?: emptySet()).plus(value[it] ?: emptySet())
         }
+    }
+
+/**
+ * Returns the objects of the Relationships annotated with an objectType, associated to their declared types.
+ *
+ * As per 4.5.23.1, these are the only non locally stored entities that can be retrieved as Linked Entities.
+ */
+fun List<CompactedEntity>.getRelationshipsObjectsWithObjectTypes(): Map<URI, Set<String>> =
+    this.flatMap { it.getAttributeInstances() }
+        .filter { it[NGSILD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM }
+        .flatMap { relationship ->
+            val objectTypes = relationship.getRelationshipObjectTypes()
+            relationship.getRelationshipObjectIds().map { objectId -> objectId.toUri() to objectTypes }
+        }
+        .groupBy({ (objectId, _) -> objectId }, { (_, objectTypes) -> objectTypes })
+        .mapValues { (_, objectTypes) -> objectTypes.flatten().toSet() }
+        .filterValues { it.isNotEmpty() }
+
+// all the instances of the attributes of an entity (single and multi-instance attributes), core members excluded
+private fun CompactedEntity.getAttributeInstances(): List<CompactedAttributeInstance> =
+    this.filterKeys { !COMPACTED_ENTITY_CORE_MEMBERS.contains(it) }
+        .values
+        .flatMap { value ->
+            when (value) {
+                is Map<*, *> -> listOf(value as CompactedAttributeInstance)
+                is List<*> -> value.filterIsInstance<Map<*, *>>().map { it as CompactedAttributeInstance }
+                else -> emptyList()
+            }
+        }
+
+private fun CompactedAttributeInstance.getRelationshipObjectTypes(): List<String> =
+    when (val objectType = this[NGSILD_RELATIONSHIP_OBJECT_TYPE_TERM]) {
+        is String -> listOf(objectType)
+        is List<*> -> objectType.filterIsInstance<String>()
+        else -> emptyList()
     }
 
 private fun CompactedAttributeInstance.applyInlineLinkedEntity(

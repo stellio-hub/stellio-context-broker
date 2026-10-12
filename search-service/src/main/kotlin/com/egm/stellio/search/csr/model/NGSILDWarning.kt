@@ -50,7 +50,7 @@ data class MiscellaneousPersistentWarning(
 fun ResponseEntity<*>.addWarnings(warnings: List<NGSILDWarning>?): ResponseEntity<*> =
     if (!warnings.isNullOrEmpty()) {
         val headers = HttpHeaders(this.headers).apply {
-            addAll(NGSILDWarning.HEADER_NAME, warnings.map { it.getHeaderMessage() })
+            addAll(NGSILDWarning.HEADER_NAME, warnings.map { it.getHeaderMessage() }.distinct())
         }
 
         ResponseEntity.status(this.statusCode)

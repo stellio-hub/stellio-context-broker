@@ -5,7 +5,6 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
-import arrow.core.right
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_MISSING_ID_PROPERTY_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_MISSING_TYPE_PROPERTY_MESSAGE
@@ -21,6 +20,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.jsonPropertyMissingJsonM
 import com.egm.stellio.shared.util.ErrorMessages.Entity.languagePropertyInvalidLanguageMapMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.languagePropertyMissingLanguageMapMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.propertyMissingValueMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipInvalidObjectTypeValueMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.vocabPropertyInvalidVocabMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.vocabPropertyMissingVocabMessage
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeUriMessage
@@ -305,6 +305,11 @@ class NgsiLdRelationshipInstance private constructor(
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdRelationshipInstance> = either {
             val objectId = values.getRelationshipObjects(name).bind()
+            values[NGSILD_RELATIONSHIP_OBJECT_TYPE]?.forEach {
+                val objectType = (it as? Map<*, *>)?.takeIf { it.size == 1 }?.get(JSONLD_ID_KW) as? String
+                ensureNotNull(objectType) { BadRequestDataException(relationshipInvalidObjectTypeValueMessage(name)) }
+                ensure(objectType.isURI()) { BadRequestDataException(invalidTypeUriMessage(objectType)) }
+            }
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
             val expiresAt = values.getAndCheckExpiresAt().bind()
@@ -606,11 +611,8 @@ fun checkAttributeHasNoForbiddenMembers(
     instance: ExpandedAttributeInstance,
     forbiddenMembers: Set<ExpandedTerm>
 ): Either<APIException, Unit> = either {
-    forbiddenMembers.find {
-        instance.getMemberValue(it).isRight()
-    }.let {
-        if (it != null) BadRequestDataException(attributeForbiddenMemberMessage(name, it)).left()
-        else Unit.right()
+    forbiddenMembers.find { instance.containsKey(it) }?.let {
+        raise(BadRequestDataException(attributeForbiddenMemberMessage(name, it)))
     }
 }
 

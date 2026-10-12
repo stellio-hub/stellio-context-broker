@@ -494,9 +494,9 @@ class EntityHandlerTests {
         val compactedEntity = slot<CompactedEntity>()
 
         coEvery {
-            linkedEntityService.processLinkedEntities(capture(compactedEntity), any())
+            linkedEntityService.processLinkedEntities(capture(compactedEntity), any(), any())
         } answers {
-            listOf(compactedEntity.captured).right()
+            (listOf(compactedEntity.captured) to emptyList<NGSILDWarning>()).right()
         }
     }
 
@@ -1261,9 +1261,9 @@ class EntityHandlerTests {
         val compactedEntities = slot<List<CompactedEntity>>()
 
         coEvery {
-            linkedEntityService.processLinkedEntities(capture(compactedEntities), any())
+            linkedEntityService.processLinkedEntities(capture(compactedEntities), any(), any())
         } answers {
-            compactedEntities.captured.right()
+            (compactedEntities.captured to emptyList<NGSILDWarning>()).right()
         }
     }
 

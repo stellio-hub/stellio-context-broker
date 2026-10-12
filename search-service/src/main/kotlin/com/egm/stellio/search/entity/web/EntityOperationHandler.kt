@@ -286,7 +286,12 @@ class EntityOperationHandler(
                 entitiesQuery.pick.getRootAttributesToPick(),
                 entitiesQuery.omit.getRootAttributesToOmit()
             ).let {
-                linkedEntityService.processLinkedEntities(it, entitiesQuery).bind()
+                // query via POST is not distributed, so Linked Entities are only retrieved locally
+                linkedEntityService.processLinkedEntities(
+                    it,
+                    entitiesQuery.copy(local = true),
+                    httpHeaders
+                ).bind().first
             }
 
         buildQueryResponse(

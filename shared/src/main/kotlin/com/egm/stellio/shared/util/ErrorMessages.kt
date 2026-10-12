@@ -221,6 +221,8 @@ object ErrorMessages {
             "Relationship $name has an invalid object type: ${javaClass.simpleName}"
         fun relationshipInvalidObjectIdMessage(name: String, objectValue: Any?) =
             "Relationship $name has an invalid or no object id: $objectValue"
+        fun relationshipInvalidObjectTypeValueMessage(name: String) =
+            "Relationship $name has an objectType member that is not a string, nor an array of string"
 
         const val CANNOT_ADD_SUBATTRIBUTE_MESSAGE = "Cannot add a sub-attribute into empty or multi-instance attribute"
         const val EXPECTED_SINGLE_ENTRY_MESSAGE = "Expected a single entry but got none or more than one"

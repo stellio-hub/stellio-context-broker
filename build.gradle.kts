@@ -7,11 +7,13 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 buildscript {
     dependencies {
+        classpath(enforcedPlatform("com.fasterxml.jackson:jackson-bom:2.21.7"))
         classpath("com.google.cloud.tools:jib-layer-filter-extension-gradle:0.3.0")
     }
 }
 
 extra["springCloudVersion"] = "2025.1.3"
+extra["jackson.version"] = "3.1.7"
 
 plugins {
     // https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#reacting-to-other-plugins.java

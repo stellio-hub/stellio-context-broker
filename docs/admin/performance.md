@@ -27,6 +27,27 @@ They can be set with the `JDK_JAVA_OPTIONS` environment variable (see [Change th
       - JDK_JAVA_OPTIONS=-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=75
 ```
 
+## Calling search-service directly
+
+By default, all requests go through api-gateway, which routes them to search-service or subscription-service. This extra hop has a cost: in our load tests (partial attribute updates, 50 concurrent users), sending the requests directly to search-service improved throughput by about 20% and reduced response times by about 20% at every percentile.
+
+Clients deployed in the same infrastructure as Stellio, and that only use the APIs served by search-service, can thus call it directly (on port 8083 by default, see `SEARCH_SERVICE_PORT`). Authentication is enforced by search-service itself, so it is not bypassed.
+
+For the following paths, api-gateway only forwards the request, so calling search-service directly is equivalent:
+
+* `/ngsi-ld/v1/entities/**`, `/ngsi-ld/v1/entityOperations/**`, `/ngsi-ld/v1/entityAccessControl/**`
+* `/ngsi-ld/v1/types/**`, `/ngsi-ld/v1/attributes/**`
+* `/ngsi-ld/v1/temporal/entities/**`, `/ngsi-ld/v1/temporal/entityOperations/**`
+* `/ngsi-ld/v1/csourceRegistrations/**`, `/ngsi-ld/v1/serviceRegistrations/**`, `/ngsi-ld/v1/services/**`
+* `/ngsi-ld/v1/auth/**`
+
+Keep going through api-gateway in the following cases:
+
+* `/ngsi-ld/v1/jsonldContexts/**`: api-gateway also forwards the request to subscription-service, so that both services stay in sync when a context is added, reloaded or deleted.
+* `/ngsi-ld/v1/subscriptions/**`: these requests are served by subscription-service.
+* Browser-based clients: the CORS configuration (`APPLICATION_CORS_ALLOWED_ORIGINS`) is applied by api-gateway.
+* Clients outside of your infrastructure: api-gateway is meant to be the single entry point exposed to them.
+
 ## Load test campaign
 
 An NGSI-LD load test suite is available in [GitHub](https://github.com/stellio-hub/ngsild-load-tests). In the README, you will find instructions on how to install and configure it. There is a description of all the scenarions that are currently available. They are currently focused on the most typical endpoints used in everyday life of a project but it is planned to add new ones soon (for instance, the Merge Entity endpoint or the subscription endpoints).

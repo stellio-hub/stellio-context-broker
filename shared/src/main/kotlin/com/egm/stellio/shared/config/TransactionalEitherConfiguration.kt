@@ -113,13 +113,18 @@ internal class TransactionalEitherInterceptor : MethodInterceptor {
         }
     }
 
+    // also walks suppressed exceptions: when a transaction_timeout kills the session, the failed rollback
+    // overrides the original exception, which is kept as a suppressed one
     private fun Throwable.causes(): List<Throwable> {
         val causes = mutableListOf<Throwable>()
-        var current: Throwable? = this
+        val toVisit = ArrayDeque(listOf(this))
 
-        while (current != null && current !in causes) {
+        while (toVisit.isNotEmpty()) {
+            val current = toVisit.removeFirst()
+            if (current in causes) continue
             causes += current
-            current = current.cause
+            current.cause?.let { toVisit += it }
+            toVisit += current.suppressed
         }
 
         return causes
@@ -130,7 +135,7 @@ internal class TransactionalEitherInterceptor : MethodInterceptor {
             is QueryTimeoutException,
             is TransactionTimedOutException,
             is R2dbcTimeoutException -> true
-            is R2dbcException -> sqlState == QUERY_CANCELLED_SQL_STATE
+            is R2dbcException -> sqlState in TIMEOUT_SQL_STATES
             else -> false
         }
 
@@ -138,6 +143,7 @@ internal class TransactionalEitherInterceptor : MethodInterceptor {
         private val logger = LoggerFactory.getLogger(TransactionalEitherInterceptor::class.java)
 
         // https://www.postgresql.org/docs/current/errcodes-appendix.html
-        private const val QUERY_CANCELLED_SQL_STATE = "57014"
+        // query_canceled (statement_timeout) and transaction_timeout
+        private val TIMEOUT_SQL_STATES = setOf("57014", "25P04")
     }
 }

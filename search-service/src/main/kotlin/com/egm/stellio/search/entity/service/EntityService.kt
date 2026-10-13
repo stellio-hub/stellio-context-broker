@@ -491,7 +491,7 @@ class EntityService(
         ).bind()
 
         if (operationResult.isNotEmpty()) {
-            val updatedEntity = applyAttributeOperationsToPayload(entityId, mergedAt, operationResult).bind()
+            val updatedEntity = applyAttributesOperationsResultToPayload(entityId, mergedAt, operationResult).bind()
             entityEventService.publishAttributeChangeEvents(null, originalEntity, updatedEntity, operationResult)
         }
 
@@ -521,7 +521,7 @@ class EntityService(
 
         // if only added history entries, operationResults is empty and nothing more has to be done
         if (operationResults.isNotEmpty())
-            applyAttributeOperationsToPayload(entityId, createdAt, operationResults).bind()
+            applyAttributesOperationsResultToPayload(entityId, createdAt, operationResults).bind()
     }
 
     @Transactional
@@ -561,7 +561,7 @@ class EntityService(
     ): Either<APIException, Unit> = either {
         if (operationResult.hasSuccessfulResult()) {
             val sub = getSubFromSecurityContext()
-            val updatedEntity = applyAttributeOperationsToPayload(
+            val updatedEntity = applyAttributesOperationsResultToPayload(
                 entityId,
                 createdAt,
                 operationResult.getSucceededOperations(false)
@@ -707,7 +707,7 @@ class EntityService(
                 deletedAt
             ).bind()
         }
-        val updatedEntity = applyAttributeOperationsToPayload(
+        val updatedEntity = applyAttributesOperationsResultToPayload(
             entityId,
             deletedAt,
             deleteAttributeResults.getSucceededOperations(false)
@@ -833,7 +833,7 @@ class EntityService(
                 removeAttributeFromPayload(entityId, modifiedAt, attributeName).bind()
             } else {
                 entityAttributeService.permanentlyDeleteAttribute(entityId, attributeName, datasetId, false).bind()
-                applyAttributeOperationsToPayload(
+                applyAttributesOperationsResultToPayload(
                     entityId,
                     modifiedAt,
                     listOf(
@@ -849,7 +849,7 @@ class EntityService(
         }
     }
 
-    private suspend fun applyAttributeOperationsToPayload(
+    private suspend fun applyAttributesOperationsResultToPayload(
         entityId: URI,
         modifiedAt: ZonedDateTime,
         operationResults: List<SucceededAttributeOperationResult>

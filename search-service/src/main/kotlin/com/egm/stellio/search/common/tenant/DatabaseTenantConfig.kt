@@ -1,6 +1,7 @@
 package com.egm.stellio.search.common.tenant
 
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.config.withTransactionTimeout
 import io.r2dbc.postgresql.PostgresqlConnectionFactoryProvider
 import io.r2dbc.spi.ConnectionFactories
 import io.r2dbc.spi.ConnectionFactory
@@ -55,7 +56,10 @@ class DatabaseTenantConfig(
                 .from(ConnectionFactoryOptions.parse(r2dbcProperties.url as String))
                 .option(ConnectionFactoryOptions.USER, r2dbcProperties.username as String)
                 .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password as String)
-                .withTransactionTimeout()
+                .withTransactionTimeout(
+                    applicationProperties.transactionTimeout,
+                    PostgresqlConnectionFactoryProvider.OPTIONS
+                )
                 .build()
         )
     }
@@ -88,18 +92,12 @@ class DatabaseTenantConfig(
                 }
                 .option(ConnectionFactoryOptions.USER, r2dbcProperties.username as String)
                 .option(ConnectionFactoryOptions.PASSWORD, r2dbcProperties.password as String)
-                .withTransactionTimeout()
+                .withTransactionTimeout(
+                    applicationProperties.transactionTimeout,
+                    PostgresqlConnectionFactoryProvider.OPTIONS
+                )
                 .build()
         )
         tenantConnectionFactories.putIfAbsent(name, tenantConnectionFactory)
     }
-
-    // transaction_timeout (PostgreSQL 17+) bounds the whole transaction, including implicit single-statement ones
-    private fun ConnectionFactoryOptions.Builder.withTransactionTimeout(): ConnectionFactoryOptions.Builder =
-        if (applicationProperties.transactionTimeout.isPositive)
-            option(
-                PostgresqlConnectionFactoryProvider.OPTIONS,
-                mapOf("transaction_timeout" to "${applicationProperties.transactionTimeout.toMillis()}ms")
-            )
-        else this
 }

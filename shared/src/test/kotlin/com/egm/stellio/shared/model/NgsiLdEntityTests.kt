@@ -1268,4 +1268,152 @@ class NgsiLdEntityTests {
                 )
             }
     }
+
+    @Test
+    fun `toNgsiLdEntity should parse an entity with a ListProperty`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "listProperty": {
+                    "type": "ListProperty",
+                    "valueList": [12, "ordered", true]
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val listProperty = ngsiLdEntity.listProperties.single()
+        assertEquals("${NGSILD_DEFAULT_VOCAB}listProperty", listProperty.name)
+        assertEquals(
+            listOf(
+                mapOf(
+                    JSONLD_LIST_KW to listOf(
+                        mapOf(JSONLD_VALUE_KW to 12),
+                        mapOf(JSONLD_VALUE_KW to "ordered"),
+                        mapOf(JSONLD_VALUE_KW to true)
+                    )
+                )
+            ),
+            listProperty.instances.single().valueList
+        )
+    }
+
+    @Test
+    fun `toNgsiLdEntity should not parse an entity with a ListProperty without a valueList member`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "listProperty": {
+                    "type": "ListProperty",
+                    "value": [12, "ordered", true]
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertEquals(
+                    "ListProperty ${NGSILD_DEFAULT_VOCAB}listProperty has an instance without a valueList member",
+                    it.message
+                )
+            }
+    }
+
+    @Test
+    fun `toNgsiLdEntity should parse an entity with a normalized ListRelationship`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "listRelationship": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        { "object": "urn:ngsi-ld:Device:01" },
+                        { "object": "urn:ngsi-ld:Device:02" }
+                    ]
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        val listRelationship = ngsiLdEntity.listRelationships.single()
+        assertEquals("${NGSILD_DEFAULT_VOCAB}listRelationship", listRelationship.name)
+        assertEquals(
+            listOf(
+                mapOf(
+                    JSONLD_LIST_KW to listOf(
+                        mapOf(
+                            NGSILD_RELATIONSHIP_OBJECT to listOf(
+                                mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:01")
+                            )
+                        ),
+                        mapOf(
+                            NGSILD_RELATIONSHIP_OBJECT to listOf(
+                                mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:02")
+                            )
+                        )
+                    )
+                )
+            ),
+            listRelationship.instances.single().objectList
+        )
+    }
+
+    @Test
+    fun `toNgsiLdEntity should parse an entity with an empty ListRelationship`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "listRelationship": {
+                    "type": "ListRelationship",
+                    "objectList": []
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        assertEquals(
+            listOf(mapOf(JSONLD_LIST_KW to emptyList<Any>())),
+            ngsiLdEntity.listRelationships.single().instances.single().objectList
+        )
+    }
+
+    @Test
+    fun `checkAttributeHasNoForbiddenMembers should reject list members on incompatible attribute types`() {
+        val invalidAttributes = listOf(
+            PROPERTIES_FORBIDDEN_MEMBERS to NGSILD_LISTPROPERTY_VALUE_LIST,
+            RELATIONSHIPS_FORBIDDEN_MEMBERS to NGSILD_LISTRELATIONSHIP_OBJECT_LIST,
+            LISTPROPERTIES_FORBIDDEN_MEMBERS to NGSILD_LISTRELATIONSHIP_OBJECT_LIST,
+            LISTRELATIONSHIPS_FORBIDDEN_MEMBERS to NGSILD_LISTPROPERTY_VALUE_LIST
+        )
+
+        invalidAttributes.forEach { (forbiddenMembers, forbiddenMember) ->
+            val attributeName = "${NGSILD_DEFAULT_VOCAB}attribute"
+            val attributeInstance: ExpandedAttributeInstance = mapOf(
+                forbiddenMember to emptyList()
+            )
+
+            checkAttributeHasNoForbiddenMembers(attributeName, attributeInstance, forbiddenMembers)
+                .shouldFail {
+                    assertInstanceOf(BadRequestDataException::class.java, it)
+                    assertEquals(
+                        "Attribute $attributeName has an instance with a forbidden member: $forbiddenMember",
+                        it.message
+                    )
+                }
+        }
+    }
 }

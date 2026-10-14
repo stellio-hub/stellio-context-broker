@@ -290,6 +290,7 @@ class V0_29__JsonLd_migration : BaseJavaMigration() {
             is NgsiLdJsonPropertyInstance -> Attribute.AttributeValueType.OBJECT
             is NgsiLdLanguagePropertyInstance -> Attribute.AttributeValueType.ARRAY
             is NgsiLdVocabPropertyInstance -> Attribute.AttributeValueType.ARRAY
+            else -> Attribute.AttributeValueType.ARRAY
         }
 
         jdbcTemplate.execute(

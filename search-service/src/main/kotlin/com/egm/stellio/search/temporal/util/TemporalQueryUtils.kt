@@ -98,7 +98,7 @@ fun composeTemporalEntitiesQueryFromPost(
         QueryParameter.TIMEAT.key to listOfNotNull(query.temporalQ?.timeAt),
         QueryParameter.ENDTIMEAT.key to listOfNotNull(query.temporalQ?.endTimeAt),
         QueryParameter.AGGRPERIODDURATION.key to listOfNotNull(query.temporalQ?.aggrPeriodDuration),
-        QueryParameter.AGGRMETHODS.key to (query.temporalQ?.aggrMethods ?: emptyList()),
+        QueryParameter.AGGRMETHODS.key to listOfNotNull(query.temporalQ?.aggrMethods?.joinToString(",")),
         QueryParameter.LASTN.key to listOfNotNull(query.temporalQ?.lastN.toString()),
         QueryParameter.TIMEPROPERTY.key to listOfNotNull(query.temporalQ?.timeproperty)
     )

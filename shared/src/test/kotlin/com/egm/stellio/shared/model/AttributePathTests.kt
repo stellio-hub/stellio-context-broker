@@ -108,6 +108,13 @@ class AttributePathTests {
     }
 
     @Test
+    fun `AttributePath should parse legacy language tags from bracket notation`() = runTest {
+        listOf("i-klingon", "zh-min-nan", "en-GB-oed").forEach { tag ->
+            assertEquals(tag, AttributePath("$INCOMING_TERM[$tag]", APIC_COMPOUND_CONTEXTS).languageTag)
+        }
+    }
+
+    @Test
     fun `AttributePath should expand trailing path terms when attribute is not in jsonKeys`() = runTest {
         val attrPath = AttributePath("$INCOMING_TERM[$TEMPERATURE_TERM.$NAME_TERM]", APIC_COMPOUND_CONTEXTS)
         assertFalse(attrPath.isJsonKeysAttribute)

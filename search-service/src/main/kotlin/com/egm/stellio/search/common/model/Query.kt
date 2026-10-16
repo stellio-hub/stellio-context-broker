@@ -9,10 +9,12 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
+import com.egm.stellio.shared.util.CommaSeparatedToSetConverter
 import com.egm.stellio.shared.util.DataTypes
 import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.invalidTypeMessage
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.unparsableQueryMessage
 import com.fasterxml.jackson.annotation.JsonFormat
+import tools.jackson.databind.annotation.JsonDeserialize
 
 /**
  * A Query data type as defined in 5.2.23.
@@ -36,7 +38,9 @@ data class Query private constructor(
     val joinLevel: Int? = null,
     val containedBy: List<String>? = null,
     val ordering: UnparsedOrderingParams? = null,
+    @JsonDeserialize(converter = CommaSeparatedToSetConverter::class)
     val jsonKeys: Set<String>? = null,
+    @JsonDeserialize(converter = CommaSeparatedToSetConverter::class)
     val expandValues: Set<String>? = null
 ) {
     companion object {
@@ -64,7 +68,8 @@ data class UnparsedTemporalQuery(
     val timeAt: String? = null,
     val endTimeAt: String? = null,
     val aggrPeriodDuration: String? = null,
-    val aggrMethods: List<String>? = null,
+    @JsonDeserialize(converter = CommaSeparatedToSetConverter::class)
+    val aggrMethods: Set<String>? = null,
     val lastN: Int? = null,
     val timeproperty: String = "observedAt"
 )

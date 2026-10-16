@@ -18,6 +18,8 @@ import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.escapeSingleQuotes
 import java.util.Locale
 
+private val languageTagSyntax = Regex("^[A-Za-z0-9]{1,8}(-[A-Za-z0-9]{1,8})*$")
+
 data class AttributePath(
     val term: String,
     val contexts: List<String>,
@@ -143,13 +145,11 @@ data class AttributePath(
         )
     """.trimIndent()
 
-    // forLanguageTag silently drops the ill-formed part of a tag (e.g. en-'x becomes en), so the tag must round-trip
-    // (it is embedded in SQL literals)
+    // forLanguageTag silently drops the ill-formed part of a tag (e.g. en-'x becomes en) and canonicalizes legacy
+    // RFC 5646 tags (e.g. i-klingon becomes tlh), so the syntax is checked on the raw tag, which is embedded in SQL
     private fun isValidLanguageTag(tag: String): Boolean =
-        runCatching {
-            val locale = Locale.forLanguageTag(tag)
-            locale.isO3Language.isNotEmpty() && locale.toLanguageTag().equals(tag, ignoreCase = true)
-        }.getOrDefault(false)
+        languageTagSyntax.matches(tag) &&
+            runCatching { Locale.forLanguageTag(tag).isO3Language.isNotEmpty() }.getOrDefault(false)
 
     // terms come from user input and the built paths are always embedded in a single-quoted SQL literal
     private fun List<ExpandedTerm>.toQuotedJsonPath(): String =

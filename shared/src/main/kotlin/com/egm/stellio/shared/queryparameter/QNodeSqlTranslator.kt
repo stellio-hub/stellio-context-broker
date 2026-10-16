@@ -59,7 +59,6 @@ private fun comparisonSql(
     contexts: List<String>
 ): String {
     // 4.9 (unequal operator): the target element must exist and meet none of the conditions of the equal operator
-    // (so an array target including the value is not unequal, and a value of another data type is unequal)
     if (operator == ComparisonOperator.NEQ) {
         val eqSql = comparisonSql(targetExpr, attrPath, ComparisonOperator.EQ, value, contexts)
         return "(${targetElementExistsSql(targetExpr, attrPath)}) AND NOT ($eqSql)"
@@ -316,8 +315,7 @@ private fun listFilter(
     return """jsonb_path_exists($targetExpr, '$jsonPath ? (${filter.escapeSingleQuotes()})')"""
 }
 
-// the value of an expandValues attribute is expanded as a term (without its surrounding quotes, if any)
-// URI values are expanded too, so that compact IRIs (e.g. ngsi-ld:Foo) are resolved, absolute IRIs are kept as is
+// URI values are also expanded, so that compact IRIs (e.g. ngsi-ld:Foo) are resolved, absolute IRIs are kept as is
 private fun SingleValue.expandIfTerm(contexts: List<String>): SingleValue =
     if (type == ValueType.STRING || type == ValueType.URI)
         SingleValue(JsonLdUtils.expandJsonLdTerm(raw.removeSurrounding("\""), contexts), ValueType.URI)

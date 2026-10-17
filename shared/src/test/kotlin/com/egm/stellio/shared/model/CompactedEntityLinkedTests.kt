@@ -14,6 +14,70 @@ import org.junit.jupiter.api.Test
 class CompactedEntityLinkedTests {
 
     @Test
+    fun `getRelationshipsObjectsWithObjectTypes should only extract relationships having an objectType`() {
+        val compactedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "rel1": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:LinkedEntity:01",
+                    "objectType": "LinkedEntity"
+                },
+                "rel2": [{
+                    "type": "Relationship",
+                    "object": ["urn:ngsi-ld:LinkedEntity:02", "urn:ngsi-ld:LinkedEntity:01"],
+                    "objectType": ["LinkedEntity", "OtherType"],
+                    "datasetId": "urn:ngsi-ld:Dataset:01"
+                }, {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:LinkedEntity:03"
+                }],
+                "prop": {
+                    "type": "Property",
+                    "value": "urn:ngsi-ld:LinkedEntity:04"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val objectsWithTypes = listOf(compactedEntity).getRelationshipsObjectsWithObjectTypes()
+
+        assertThat(objectsWithTypes)
+            .hasSize(2)
+            .containsEntry("urn:ngsi-ld:LinkedEntity:01".toUri(), setOf("LinkedEntity", "OtherType"))
+            .containsEntry("urn:ngsi-ld:LinkedEntity:02".toUri(), setOf("LinkedEntity", "OtherType"))
+    }
+
+    @Test
+    fun `toConciseAttributes should keep the objectType of a relationship`() {
+        val compactedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "rel": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:LinkedEntity:01",
+                    "objectType": "LinkedEntity"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        assertJsonPayloadsAreEqual(
+            """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "rel": {
+                    "object": "urn:ngsi-ld:LinkedEntity:01",
+                    "objectType": "LinkedEntity"
+                }
+            }
+            """.trimIndent(),
+            serializeObject(compactedEntity.toConciseAttributes())
+        )
+    }
+
+    @Test
     fun `getRelationshipsNamesWithObjects should extract a single-instance relationship`() {
         val relationships = normalizedEntity.getRelationshipsNamesWithObjects()
 

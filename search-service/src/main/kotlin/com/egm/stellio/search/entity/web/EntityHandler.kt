@@ -267,11 +267,11 @@ class EntityHandler(
                 Triple(warnings, mergedEntities, maxCount)
             } else Triple(emptyList(), localEntities, localCount)
 
-        val finalEntities = entities.filterPickAndOmit(
+        val (finalEntities, linkedEntitiesWarnings) = entities.filterPickAndOmit(
             entitiesQuery.pick.getRootAttributesToPick(),
             entitiesQuery.omit.getRootAttributesToOmit()
         ).let {
-            linkedEntityService.processLinkedEntities(it, entitiesQuery).bind()
+            linkedEntityService.processLinkedEntities(it, entitiesQuery, httpHeaders).bind()
         }
 
         buildQueryResponse(
@@ -282,7 +282,7 @@ class EntityHandler(
             queryParams,
             mediaType,
             contexts
-        ).addWarnings(warnings)
+        ).addWarnings(warnings + linkedEntitiesWarnings)
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -343,12 +343,12 @@ class EntityHandler(
             return localError!!.toErrorResponse().addWarnings(warnings)
         }
 
-        val finalEntities = entity.filterPickAndOmit(
+        val (finalEntities, linkedEntitiesWarnings) = entity.filterPickAndOmit(
             entitiesQuery.pick.getRootAttributesToPick(),
             entitiesQuery.omit.getRootAttributesToOmit()
         ).bind()
             .let {
-                linkedEntityService.processLinkedEntities(it, entitiesQuery).bind()
+                linkedEntityService.processLinkedEntities(it, entitiesQuery, httpHeaders).bind()
             }
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
@@ -359,7 +359,7 @@ class EntityHandler(
                     serializeObject(finalEntities.toFinalRepresentation(ngsiLdDataRepresentation))
                 it.body(body)
             }
-            .addWarnings(warnings)
+            .addWarnings(warnings + linkedEntitiesWarnings)
     }.fold(
         { it.toErrorResponse() },
         { it }

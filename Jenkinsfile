@@ -98,9 +98,9 @@ pipeline {
         success {
             script {
                 if (env.BRANCH_NAME == 'master')
-                    build job: '../DataHub.Int.Launcher'
+                    build job: '../Stellio.Int.Launcher'
                 else if (env.BRANCH_NAME == 'develop')
-                    build job: '../DataHub.NGSI-LD-Test-Suite.Launcher'
+                    build job: '../Stellio.NGSI-LD-Test-Suite.Launcher'
             }
             slackSend (color: '#36b37e', message: "Success: Stellio on branch ${env.BRANCH_NAME} after ${currentBuild.durationString.replace(' and counting', '')} (<${env.BUILD_URL}|Open>)")
         }

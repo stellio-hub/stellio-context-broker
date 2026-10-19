@@ -93,7 +93,7 @@ object JsonLdUtils {
     // Per-call copy (keeps the shared documentCache): setting expandContext on the shared options would race
     private fun expandOptionsFor(contexts: List<String>): JsonLdOptions =
         JsonLdOptions(jsonLdOptions).apply {
-            setExpandContext(JsonDocument.of(buildContextDocument(contexts)))
+            expandContext = JsonDocument.of(buildContextDocument(contexts))
         }
 
     fun deleteAndReload(context: URI, reload: Boolean): Either<APIException, Unit> {

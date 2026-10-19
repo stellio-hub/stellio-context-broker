@@ -223,8 +223,6 @@ class JsonLdUtilsTests {
                     }
                 """.trimIndent()
 
-            // first call resolves and caches the active context for NGSILD_TEST_CORE_CONTEXTS,
-            // second call should hit CachedContextExpansion's cache - results must be identical
             val firstExpansion = expandAttribute(fragment, NGSILD_TEST_CORE_CONTEXTS)
             val secondExpansion = expandAttribute(fragment, NGSILD_TEST_CORE_CONTEXTS)
 

@@ -24,8 +24,8 @@ import java.util.concurrent.ConcurrentHashMap
  * Only used for expansion: compaction mutates the active context, so it cannot be shared.
  * Contexts must be passed via `options.expandContext`, an embedded "@context" bypasses the cache.
  *
- * TODO revisit when migrating to titanium-json-ld 2.x: this class relies on 1.x internals (ActiveContext,
- *  Expansion, ProcessingRuntime) and copies parts of ExpansionProcessor, which 2.x replaces with a new API.
+ * This class relies on Titanum 1.x internals (ActiveContext, Expansion, ProcessingRuntime)
+ * and copies parts of ExpansionProcessor, which 2.x will replace with a new API.
  */
 internal object CachedContextExpansion {
 
@@ -38,9 +38,6 @@ internal object CachedContextExpansion {
         val contexts: List<String>
     )
 
-    /**
-     * Removes every cached active context built from `context` (called when a context is reloaded).
-     */
     fun invalidate(context: String) {
         activeContextCache.keys.removeIf { context in it.contexts }
     }

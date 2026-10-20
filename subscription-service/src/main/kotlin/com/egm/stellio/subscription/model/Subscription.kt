@@ -40,10 +40,12 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.SetToCommaSeparatedConverter
 import com.egm.stellio.shared.util.compactTypeSelection
+import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toFinalRepresentation
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.validateScopeQ
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.JoinType
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
@@ -108,6 +110,7 @@ data class Subscription(
         checkIdIsValid().bind()
         checkEntitiesOrWatchedAttributes().bind()
         checkQQueryIsValid().bind()
+        checkScopeQIsValid().bind()
         checkTimeIntervalGreaterThanZero().bind()
         checkThrottlingGreaterThanZero().bind()
         checkSubscriptionValidity().bind()
@@ -144,6 +147,9 @@ data class Subscription(
         q?.let {
             parseQQuery(it).map { }
         } ?: Unit.right()
+
+    private fun checkScopeQIsValid(): Either<APIException, Unit> =
+        validateScopeQ(scopeQ?.decode()).map { }
 
     private fun checkSubscriptionValidity(): Either<APIException, Unit> =
         when {

@@ -24,6 +24,7 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.validateScopeQ
 import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import java.net.URI
@@ -69,6 +70,7 @@ data class ServiceRegistration(
         checkEntities().bind()
         serviceInformation.validate().bind()
         checkQ().bind()
+        checkScopeQ().bind()
         checkGeoQ().bind()
     }
 
@@ -116,6 +118,9 @@ data class ServiceRegistration(
 
     private fun checkQ(): Either<APIException, Unit> =
         q?.let { parseQQuery(it).map { } } ?: Unit.right()
+
+    private fun checkScopeQ(): Either<APIException, Unit> =
+        validateScopeQ(scopeQ).map { }
 
     private fun checkGeoQ(): Either<APIException, Unit> =
         geoQ?.let {

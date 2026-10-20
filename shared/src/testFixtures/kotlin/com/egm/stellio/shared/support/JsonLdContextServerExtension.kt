@@ -51,6 +51,18 @@ class JsonLdContextServerExtension(
         wireMockServer.stop()
     }
 
+    fun stubContext(contextName: String, contextContent: String) {
+        wireMockServer.stubFor(
+            get(urlPathEqualTo("/jsonld-contexts/$contextName"))
+                .atPriority(1)
+                .willReturn(
+                    ok()
+                        .withHeader("Content-Type", JSON_LD_CONTENT_TYPE)
+                        .withBody(contextContent)
+                )
+        )
+    }
+
     fun resetAllRequests() {
         WireMock.resetAllRequests()
     }

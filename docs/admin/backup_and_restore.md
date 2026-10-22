@@ -5,8 +5,8 @@ Below is a basic script that can be used to backup the Stellio databases. Feel f
 ```shell
 #!/usr/bin/env bash
 
-# Number of days of history kept for backups
-# 1st argument passed on the command line, 30 either
+# Delete backups older than this number of days
+# Use the first command-line argument, or 30 days by default
 DAYS_HISTORY=${1:-30}
 # Where the backups will be put
 BACKUP_DIR=$HOME/backup/stellio

@@ -1,10 +1,16 @@
 package com.egm.stellio.shared.util
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.isWildcardTypeSelection
 import com.egm.stellio.shared.queryparameter.QNode
 import com.egm.stellio.shared.queryparameter.toSqlJsonPath
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidScopeQQueryMessage
 
 fun String.quote(): String =
     "\"".plus(this).plus("\"")
@@ -53,25 +59,28 @@ fun buildQQuery(
 ): String =
     qNode.toSqlJsonPath(jsonKeys, expandValues, contexts, target)
 
+// ScopesQ grammar of clause 4.19
+private const val SCOPEQ_LEVEL = """(?:\p{L}[\p{L}\p{N}_]*|\+)"""
+private const val SCOPEQ = """(?:/$SCOPEQ_LEVEL)+"""
+private const val OR_SCOPEQ = """(?:\($SCOPEQ(?:;$SCOPEQ)*\)|$SCOPEQ(?:/#)?)"""
+private val scopeQRegex = """/#|$OR_SCOPEQ(?:[|,]$OR_SCOPEQ)*""".toRegex()
+
+fun validateScopeQ(scopeQ: String?): Either<APIException, String?> =
+    if (scopeQ == null || scopeQ.matches(scopeQRegex)) scopeQ.right()
+    else BadRequestDataException(invalidScopeQQueryMessage(scopeQ)).left()
+
 fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null, columnName: String = "scopes"): String =
     scopeQQuery.replace(scopeSelectionRegex) { matchResult ->
-        when {
-            matchResult.value.endsWith('#') ->
-                """
-                exists (select * from unnest(#{TARGET}#) as scope
-                where scope similar to '${matchResult.value.replace('#', '%').escapeSingleQuotes()}')
-                """.trimIndent()
-            matchResult.value.contains('+') ->
-                """
-                exists (select * from unnest(#{TARGET}#) as scope
-                where scope similar to '${matchResult.value.replace("+", "[\\w\\d]+").escapeSingleQuotes()}')
-                """.trimIndent()
-            else ->
-                """
-                exists (select * from unnest(#{TARGET}#) as scope
-                where scope = '${matchResult.value.escapeSingleQuotes()}')
-                """.trimIndent()
-        }
+        if (matchResult.value.endsWith('#') || matchResult.value.contains('+'))
+            """
+            exists (select * from unnest(#{TARGET}#) as scope
+            where scope similar to '${matchResult.value.toSimilarToPattern().escapeSingleQuotes()}')
+            """.trimIndent()
+        else
+            """
+            exists (select * from unnest(#{TARGET}#) as scope
+            where scope = '${matchResult.value.escapeSingleQuotes()}')
+            """.trimIndent()
     }
         .replace(";", " AND ")
         .replace("|", " OR ")
@@ -84,3 +93,9 @@ fun buildScopeQQuery(scopeQQuery: String, target: ExpandedEntity? = null, column
                 it.replace("#{TARGET}#", "$scopesArray")
             }
         }
+
+// "_" is a SIMILAR TO wildcard but a valid scope character, and "/a/#" also matches "/a" itself
+private fun String.toSimilarToPattern(): String =
+    replace("_", "\\_")
+        .replace("+", "[^/]+")
+        .let { if (it.endsWith("/#")) it.removeSuffix("/#") + "(/%)?" else it }

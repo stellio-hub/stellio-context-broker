@@ -122,6 +122,21 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
+    fun `composeEntitiesQueryFromGet should return a BadRequest error when scopeQ is invalid`() = runTest {
+        composeEntitiesQueryFromGet(
+            buildDefaultPagination(30, 100),
+            LinkedMultiValueMap<String, String>().apply {
+                add("type", "BeeHive")
+                add("scopeQ", "/a,,/b")
+            },
+            NGSILD_TEST_CORE_CONTEXTS
+        ).shouldFail {
+            assertInstanceOf<BadRequestDataException>(it)
+            assertEquals("Scope query is invalid: /a,,/b", it.message)
+        }
+    }
+
+    @Test
     fun `composeEntitiesQueryFromGet should return a BadRequest error when join is not recognized`() = runTest {
         composeEntitiesQueryFromGet(
             buildDefaultPagination(30, 100),

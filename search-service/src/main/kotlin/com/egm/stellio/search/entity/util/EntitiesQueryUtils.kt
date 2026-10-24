@@ -36,6 +36,7 @@ import com.egm.stellio.shared.util.parseAttrsParameter
 import com.egm.stellio.shared.util.parseQueryParameter
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.validateIdPattern
+import com.egm.stellio.shared.util.validateScopeQ
 import org.springframework.util.MultiValueMap
 
 fun composeEntitiesQueryFromGet(
@@ -62,7 +63,7 @@ fun composeEntitiesQueryFromGet(
     val q = queryParams.getFirst(QueryParameter.Q.key)?.decode()?.let {
         parseQQuery(it).bind()
     }
-    val scopeQ = queryParams.getFirst(QueryParameter.SCOPEQ.key)
+    val scopeQ = validateScopeQ(queryParams.getFirst(QueryParameter.SCOPEQ.key)).bind()
     val attrs = parseAttrsParameter(queryParams.getFirst(QueryParameter.ATTRS.key), contexts).bind()
     val (pick, omit) = parsePickOmitParameters(
         queryParams.getFirst(QueryParameter.PICK.key),
@@ -204,7 +205,7 @@ fun composeEntitiesQueryFromPost(
     EntitiesQueryFromPost(
         entitySelectors = entitySelectors,
         q = q,
-        scopeQ = query.scopeQ,
+        scopeQ = validateScopeQ(query.scopeQ).bind(),
         paginationQuery = paginationQuery,
         attrs = attrs,
         pick = pick,

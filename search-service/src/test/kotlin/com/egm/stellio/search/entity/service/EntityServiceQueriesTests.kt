@@ -135,8 +135,13 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "/Madrid/Gardens/ParqueNorte, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "/Madrid/+/ParqueNorte, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "/CompanyA/#, 1, urn:ngsi-ld:BeeHive:01",
+        "/CompanyA/OrganizationB/UnitC/#, 1, urn:ngsi-ld:BeeHive:01",
+        "/Madrid/Gardens/ParqueNorte/#, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "/Madrid/+/#, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "/Madrid/Gardens/Parque/#, 0,",
+        "(/Madrid/+/ParqueNorte;/CompanyA/+/UnitC), 1, urn:ngsi-ld:BeeHive:01",
         "/#, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
-        "/Madrid/Gardens/ParqueNorte;/CompanyA/OrganizationB/UnitC, 1, urn:ngsi-ld:BeeHive:01",
+        "(/Madrid/Gardens/ParqueNorte;/CompanyA/OrganizationB/UnitC), 1, urn:ngsi-ld:BeeHive:01",
         "'/Madrid/Gardens/ParqueNorte,/CompanyA/OrganizationB/UnitC',2,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'"
     )
     fun `queryEntities should retrieve entities according to scope query`(

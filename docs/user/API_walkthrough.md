@@ -179,7 +179,9 @@ http http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Link:$CONT
 The consumption endpoints support several parameters:
 
 - `format=keyValues` returns a reduced representation of the entity, keeping only top‑level attributes and their values.
-- `join=inline` includes related entities by inlining relationships.
+- `join=inline` includes related entities by inlining relationships. If the relationship declares an `objectType` (and
+  `local=true` is not set), the related entity is also retrieved from the registered context sources and merged with the
+  local one, if any. Otherwise, only locally stored related entities are included.
 - `pick=id,temperature` returns only the selected attributes.
 - `omit=location,temperature` excludes the selected attributes from the response.
 

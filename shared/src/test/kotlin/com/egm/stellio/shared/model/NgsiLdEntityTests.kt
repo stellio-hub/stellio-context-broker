@@ -521,6 +521,103 @@ class NgsiLdEntityTests {
     }
 
     @Test
+    fun `toNgsiLdEntity should parse an entity with a relationship having an objectType`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "refDeviceModel": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:DeviceModel:09876",
+                    "objectType": ["DeviceModel", "Model"]
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        // objectType is a core member, it must not be parsed as a sub-attribute
+        assertTrue(ngsiLdEntity.relationships[0].instances[0].attributes.isEmpty())
+    }
+
+    @Test
+    fun `toNgsiLdEntity should not parse an entity with a relationship having an invalid objectType`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "refDeviceModel": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:DeviceModel:09876",
+                    "objectType": 12
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(
+                    "Relationship ${NGSILD_DEFAULT_VOCAB}refDeviceModel has an objectType member " +
+                        "that is not a string, nor an array of string",
+                    it.message
+                )
+            }
+    }
+
+    @Test
+    fun `toNgsiLdEntity should not parse an entity with a relationship having an objectType not being a URI`() =
+        runTest {
+            val rawEntity =
+                """
+                {
+                    "id": "urn:ngsi-ld:Device:01234",
+                    "type": "Device",
+                    "refDeviceModel": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:DeviceModel:09876",
+                        "objectType": "Device Model"
+                    }
+                }
+                """.trimIndent()
+
+            expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+                .shouldFail {
+                    assertInstanceOf(BadRequestDataException::class.java, it)
+                    assertEquals("Type ${NGSILD_DEFAULT_VOCAB}Device Model should be a valid URI", it.message)
+                }
+        }
+
+    @Test
+    fun `toNgsiLdEntity should not parse an entity with a property having an objectType`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "name": {
+                    "type": "Property",
+                    "value": "Device 01234",
+                    "objectType": "DeviceModel"
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(
+                    "Attribute ${NGSILD_DEFAULT_VOCAB}name has an instance with a forbidden member: " +
+                        NGSILD_RELATIONSHIP_OBJECT_TYPE,
+                    it.message
+                )
+            }
+    }
+
+    @Test
     fun `toNgsiLdEntity should parse an entity with a multi-attribute relationship`() = runTest {
         val rawEntity =
             """

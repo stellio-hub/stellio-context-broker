@@ -12,8 +12,10 @@ import com.egm.stellio.shared.model.EntityRepresentation
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
+import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_TERM
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation
@@ -220,8 +222,12 @@ class NotificationService(
         return mapOf(
             NGSILD_TYPE_TERM to compactedAttributeTypeAndValue.first,
             attributeValueMappings.previousValueTerm to compactedAttributeTypeAndValue.second,
-            attributeValueMappings.valueTerm to NGSILD_NULL
         ).let {
+            if (it[NGSILD_TYPE_TERM] != NGSILD_LANGUAGEPROPERTY_TERM)
+                it.plus(attributeValueMappings.valueTerm to NGSILD_NULL)
+            else
+                it.plus(attributeValueMappings.valueTerm to mapOf(JSONLD_NONE_KW to NGSILD_NULL))
+        }.let {
             if (instanceValue[NGSILD_DATASET_ID_TERM] != null)
                 it.plus(NGSILD_DATASET_ID_TERM to instanceValue[NGSILD_DATASET_ID_TERM])
             else it

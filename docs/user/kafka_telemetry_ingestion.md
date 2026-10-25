@@ -27,7 +27,7 @@ This avoids the overhead of HTTP connection handling and offers an improved resi
 On receipt, the search-service:
 
 - creates the attribute if it does not exist yet.
-- applies merge semantics (NGSI-LD §5.5.12), preserving existing attribute metadata, if it exists.
+- applies merge semantics (NGSI-LD TS 104 175 §8.4.3), preserving existing attribute metadata, if it exists.
 
 An `ATTRIBUTE_CREATE` or `ATTRIBUTE_UPDATE` event is then published to `cim.entity._CatchAll` so subscriptions fire as
 normal.

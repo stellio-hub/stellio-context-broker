@@ -3,8 +3,8 @@ Walk through the full Stellio implementation checklist for: $ARGUMENTS
 Work through these 15 steps in order. Do not skip any step. Confirm completion of each before moving to the next.
 
 ## Step 1 — Spec first
-Identify the relevant ETSI GS CIM 009 section for this feature. Use the `ngsi-ld-spec` MCP (`get_spec_section` or
-`search_spec`) to retrieve and quote the authoritative text before writing any code. State the section number explicitly.
+Identify the relevant ETSI TS 104 175 (Core API) and TS 104 176 (HTTP Binding) sections for this feature. Use the `ngsi-ld-spec` MCP (`get_spec_section` or
+`search_spec`) to retrieve and quote the authoritative text before writing any code. State the document and section number explicitly.
 
 ## Step 2 — Module ownership
 Identify which module(s) own this change (`api-gateway`, `search-service`, `subscription-service`, `shared`). Confirm

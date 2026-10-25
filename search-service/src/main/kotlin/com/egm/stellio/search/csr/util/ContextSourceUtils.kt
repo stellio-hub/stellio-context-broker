@@ -43,8 +43,9 @@ typealias AttributeByDatasetId = Map<String?, CompactedAttributeInstance>
 object ContextSourceUtils {
 
     /**
-     * Implements 4.5.5.2 - Processing of Conflicting Transient Entities: pushes an entity-level expiresAt down onto
-     * every attribute of the entity that has no expiresAt of its own, or that has a later one than the entity's.
+     * Implements TS 104 175 §8.5.2 - Processing of conflicting transient Entities: pushes an entity-level expiresAt
+     * down onto every attribute of the entity that has no expiresAt of its own, or that has a later one than the
+     * entity's.
      */
     fun propagateExpiresAtToAttributes(entity: CompactedEntity): CompactedEntity {
         val entityExpiresAt = entity[NGSILD_EXPIRES_AT_TERM] as? String ?: return entity
@@ -70,9 +71,9 @@ object ContextSourceUtils {
     }
 
     /**
-     * Implements 4.5.5.3 - Processing of Conflicting Attributes (entity-level expiresAt): if expiresAt is missing
-     * from at least one of the sources contributing to this entity, it is dropped entirely; otherwise the furthest
-     * in the future value is kept.
+     * Implements TS 104 175 §8.5.3 - Processing of conflicting Attributes (entity-level expiresAt): if expiresAt is
+     * missing from at least one of the sources contributing to this entity, it is dropped entirely; otherwise the
+     * furthest in the future value is kept.
      */
     private fun resolveEntityExpiresAtConflict(
         mergedEntity: MutableMap<String, Any>,
@@ -167,8 +168,8 @@ object ContextSourceUtils {
             val currentValue = currentEntity[key]
             when {
                 currentValue == null -> value
-                // expiresAt (4.5.5.3) can't be resolved in this pairwise fold: it needs all sources at once to
-                // tell "never present" from "present then dropped". Placeholder only —
+                // expiresAt (TS 104 175 §8.5.3) can't be resolved in this pairwise fold: it needs all sources at
+                // once to tell "never present" from "present then dropped". Placeholder only —
                 // see resolveEntityExpiresAtConflict, which runs once over the full source list.
                 key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW || key == NGSILD_EXPIRES_AT_TERM -> currentValue
                 key == NGSILD_TYPE_TERM || key == NGSILD_SCOPE_TERM ->
@@ -200,7 +201,7 @@ object ContextSourceUtils {
     }
 
     /**
-     * Implements 4.5.5 - Multi-Attribute Support
+     * Implements TS 104 175 §8.5 - Multi-Attribute behaviour
      */
     fun mergeAttribute(
         currentAttribute: Any,
@@ -227,7 +228,7 @@ object ContextSourceUtils {
         val isCurrentExpired = isAttributeInstanceExpired(currentInstance)
         val isRemoteExpired = isAttributeInstanceExpired(remoteInstance)
         return when {
-            // 4.5.5.3 - discard whichever instance has an expiresAt DateTime that lies in the past
+            // TS 104 175 §8.5.3 - discard whichever instance has an expiresAt DateTime that lies in the past
             isRemoteExpired && !isCurrentExpired -> currentInstance
             isCurrentExpired && !isRemoteExpired -> remoteInstance
             csr.isAuxiliary() -> currentInstance
@@ -283,8 +284,8 @@ object ContextSourceUtils {
             ZonedDateTime.parse(this) < ZonedDateTime.parse(date)
 
     /**
-     * Implements 4.5.5.3 - Processing of Conflicting Attributes: an attribute instance whose expiresAt lies in the
-     * past shall be discarded when resolving a conflict against another instance of the same datasetId.
+     * Implements TS 104 175 §8.5.3 - Processing of conflicting Attributes: an attribute instance whose expiresAt lies
+     * in the past shall be discarded when resolving a conflict against another instance of the same datasetId.
      */
     private fun isAttributeInstanceExpired(instance: CompactedAttributeInstance): Boolean {
         val expiresAt = instance[NGSILD_EXPIRES_AT_TERM] as? String ?: return false
@@ -359,8 +360,8 @@ object ContextSourceUtils {
                 currentValue == null -> value
                 key == NGSILD_ID_TERM || key == JSONLD_CONTEXT_KW -> currentValue
                 key == NGSILD_TYPE_TERM -> mergeTypeOrScope(currentValue, value)
-                // "Earliest wins" is correct for createdAt/modifiedAt, but for expiresAt (4.5.5.3) it's only a
-                // placeholder: this pairwise fold can't see all sources at once, so it can't apply the
+                // "Earliest wins" is correct for createdAt/modifiedAt, but for expiresAt (TS 104 175 §8.5.3) it's only
+                // a placeholder: this pairwise fold can't see all sources at once, so it can't apply the
                 // "missing from any source" rule — see resolveEntityExpiresAtConflict, which does.
                 key in NGSILD_SYSATTRS_TERMS ->
                     if ((value as String?).isBefore(currentValue as String?)) value

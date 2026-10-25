@@ -3,7 +3,7 @@
 ## Spec compliance — the primary constraint
 
 Stellio is an implementation of the NGSI-LD API specification
-([ETSI GS CIM 009](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf)).
+([ETSI TS 104 175](https://www.etsi.org/deliver/etsi_ts/104100_104199/104175/01.01.01_60/ts_104175v010101p.pdf) (NGSI-LD Core API) and [ETSI TS 104 176](https://www.etsi.org/deliver/etsi_ts/104100_104199/104176/01.01.01_60/ts_104176v010101p.pdf) (NGSI-LD HTTP Binding)).
 The spec is the authoritative reference for all API design, data model, and behavioural decisions. When the spec and
 developer convenience conflict, the spec wins.
 
@@ -17,7 +17,7 @@ In practice this means:
 - Federation and CSR behaviour (merge rules, warning propagation, mode semantics) follow the spec — check the relevant
   section before implementing any change
 
-When implementing a new feature, locate the corresponding section in ETSI GS CIM 009 first, then translate it to code.
+When implementing a new feature, locate the corresponding section in TS 104 175 (behaviour) and TS 104 176 (HTTP binding) first, then translate it to code.
 If a behaviour is ambiguous or unspecified in the current target version, raise it with the team before deciding.
 
 ## Modules
@@ -47,12 +47,11 @@ Stellio is a microservice-based NGSI-LD context broker composed of:
 
 ## Context Source Registration (CSR) and Federation
 
-Context Source Registrations follow the data model defined in NGSI-LD spec §5.2.9. A CSR describes an external broker
+Context Source Registrations follow the data model defined in TS 104 175 §5.2.6.5.3. A CSR describes an external broker
 that holds data for a set of entity types/attributes and exposes one or more `operations`.
 
-The principles associated with the federation of context brokers are defined in NGSI-LD spec §4.3. More specifically,
-this section defines the possible architecture patterns for federating context data across multiple brokers and the
-different modes of operations.
+The principles associated with the federation of context brokers are defined in TS 104 175 §4.3.3, and the distributed behaviour
+(registration modes, matching of registrations, contacting Context Sources) is detailed in TS 104 175 clause 9.
 
 ### Key model concepts
 

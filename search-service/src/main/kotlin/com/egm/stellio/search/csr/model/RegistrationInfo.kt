@@ -11,7 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.fasterxml.jackson.annotation.JsonIgnore
 
 /**
- * RegistrationInfo type as defined in 5.2.10
+ * RegistrationInfo type as defined in TS 104 175 §5.2.6.6.5
  */
 data class RegistrationInfo(
     val entities: List<EntityInfo>? = null,

@@ -40,7 +40,7 @@ class TemporalEntityOperationsHandler(
 ) {
 
     /**
-     * Implementation of 6.24.3.1 - Query Temporal Evolution of Entities via POST
+     * Implementation of TS 104 176 §8.7.3.1 - Query Temporal Evolution of Entities via POST
      */
     @PostMapping("/query", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun queryEntitiesViaPost(

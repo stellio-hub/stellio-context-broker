@@ -191,7 +191,7 @@ class EntityService(
         val originalEntity = entityQueryService.retrieve(entityId).bind().toExpandedEntity()
         val (coreAttrs, otherAttrs) =
             expandedAttributes.toList()
-                // remove @id if it is present (optional as per 5.4)
+                // remove @id if it is present (optional as per TS 104 175 §5.4.1)
                 .filter { it.first != JSONLD_ID_KW }
                 .partition { EXPANDED_ENTITY_SPECIFIC_MEMBERS.contains(it.first) }
         logger.debug("Merging entity {}", entityId)
@@ -449,7 +449,7 @@ class EntityService(
         entityId: URI,
         expandedAttribute: ExpandedAttribute
     ): Either<APIException, UpdateResult> = either {
-        // 5.6.4.4: scope cannot be the target of a Partial Attribute update
+        // TS 104 175 §10.2.5.4: scope cannot be the target of a Partial Attribute update
         ensure(expandedAttribute.first != NGSILD_SCOPE_IRI) {
             BadRequestDataException(SCOPE_NOT_A_TARGET_ATTRIBUTE_MESSAGE)
         }
@@ -529,7 +529,7 @@ class EntityService(
         entityId: URI,
         expandedAttribute: ExpandedAttribute
     ): Either<APIException, UpdateResult> = either {
-        // 5.6.19.4: scope cannot be the target of a Replace Attribute
+        // TS 104 175 §10.2.11.4: scope cannot be the target of a Replace Attribute
         ensure(expandedAttribute.first != NGSILD_SCOPE_IRI) {
             BadRequestDataException(SCOPE_NOT_A_TARGET_ATTRIBUTE_MESSAGE)
         }
@@ -773,9 +773,9 @@ class EntityService(
     }
 
     /**
-     * NGSI-LD 4.22 - Transient Storage of Entities and Attributes: garbage-collects entities and attributes whose
-     * expiresAt lies in the past. Called periodically by TransientDataGarbageCollectionJob, outside of any user
-     * request, so authorization checks are bypassed (there is no requesting user to authorize against).
+     * TS 104 175 §5.2.4 - Transient storage of Entities and Attributes (expiresAt): garbage-collects entities and
+     * attributes whose expiresAt lies in the past. Called periodically by TransientDataGarbageCollectionJob, outside of
+     * any user request, so authorization checks are bypassed (there is no requesting user to authorize against).
      */
     @Transactional
     suspend fun purgeExpiredEntitiesAndAttributes(): BatchOperationResult {

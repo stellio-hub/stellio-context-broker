@@ -644,7 +644,7 @@ suspend fun ExpandedAttributeInstances.toNgsiLdAttribute(
 }
 
 /**
- * Reads and validates the expiresAt system property (NGSI-LD 4.22): it is client-settable, unlike createdAt /
+ * Reads and validates the expiresAt system property (TS 104 175 §5.2.4): it is client-settable, unlike createdAt /
  * modifiedAt, but must not be set in the past.
  */
 fun ExpandedAttributeInstance.getAndCheckExpiresAt(): Either<APIException, ZonedDateTime?> = either {

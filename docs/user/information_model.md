@@ -8,13 +8,13 @@ If you do not provide one, Stellio uses the [NGSI-LD default context](https://ur
 
 Using an `@context` enables semantic interoperability. You can find out more in this [tutorial](https://ngsi-ld-tutorials.readthedocs.io/en/latest/working-with-%40context.html).
 
-The different ways to specify the @context are described in [§6.3.5](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.3.5)
+The different ways to specify the @context are described in [TS 104 176 §6.2.4](https://ngsild.org/ts104176/html/index.html#6.2.4)
 
-You can also request a specific data format (JSON or JSON-LD) has described in [§6.3.6](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.3.6)
+You can also request a specific data format (JSON or JSON-LD) has described in [TS 104 176 §6.2.3](https://ngsild.org/ts104176/html/index.html#6.2.3)
 
 ## Tenant
 
-Tenants allow defining isolated instances inside an NGSI-LD broker (see [§4.14](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.14)).
+Tenants allow defining isolated instances inside an NGSI-LD broker (see [TS 104 175 §7.8](https://ngsild.org/ts104175/html/index.html#7.8)).
 
 If your stellio instance has multiple tenants, you can specify the tenant by adding the header `NGSILD-TENANT: {tenant_name}`
 

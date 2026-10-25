@@ -12,9 +12,9 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 /**
- * NGSI-LD 4.22 - Transient Storage of Entities and Attributes: periodically garbage-collects, for each configured
- * tenant, entities and attributes whose expiresAt lies in the past. Per the spec, clean-up processes only run
- * periodically and final deletion always lags the expiresAt timestamp.
+ * TS 104 175 §5.2.4 - Transient storage of Entities and Attributes (expiresAt): periodically garbage-collects, for
+ * each configured tenant, entities and attributes whose expiresAt lies in the past. Per the spec, clean-up processes
+ * only run periodically and final deletion always lags the expiresAt timestamp.
  */
 @Component
 class TransientDataGarbageCollectionJob(

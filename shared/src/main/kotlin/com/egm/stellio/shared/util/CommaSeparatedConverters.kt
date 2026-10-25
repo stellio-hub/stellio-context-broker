@@ -4,8 +4,8 @@ import com.egm.stellio.shared.util.ErrorMessages.Json.notAStringOrArrayOfStrings
 import tools.jackson.databind.util.StdConverter
 
 /**
- * Reads a "comma separated list" member (e.g. jsonKeys, expandValues in 5.2.12 and 5.2.23) from a String, as defined
- * in the spec, or from a JSON array of Strings (kept for backward compatibility).
+ * Reads a "comma separated list" member (e.g. jsonKeys, expandValues in TS 104 175 §5.2.6.5.2 and §5.2.6.5.1) from
+ * a String, as defined in the spec, or from a JSON array of Strings (kept for backward compatibility).
  * An empty String is considered as an absent member. The order of the values is preserved.
  *
  * An invalid input raises an exception, that Jackson wraps into a parsing error of the payload.

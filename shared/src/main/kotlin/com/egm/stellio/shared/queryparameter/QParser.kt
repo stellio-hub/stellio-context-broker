@@ -9,7 +9,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidQQueryMessage
 
 /**
- * Recursive descent parser for the NGSI-LD Query Language as defined in ETSI GS CIM 009, clause 4.9.
+ * Recursive descent parser for the NGSI-LD Query Language as defined in ETSI TS 104 175 §7.2.3.
  *
  * Grammar:
  *   query      = or-expr

@@ -2,7 +2,7 @@
 
 [![FIWARE Core Context Management](docs/style/core-badge.svg)](https://www.fiware.org/developers/catalogue/)
 [![License: Apache-2.0](https://img.shields.io/github/license/stellio-hub/stellio-context-broker.svg)](https://spdx.org/licenses/Apache-2.0.html)
-[![NGSI-LD badge](https://img.shields.io/badge/NGSI-LD-red.svg)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf)
+[![NGSI-LD badge](https://img.shields.io/badge/NGSI-LD-red.svg)](https://www.etsi.org/deliver/etsi_ts/104100_104199/104175/01.01.01_60/ts_104175v010101p.pdf)
 [![SOF support badge](docs/style/stackoverflow-badge.svg)](http://stackoverflow.com/questions/tagged/fiware)
 <br>
 [![Quay badge](https://img.shields.io/badge/quay.io-fiware%2Fstellio--*-grey?logo=red%20hat&labelColor=EE0000)](https://quay.io/search?q=stellio-)
@@ -15,7 +15,7 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4527/badge)](https://bestpractices.coreinfrastructure.org/projects/4527)
 
 Stellio is an NGSI-LD compliant context broker developed by EGM. NGSI-LD is an Open API and Datamodel specification for 
-context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.08.01_60/gs_CIM009v010801p.pdf).
+context management [published by ETSI](https://www.etsi.org/deliver/etsi_ts/104100_104199/104175/01.01.01_60/ts_104175v010101p.pdf).
 
 Stellio is a [FIWARE](https://www.fiware.org/) Generic Enabler. Therefore, it can be integrated as part of any platform “Powered by FIWARE”. 
 FIWARE is a curated framework of open source platform components which can be assembled with other third-party 
@@ -27,7 +27,7 @@ The complete list of FIWARE GEs and Incubated FIWARE GEs can be found in the [FI
 
 **NGSI-LD Context Broker Feature Comparison**
 
-The NGSI-LD Specification is regularly updated and published by ETSI. The latest specification is [version 1.9.1](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf) which was published in July 2025.
+The NGSI-LD Specification is regularly updated and published by ETSI. Since September 2026, it is published by ETSI TC DATA as two technical specifications: [TS 104 175 (NGSI-LD Core API)](https://www.etsi.org/deliver/etsi_ts/104100_104199/104175/01.01.01_60/ts_104175v010101p.pdf) and [TS 104 176 (NGSI-LD HTTP Binding)](https://www.etsi.org/deliver/etsi_ts/104100_104199/104176/01.01.01_60/ts_104176v010101p.pdf). They supersede ETSI GS CIM 009, whose last version was [1.9.1](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf).
 
 -  An Excel file detailing the current compatibility regarding the development version of the Stellio Context Broker against the features of the 1.9.1 specification can be downloaded [here](https://docs.google.com/spreadsheets/d/18tq0_PZFl5WCfYUElcdI6M3Vlin4hP-M/edit#gid=1285470800)
 
@@ -93,7 +93,8 @@ Please note that these requirements may vary based on factors such as the size o
 
 For more detailed explanations on NGSI-LD or FIWARE:
 
--  [NGSI-LD v1.9.1 Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf)
+-  [NGSI-LD Core API Specification (ETSI TS 104 175)](https://www.etsi.org/deliver/etsi_ts/104100_104199/104175/01.01.01_60/ts_104175v010101p.pdf)
+-  [NGSI-LD HTTP Binding Specification (ETSI TS 104 176)](https://www.etsi.org/deliver/etsi_ts/104100_104199/104176/01.01.01_60/ts_104176v010101p.pdf)
 -  [NGSI-LD Primer](https://www.etsi.org/deliver/etsi_gr/CIM/001_099/008/01.03.01_60/gr_CIM008v010301p.pdf)
 -  [NGSI-LD Tutorials](https://ngsi-ld-tutorials.readthedocs.io/en/latest/)
 -  [FIWARE Webinars](https://www.fiware.org/community/webinars/)

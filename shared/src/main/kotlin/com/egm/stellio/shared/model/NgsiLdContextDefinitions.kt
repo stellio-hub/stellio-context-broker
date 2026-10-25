@@ -140,7 +140,7 @@ val TEMPORAL_REPRESENTATION_TERMS = listOf(
     NGSILD_VOCABS_TERM
 )
 
-// Data types (5.2)
+// Data types (TS 104 175 §5.2.6)
 
 const val NGSILD_SUBSCRIPTION_TERM = "Subscription"
 const val NGSILD_NOTIFICATION_TERM = "Notification"
@@ -148,13 +148,13 @@ const val NGSILD_CSR_TERM = "ContextSourceRegistration"
 const val NGSILD_SERVICE_REGISTRATION_TERM = "ServiceRegistration"
 const val NGSILD_SERVICE_EXECUTION_TERM = "ServiceExecution"
 
-// Data types for values (4.6.3)
+// Data types for values (TS 104 175 §5.2.2.4)
 
 const val NGSILD_DATE_TIME_TYPE = "${NGSILD_PREFIX}DateTime"
 const val NGSILD_DATE_TYPE = "${NGSILD_PREFIX}Date"
 const val NGSILD_TIME_TYPE = "${NGSILD_PREFIX}Time"
 
-// Special value for NGSI-LD Null (4.5.0)
+// Special value for NGSI-LD Null (TS 104 175 §3.1)
 
 const val NGSILD_NULL = "urn:ngsi-ld:null"
 

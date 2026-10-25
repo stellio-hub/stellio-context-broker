@@ -3,7 +3,7 @@ package com.egm.stellio.search.common.model
 import arrow.core.raise.either
 
 /**
- * An OrderingParams data type as defined in 5.2.43.
+ * An OrderingParams data type as defined in TS 104 175 §5.2.6.7.5.
  *
  */
 data class OrderingParams(

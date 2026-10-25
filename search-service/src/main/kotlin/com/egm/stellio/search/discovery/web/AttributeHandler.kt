@@ -32,7 +32,7 @@ class AttributeHandler(
     private val applicationProperties: ApplicationProperties
 ) {
     /**
-     * Implements 6.27 - Retrieve Available Attributes
+     * Implements TS 104 176 §7.17 - Retrieve Available Attributes
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getAttributes(
@@ -58,7 +58,7 @@ class AttributeHandler(
     )
 
     /**
-     * Implements 6.28 - Retrieve Available Attribute Type Information
+     * Implements TS 104 176 §7.18 - Retrieve Available Attribute Type Information
      */
     @GetMapping("/{attrId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getByAttributeId(

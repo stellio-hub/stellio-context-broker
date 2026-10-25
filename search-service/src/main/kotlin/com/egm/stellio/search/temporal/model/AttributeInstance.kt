@@ -84,7 +84,7 @@ data class AttributeInstance private constructor(
         private fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
     }
 
-    // a TemporalProperty as defined in 4.8
+    // a TemporalProperty as defined in TS 104 175 §5.2.4
     enum class TemporalProperty(val propertyName: String) {
         OBSERVED_AT("observedAt"),
         CREATED_AT("createdAt"),

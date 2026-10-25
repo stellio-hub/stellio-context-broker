@@ -34,7 +34,7 @@ import java.util.UUID
 typealias SingleEntityInfoCSR = ContextSourceRegistration
 
 /**
- * CSourceRegistration type as defined in 5.2.9
+ * CSourceRegistration type as defined in TS 104 175 §5.2.6.5.3
  */
 data class ContextSourceRegistration(
     val id: URI = "urn:ngsi-ld:ContextSourceRegistration:${UUID.randomUUID()}".toUri(),

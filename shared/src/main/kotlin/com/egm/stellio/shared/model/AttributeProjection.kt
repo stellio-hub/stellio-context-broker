@@ -20,7 +20,8 @@ import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.projectionInvali
 import com.egm.stellio.shared.util.isNgsiLdSupportedName
 
 /**
- * Represents a parsed attribute projection expression following the NGSI-LD Attribute Projection Language (4.21).
+ * Represents a parsed attribute projection expression following the NGSI-LD Attribute projection language
+ * (TS 104 175 §7.3.2).
  *
  * For example, the following expression: `pick=observation{temperature,humidity}` will be parsed as:
  * ```
@@ -47,7 +48,7 @@ data class AttributeProjection(
 
         /**
          * Parse pick/omit parameters, according to NGSI-LD Attribute Projection Language ABNF grammar
-         * as defined in section 4.21 of the NGSI-LD specification.
+         * as defined in TS 104 175 §7.3.2.
          */
         fun parsePickOmitParameters(
             pickParam: String?,

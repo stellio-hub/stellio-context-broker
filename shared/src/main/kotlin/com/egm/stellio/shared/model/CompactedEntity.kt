@@ -71,7 +71,7 @@ fun List<CompactedEntity>.getRelationshipsNamesWithObjects(): Map<String, Set<UR
 /**
  * Returns the objects of the Relationships annotated with an objectType, associated to their declared types.
  *
- * As per 4.5.23.1, these are the only non locally stored entities that can be retrieved as Linked Entities.
+ * As per TS 104 175 §7.7.1, these are the only non locally stored entities that can be retrieved as Linked Entities.
  */
 fun List<CompactedEntity>.getRelationshipsObjectsWithObjectTypes(): Map<URI, Set<String>> =
     this.flatMap { it.getAttributeInstances() }
@@ -324,7 +324,7 @@ fun CompactedEntity.withoutSysAttrs(sysAttrToKeep: String?): Map<String, Any> {
     }
 
     return this.filter {
-        // deletedAt has to be kept at entity level (but not in attributes), see 5.8.6
+        // deletedAt has to be kept at entity level (but not in attributes), see TS 104 175 §10.5.7
         !sysAttrsToRemove.minus(NGSILD_DELETED_AT_TERM).contains(it.key)
     }.mapValues {
         when (it.value) {

@@ -46,7 +46,7 @@ class LinkedEntityService(
     }
 
     /**
-     * Implements 4.5.23 - Linked Entity Retrieval
+     * Implements TS 104 175 §7.7 - Linked Entity retrieval
      *
      * Linked Entities not stored locally are retrieved from the matching Context Sources only if the Relationship
      * is annotated with an objectType and the query is not local.

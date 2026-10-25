@@ -28,7 +28,7 @@
 
 ## 3. Key Constraints
 
-1. **Spec first.** Stellio implements ETSI GS CIM 009. When spec and convenience conflict, spec wins.
+1. **Spec first.** Stellio implements ETSI TS 104 175 (NGSI-LD Core API) and TS 104 176 (NGSI-LD HTTP Binding). When spec and convenience conflict, spec wins.
 2. **No blocking calls.** The stack is fully reactive (WebFlux + R2DBC + coroutines). Never block a reactive thread.
 3. **No direct DB access from controllers.** Controllers → Services → Repositories only.
 4. **No synchronous inter-service calls.** Use Kafka for all service-to-service communication.

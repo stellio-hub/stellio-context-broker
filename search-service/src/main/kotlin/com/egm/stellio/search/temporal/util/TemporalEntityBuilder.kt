@@ -204,7 +204,7 @@ object TemporalEntityBuilder {
      * The aggregated representation is created from the attribute instance results of the temporal entity attribute.
      *
      * It returns a map with the same keys as the input map and values corresponding to aggregated representations
-     * as described in 4.5.19.0
+     * as described in TS 104 175 §5.3.2.7
      */
     private fun buildAttributesAggregatedRepresentation(
         attributeAndResultsMap: AttributesWithInstances,

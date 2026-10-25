@@ -317,9 +317,9 @@ You can retrieve multiple entities with a query.
 
 The query endpoint supports several filtering strategies:
 
-- `type=Beehive,Sensor` returns only entities of type `BeeHive` or `Sensor` (see [specification §4.17](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.17)).
-- `q=temperature>=22` returns only entities with a temperature greater than or equal to 22 (see [specification §4.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.19)).
-- `georel=near;maxDistance==1&geometry=Point&coordinates=[24.30623,60.07966]` finds entities near a point (see [specification §4.10](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.10)).
+- `type=Beehive,Sensor` returns only entities of type `BeeHive` or `Sensor` (see [TS 104 175 §7.2.2](https://ngsild.org/ts104175/html/index.html#7.2.2)).
+- `q=temperature>=22` returns only entities with a temperature greater than or equal to 22 (see [TS 104 175 §7.2.3](https://ngsild.org/ts104175/html/index.html#7.2.3)).
+- `georel=near;maxDistance==1&geometry=Point&coordinates=[24.30623,60.07966]` finds entities near a point (see [TS 104 175 §7.2.4](https://ngsild.org/ts104175/html/index.html#7.2.4)).
 
 ```shell
 http http://localhost:8080/ngsi-ld/v1/entities type==BeeHive,Sensor Link:$CONTEXT_LINK
@@ -373,8 +373,8 @@ http http://localhost:8080/ngsi-ld/v1/entities 'georel==near;maxDistance==1' geo
 <br>
 
 ### Query by POST
-If the request parameters are too long, use `entityOperations/query` for a [query by POST (§6.23)](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.23).
-Pass the parameters in the request body as a [Query object (§5.2.23)](https://cim.etsi.org/NGSI-LD/official/clause-5.html#5.2.23).
+If the request parameters are too long, use `entityOperations/query` for a [query by POST (TS 104 176 §7.12)](https://ngsild.org/ts104176/html/index.html#7.12).
+Pass the parameters in the request body as a [Query object (TS 104 175 §5.2.6.5.1)](https://ngsild.org/ts104175/html/index.html#5.2.6.5.1).
 
 ## Modify an entity
 ### Replace an entity 
@@ -571,21 +571,21 @@ http POST http://localhost:8080/ngsi-ld/v1/entityOperations/create Content-Type:
 This endpoint creates each entity in the payload, or updates it if it already exists.
 
 `POST entityOperations/upsert`
-You can also specify `options=replace` or `options=update` (see [§6.15](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.15)).
+You can also specify `options=replace` or `options=update` (see [TS 104 176 §7.8](https://ngsild.org/ts104176/html/index.html#7.8)).
 
 ### Batch entity update
 This endpoint updates each entity in the payload.
 
 `POST entityOperations/update`
-You can also specify the `noOverwrite` parameter (see [§6.16](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.16)).
+You can also specify the `noOverwrite` parameter (see [TS 104 176 §7.9](https://ngsild.org/ts104176/html/index.html#7.9)).
 
 ### Batch entity merge
-This endpoint merges each entity in the payload with the existing one (see [§6.31](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.31)).
+This endpoint merges each entity in the payload with the existing one (see [TS 104 176 §7.10](https://ngsild.org/ts104176/html/index.html#7.10)).
 
 `POST entityOperations/merge`
 
 ### Batch entity delete
-This endpoint receives a list of IDs and deletes the corresponding entities (see [§6.17](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.17)).
+This endpoint receives a list of IDs and deletes the corresponding entities (see [TS 104 176 §7.11](https://ngsild.org/ts104176/html/index.html#7.11)).
 
 `POST entityOperations/delete`
 
@@ -642,7 +642,7 @@ http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attr
 ```
 
 ### Replace an attribute
-You can completely replace an attribute with `PUT /entities/urn:ngsi-ld:BeeHive:01/attrs/temperature` (see [§6.7.3.3](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.7.3.3)).
+You can completely replace an attribute with `PUT /entities/urn:ngsi-ld:BeeHive:01/attrs/temperature` (see [TS 104 176 §7.5.3.3](https://ngsild.org/ts104176/html/index.html#7.5.3.3)).
 
 ### Delete an attribute
 Delete the `name` property added earlier:
@@ -713,9 +713,9 @@ http http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01  
 The temporal consumption endpoints support several parameters:
 
 - `format=temporalValues` reduces the payload size by returning the temporal representation as a list of pairs [value, timestamp].
-- `timerel==after&timeAt==2025-26-10T12:00:00Z` returns temporal values from the specified time onwards (see [§4.11](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.11)).
+- `timerel==after&timeAt==2025-26-10T12:00:00Z` returns temporal values from the specified time onwards (see [TS 104 175 §7.2.6](https://ngsild.org/ts104175/html/index.html#7.2.6)).
 - `lastN=2` returns only the last two values.
-- `format=aggregatedValues&aggrMethods=max,avg&aggrPeriodDuration=P1D` calculates the maximum, average, and counts values per day (see [§4.5.19](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.5.19.1)).
+- `format=aggregatedValues&aggrMethods=max,avg&aggrPeriodDuration=P1D` calculates the maximum, average, and counts values per day (see [TS 104 175 §5.3.2.7](https://ngsild.org/ts104175/html/index.html#5.3.2.7)).
 
 Note: These parameters also work for Query Temporal Entities.
 ```shell
@@ -983,7 +983,7 @@ http DELETE http://localhost:8080/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHi
 ```
 
 ### Other endpoints
-Other temporal provisioning endpoints are described in sections [§§6.20–6.22 of the specification](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.20).
+Other temporal provisioning endpoints are described in sections [§§8.4–8.6 of TS 104 176](https://ngsild.org/ts104176/html/index.html#8.4).
 
 
 ## Discovery endpoint

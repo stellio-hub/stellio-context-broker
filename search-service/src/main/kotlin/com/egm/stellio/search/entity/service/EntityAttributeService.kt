@@ -143,7 +143,8 @@ class EntityAttributeService(
             }
 
     /**
-     * Called when doing a merge (5.5.12) or partial update patch (5.5.8) operation over an attribute.
+     * Called when doing a merge (TS 104 175 §8.4.3) or partial update patch (TS 104 175 §8.4.2) operation over an
+     * attribute.
      */
     @Transactional
     suspend fun update(
@@ -1004,9 +1005,9 @@ class EntityAttributeService(
     }
 
     /**
-     * As specified in 5.6.17: If a common "observedAt" timestamp is defined and an existing Attribute to be merged
-     * previously contained an "observedAt" sub-Attribute, the "observedAt" sub-Attribute is also updated using the
-     * common timestamp, unless the Entity Fragment itself contains an explicit updated value for the
+     * As specified in TS 104 175 §10.2.9.4: If a common "observedAt" timestamp is defined and an existing Attribute
+     * to be merged previously contained an "observedAt" sub-Attribute, the "observedAt" sub-Attribute is also updated
+     * using the common timestamp, unless the Entity Fragment itself contains an explicit updated value for the
      * "observedAt" sub-Attribute.
      */
     internal fun processObservedAtInMergeOperation(

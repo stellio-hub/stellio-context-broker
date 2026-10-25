@@ -10,7 +10,7 @@ data class EntityTypeInfo(
     val attributeDetails: List<AttributeInfo>
 )
 
-// Called AttributeInfo (not Attribute as in 5.2.28) since there is already an Attribute class declared
+// Called AttributeInfo (not Attribute as in TS 104 175 §5.2.6.10.1) since there is already an Attribute class declared
 data class AttributeInfo(
     val id: URI,
     val type: String = "Attribute",

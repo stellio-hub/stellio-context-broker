@@ -3,7 +3,7 @@ package com.egm.stellio.shared.model
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.net.URI
 
-// an entity type selection as per clause 4.17
+// an entity type selection as per TS 104 175 §7.2.2
 typealias EntityTypeSelection = String
 const val ENTITY_TYPE_WILDCARD = "*"
 
@@ -11,7 +11,7 @@ fun EntityTypeSelection.isWildcardTypeSelection(): Boolean =
     trim() == ENTITY_TYPE_WILDCARD
 
 /**
- * EntitySelector type as defined in 5.2.33
+ * EntitySelector type as defined in TS 104 175 §5.2.6.6.3
  */
 data class EntitySelector(
     val id: URI?,

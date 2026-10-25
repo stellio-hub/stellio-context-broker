@@ -278,9 +278,9 @@ class ScopeService(
             else TemporalProperty.MODIFIED_AT
         addHistoryEntry(entityId, updatedScopes, temporalPropertyToAdd, modifiedAt).bind()
         if (temporalPropertyToAdd == TemporalProperty.MODIFIED_AT)
-            // as stated in 4.5.6: In case the Temporal Representation of the Scope is updated as the result of a
-            // change from the Core API, the observedAt sub-Property should be set as a copy of the modifiedAt
-            // sub-Property
+            // as stated in TS 104 175 §5.3.2.5: In case the Temporal Representation of the Scope is updated as the
+            // result of a change from the Core API, the observedAt sub-Property should be set as a copy of the
+            // modifiedAt sub-Property
             addHistoryEntry(entityId, updatedScopes, TemporalProperty.OBSERVED_AT, modifiedAt).bind()
         authorizationService.createScopesOwnerRights(updatedScopes).bind()
         operationResult

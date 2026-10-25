@@ -369,54 +369,53 @@ class AttributeInstanceService(
         instanceId: URI,
         expandedAttributeInstances: ExpandedAttributeInstances
     ): Either<APIException, Unit> = either {
-        val attributeUUID = retrieveAttributeUUID(entityId, attributeName, instanceId).bind()
         val ngsiLdAttribute = expandedAttributeInstances.toNgsiLdAttribute(attributeName).bind()
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         val attributeMetadata = ngsiLdAttributeInstance.toAttributeMetadata().bind()
 
-        deleteInstance(entityId, attributeName, instanceId).bind()
-        create(
-            AttributeInstance(
-                attributeUuid = attributeUUID,
-                time = attributeMetadata.observedAt!!,
-                attributeMetadata = attributeMetadata,
-                modifiedAt = ngsiLdDateTime(),
-                instanceId = instanceId,
-                payload = expandedAttributeInstances.first()
-            )
-        ).bind()
-    }
-
-    private suspend fun retrieveAttributeUUID(
-        entityId: URI,
-        attributeName: ExpandedTerm,
-        instanceId: URI
-    ): Either<APIException, UUID> {
-        val selectedQuery =
+        // cannot update in place an existing instance, since TimescaleDB cannot move a row to another chunk
+        val query =
             """
-            SELECT temporal_entity_attribute
-            FROM attribute_instance
-            WHERE temporal_entity_attribute = any( 
-                SELECT id 
-                FROM temporal_entity_attribute 
-                WHERE entity_id = :entity_id 
-                AND attribute_name = :attribute_name
+            WITH deleted AS (
+                DELETE FROM attribute_instance ai
+                WHERE ai.temporal_entity_attribute = any(
+                    SELECT id
+                    FROM temporal_entity_attribute
+                    WHERE entity_id = :entity_id
+                    AND attribute_name = :attribute_name
+                )
+                AND ai.instance_id = :instance_id
+                RETURNING ai.temporal_entity_attribute
             )
-            AND instance_id = :instance_id
+            INSERT INTO attribute_instance
+                (time, measured_value, value, geo_value, temporal_entity_attribute, instance_id, payload)
+            SELECT :time, :measured_value, :value, public.ST_GeomFromText(:geo_value), temporal_entity_attribute,
+                :instance_id, :payload
+            FROM deleted
+            ON CONFLICT (time, temporal_entity_attribute)
+            DO UPDATE SET value = EXCLUDED.value, measured_value = EXCLUDED.measured_value,
+                geo_value = EXCLUDED.geo_value, instance_id = EXCLUDED.instance_id, payload = EXCLUDED.payload
             """.trimIndent()
 
-        return databaseClient
-            .sql(selectedQuery)
+        databaseClient.sql(query)
             .bind("entity_id", entityId)
             .bind("attribute_name", attributeName)
             .bind("instance_id", instanceId)
-            .oneToResult(
-                ResourceNotFoundException(
-                    attributeOrInstanceNotFoundMessage(attributeName, instanceId.toString())
-                )
-            ) {
-                it["temporal_entity_attribute"] as UUID
-            }
+            .bind("time", attributeMetadata.observedAt)
+            .bind("measured_value", attributeMetadata.measuredValue)
+            .bind("value", attributeMetadata.value)
+            .bind("geo_value", attributeMetadata.geoValue?.value)
+            .bind(
+                "payload",
+                AttributeInstance.buildPayload(expandedAttributeInstances.first(), instanceId, ngsiLdDateTime())
+            )
+            .executeExpected {
+                if (it == 0L)
+                    ResourceNotFoundException(
+                        attributeOrInstanceNotFoundMessage(attributeName, instanceId.toString())
+                    ).left()
+                else Unit.right()
+            }.bind()
     }
 
     @Transactional

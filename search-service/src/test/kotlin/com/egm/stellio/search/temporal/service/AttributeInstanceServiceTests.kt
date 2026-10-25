@@ -26,6 +26,7 @@ import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
+import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
@@ -965,6 +966,86 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
+    fun `modifyAttributeInstance should move the instance to the new observedAt`() = runTest {
+        val attributeInstance = gimmeNumericPropertyAttributeInstance(
+            incomingAttribute.id,
+            time = ZonedDateTime.parse("2025-06-01T00:00:00Z")
+        )
+        attributeInstanceService.create(attributeInstance).shouldSucceed()
+
+        attributeInstanceService.modifyAttributeInstance(
+            entityId,
+            INCOMING_IRI,
+            attributeInstance.instanceId,
+            loadTemporalInstanceFragment()
+        ).shouldSucceed()
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
+                )
+            ),
+            incomingAttribute
+        ).shouldSucceedWith {
+            val result = (it as List<FullAttributeInstanceResult>).single()
+            assertEquals(ZonedDateTime.parse("2023-03-13T12:33:06Z"), result.time)
+            assertThat(result.payload).contains(attributeInstance.instanceId.toString())
+        }
+    }
+
+    @Test
+    fun `modifyAttributeInstance should replace another instance existing at the new observedAt`() = runTest {
+        val attributeInstance = gimmeNumericPropertyAttributeInstance(
+            incomingAttribute.id,
+            time = ZonedDateTime.parse("2025-06-01T00:00:00Z")
+        )
+        attributeInstanceService.create(attributeInstance).shouldSucceed()
+        val otherAttributeInstance = gimmeNumericPropertyAttributeInstance(
+            incomingAttribute.id,
+            time = ZonedDateTime.parse("2023-03-13T12:33:06Z")
+        )
+        attributeInstanceService.create(otherAttributeInstance).shouldSucceed()
+
+        attributeInstanceService.modifyAttributeInstance(
+            entityId,
+            INCOMING_IRI,
+            attributeInstance.instanceId,
+            loadTemporalInstanceFragment()
+        ).shouldSucceed()
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
+                )
+            ),
+            incomingAttribute
+        ).shouldSucceedWith {
+            val result = (it as List<FullAttributeInstanceResult>).single()
+            assertEquals(ZonedDateTime.parse("2023-03-13T12:33:06Z"), result.time)
+            assertThat(result.payload).contains(attributeInstance.instanceId.toString())
+        }
+    }
+
+    @Test
+    fun `modifyAttributeInstance should return a ResourceNotFound error if the instance is not found`() = runTest {
+        val instanceId = "urn:ngsi-ld:Instance:notFound".toUri()
+
+        attributeInstanceService.modifyAttributeInstance(
+            entityId,
+            INCOMING_IRI,
+            instanceId,
+            loadTemporalInstanceFragment()
+        ).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+            assertEquals(attributeOrInstanceNotFoundMessage(INCOMING_IRI, instanceId.toString()), it.message)
+        }
+    }
+
+    @Test
     fun `deleteInstance should delete attribute instance`() = runTest {
         val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
         attributeInstanceService.create(attributeInstance).shouldSucceed()
@@ -1297,5 +1378,13 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                     geoValues.map { wktToGeoJson(it.value) }
                 )
         }
+    }
+
+    private suspend fun loadTemporalInstanceFragment(): ExpandedAttributeInstances {
+        val attributeInstancePayload =
+            mapOf(INCOMING_TERM to loadSampleData("fragments/temporal_instance_fragment.jsonld").deserializeAsMap())
+        val jsonLdAttribute =
+            JsonLdUtils.expandJsonLdFragment(attributeInstancePayload, APIC_COMPOUND_CONTEXTS) as ExpandedAttributes
+        return jsonLdAttribute.entries.first().value
     }
 }

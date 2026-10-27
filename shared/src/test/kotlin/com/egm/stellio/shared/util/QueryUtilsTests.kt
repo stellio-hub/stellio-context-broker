@@ -60,7 +60,7 @@ class QueryUtilsTests {
         strings = [
             "/Madrid", "/Madrid/Gardens/#", "/#", "/Madrid/+/ParqueNorte", "/public/+/#", "/Città_1/Zone2",
             "(/Madrid/Districts;/CompanyA)|/CompanyB", "(/Madrid/Districts;/CompanyA),/CompanyB/#", "(/a)",
-            "/a,/b", "/a|/b"
+            "/a,/b", "/a|/b", "a", "levelA/levelB", "levelA/+/#", "(a;/b)|c/#"
         ]
     )
     fun `validateScopeQ should accept a valid scope query`(scopeQ: String) {
@@ -70,8 +70,8 @@ class QueryUtilsTests {
     @ParameterizedTest
     @ValueSource(
         strings = [
-            "/a,,/b", "(/a", "/a;", "/a)", "a", "/1a", "/a/", "/a/#/b", "/a#", "/a b", "/a'b", "((/a))", "",
-            "/a;/b", "(/a/#)", "(/a;/b)/#", "/a|/#", "/#,/a"
+            "/a,,/b", "(/a", "/a;", "/a)", "1a", "/1a", "a//b", "//a", "/a/", "/a/#/b", "/a#", "/a b", "/a'b",
+            "((/a))", "", "/a;/b", "(/a/#)", "(/a;/b)/#", "/a|/#", "/#,/a"
         ]
     )
     fun `validateScopeQ should reject an invalid scope query`(scopeQ: String) {

@@ -1,6 +1,6 @@
 {
   "id": "urn:ngsi-ld:BeeHive:02",
-  "scope": "/Madrid/Gardens/ParqueNorte",
+  "scope": ["/Madrid/Gardens/ParqueNorte", "levelA/levelB"],
   "type": "BeeHive",
   "string": {
     "type": "Property",

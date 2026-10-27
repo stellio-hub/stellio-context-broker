@@ -20,16 +20,6 @@ In practice this means:
 When implementing a new feature, locate the corresponding section in TS 104 175 (behaviour) and TS 104 176 (HTTP binding) first, then translate it to code.
 If a behaviour is ambiguous or unspecified in the current target version, raise it with the team before deciding.
 
-## Modules
-
-Stellio is a microservice-based NGSI-LD context broker composed of:
-- api-gateway: Spring Cloud Gateway: routing, authentication, request validation
-- search-service: entity storage, temporal queries, geospatial queries, CSR federation
-- subscription-service: subscriptions and notifications
-- shared: shared library (models, utilities, test fixtures)
-- Kafka event streaming backbone
-- TimescaleDB + PostGIS storage
-
 ## Mandatory Architecture Rules
 
 - No direct database access from controllers — controllers call services
@@ -85,10 +75,3 @@ The principles associated with the federation of context brokers are defined in 
 - For local dev without auth: `application.authentication.enabled=false` activates no-auth beans — keep both paths
 working in new code
 - Never hardcode credentials or tokens; use environment variables
-
-## CI / Quality Gates
-
-- CI: GitHub Actions — build, test, SonarCloud analysis, OWASP dependency check
-- Detekt must pass on all subprojects (config: `config/detekt/detekt.yml`)
-- SonarCloud quality gate must pass before merging
-- Coverage minimum: 75% per module (enforced via Jacoco)

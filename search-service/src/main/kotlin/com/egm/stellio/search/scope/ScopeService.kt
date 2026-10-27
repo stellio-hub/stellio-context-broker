@@ -46,7 +46,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.Duration
 import java.time.ZonedDateTime
 
 @Service
@@ -213,7 +212,7 @@ class ScopeService(
                     if (!temporalEntitiesQuery.isAggregatedWithDefinedDuration())
                         toZonedDateTime(row["end"])
                     else
-                        startDateTime.plus(Duration.parse(temporalEntitiesQuery.temporalQuery.aggrPeriodDuration!!))
+                        startDateTime.plus(temporalEntitiesQuery.computeAggrPeriodDuration())
                 // in a row, there is the result for each requested aggregation method
                 val values = temporalEntitiesQuery.temporalQuery.aggrMethods!!.map {
                     val value = row["${it.method}_value"] ?: ""

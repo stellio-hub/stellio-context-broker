@@ -575,4 +575,43 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         ).shouldSucceedAndResult()
         assertThat(scopeHistoryEntries).isEmpty()
     }
+
+    @Test
+    fun `retrieveHistory should aggregate scopes with a calendar-based aggrPeriodDuration`() = runTest {
+        loadSampleData("beehive_with_scope.jsonld")
+            .sampleDataToNgsiLdEntity()
+            .map { entityService.createEntityPayload(it.second, it.first, ngsiLdDateTime()) }
+        scopeService.addHistoryEntry(
+            beehiveTestCId,
+            listOf("/A", "/B/C"),
+            TemporalProperty.OBSERVED_AT,
+            ngsiLdDateTime()
+        ).shouldSucceed()
+
+        val scopeHistoryEntries = scopeService.retrieveHistory(
+            listOf(beehiveTestCId),
+            TemporalEntitiesQueryFromGet(
+                EntitiesQueryFromGet(
+                    paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                temporalQuery = buildDefaultTestTemporalQuery(
+                    timeproperty = TemporalProperty.OBSERVED_AT,
+                    timerel = TemporalQuery.Timerel.BETWEEN,
+                    timeAt = ngsiLdDateTime().minusYears(5),
+                    endTimeAt = ngsiLdDateTime().plusYears(5),
+                    aggrMethods = listOf(TemporalQuery.Aggregate.SUM),
+                    aggrPeriodDuration = "P1Y"
+                ),
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
+            ),
+            ngsiLdDateTime().minusYears(5)
+        ).shouldSucceedAndResult()
+
+        assertEquals(1, scopeHistoryEntries.size)
+        val aggregateResult = (scopeHistoryEntries[0] as AggregatedScopeInstanceResult).values[0]
+        assertEquals(2L, aggregateResult.value)
+        assertEquals(aggregateResult.startDateTime.plusYears(1), aggregateResult.endDateTime)
+    }
 }

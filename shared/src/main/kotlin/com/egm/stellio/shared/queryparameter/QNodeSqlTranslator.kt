@@ -58,7 +58,8 @@ private fun comparisonSql(
     value: QValue,
     contexts: List<String>
 ): String {
-    // 4.9 (unequal operator): the target element must exist and meet none of the conditions of the equal operator
+    // TS 104 175 §7.2.3.3 (unequal operator): the target element must exist and meet none of the conditions of the
+    // equal operator
     if (operator == ComparisonOperator.NEQ) {
         val eqSql = comparisonSql(targetExpr, attrPath, ComparisonOperator.EQ, value, contexts)
         return "(${targetElementExistsSql(targetExpr, attrPath)}) AND NOT ($eqSql)"

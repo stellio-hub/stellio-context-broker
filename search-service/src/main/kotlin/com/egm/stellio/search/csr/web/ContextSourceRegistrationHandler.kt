@@ -51,7 +51,7 @@ class ContextSourceRegistrationHandler(
 ) : BaseHandler() {
 
     /**
-     * Implements 6.8.3.1 - Create ContextSourceRegistration
+     * Implements TS 104 176 §9.2.3.2 - Create ContextSourceRegistration
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
@@ -75,7 +75,7 @@ class ContextSourceRegistrationHandler(
     )
 
     /**
-     * Implements 6.8.3.2 - Query ContextSourceRegistrations
+     * Implements TS 104 176 §9.2.3.1 - Query ContextSourceRegistrations
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun query(
@@ -130,7 +130,7 @@ class ContextSourceRegistrationHandler(
     )
 
     /**
-     * Implements 6.9.3.1 - Retrieve ContextSourceRegistration
+     * Implements TS 104 176 §9.3.3.1 - Retrieve ContextSourceRegistration
      */
     @GetMapping("/{contextSourceRegistrationId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun retrieve(
@@ -182,7 +182,7 @@ class ContextSourceRegistrationHandler(
     )
 
     /**
-     * Implements 6.9.3.3 - Delete ContextSourceRegistration
+     * Implements TS 104 176 §9.3.3.3 - Delete ContextSourceRegistration
      */
     @DeleteMapping("/{contextSourceRegistrationId}")
     suspend fun delete(

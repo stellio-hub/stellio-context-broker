@@ -4,7 +4,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 
 /**
- * Implements NGSILD-Warning as defined in 6.3.17
+ * Implements NGSILD-Warning as defined in TS 104 176 §6.3.5
  */
 open class NGSILDWarning(
     private val code: Int,

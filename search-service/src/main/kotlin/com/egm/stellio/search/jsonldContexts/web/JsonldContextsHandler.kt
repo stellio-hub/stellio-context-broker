@@ -21,7 +21,7 @@ import java.net.URI
 class JsonldContextsHandler : BaseHandler() {
 
     /**
-     * Implements 6.30.3.2 - Delete and Reload @Context
+     * Implements TS 104 176 §10.3.3.2 - Delete and Reload @Context
      */
     @DeleteMapping("/{contextId}")
     suspend fun deleteAndReload(

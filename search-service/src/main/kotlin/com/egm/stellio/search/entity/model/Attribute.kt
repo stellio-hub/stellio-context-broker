@@ -97,7 +97,8 @@ data class Attribute(
             }
 
         /**
-         * Returns the key of the member for the simplified representation of the attribute, as defined in 4.5.9
+         * Returns the key of the member for the simplified representation of the attribute, as defined in
+         * TS 104 175 §5.3.2.6
          */
         fun toSimplifiedRepresentationKey(): String =
             when (this) {

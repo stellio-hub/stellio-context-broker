@@ -8,7 +8,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 
 /**
- * UpdateResult datatype as defined in 5.2.18
+ * UpdateResult datatype as defined in TS 104 175 §5.2.6.8.5
  */
 data class UpdateResult(
     val updated: List<String>,
@@ -39,7 +39,7 @@ data class UpdateResult(
 val EMPTY_UPDATE_RESULT: UpdateResult = UpdateResult(emptyList(), emptyList())
 
 /**
- * NotUpdatedDetails as defined in 5.2.19
+ * NotUpdatedDetails (NotUpdatedResult) as defined in TS 104 175 §5.2.6.8.4
  */
 data class NotUpdatedDetails(
     val attributeName: String,

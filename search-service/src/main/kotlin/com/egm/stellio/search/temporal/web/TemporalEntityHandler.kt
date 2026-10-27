@@ -74,7 +74,7 @@ class TemporalEntityHandler(
 ) : BaseHandler() {
 
     /**
-     * Implements 6.18.3.1 - Create or Update (Upsert) Temporal Representation of Entity
+     * Implements TS 104 176 §8.2.3.2 - Create or Update (Upsert) Temporal Representation of Entity
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
@@ -109,7 +109,7 @@ class TemporalEntityHandler(
     )
 
     /**
-     * Implements 6.20.3.1 - Add attributes to Temporal Representation of Entity
+     * Implements TS 104 176 §8.4.3.1 - Add attributes to Temporal Representation of Entity
      */
     @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun addAttributes(
@@ -137,7 +137,7 @@ class TemporalEntityHandler(
         missingPathErrorResponse("Missing entity id when trying to append attribute")
 
     /**
-     * Partial implementation of 6.18.3.2 - Query Temporal Evolution of Entities
+     * Partial implementation of TS 104 176 §8.2.3.1 - Query Temporal Evolution of Entities
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getForEntities(
@@ -211,7 +211,7 @@ class TemporalEntityHandler(
     )
 
     /**
-     * Partial implementation of 6.19.3.1 (query parameters are not all supported)
+     * Partial implementation of TS 104 176 §8.3.3.1 (query parameters are not all supported)
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getForEntity(
@@ -280,7 +280,7 @@ class TemporalEntityHandler(
     )
 
     /**
-     * Implements 6.22.3.1 - Modify Attribute Instance in Temporal Representation of Entity
+     * Implements TS 104 176 §8.6.3.1 - Modify Attribute Instance in Temporal Representation of Entity
      *
      */
     @PatchMapping(
@@ -325,7 +325,7 @@ class TemporalEntityHandler(
         )
 
     /**
-     * Implements 6.19.3.2  - Delete Temporal Representation of an Entity
+     * Implements TS 104 176 §8.3.3.2 - Delete Temporal Representation of an Entity
      */
     @DeleteMapping("/{entityId}")
     suspend fun deleteTemporalEntity(
@@ -342,7 +342,7 @@ class TemporalEntityHandler(
     )
 
     /**
-     * Implements 6.21.3.1 - Delete Attribute from Temporal Representation of an Entity
+     * Implements TS 104 176 §8.5.3.1 - Delete Attribute from Temporal Representation of an Entity
      */
     @DeleteMapping("/{entityId}/attrs/{attrId}")
     suspend fun deleteAttributeTemporal(
@@ -380,7 +380,7 @@ class TemporalEntityHandler(
         missingPathErrorResponse("Missing entity id or attribute id when trying to delete an attribute temporal")
 
     /**
-     * Implements 6.22.3.2 - Delete Attribute instance from Temporal Representation of an Entity
+     * Implements TS 104 176 §8.6.3.2 - Delete Attribute instance from Temporal Representation of an Entity
      */
     @DeleteMapping("/{entityId}/attrs/{attrId}/{instanceId}")
     suspend fun deleteAttributeInstanceTemporal(

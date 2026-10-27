@@ -17,7 +17,7 @@ import com.fasterxml.jackson.annotation.JsonFormat
 import tools.jackson.databind.annotation.JsonDeserialize
 
 /**
- * A Query data type as defined in 5.2.23.
+ * A Query data type as defined in TS 104 175 §5.2.6.5.1.
  *
  * It represents the raw data as received in the API. To have a consistent validation handling, even mandatory
  * parameters are declared as optional here, validation is performed later in #{EntitiesQueryUtils}.
@@ -46,7 +46,8 @@ data class Query private constructor(
     companion object {
         operator fun invoke(queryBody: Map<String, Any>): Either<APIException, Query> = either {
             runCatching {
-                // the JSON-LD "@context" member, if present, is not part of the Query data type (5.2.23)
+                // the JSON-LD "@context" member, if present, is not part of the Query data type
+                // (TS 104 175 §5.2.6.5.1)
                 DataTypes.convertTo<Query>(queryBody.minus(JSONLD_CONTEXT_KW))
             }.fold(
                 {

@@ -47,7 +47,7 @@ fun buildTypeQuery(rawQuery: String?, columnName: String = "types", target: List
         }.let { "($it)" }
 
 /**
- * Transforms an NGSI-LD Query Language parameter as per clause 4.9 to a PostgreSQL SQL expression.
+ * Transforms an NGSI-LD Query Language parameter as per TS 104 175 §7.2.3 to a PostgreSQL SQL expression.
  * Uses a recursive descent parser to build an AST, then translates the AST to SQL jsonb_path_exists calls.
  */
 fun buildQQuery(
@@ -59,7 +59,7 @@ fun buildQQuery(
 ): String =
     qNode.toSqlJsonPath(jsonKeys, expandValues, contexts, target)
 
-// ScopesQ grammar of clause 4.19
+// ScopesQ grammar of TS 104 175 §7.2.5
 private const val SCOPEQ_LEVEL = """(?:\p{L}[\p{L}\p{N}_]*|\+)"""
 private const val SCOPEQ = """(?:/$SCOPEQ_LEVEL)+"""
 private const val OR_SCOPEQ = """(?:\($SCOPEQ(?:;$SCOPEQ)*\)|$SCOPEQ(?:/#)?)"""

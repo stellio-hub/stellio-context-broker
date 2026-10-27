@@ -64,7 +64,7 @@ class SubscriptionHandler(
 ) : BaseHandler() {
 
     /**
-     * Implements 6.10.3.1 - Create Subscription
+     * Implements TS 104 176 §7.13.3.2 - Create Subscription
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
@@ -92,7 +92,7 @@ class SubscriptionHandler(
     )
 
     /**
-     * Implements 6.10.3.2 - Query Subscriptions
+     * Implements TS 104 176 §7.13.3.1 - Query Subscriptions
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getSubscriptions(
@@ -133,7 +133,7 @@ class SubscriptionHandler(
     )
 
     /**
-     * Implements 6.11.3.1 - Retrieve Subscription
+     * Implements TS 104 176 §7.14.3.1 - Retrieve Subscription
      */
     @GetMapping("/{subscriptionId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getByURI(
@@ -142,7 +142,7 @@ class SubscriptionHandler(
         @AllowedParameters(implemented = [QP.OPTIONS], notImplemented = [QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        val options: String? = queryParams.getFirst(QP.OPTIONS.key) // list of options see 6.3.11
+        val options: String? = queryParams.getFirst(QP.OPTIONS.key) // list of options see TS 104 176 §6.4.5
 
         val includeSysAttrs = options?.contains(OptionsValue.SYS_ATTRS.value) ?: false
 
@@ -179,7 +179,7 @@ class SubscriptionHandler(
     )
 
     /**
-     * Implements 6.11.3.2 - Update Subscription
+     * Implements TS 104 176 §7.14.3.2 - Update Subscription
      */
     @PatchMapping(
         "/{subscriptionId}",
@@ -215,7 +215,7 @@ class SubscriptionHandler(
     )
 
     /**
-     * Implements 6.11.3.3 - Delete Subscription
+     * Implements TS 104 176 §7.14.3.3 - Delete Subscription
      */
     @DeleteMapping("/{subscriptionId}")
     suspend fun delete(

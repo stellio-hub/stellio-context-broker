@@ -88,7 +88,7 @@ class EntityHandler(
 ) : BaseHandler() {
 
     /**
-     * Implements 6.4.3.1 - Create Entity
+     * Implements TS 104 176 §7.2.3.2 - Create Entity
      */
     @PostMapping(consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
@@ -128,7 +128,7 @@ class EntityHandler(
     )
 
     /**
-     * Implements 6.5.3.4 - Merge Entity
+     * Implements TS 104 176 §7.3.3.2 - Merge Entity
      */
     @PatchMapping("/{entityId}", consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun merge(
@@ -164,7 +164,7 @@ class EntityHandler(
         missingPathErrorResponse("Missing entity id when trying to merge an entity")
 
     /**
-     * Implements 6.5.3.3 - Replace Entity
+     * Implements TS 104 176 §7.3.3.3 - Replace Entity
      */
     @PutMapping("/{entityId}", consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun replace(
@@ -212,7 +212,7 @@ class EntityHandler(
         missingPathErrorResponse("Missing entity id when trying to replace an entity")
 
     /**
-     * Implements 6.4.3.2 - Query Entities
+     * Implements TS 104 176 §7.2.3.1 - Query Entities
      */
     @GetMapping(produces = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, GEO_JSON_CONTENT_TYPE])
     suspend fun getEntities(
@@ -289,7 +289,7 @@ class EntityHandler(
     )
 
     /**
-     * Implements 6.5.3.1 - Retrieve Entity
+     * Implements TS 104 176 §7.3.3.1 - Retrieve Entity
      */
     @GetMapping("/{entityId}", produces = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, GEO_JSON_CONTENT_TYPE])
     suspend fun getByURI(
@@ -366,7 +366,7 @@ class EntityHandler(
     )
 
     /**
-     * Implements 6.5.3.2 - Delete Entity
+     * Implements TS 104 176 §7.3.3.4 - Delete Entity
      */
     @DeleteMapping("/{entityId}")
     suspend fun delete(
@@ -384,7 +384,7 @@ class EntityHandler(
     }
 
     /**
-     * Implements 6.4.3.3 - Purge Entities
+     * Implements TS 104 176 §7.2.3.3 - Purge Entities
      */
     @DeleteMapping
     suspend fun purge(
@@ -429,7 +429,7 @@ class EntityHandler(
     )
 
     /**
-     * Implements 6.6.3.1 - Append Entity Attributes
+     * Implements TS 104 176 §7.4.3.1 - Append Entity Attributes
      *
      */
     @PostMapping("/{entityId}/attrs", consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
@@ -470,7 +470,7 @@ class EntityHandler(
         missingPathErrorResponse("Missing entity id when trying to append attribute")
 
     /**
-     * Implements 6.6.3.2 - Update Entity Attributes
+     * Implements TS 104 176 §7.4.3.2 - Update Entity Attributes
      *
      */
     @PatchMapping(
@@ -504,7 +504,7 @@ class EntityHandler(
         missingPathErrorResponse("Missing attribute id when trying to update an attribute")
 
     /**
-     * Implements 6.7.3.1 - Partial Attribute Update
+     * Implements TS 104 176 §7.5.3.2 - Partial Attribute Update
      *
      */
     @PatchMapping(
@@ -519,7 +519,7 @@ class EntityHandler(
         @AllowedParameters(implemented = [], notImplemented = [QP.LOCAL, QP.VIA])
         @RequestParam queryParams: MultiValueMap<String, String>
     ): ResponseEntity<*> = either {
-        // We expect an NGSI-LD Attribute Fragment which should be a JSON-LD Object (see 5.4)
+        // We expect an NGSI-LD Attribute Fragment which should be a JSON-LD Object (see TS 104 175 §5.4.2)
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
 
@@ -542,7 +542,7 @@ class EntityHandler(
         missingPathErrorResponse("Missing attribute id when trying to partially update an attribute")
 
     /**
-     * Implements 6.7.3.2 - Delete Entity Attribute
+     * Implements TS 104 176 §7.5.3.4 - Delete Entity Attribute
      */
     @DeleteMapping("/{entityId}/attrs/{attrId}")
     suspend fun deleteEntityAttribute(
@@ -579,7 +579,7 @@ class EntityHandler(
         missingPathErrorResponse("Missing entity id or attribute id when trying to delete an attribute")
 
     /**
-     * Implements 6.7.3.3 - Replace Attribute
+     * Implements TS 104 176 §7.5.3.3 - Replace Attribute
      */
     @PutMapping("/{entityId}/attrs/{attrId}")
     suspend fun replaceEntityAttribute(

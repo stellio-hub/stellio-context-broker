@@ -43,7 +43,7 @@ object ConciseRepresentationUtils {
                 when {
                     // If the provided value is a JSON object and contains a "type" field, the whole Attribute shall be
                     // treated as a normalized representation.
-                    // Only said in 4.5.2.3 but apply for all kinds of attributes.
+                    // Not explicitly stated anymore in TS 104 175 §5.3.2.3, but applies to all kinds of attributes.
                     NGSILD_ATTRIBUTE_TYPES.contains(attributeType) ->
                         compactedAttributeInstance
                     isGeoJsonGeometry(compactedAttributeInstance) ->

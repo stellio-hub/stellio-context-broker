@@ -75,7 +75,7 @@ class EntityOperationHandler(
 ) {
 
     /**
-     * Implements 6.14.3.1 - Create Batch of Entities
+     * Implements TS 104 176 §7.7.3.1 - Create Batch of Entities
      */
     @PostMapping("/create", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun create(
@@ -105,7 +105,7 @@ class EntityOperationHandler(
     )
 
     /**
-     * Implements 6.15.3.1 - Upsert Batch of Entities
+     * Implements TS 104 176 §7.8.3.1 - Upsert Batch of Entities
      */
     @PostMapping("/upsert", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun upsert(
@@ -151,7 +151,7 @@ class EntityOperationHandler(
     )
 
     /**
-     * Implements 6.16.3.1 - Update Batch of Entities
+     * Implements TS 104 176 §7.9.3.1 - Update Batch of Entities
      */
     @PostMapping("/update", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun update(
@@ -190,7 +190,7 @@ class EntityOperationHandler(
     )
 
     /**
-     * Implements (6.31.3.1) - Merge Batch of Entities
+     * Implements TS 104 176 §7.10.3.1 - Merge Batch of Entities
      */
     @PostMapping("/merge", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun merge(
@@ -221,7 +221,7 @@ class EntityOperationHandler(
     )
 
     /**
-     * Implements 6.17.3.1 - Delete Batch of Entities
+     * Implements TS 104 176 §7.11.3.1 - Delete Batch of Entities
      */
     @PostMapping("/delete", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun delete(
@@ -251,7 +251,7 @@ class EntityOperationHandler(
     )
 
     /**
-     * Implements 6.23.3.1 - Query Entities via POST
+     * Implements TS 104 176 §7.12.3.1 - Query Entities via POST
      */
     @PostMapping("/query", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, GEO_JSON_CONTENT_TYPE])
     suspend fun queryEntitiesViaPost(

@@ -33,7 +33,7 @@ class EntityTypeHandler(
 ) {
 
     /**
-     * Implements 6.25 - Retrieve Available Entity Types
+     * Implements TS 104 176 §7.15 - Retrieve Available Entity Types
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getTypes(
@@ -60,7 +60,7 @@ class EntityTypeHandler(
     )
 
     /**
-     * Implements 6.26 - Retrieve Available Entity Type Information
+     * Implements TS 104 176 §7.16 - Retrieve Available Entity Type Information
      */
     @GetMapping("/{type}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getByType(

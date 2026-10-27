@@ -301,9 +301,8 @@ fun CompactedEntity.toGeoJson(geometryProperty: String): Map<String, Any?> {
         GEOMETRY_PROPERTY_TERM to geometryPropertyValue,
         PROPERTIES_PROPERTY_TERM to this.filter {
             it.key != NGSILD_ID_TERM && it.key != JSONLD_CONTEXT_KW
-        },
-        JSONLD_CONTEXT_KW to this[JSONLD_CONTEXT_KW]!!
-    )
+        }
+    ).plus(this[JSONLD_CONTEXT_KW]?.let { mapOf(JSONLD_CONTEXT_KW to it) }.orEmpty())
 }
 
 fun CompactedEntity.withoutSysAttrs(sysAttrToKeep: String?): Map<String, Any> {

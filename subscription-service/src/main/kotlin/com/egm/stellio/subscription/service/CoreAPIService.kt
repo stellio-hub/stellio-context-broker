@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.shared.util.encode
+import com.egm.stellio.subscription.model.Endpoint.AcceptType
 import com.egm.stellio.subscription.model.NotificationParams
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -42,10 +43,12 @@ class CoreAPIService(
         contextLink: String
     ): List<CompactedEntity> {
         val queryParams = prepareQueryParamsFromNotificationParams(notificationParams)
+        // GeoJSON conversion of linked entities is done by NotificationService.callSubscriber
+        val accept = notificationParams.endpoint.accept.takeIf { it != AcceptType.GEOJSON } ?: AcceptType.JSON
         return webClient.get()
             .uri("/ngsi-ld/v1/entities/$entityId?$queryParams")
             .header(HttpHeaders.LINK, contextLink)
-            .header(HttpHeaders.ACCEPT, notificationParams.endpoint.accept.accept)
+            .header(HttpHeaders.ACCEPT, accept.accept)
             .header(NGSILD_TENANT_HEADER, tenantName)
             .attributes(ServerOAuth2AuthorizedClientExchangeFilterFunction.clientRegistrationId(tenantName))
             .retrieve()

@@ -35,9 +35,15 @@ data class Endpoint(
         const val HTTP_SCHEME = "http"
         const val HTTPS_SCHEME = "https"
         val allowedSchemes = listOf(MQTT_SCHEME, MQTTS_SCHEME, HTTP_SCHEME, HTTPS_SCHEME)
+
+        private const val PREFER_HEADER = "Prefer"
+        private const val PREFER_BODY_JSON = "body=json"
     }
 
     fun computeTimeout(): Long {
         return timeout?.toLong() ?: DEFAULT_TIMEOUT
     }
+
+    fun prefersJsonBody(): Boolean =
+        receiverInfo.orEmpty().any { it.key.equals(PREFER_HEADER, ignoreCase = true) && it.value == PREFER_BODY_JSON }
 }

@@ -39,6 +39,7 @@ import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.Endpoint.Companion.PREFER_HEADER
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
@@ -1068,10 +1069,10 @@ class NotificationServiceTests {
                 postRequestedFor(urlPathEqualTo("/notification"))
                     .withHeader(HttpHeaders.CONTENT_TYPE, equalTo("application/geo+json"))
                     .withHeader(HttpHeaders.LINK, equalTo(buildContextLinkHeader(APIC_COMPOUND_CONTEXT)))
-                    .withHeader("Prefer", equalTo("body=json"))
+                    .withHeader(PREFER_HEADER, equalTo("body=json"))
             )
         }
-}
 
-private val Notification.entities: List<Map<String, Any?>>
-    get() = data as List<Map<String, Any?>>
+    private val Notification.entities: List<Map<String, Any?>>
+        get() = data as List<Map<String, Any?>>
+}

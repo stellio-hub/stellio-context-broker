@@ -59,9 +59,11 @@ fun buildQQuery(
 ): String =
     qNode.toSqlJsonPath(jsonKeys, expandValues, contexts, target)
 
-// ScopesQ grammar of TS 104 175 §7.2.5
+// ScopesQ grammar of TS 104 175 §7.2.5, except the leading "/" is optional as it is in the Scope grammar (§5.2.7),
+// otherwise a scope like "a/b" could not be queried
+// (see https://forge.etsi.org/rep/data/specifications/ts-104-175/-/work_items/66)
 private const val SCOPEQ_LEVEL = """(?:\p{L}[\p{L}\p{N}_]*|\+)"""
-private const val SCOPEQ = """(?:/$SCOPEQ_LEVEL)+"""
+private const val SCOPEQ = """/?$SCOPEQ_LEVEL(?:/$SCOPEQ_LEVEL)*"""
 private const val OR_SCOPEQ = """(?:\($SCOPEQ(?:;$SCOPEQ)*\)|$SCOPEQ(?:/#)?)"""
 private val scopeQRegex = """/#|$OR_SCOPEQ(?:[|,]$OR_SCOPEQ)*""".toRegex()
 

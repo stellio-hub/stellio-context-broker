@@ -142,7 +142,10 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "(/Madrid/+/ParqueNorte;/CompanyA/+/UnitC), 1, urn:ngsi-ld:BeeHive:01",
         "/#, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "(/Madrid/Gardens/ParqueNorte;/CompanyA/OrganizationB/UnitC), 1, urn:ngsi-ld:BeeHive:01",
-        "'/Madrid/Gardens/ParqueNorte,/CompanyA/OrganizationB/UnitC',2,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'"
+        "'/Madrid/Gardens/ParqueNorte,/CompanyA/OrganizationB/UnitC',2,'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "levelA/levelB, 1, urn:ngsi-ld:BeeHive:02",
+        "levelA/#, 1, urn:ngsi-ld:BeeHive:02",
+        "/levelA/levelB, 0,"
     )
     fun `queryEntities should retrieve entities according to scope query`(
         scopeQ: String,

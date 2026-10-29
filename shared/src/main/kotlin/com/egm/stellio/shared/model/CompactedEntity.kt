@@ -290,10 +290,11 @@ private fun filterLanguageProperty(value: Map<String, Any>, transformationParame
 
 fun CompactedEntity.toGeoJson(geometryProperty: String): Map<String, Any?> {
     val geometryAttributeContent = this[geometryProperty] as? Map<String, Any>
+    // e.g., NGSI-LD Null in a deletion notification, rendered as a null geometry as per TS 104 175 §5.3.3.2
     val geometryPropertyValue = geometryAttributeContent?.let {
         if (it.containsKey(NGSILD_VALUE_TERM)) it[NGSILD_VALUE_TERM]
         else it
-    }
+    } as? Map<*, *>
 
     return mapOf(
         NGSILD_ID_TERM to this[NGSILD_ID_TERM]!!,
@@ -301,9 +302,8 @@ fun CompactedEntity.toGeoJson(geometryProperty: String): Map<String, Any?> {
         GEOMETRY_PROPERTY_TERM to geometryPropertyValue,
         PROPERTIES_PROPERTY_TERM to this.filter {
             it.key != NGSILD_ID_TERM && it.key != JSONLD_CONTEXT_KW
-        },
-        JSONLD_CONTEXT_KW to this[JSONLD_CONTEXT_KW]!!
-    )
+        }
+    ).plus(this[JSONLD_CONTEXT_KW]?.let { mapOf(JSONLD_CONTEXT_KW to it) }.orEmpty())
 }
 
 fun CompactedEntity.withoutSysAttrs(sysAttrToKeep: String?): Map<String, Any> {

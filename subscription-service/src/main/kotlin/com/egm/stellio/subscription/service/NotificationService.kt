@@ -12,10 +12,12 @@ import com.egm.stellio.shared.model.EntityRepresentation
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_TERM
+import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation
@@ -23,6 +25,10 @@ import com.egm.stellio.shared.model.applyAttributeTransformation
 import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.getTypeAndValue
 import com.egm.stellio.shared.model.toFinalRepresentation
+import com.egm.stellio.shared.model.toGeoJson
+import com.egm.stellio.shared.util.FEATURES_PROPERTY_TERM
+import com.egm.stellio.shared.util.FEATURE_COLLECTION_TYPE
+import com.egm.stellio.shared.util.GEO_JSON_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -72,7 +78,7 @@ class NotificationService(
             updatedAttribute,
             notificationTrigger
         ).bind().map {
-            val contexts = it.jsonldContext?.let { listOf(it.toString()) } ?: it.contexts
+            val contexts = it.notificationContexts()
             val compactedEntity = prepareEntityRepresentation(expandedEntity, it, contexts)
 
             val compactedEntityWithLinkedEntities =
@@ -147,8 +153,12 @@ class NotificationService(
         ).applyDatasetView(
             subscription.datasetId?.toSet().orEmpty()
         )
+        // GeoJSON conversion is done in callSubscriber, once linked entities and changes have been injected
         val entityRepresentation =
-            EntityRepresentation.forMediaType(acceptToMediaType(subscription.notification.endpoint.accept.accept))
+            if (subscription.notification.endpoint.accept == Endpoint.AcceptType.GEOJSON)
+                EntityRepresentation.JSON
+            else
+                EntityRepresentation.forMediaType(acceptToMediaType(subscription.notification.endpoint.accept.accept))
         val attributeRepresentation = when (subscription.notification.format) {
             FormatType.KEY_VALUES, FormatType.SIMPLIFIED -> AttributeRepresentation.SIMPLIFIED
             FormatType.CONCISE -> AttributeRepresentation.CONCISE
@@ -285,15 +295,18 @@ class NotificationService(
     ): Triple<Subscription, Notification, Boolean> {
         val mediaType = MediaType.valueOf(subscription.notification.endpoint.accept.accept)
         val tenantName = getTenantFromContext()
+        val preferJsonBody = subscription.notification.endpoint.prefersJsonBody()
         val notification = Notification(
             subscriptionId = subscription.id,
-            data = entities
+            data = if (mediaType == GEO_JSON_MEDIA_TYPE)
+                entities.toFeatureCollection(if (preferJsonBody) null else subscription.notificationContexts())
+            else entities
         )
         val uri = subscription.notification.endpoint.uri.toString()
         logger.info("Notification is about to be sent to $uri for subscription ${subscription.id}")
 
         val headerMap: MutableMap<String, String> = emptyMap<String, String>().toMutableMap()
-        if (mediaType == MediaType.APPLICATION_JSON) {
+        if (mediaType == MediaType.APPLICATION_JSON || mediaType == GEO_JSON_MEDIA_TYPE && preferJsonBody) {
             headerMap[HttpHeaders.LINK] = subscriptionService.getContextsLink(subscription)
         }
         if (tenantName != DEFAULT_TENANT_NAME)
@@ -338,4 +351,15 @@ class NotificationService(
         subscriptionService.updateSubscriptionNotification(result.first, result.second, result.third)
         return result
     }
+
+    private fun Subscription.notificationContexts(): List<String> =
+        jsonldContext?.let { listOf(it.toString()) } ?: contexts
+
+    private fun List<Map<String, Any?>>.toFeatureCollection(contexts: List<String>?): Map<String, Any> =
+        mapOf(
+            NGSILD_TYPE_TERM to FEATURE_COLLECTION_TYPE,
+            FEATURES_PROPERTY_TERM to this.map {
+                (it as CompactedEntity).toGeoJson(NGSILD_LOCATION_TERM).minus(JSONLD_CONTEXT_KW)
+            }
+        ).plus(contexts?.let { mapOf(JSONLD_CONTEXT_KW to it) }.orEmpty())
 }

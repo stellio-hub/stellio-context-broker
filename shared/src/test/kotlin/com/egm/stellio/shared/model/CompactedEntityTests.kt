@@ -776,6 +776,29 @@ class CompactedEntityTests {
     }
 
     @Test
+    fun `toGeoJson should return a null geometry if the GeoProperty value is not a geometry`() {
+        val inputEntity = """
+            {
+                "id": "urn:ngsi-ld:Vehicle:A4567",
+                "type": "Vehicle",
+                "location": {
+                    "type": "GeoProperty",
+                    "value": "urn:ngsi-ld:null",
+                    "previousValue": {
+                        "type": "Point",
+                        "coordinates": [ 24.30623, 60.07966 ]
+                    }
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val feature = inputEntity.toGeoJson(NGSILD_LOCATION_TERM)
+
+        assertEquals(null, feature["geometry"])
+        assertEquals(inputEntity["location"], (feature["properties"] as Map<*, *>)["location"])
+    }
+
+    @Test
     fun `toSimplifiedAttributes should return the simplified representation of a LanguageProperty`() {
         val compactedEntity = """
             {

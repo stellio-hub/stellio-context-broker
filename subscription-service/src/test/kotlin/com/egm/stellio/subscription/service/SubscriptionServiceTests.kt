@@ -232,7 +232,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val notifiedAt = ngsiLdDateTime()
         subscriptionService.updateSubscriptionNotification(
             subscription,
-            Notification(subscriptionId = subscription.id, notifiedAt = notifiedAt, data = emptyList()),
+            Notification(subscriptionId = subscription.id, notifiedAt = notifiedAt, data = emptyList<Any>()),
             true
         )
 
@@ -1198,7 +1198,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.updateSubscriptionNotification(
             subscription,
-            Notification(subscriptionId = subscription.id, data = emptyList()),
+            Notification(subscriptionId = subscription.id, data = emptyList<Any>()),
             true
         )
 
@@ -1230,7 +1230,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.updateSubscriptionNotification(
             subscription,
-            Notification(subscriptionId = subscription.id, data = emptyList()),
+            Notification(subscriptionId = subscription.id, data = emptyList<Any>()),
             true
         )
 
@@ -1295,7 +1295,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.updateSubscriptionNotification(
             subscription,
-            Notification(subscriptionId = subscription.id, data = emptyList()),
+            Notification(subscriptionId = subscription.id, data = emptyList<Any>()),
             false
         )
 
@@ -1329,7 +1329,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.updateSubscriptionNotification(
             subscription,
-            Notification(subscriptionId = subscription.id, data = emptyList()),
+            Notification(subscriptionId = subscription.id, data = emptyList<Any>()),
             false
         )
 
@@ -1368,7 +1368,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
         subscriptionService.updateSubscriptionNotification(
             subscription,
-            Notification(subscriptionId = subscription.id, data = emptyList()),
+            Notification(subscriptionId = subscription.id, data = emptyList<Any>()),
             true
         )
 
@@ -1440,7 +1440,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription2, mockUserSub).shouldSucceed()
 
         val persistedSubscription = subscriptionService.getById(subscription.id)
-        val notification = Notification(subscriptionId = subscription.id, data = emptyList())
+        val notification = Notification(subscriptionId = subscription.id, data = emptyList<Any>())
 
         subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
 
@@ -1471,10 +1471,10 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         subscriptionService.upsert(subscription2, mockUserSub).shouldSucceed()
 
         val persistedSubscription = subscriptionService.getById(subscription.id)
-        val notification = Notification(subscriptionId = subscription.id, data = emptyList())
+        val notification = Notification(subscriptionId = subscription.id, data = emptyList<Any>())
 
         val persistedSubscription2 = subscriptionService.getById(subscription2.id)
-        val notification2 = Notification(subscriptionId = subscription2.id, data = emptyList())
+        val notification2 = Notification(subscriptionId = subscription2.id, data = emptyList<Any>())
 
         subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
 

@@ -1386,13 +1386,11 @@ class NgsiLdEntityTests {
         val listProperty = ngsiLdEntity.listProperties.single()
         assertEquals("${NGSILD_DEFAULT_VOCAB}listProperty", listProperty.name)
         assertEquals(
-            listOf(
-                mapOf(
-                    JSONLD_LIST_KW to listOf(
-                        mapOf(JSONLD_VALUE_KW to 12),
-                        mapOf(JSONLD_VALUE_KW to "ordered"),
-                        mapOf(JSONLD_VALUE_KW to true)
-                    )
+            mapOf(
+                JSONLD_LIST_KW to listOf(
+                    mapOf(JSONLD_VALUE_KW to 12),
+                    mapOf(JSONLD_VALUE_KW to "ordered"),
+                    mapOf(JSONLD_VALUE_KW to true)
                 )
             ),
             listProperty.instances.single().valueList
@@ -1445,18 +1443,16 @@ class NgsiLdEntityTests {
         val listRelationship = ngsiLdEntity.listRelationships.single()
         assertEquals("${NGSILD_DEFAULT_VOCAB}listRelationship", listRelationship.name)
         assertEquals(
-            listOf(
-                mapOf(
-                    JSONLD_LIST_KW to listOf(
-                        mapOf(
-                            NGSILD_RELATIONSHIP_OBJECT to listOf(
-                                mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:01")
-                            )
-                        ),
-                        mapOf(
-                            NGSILD_RELATIONSHIP_OBJECT to listOf(
-                                mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:02")
-                            )
+            mapOf(
+                JSONLD_LIST_KW to listOf(
+                    mapOf(
+                        NGSILD_RELATIONSHIP_OBJECT to listOf(
+                            mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:01")
+                        )
+                    ),
+                    mapOf(
+                        NGSILD_RELATIONSHIP_OBJECT to listOf(
+                            mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Device:02")
                         )
                     )
                 )
@@ -1483,7 +1479,7 @@ class NgsiLdEntityTests {
             .shouldSucceedAndResult()
 
         assertEquals(
-            listOf(mapOf(JSONLD_LIST_KW to emptyList<Any>())),
+            mapOf(JSONLD_LIST_KW to emptyList<Any>()),
             ngsiLdEntity.listRelationships.single().instances.single().objectList
         )
     }

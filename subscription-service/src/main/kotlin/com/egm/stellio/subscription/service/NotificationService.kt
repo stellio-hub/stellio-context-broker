@@ -17,7 +17,6 @@ import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_TERM
 import com.egm.stellio.shared.model.NGSILD_ID_TERM
-import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_TERM
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM

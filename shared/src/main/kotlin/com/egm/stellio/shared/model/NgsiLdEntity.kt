@@ -586,7 +586,7 @@ class NgsiLdListPropertyInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdListPropertyInstance> = either {
-            val valueList = values[NGSILD_LISTPROPERTY_VALUE_LIST]
+            val valueList = values.getMemberValue(NGSILD_LISTPROPERTY_VALUE_LIST).getOrNull()
             ensureNotNull(valueList) {
                 BadRequestDataException(listPropertyMissingValueListMessage(name))
             }
@@ -626,7 +626,7 @@ class NgsiLdListRelationshipInstance private constructor(
             name: ExpandedTerm,
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdListRelationshipInstance> = either {
-            val objectList = values[NGSILD_LISTRELATIONSHIP_OBJECT_LIST]
+            val objectList = values.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST).getOrNull()
             ensureNotNull(objectList) {
                 BadRequestDataException(listRelationshipMissingObjectListMessage(name))
             }

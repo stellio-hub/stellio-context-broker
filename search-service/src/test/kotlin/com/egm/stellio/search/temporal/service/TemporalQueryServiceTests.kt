@@ -36,6 +36,7 @@ import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
+import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.called
@@ -235,6 +236,42 @@ class TemporalQueryServiceTests {
     }
 
     @Test
+    fun `queryTemporalEntity should not retrieve the scope history if attrs is provided`() = runTest {
+        val attribute = Attribute(
+            entityId = entityUri,
+            attributeName = INCOMING_IRI,
+            attributeValueType = Attribute.AttributeValueType.NUMBER,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+
+        coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
+        coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
+        coEvery { entityAttributeService.getForEntity(any(), any(), any(), any(), any()) } returns listOf(attribute)
+        coEvery {
+            attributeInstanceService.search(any(), any<List<Attribute>>())
+        } returns listOf(
+            FullAttributeInstanceResult(attribute.id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null)
+        ).right()
+
+        temporalQueryService.queryTemporalEntity(
+            entityUri,
+            TemporalEntitiesQueryFromGet(
+                temporalQuery = buildDefaultTestTemporalQuery(),
+                entitiesQuery = EntitiesQueryFromGet(
+                    paginationQuery = PaginationQuery(limit = 0, offset = 50),
+                    attrs = setOf(INCOMING_IRI),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
+            )
+        ).shouldSucceed()
+
+        coVerify { scopeService wasNot called }
+    }
+
+    @Test
     fun `calculateOldestTimestamp should not return an oldest timestamp outside an aggregation query`() = runTest {
         val origin = temporalQueryService.calculateOldestTimestamp(
             entityUri,
@@ -301,6 +338,31 @@ class TemporalQueryServiceTests {
 
         assertNotNull(origin)
         assertEquals(ZonedDateTime.parse("2023-09-03T12:34:56Z"), origin)
+    }
+
+    @Test
+    fun `calculateOldestTimestamp should ignore the scope if attrs is provided`() = runTest {
+        coEvery {
+            attributeInstanceService.selectOldestDate(any(), any())
+        } returns ZonedDateTime.parse("2023-09-03T12:34:56Z")
+
+        val origin = temporalQueryService.calculateOldestTimestamp(
+            entityUri,
+            TemporalEntitiesQueryFromGet(
+                temporalQuery = buildDefaultTestTemporalQuery(),
+                entitiesQuery = EntitiesQueryFromGet(
+                    paginationQuery = PaginationQuery(limit = 0, offset = 50),
+                    attrs = setOf(INCOMING_IRI),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                temporalRepresentation = TemporalRepresentation.AGGREGATED_VALUES,
+                withAudit = false
+            ),
+            emptyList()
+        )
+
+        assertEquals(ZonedDateTime.parse("2023-09-03T12:34:56Z"), origin)
+        coVerify { scopeService wasNot called }
     }
 
     fun initializeQueryTemporalEntitiesMocks(attribute: Attribute) {

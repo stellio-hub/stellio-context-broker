@@ -76,3 +76,8 @@ docker exec -it stellio-kafka kafka-features --bootstrap-server stellio-kafka:90
 ```
 
 This operation is irreversible: after it, a rollback to the `8.1.0` image is no longer possible.
+
+Do not postpone this step indefinitely if your cluster reports an old `metadata.version` (e.g. `3.3-IV3`, the oldest
+version still supported by Kafka 4.3): a future major version of Kafka will likely drop support for it, and the broker
+would then refuse to start until the metadata version is upgraded. Finalize the upgrade before moving to the next major
+version of Kafka.

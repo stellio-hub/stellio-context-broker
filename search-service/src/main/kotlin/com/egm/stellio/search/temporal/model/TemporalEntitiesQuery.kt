@@ -5,6 +5,7 @@ import com.egm.stellio.search.entity.model.EntitiesQueryFromGet
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import java.time.Duration
 import java.time.Period
 import java.time.temporal.TemporalAmount
@@ -18,6 +19,13 @@ sealed class TemporalEntitiesQuery(
     open val temporalRepresentation: TemporalRepresentation,
     open val withAudit: Boolean
 ) {
+    // attrs and pick / omit are mutually exclusive, and attrs behaves like pick (scope only returned if picked)
+    fun includesScope(): Boolean =
+        entitiesQuery.attrs.isEmpty() &&
+            expandedPickOmitAttributes.let { (pick, omit) ->
+                (pick.isEmpty() || NGSILD_SCOPE_IRI in pick) && NGSILD_SCOPE_IRI !in omit
+            }
+
     fun isAggregatedWithDefinedDuration(): Boolean =
         temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES &&
             temporalQuery.aggrPeriodDuration != null &&

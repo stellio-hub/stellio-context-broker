@@ -148,23 +148,26 @@ class AttributeProjectionTests {
     }
 
     @Test
-    fun `getNestedProjectionsFor should return the projections of the linked entities of a relationship`() {
+    fun `getAttributesToPickFor should return attributes at any depth in the graph`() {
         val (pick, _) = parsePickOmitParameters(
-            "servesDataset{title,catalog{publisher}},belongsTo{name,servesDataset{location}}",
+            "servesDataset{title,description,catalog{publisher}},belongsTo{name,owner,servesDatatset{location}}",
             null
         ).shouldSucceedAndResult()
 
-        val servesDatasetProjections = pick.getNestedProjectionsFor("servesDataset")
-        assertThat(servesDatasetProjections).containsExactly(
-            AttributeProjection("title"),
-            AttributeProjection("catalog", listOf(AttributeProjection("publisher")))
-        )
-        assertThat(servesDatasetProjections.getNestedProjectionsFor("catalog"))
-            .containsExactly(AttributeProjection("publisher"))
-        assertThat(pick.getNestedProjectionsFor("belongsTo").getNestedProjectionsFor("servesDataset"))
-            .containsExactly(AttributeProjection("location"))
-        assertThat(pick.getNestedProjectionsFor("title")).isEmpty()
-        assertThat(pick.getNestedProjectionsFor("unknown")).isEmpty()
+        assertThat(
+            pick.getAttributesToPickFor("servesDataset", 1.toUInt())
+        ).hasSize(3)
+            .containsExactlyInAnyOrder("title", "description", "catalog")
+
+        assertThat(
+            pick.getAttributesToPickFor("catalog", 2.toUInt())
+        ).hasSize(1)
+            .containsExactlyInAnyOrder("publisher")
+
+        assertThat(
+            pick.getAttributesToPickFor("servesDatatset", 2.toUInt())
+        ).hasSize(1)
+            .containsExactlyInAnyOrder("location")
     }
 
     @Test
@@ -179,6 +182,29 @@ class AttributeProjectionTests {
         assertThat(rootAttributes)
             .hasSize(2)
             .containsExactlyInAnyOrder("temperature", "humidity")
+    }
+
+    @Test
+    fun `getAttributesToOmitFor should return attributes to omit at any depth in the graph`() {
+        val (_, omit) = parsePickOmitParameters(
+            null,
+            "servesDataset{title,description,catalog{publisher}},belongsTo{name,owner,servesDatatset{location}}"
+        ).shouldSucceedAndResult()
+
+        assertThat(
+            omit.getAttributesToOmitFor("servesDataset", 1.toUInt())
+        ).hasSize(2)
+            .containsExactlyInAnyOrder("title", "description")
+
+        assertThat(
+            omit.getAttributesToOmitFor("catalog", 2.toUInt())
+        ).hasSize(1)
+            .containsExactlyInAnyOrder("publisher")
+
+        assertThat(
+            omit.getAttributesToOmitFor("servesDatatset", 2.toUInt())
+        ).hasSize(1)
+            .containsExactlyInAnyOrder("location")
     }
 
     @Test
@@ -310,12 +336,11 @@ class AttributeProjectionTests {
         assertThat(pick).hasSize(5)
         assertThat(pick.getRootAttributesToPick())
             .containsExactlyInAnyOrder("temperature", "humidity", "pressure", "servesDataset", "belongsTo")
-        assertThat(pick.getNestedProjectionsFor("servesDataset").getRootAttributesToPick())
+        assertThat(pick.getAttributesToPickFor("servesDataset", 1.toUInt()))
             .containsExactlyInAnyOrder("title", "description", "publisher", "catalog")
-        assertThat(
-            pick.getNestedProjectionsFor("servesDataset").getNestedProjectionsFor("catalog").getRootAttributesToPick()
-        ).containsExactlyInAnyOrder("name", "version")
-        assertThat(pick.getNestedProjectionsFor("belongsTo").getRootAttributesToPick())
+        assertThat(pick.getAttributesToPickFor("catalog", 2.toUInt()))
+            .containsExactlyInAnyOrder("name", "version")
+        assertThat(pick.getAttributesToPickFor("belongsTo", 1.toUInt()))
             .containsExactlyInAnyOrder("name", "owner")
     }
 }

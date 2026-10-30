@@ -128,6 +128,22 @@ class LinkedEntityServiceTests {
         }
     """.trimIndent().deserializeAsMap()
 
+    private val linkingEntityWithMultiInstanceRelationships: CompactedEntity = """
+        {
+            "id": "urn:ngsi-ld:LinkingEntity:01",
+            "type": "LinkingEntity",
+            "rel1": [{
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:LinkedEntity:01",
+                "datasetId": "urn:ngsi-ld:Dataset:01"
+            }, {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:LinkedEntity:02",
+                "datasetId": "urn:ngsi-ld:Dataset:02"
+            }]
+        }
+    """.trimIndent().deserializeAsMap()
+
     @Test
     fun `processLinkedEntities should return the input entity if no join is specified`() = runTest {
         val compactedEntities = linkedEntityService.processLinkedEntities(
@@ -234,6 +250,223 @@ class LinkedEntityServiceTests {
         coVerify(exactly = 0) {
             entityQueryService.queryEntities(any())
         }
+    }
+
+    @Test
+    fun `flattenLinkedEntities should flatten lists of linking and linked entities`() = runTest {
+        val linkedEntity01 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:01",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+        val linkedEntity02 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:02",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val flattenedEntities =
+            linkedEntityService.flattenLinkedEntities(
+                listOf(linkingEntityWithTwoRelationships, otherLinkingEntityWithTwoRelationships),
+                listOf(linkedEntity01, linkedEntity02)
+            )
+
+        assertJsonPayloadsAreEqual(
+            """
+                [{
+                    "id":"urn:ngsi-ld:LinkingEntity:01",
+                    "type":"LinkingEntity",
+                    "rel1": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:01"
+                    },
+                    "rel2": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:02"
+                    }
+                },
+                {
+                    "id": "urn:ngsi-ld:LinkingEntity:02",
+                    "type": "LinkingEntity",
+                    "rel1": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:01"
+                    },
+                    "rel2": {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:03"
+                    }
+                },
+                {
+                    "id": "urn:ngsi-ld:LinkedEntity:01",
+                    "type": "LinkedEntity"
+                },
+                {
+                    "id": "urn:ngsi-ld:LinkedEntity:02",
+                    "type": "LinkedEntity"
+                }]
+            """.trimIndent(),
+            serializeObject(flattenedEntities)
+        )
+    }
+
+    @Test
+    fun `flattenLinkedEntities should flatten a linking entity with multi-instance relationship`() = runTest {
+        val linkedEntity01 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:01",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+        val linkedEntity02 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:02",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val flattenedEntities =
+            linkedEntityService.flattenLinkedEntities(
+                listOf(linkingEntityWithMultiInstanceRelationships),
+                listOf(linkedEntity01, linkedEntity02)
+            )
+
+        assertJsonPayloadsAreEqual(
+            """
+                [{
+                    "id": "urn:ngsi-ld:LinkingEntity:01",
+                    "type": "LinkingEntity",
+                    "rel1": [{
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:01",
+                        "datasetId": "urn:ngsi-ld:Dataset:01"
+                    }, {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:02",
+                        "datasetId": "urn:ngsi-ld:Dataset:02"
+                    }]
+                },
+                {
+                    "id": "urn:ngsi-ld:LinkedEntity:01",
+                    "type": "LinkedEntity"
+                },
+                {
+                    "id": "urn:ngsi-ld:LinkedEntity:02",
+                    "type": "LinkedEntity"
+                }]
+            """.trimIndent(),
+            serializeObject(flattenedEntities)
+        )
+    }
+
+    @Test
+    fun `inlineLinkedEntities should inline a linking entity with multi-instance relationship`() = runTest {
+        val linkedEntity01 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:01",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+        val linkedEntity02 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:02",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val flattenedEntities =
+            linkedEntityService.inlineLinkedEntities(
+                listOf(linkingEntityWithMultiInstanceRelationships),
+                listOf(linkedEntity01, linkedEntity02)
+            )
+
+        assertJsonPayloadsAreEqual(
+            """
+                [{
+                    "id": "urn:ngsi-ld:LinkingEntity:01",
+                    "type": "LinkingEntity",
+                    "rel1": [{
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:01",
+                        "datasetId": "urn:ngsi-ld:Dataset:01",
+                        "entity": {
+                            "id": "urn:ngsi-ld:LinkedEntity:01",
+                            "type": "LinkedEntity"
+                        }
+                    }, {
+                        "type": "Relationship",
+                        "object": "urn:ngsi-ld:LinkedEntity:02",
+                        "datasetId": "urn:ngsi-ld:Dataset:02",
+                        "entity": {
+                            "id": "urn:ngsi-ld:LinkedEntity:02",
+                            "type": "LinkedEntity"
+                        }
+                    }]
+                }]
+            """.trimIndent(),
+            serializeObject(flattenedEntities)
+        )
+    }
+
+    @Test
+    fun `inlineLinkedEntities should inline a linking entity with multivalued relationship`() = runTest {
+        val linkingEntity = """
+            {
+                "id": "urn:ngsi-ld:LinkingEntity:01",
+                "type": "LinkingEntity",
+                "rel1": {
+                    "type": "Relationship",
+                    "object": [
+                        "urn:ngsi-ld:LinkedEntity:01",
+                        "urn:ngsi-ld:LinkedEntity:02"
+                    ]
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+        val linkedEntity01 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:01",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+        val linkedEntity02 = """
+            {
+                "id": "urn:ngsi-ld:LinkedEntity:02",
+                "type": "LinkedEntity"
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val inlinedEntities =
+            linkedEntityService.inlineLinkedEntities(
+                listOf(linkingEntity),
+                listOf(linkedEntity01, linkedEntity02)
+            )
+
+        assertJsonPayloadsAreEqual(
+            """
+                [{
+                    "id": "urn:ngsi-ld:LinkingEntity:01",
+                    "type": "LinkingEntity",
+                    "rel1": {
+                        "type": "Relationship",
+                        "object": [
+                            "urn:ngsi-ld:LinkedEntity:01",
+                            "urn:ngsi-ld:LinkedEntity:02"
+                        ],
+                        "entity": [{
+                            "id": "urn:ngsi-ld:LinkedEntity:01",
+                            "type": "LinkedEntity"
+                        }, {
+                            "id": "urn:ngsi-ld:LinkedEntity:02",
+                            "type": "LinkedEntity"
+                        }]
+                    }
+                }]
+            """.trimIndent(),
+            serializeObject(inlinedEntities)
+        )
     }
 
     @Test
@@ -749,247 +982,6 @@ class LinkedEntityServiceTests {
             """.trimIndent(),
             serializeObject(inlinedEntities)
         )
-    }
-
-    private val linkingEntityWithTwoRelationshipsToSameEntity: CompactedEntity = """
-        {
-            "id": "urn:ngsi-ld:LinkingEntity:01",
-            "type": "LinkingEntity",
-            "rel1": {
-                "type": "Relationship",
-                "object": "urn:ngsi-ld:LinkedEntity:01"
-            },
-            "rel2": {
-                "type": "Relationship",
-                "object": "urn:ngsi-ld:LinkedEntity:01"
-            }
-        }
-    """.trimIndent().deserializeAsMap()
-
-    @Test
-    fun `processLinkedEntities should project a linked entity along each relationship targeting it when inlined`() =
-        runTest {
-            prepareMockedAnswersForJoinLevelWithPickOnEntity()
-
-            val inlinedEntities =
-                linkedEntityService.processLinkedEntities(
-                    linkingEntityWithTwoRelationshipsToSameEntity,
-                    EntitiesQueryFromGet(
-                        linkedEntityQuery = LinkedEntityQuery(JoinType.INLINE, 1.toUInt()),
-                        paginationQuery = PaginationQuery(0, 100),
-                        pick = parsePickOmitParameters("rel1{title},rel2{description}", null)
-                            .shouldSucceedAndResult().first,
-                        contexts = NGSILD_TEST_CORE_CONTEXTS
-                    ),
-                    HttpHeaders()
-                ).shouldSucceedAndResult().first
-
-            assertJsonPayloadsAreEqual(
-                """
-                [{
-                    "id": "urn:ngsi-ld:LinkingEntity:01",
-                    "type": "LinkingEntity",
-                    "rel1": {
-                        "type": "Relationship",
-                        "object": "urn:ngsi-ld:LinkedEntity:01",
-                        "entity": {
-                            "title": {
-                                "type": "Property",
-                                "value": "Title of linked entity 01"
-                            }
-                        }
-                    },
-                    "rel2": {
-                        "type": "Relationship",
-                        "object": "urn:ngsi-ld:LinkedEntity:01",
-                        "entity": {
-                            "description": {
-                                "type": "Property",
-                                "value": "Description of linked entity 01"
-                            }
-                        }
-                    }
-                }]
-                """.trimIndent(),
-                serializeObject(inlinedEntities)
-            )
-        }
-
-    @Test
-    fun `processLinkedEntities should merge the projections of a linked entity targeted twice when flattened`() =
-        runTest {
-            prepareMockedAnswersForJoinLevelWithPickOnEntity()
-
-            val flattenedEntities =
-                linkedEntityService.processLinkedEntities(
-                    linkingEntityWithTwoRelationshipsToSameEntity,
-                    EntitiesQueryFromGet(
-                        linkedEntityQuery = LinkedEntityQuery(JoinType.FLAT, 1.toUInt()),
-                        paginationQuery = PaginationQuery(0, 100),
-                        omit = parsePickOmitParameters(null, "rel1{title},rel2{description}")
-                            .shouldSucceedAndResult().second,
-                        contexts = NGSILD_TEST_CORE_CONTEXTS
-                    ),
-                    HttpHeaders()
-                ).shouldSucceedAndResult().first
-
-            assertJsonPayloadsAreEqual(
-                """
-                [
-                    {
-                        "id": "urn:ngsi-ld:LinkingEntity:01",
-                        "type": "LinkingEntity",
-                        "rel1": {
-                            "type": "Relationship",
-                            "object": "urn:ngsi-ld:LinkedEntity:01"
-                        },
-                        "rel2": {
-                            "type": "Relationship",
-                            "object": "urn:ngsi-ld:LinkedEntity:01"
-                        }
-                    },
-                    {
-                        "id": "urn:ngsi-ld:LinkedEntity:01",
-                        "type": "LinkedEntity",
-                        "title": {
-                            "type": "Property",
-                            "value": "Title of linked entity 01"
-                        },
-                        "description": {
-                            "type": "Property",
-                            "value": "Description of linked entity 01"
-                        },
-                        "@context": "$NGSILD_TEST_CORE_CONTEXT"
-                    }
-                ]
-                """.trimIndent(),
-                serializeObject(flattenedEntities)
-            )
-        }
-
-    private fun prepareMockedAnswersForNestedProjections() {
-        coEvery {
-            entityQueryService.queryEntities(any())
-        } coAnswers {
-            Pair(
-                listOf("01", "02").map {
-                    loadAndExpandMinimalLinkedEntity(
-                        id = "urn:ngsi-ld:LinkedEntity:$it",
-                        attributes = """
-                            "rel3": {
-                                "type": "Relationship",
-                                "object": "urn:ngsi-ld:LinkedEntity:Level2:$it"
-                            }
-                        """.trimIndent()
-                    )
-                },
-                2
-            ).right()
-        } coAndThen {
-            Pair(
-                listOf("01", "02").map {
-                    loadAndExpandMinimalLinkedEntity(
-                        id = "urn:ngsi-ld:LinkedEntity:Level2:$it",
-                        attributes = """
-                            "title": {
-                                "type": "Property",
-                                "value": "Title of $it"
-                            },
-                            "description": {
-                                "type": "Property",
-                                "value": "Description of $it"
-                            }
-                        """.trimIndent()
-                    )
-                },
-                2
-            ).right()
-        }
-    }
-
-    @Test
-    fun `processLinkedEntities should apply nested projections according to the path of relationships`() = runTest {
-        prepareMockedAnswersForNestedProjections()
-
-        val inlinedEntities =
-            linkedEntityService.processLinkedEntities(
-                linkingEntityWithTwoRelationships,
-                EntitiesQueryFromGet(
-                    linkedEntityQuery = LinkedEntityQuery(JoinType.INLINE, 2.toUInt()),
-                    paginationQuery = PaginationQuery(0, 100),
-                    pick = parsePickOmitParameters("rel1{rel3{title}},rel2{rel3{description}}", null)
-                        .shouldSucceedAndResult().first,
-                    contexts = NGSILD_TEST_CORE_CONTEXTS
-                ),
-                HttpHeaders()
-            ).shouldSucceedAndResult().first
-
-        assertJsonPayloadsAreEqual(
-            """
-            [{
-                "id": "urn:ngsi-ld:LinkingEntity:01",
-                "type": "LinkingEntity",
-                "rel1": {
-                    "type": "Relationship",
-                    "object": "urn:ngsi-ld:LinkedEntity:01",
-                    "entity": {
-                        "rel3": {
-                            "type": "Relationship",
-                            "object": "urn:ngsi-ld:LinkedEntity:Level2:01",
-                            "entity": {
-                                "title": {
-                                    "type": "Property",
-                                    "value": "Title of 01"
-                                }
-                            }
-                        }
-                    }
-                },
-                "rel2": {
-                    "type": "Relationship",
-                    "object": "urn:ngsi-ld:LinkedEntity:02",
-                    "entity": {
-                        "rel3": {
-                            "type": "Relationship",
-                            "object": "urn:ngsi-ld:LinkedEntity:Level2:02",
-                            "entity": {
-                                "description": {
-                                    "type": "Property",
-                                    "value": "Description of 02"
-                                }
-                            }
-                        }
-                    }
-                }
-            }]
-            """.trimIndent(),
-            serializeObject(inlinedEntities)
-        )
-    }
-
-    @Test
-    fun `processLinkedEntities should not inline a linked entity having no member left after projection`() = runTest {
-        prepareMockedAnswersForJoinLevelWithPickOnEntity()
-
-        val inlinedEntities =
-            linkedEntityService.processLinkedEntities(
-                linkingEntityWithTwoRelationships,
-                EntitiesQueryFromGet(
-                    linkedEntityQuery = LinkedEntityQuery(JoinType.INLINE, 1.toUInt()),
-                    paginationQuery = PaginationQuery(0, 100),
-                    pick = parsePickOmitParameters("rel1{description},rel2{description}", null)
-                        .shouldSucceedAndResult().first,
-                    contexts = NGSILD_TEST_CORE_CONTEXTS
-                ),
-                HttpHeaders()
-            ).shouldSucceedAndResult().first
-
-        val inlinedEntity = inlinedEntities.single()
-        assertEquals(
-            "Description of linked entity 01",
-            (((inlinedEntity["rel1"] as Map<*, *>)["entity"] as Map<*, *>)["description"] as Map<*, *>)["value"]
-        )
-        assertFalse((inlinedEntity["rel2"] as Map<*, *>).containsKey("entity"))
     }
 
     private fun mockLocalLinkedEntity01() {

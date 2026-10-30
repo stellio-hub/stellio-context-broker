@@ -228,9 +228,28 @@ private fun List<AttributeProjection>.getRootAttributes(projectionType: Projecti
 fun List<AttributeProjection>.removeAttributes(attributes: Set<String>): List<AttributeProjection> =
     filter { it.attributeName !in attributes }
 
-/**
- * Returns the projections to apply to the Linked Entities targeted by the [relationshipName] Relationship,
- * e.g., `[observation{temperature}]` gives `[temperature]` for `observation`.
- */
-fun List<AttributeProjection>.getNestedProjectionsFor(relationshipName: String): List<AttributeProjection> =
-    filter { it.attributeName == relationshipName }.flatMap { it.nestedProjections.orEmpty() }
+fun List<AttributeProjection>.getAttributesToPickFor(parentAttributeName: String, level: UInt): Set<String> =
+    getAttributesFor(parentAttributeName, level, ProjectionType.PICK)
+
+fun List<AttributeProjection>.getAttributesToOmitFor(parentAttributeName: String, level: UInt): Set<String> =
+    getAttributesFor(parentAttributeName, level, ProjectionType.OMIT)
+
+private fun List<AttributeProjection>.getAttributesFor(
+    parentAttributeName: String,
+    level: UInt,
+    projectionType: ProjectionType
+): Set<String> =
+    if (level.toInt() == 1)
+        filter { it.attributeName == parentAttributeName }
+            .flatMap { it.nestedProjections ?: emptyList() }
+            .mapNotNull {
+                when (projectionType) {
+                    ProjectionType.PICK -> it.attributeName
+                    // for omit projection, only consider the leaves
+                    ProjectionType.OMIT -> if (it.nestedProjections == null) it.attributeName else null
+                }
+            }
+            .toSet()
+    else
+        flatMap { it.nestedProjections ?: emptyList() }
+            .getAttributesFor(parentAttributeName, level - 1.toUInt(), projectionType)

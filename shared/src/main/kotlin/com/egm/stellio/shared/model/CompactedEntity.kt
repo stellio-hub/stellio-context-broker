@@ -104,11 +104,11 @@ private fun CompactedAttributeInstance.getRelationshipObjectTypes(): List<String
     }
 
 private fun CompactedAttributeInstance.applyInlineLinkedEntity(
-    linkedEntityFor: (String) -> CompactedEntity?
+    linkedEntities: Map<String, CompactedEntity>
 ): CompactedAttributeInstance =
     if (this[NGSILD_TYPE_TERM] == NGSILD_RELATIONSHIP_TERM)
         this.getRelationshipObjectIds()
-            .mapNotNull { linkedEntityFor(it) }
+            .mapNotNull { linkedEntities[it] }
             .let {
                 when (it.size) {
                     0 -> this
@@ -120,20 +120,11 @@ private fun CompactedAttributeInstance.applyInlineLinkedEntity(
         this
 
 fun CompactedEntity.inlineLinkedEntities(linkedEntities: Map<String, CompactedEntity>): CompactedEntity =
-    this.inlineLinkedEntities { _, objectId -> linkedEntities[objectId] }
-
-/**
- * Inline the linked entity returned by [linkedEntityFor] for each (Relationship name, object id) pair.
- */
-fun CompactedEntity.inlineLinkedEntities(
-    linkedEntityFor: (String, String) -> CompactedEntity?
-): CompactedEntity =
     this.mapValues { entry ->
-        val linkedEntityForObject = { objectId: String -> linkedEntityFor(entry.key, objectId) }
         applyAttributeTransformation(
             entry,
-            { value -> value.applyInlineLinkedEntity(linkedEntityForObject) },
-            { values -> values.map { it.applyInlineLinkedEntity(linkedEntityForObject) } }
+            { value -> value.applyInlineLinkedEntity(linkedEntities) },
+            { values -> values.map { it.applyInlineLinkedEntity(linkedEntities) } }
         )
     }
 

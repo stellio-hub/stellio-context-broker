@@ -37,6 +37,22 @@ Follow naming: `[function] should [expected behavior] when [condition]`.
 ## Step 9 — Integration tests
 If the change touches DB or Kafka: write Testcontainers integration tests. Do not mock repositories in integration tests.
 
+## Step 9b — NGSI-LD Test Suite TCs
+If the change adds or alters behaviour that is observable through the API, add or update TCs in the
+[NGSI-LD Test Suite](https://forge.etsi.org/rep/cim/ngsi-ld-test-suite), on its own branch. Examples: a new endpoint,
+parameter, distributed behaviour, or a spec-conformance fix. Pure refactors, performance work and internal fixes don't
+need TCs.
+
+Locate the local clone of the suite: look for a sibling directory or ask the user. Don't assume a path. If there is no
+clone, list the TCs to add in the PR description instead.
+
+Work in the suite according to its own conventions: read its `CLAUDE.md` and `.claude/` rules and agents first. They
+take precedence over this file for anything done in the suite repository.
+1. Look for existing TCs covering the operation and extend them before creating new ones.
+2. New TCs follow the suite's numbering and folder layout, and carry the spec clause tags.
+3. Check that the TCs pass against the Stellio branch and fail against `latest-dev` when they cover a fix or a new
+   feature.
+
 ## Step 10 — Run tests
 ```bash
 ./gradlew :<module>:test

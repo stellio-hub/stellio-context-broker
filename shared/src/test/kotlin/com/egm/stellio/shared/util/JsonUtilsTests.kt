@@ -79,6 +79,14 @@ class JsonUtilsTests {
     }
 
     @Test
+    fun `deserializeAs should keep the type of the elements of a list`() {
+        val parsedEvents = deserializeAs<List<EntityEvent>>(
+            "[${loadSampleData("events/entity/entityCreateEvent.json")}]"
+        )
+        Assertions.assertTrue(parsedEvents.single() is EntityCreateEvent)
+    }
+
+    @Test
     fun `deserializeAs should parse an event of type ENTITY_DELETE`() {
         val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/entityDeleteEvent.json"))
         Assertions.assertTrue(parsedEvent is EntityDeleteEvent)

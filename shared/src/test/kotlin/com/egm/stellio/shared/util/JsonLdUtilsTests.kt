@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.JSONLD_JSON_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
@@ -26,6 +27,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntitySafe
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTermWithCache
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.async
@@ -524,5 +526,23 @@ class JsonLdUtilsTests {
         @JvmStatic
         @RegisterExtension
         private val jsonLdContextServerExtension = JsonLdContextServerExtension(8094)
+    }
+
+    @Test
+    fun `expandJsonLdTermWithCache should expand a term and keep it in the cache`() {
+        val cache = mutableMapOf<String, ExpandedTerm>()
+
+        assertEquals(INCOMING_IRI, expandJsonLdTermWithCache(INCOMING_TERM, APIC_COMPOUND_CONTEXTS, cache))
+        assertEquals(mapOf(INCOMING_TERM to INCOMING_IRI), cache)
+    }
+
+    @Test
+    fun `expandJsonLdTermWithCache should return the cached value of an already expanded term`() {
+        val cache = mutableMapOf(INCOMING_TERM to "https://vocab.egm.io/cached")
+
+        assertEquals(
+            "https://vocab.egm.io/cached",
+            expandJsonLdTermWithCache(INCOMING_TERM, APIC_COMPOUND_CONTEXTS, cache)
+        )
     }
 }

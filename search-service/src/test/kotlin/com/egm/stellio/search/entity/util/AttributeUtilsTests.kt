@@ -3,6 +3,9 @@ package com.egm.stellio.search.entity.util
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.Attribute.AttributeType
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
+import com.egm.stellio.shared.model.NGSILD_VALUE_TYPE_IRI
 import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
@@ -11,6 +14,7 @@ import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -329,4 +333,41 @@ class AttributeUtilsTests {
             assertEquals(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE, it.message)
         }
     }
+
+    @Test
+    fun `partialUpdatePatch should replace the valueType of a property`() = runTest {
+        val source = expandValueTypedProperty("\"String\"")
+        val update = expandValueTypedProperty("\"PostalAddress\"")
+
+        val (_, patched) = partialUpdatePatch(source, update).shouldSucceedAndResult()
+
+        assertEquals(
+            listOf(mapOf(JSONLD_ID_KW to "${NGSILD_DEFAULT_VOCAB}PostalAddress")),
+            patched[NGSILD_VALUE_TYPE_IRI]
+        )
+    }
+
+    @Test
+    fun `mergePatch should remove the valueType of a property when it is NGSI-LD Null`() = runTest {
+        val source = expandValueTypedProperty("\"String\"")
+        val update = expandValueTypedProperty("\"urn:ngsi-ld:null\"")
+
+        val (_, merged) = mergePatch(source, update).shouldSucceedAndResult()
+
+        assertFalse(merged.containsKey(NGSILD_VALUE_TYPE_IRI))
+    }
+
+    private suspend fun expandValueTypedProperty(valueType: String) =
+        expandAttribute(
+            """
+            {
+                "attribute": {
+                    "type": "Property",
+                    "value": "Pariser Platz, Berlin, Germany",
+                    "valueType": $valueType
+                }
+            }
+            """.trimIndent(),
+            NGSILD_TEST_CORE_CONTEXTS
+        ).second[0]
 }

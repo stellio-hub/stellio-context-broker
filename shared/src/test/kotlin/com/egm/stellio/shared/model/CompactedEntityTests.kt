@@ -971,6 +971,36 @@ class CompactedEntityTests {
     }
 
     @Test
+    fun `toConciseAttributes should keep valueType as is and not collapse the Property`() {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Place:01",
+                "type": "Place",
+                "address": {
+                    "type": "Property",
+                    "value": "Pariser Platz, Berlin, Germany",
+                    "valueType": "String"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val expectedConciseRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Place:01",
+                "type": "Place",
+                "address": {
+                    "value": "Pariser Platz, Berlin, Germany",
+                    "valueType": "String"
+                }
+            }
+        """.trimIndent()
+
+        val result = entity.toConciseAttributes()
+
+        assertJsonPayloadsAreEqual(expectedConciseRepresentation, serializeObject(result))
+    }
+
+    @Test
     fun `toConciseAttributes should remove type from Property and recurse into sub-attributes`() {
         val entity = """
             {

@@ -182,6 +182,23 @@ class ConciseRepresentationUtilsTests {
     }
 
     @Test
+    fun `normalizeAttributeFragment should keep valueType untouched when normalizing a Property`() {
+        val conciseProp = mapOf("value" to "Pariser Platz, Berlin, Germany", "valueType" to "String")
+
+        val expectedNormalizedRepresentation = """
+            {
+                "type": "Property",
+                "value": "Pariser Platz, Berlin, Germany",
+                "valueType": "String"
+            }
+        """.trimIndent()
+
+        val result = normalizeAttributeFragment(conciseProp)
+
+        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
+    }
+
+    @Test
     fun `normalizeAttributeFragment should wrap a map with no identifying key as a Property value`() {
         val unknownMap = mapOf("someKey" to "someValue", "anotherKey" to 42)
 

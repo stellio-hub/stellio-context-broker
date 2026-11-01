@@ -214,6 +214,9 @@ object ErrorMessages {
             "VocabProperty $name has an instance without a vocab member"
         fun vocabPropertyInvalidVocabMessage(name: String) =
             "VocabProperty $name has a vocab member that is not a string, nor an array of string"
+        fun attributeInvalidValueTypeMessage(name: String, expectedValueType: String? = null) =
+            if (expectedValueType == null) "Attribute $name has a valueType member that is not a single string"
+            else "Attribute $name has a valueType member that is not $expectedValueType"
 
         fun relationshipMissingObjectMessage(name: String) = "Relationship $name does not have an object field"
         fun relationshipEmptyMessage(name: String) = "Relationship $name is empty"

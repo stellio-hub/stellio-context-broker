@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_MISSING_TYPE_PROP
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeForbiddenMemberMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeInconsistentInstanceTypesMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeInvalidOrNotImplementedTypeMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeInvalidValueTypeMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeMultipleDefaultInstancesMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeMultipleInstancesSameDatasetIdMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeWithNullDatasetIdMessage
@@ -269,6 +270,7 @@ class NgsiLdPropertyInstance private constructor(
             val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, PROPERTIES_FORBIDDEN_MEMBERS).bind()
+            checkValueType(name, values).bind()
 
             val rawAttributes = getNonCoreMembers(values, PROPERTIES_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
@@ -353,6 +355,7 @@ class NgsiLdGeoPropertyInstance(
             val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, GEOPROPERTIES_FORBIDDEN_MEMBERS).bind()
+            checkValueType(name, values).bind()
 
             val rawAttributes = getNonCoreMembers(values, GEOPROPERTIES_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
@@ -395,6 +398,7 @@ class NgsiLdJsonPropertyInstance private constructor(
             val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, JSONPROPERTIES_FORBIDDEN_MEMBERS).bind()
+            checkValueType(name, values).bind()
 
             val rawAttributes = getNonCoreMembers(values, JSONPROPERTIES_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
@@ -437,6 +441,12 @@ class NgsiLdLanguagePropertyInstance private constructor(
             val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, LANGUAGEPROPERTIES_FORBIDDEN_MEMBERS).bind()
+            ensure(
+                !values.containsKey(NGSILD_VALUE_TYPE_IRI) ||
+                    values.getValueType().let { it == RDF_LANG_STRING_IRI || it == NGSILD_NULL }
+            ) {
+                BadRequestDataException(attributeInvalidValueTypeMessage(name, NGSILD_LANG_STRING_TERM))
+            }
 
             val rawAttributes = getNonCoreMembers(values, LANGUAGEPROPERTIES_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
@@ -500,6 +510,7 @@ class NgsiLdVocabPropertyInstance private constructor(
             val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, VOCABPROPERTIES_FORBIDDEN_MEMBERS).bind()
+            checkValueType(name, values).bind()
 
             val rawAttributes = getNonCoreMembers(values, VOCABPROPERTIES_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
@@ -615,6 +626,21 @@ fun checkAttributeHasNoForbiddenMembers(
         raise(BadRequestDataException(attributeForbiddenMemberMessage(name, it)))
     }
 }
+
+private fun checkValueType(
+    name: ExpandedTerm,
+    instance: ExpandedAttributeInstance
+): Either<APIException, Unit> = either {
+    if (instance.containsKey(NGSILD_VALUE_TYPE_IRI))
+        ensure(instance.getValueType()?.isURI() == true) {
+            BadRequestDataException(attributeInvalidValueTypeMessage(name))
+        }
+}
+
+private fun ExpandedAttributeInstance.getValueType(): String? =
+    (this[NGSILD_VALUE_TYPE_IRI]?.singleOrNull() as? Map<*, *>)
+        ?.takeIf { it.size == 1 }
+        ?.get(JSONLD_ID_KW) as? String
 
 suspend fun ExpandedAttributes.toNgsiLdAttributes(): Either<APIException, List<NgsiLdAttribute>> = either {
     entries.parMap {

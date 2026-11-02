@@ -81,7 +81,7 @@ class DistributedDiscoveryService(
     ): DistributedResults<EntityTypeInfo> =
         distribute(
             Operation.RETRIEVE_ENTITY_TYPE_INFO.toCSRFilters(type = type),
-            DiscoveryRequest(TYPES_PATH, pathSegmentToEncode = type),
+            DiscoveryRequest(TYPES_PATH, lastPathSegment = type),
             httpHeaders,
             parse = { deserializeAs<EntityTypeInfo>(it) }
         ) { entityTypeInfo, csr -> entityTypeInfo.restrictTo(type, csr, contexts) }
@@ -115,7 +115,7 @@ class DistributedDiscoveryService(
     ): DistributedResults<AttributeTypeInfo> =
         distribute(
             Operation.RETRIEVE_ATTR_TYPE_INFO.toCSRFilters(attrs = setOf(attribute)),
-            DiscoveryRequest(ATTRIBUTES_PATH, pathSegmentToEncode = attribute),
+            DiscoveryRequest(ATTRIBUTES_PATH, lastPathSegment = attribute),
             httpHeaders,
             parse = { deserializeAs<AttributeTypeInfo>(it) }
         ) { attributeTypeInfo, csr -> attributeTypeInfo.restrictTo(attribute, csr, contexts) }
@@ -137,7 +137,7 @@ class DistributedDiscoveryService(
                 httpHeaders,
                 request.queryParams(),
                 csr,
-                request.pathSegmentToEncode
+                request.lastPathSegment
             )
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
             response.flatMap { (body, _) ->
@@ -168,8 +168,7 @@ class DistributedDiscoveryService(
 
     private data class DiscoveryRequest(
         val path: String,
-        // an FQN (type or attribute), see ContextSourceHttpUtils.callGetOnCsr
-        val pathSegmentToEncode: String? = null,
+        val lastPathSegment: String? = null,
         val details: Boolean = false
     ) {
         fun queryParams(): MultiValueMap<String, String> =

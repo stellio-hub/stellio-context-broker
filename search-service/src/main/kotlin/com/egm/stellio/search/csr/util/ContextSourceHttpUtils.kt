@@ -33,10 +33,8 @@ object ContextSourceHttpUtils {
         httpHeaders: HttpHeaders,
         queryParams: MultiValueMap<String, String>,
         csr: ContextSourceRegistration,
-        // Appended to the path as one segment, '/' and '#' included, e.g. an FQN like https://example.org/ns#Vehicle.
-        // It can not be part of uri: uri.path is decoded and the builder below keeps the '/', and a pre-encoded
-        // uri.rawPath would be encoded a second time.
-        pathSegmentToEncode: String? = null
+        // encoded as a single segment ('/' and '#' included) and appended to uri
+        lastPathSegment: String? = null
     ): Either<NGSILDWarning, Pair<String?, ClientResponse.Headers>> = either {
         val request = WebClient.create()
             .method(HttpMethod.GET)
@@ -45,7 +43,7 @@ object ContextSourceHttpUtils {
                     .host(uri.host)
                     .port(uri.port)
                     .path(uri.path)
-                    .apply { pathSegmentToEncode?.let { pathSegment(it) } }
+                    .apply { lastPathSegment?.let { pathSegment(it) } }
                     .queryParams(queryParams)
                     .build()
             }.headers { newHeaders ->

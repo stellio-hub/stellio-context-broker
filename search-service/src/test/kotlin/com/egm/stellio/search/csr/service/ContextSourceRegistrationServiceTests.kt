@@ -288,6 +288,10 @@ class ContextSourceRegistrationServiceTests : WithTimescaleContainer, WithKafkaC
             CSRFilters(operations = listOf(Operation.CREATE_ENTITY))
         )
         assertTrue(notMatchingCsr.isEmpty())
+        val twoOperationsNotMatchingCsr = contextSourceRegistrationService.getContextSourceRegistrations(
+            CSRFilters(operations = listOf(Operation.CREATE_ENTITY, Operation.RETRIEVE_OPS))
+        )
+        assertTrue(twoOperationsNotMatchingCsr.isEmpty())
     }
 
     @Test

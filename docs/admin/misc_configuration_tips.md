@@ -132,3 +132,26 @@ You can launch Stellio with a different port binding using environment variables
   - POSTGRES_PORT=5433
 - kafka:
   - KAFKA_PORT=29093
+
+## Configure the Context Source identity
+
+The Context Source identity returned by `GET /ngsi-ld/v1/info/sourceIdentity` is built from the following properties:
+
+```properties
+# alias of this Stellio instance, `stellio` by default
+# it must be unique among the federated brokers and be a valid RFC 7230 token (no `:`, `/` or spaces)
+# for a tenant other than the default one, the last segment of the tenant name is appended
+# (e.g. `stellio-city` for the `urn:ngsi-ld:tenant:city` tenant)
+application.context-source-alias = stellio
+# optional extras, returned as is in `contextSourceExtras` (the member is omitted if no extra is configured)
+application.context-source-extras.deployment = production
+application.context-source-extras.contact.email = ops@example.org
+```
+
+Some limitations to be aware of:
+
+- extras values are always returned as strings (e.g. `"100"`, not `100`)
+- when set via environment variables, map keys are lowercased by Spring Boot
+  (`APPLICATION_CONTEXTSOURCEEXTRAS_MAXLIMIT` gives `maxlimit`), use a properties file or `SPRING_APPLICATION_JSON` for
+  camelCase keys
+- `contextSourceUptime` is the uptime of the search-service instance answering the request, not of the whole deployment

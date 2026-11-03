@@ -228,9 +228,5 @@ private fun List<AttributeProjection>.getRootAttributes(projectionType: Projecti
 fun List<AttributeProjection>.removeAttributes(attributes: Set<String>): List<AttributeProjection> =
     filter { it.attributeName !in attributes }
 
-/**
- * Returns the projections to apply to the Linked Entities targeted by the [relationshipName] Relationship,
- * e.g., `[observation{temperature}]` gives `[temperature]` for `observation`.
- */
 fun List<AttributeProjection>.getNestedProjectionsFor(relationshipName: String): List<AttributeProjection> =
     filter { it.attributeName == relationshipName }.flatMap { it.nestedProjections.orEmpty() }

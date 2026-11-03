@@ -78,13 +78,8 @@ class LinkedEntityService(
         entities to warnings
     }
 
-    /**
-     * An entity projected along the path of Relationships leading to it, [pick] and [omit] being the projections
-     * still to apply to its own Linked Entities.
-     *
-     * [id] is kept apart from [entity] since it may not have been picked.
-     */
     private data class LinkedEntityNode(
+        // kept apart from entity since it may not have been picked
         val id: String?,
         val entity: CompactedEntity,
         val pick: List<AttributeProjection>,

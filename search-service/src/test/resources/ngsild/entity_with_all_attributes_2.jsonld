@@ -95,6 +95,7 @@
     "type": "Property",
     "value": "propertyWithMetadata",
     "unitCode": "MTR",
+    "valueType": "Number",
     "license": {
       "type": "Property",
       "value": "GPL",

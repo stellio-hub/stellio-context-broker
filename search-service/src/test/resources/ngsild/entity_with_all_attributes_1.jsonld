@@ -109,6 +109,7 @@
     "type": "Property",
     "value": "propertyWithMetadata",
     "unitCode": "C62",
+    "valueType": "Text",
     "license": {
       "type": "Property",
       "value": "APL"

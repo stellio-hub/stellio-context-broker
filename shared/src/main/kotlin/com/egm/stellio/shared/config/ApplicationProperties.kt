@@ -11,7 +11,9 @@ data class ApplicationProperties(
     val pagination: Pagination,
     val tenants: List<TenantConfiguration>,
     val contexts: Contexts,
-    val transactionTimeout: Duration = Duration.ofSeconds(DEFAULT_TRANSACTION_TIMEOUT_SECONDS)
+    val transactionTimeout: Duration = Duration.ofSeconds(DEFAULT_TRANSACTION_TIMEOUT_SECONDS),
+    val contextSourceAlias: String = "stellio",
+    val contextSourceExtras: Map<String, Any> = emptyMap()
 ) {
 
     data class Authentication(

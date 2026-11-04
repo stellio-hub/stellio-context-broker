@@ -127,7 +127,7 @@ const val NGSILD_LANGUAGEMAPS_TERM = "languageMaps"
 const val NGSILD_VOCAB_TERM = "vocab"
 const val NGSILD_VOCABS_TERM = "vocabs"
 const val NGSILD_VALUE_LISTS_TERM = "valueLists"
-const val NGSILD_OBJECTS_LISTS_TERM = "objectLists"
+const val NGSILD_OBJECT_LISTS_TERM = "objectLists"
 const val NGSILD_SCOPE_TERM = "scope"
 const val NGSILD_SCOPE_IRI = "${NGSILD_PREFIX}$NGSILD_SCOPE_TERM"
 const val NGSILD_LANG_TERM = "lang"
@@ -168,7 +168,7 @@ val TEMPORAL_REPRESENTATION_TERMS = listOf(
     NGSILD_LANGUAGEMAPS_TERM,
     NGSILD_VOCABS_TERM,
     NGSILD_VALUE_LISTS_TERM,
-    NGSILD_OBJECTS_LISTS_TERM
+    NGSILD_OBJECT_LISTS_TERM
 )
 
 // Data types (TS 104 175 §5.2.6)

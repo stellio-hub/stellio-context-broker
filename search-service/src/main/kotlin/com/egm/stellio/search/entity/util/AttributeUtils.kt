@@ -24,6 +24,7 @@ import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_VALUE_TYPE_IRI
@@ -41,6 +42,7 @@ import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.NgsiLdVocabPropertyInstance
 import com.egm.stellio.shared.model.RelationshipObjects
 import com.egm.stellio.shared.model.WKTCoordinates
+import com.egm.stellio.shared.model.getListRelationshipObjects
 import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.model.getPropertyValue
 import com.egm.stellio.shared.model.getRelationshipId
@@ -112,12 +114,14 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
                 Attribute.AttributeValueType.ARRAY,
                 Triple(this.valueList.asJsonB(), null, null)
             )
-        is NgsiLdListRelationshipInstance ->
+        is NgsiLdListRelationshipInstance -> {
+            val value = this.objectList.simplifyListRelationshipValue().fold({ return it.left() }, { it })
             Triple(
                 AttributeType.ListRelationship,
                 Attribute.AttributeValueType.ARRAY,
-                Triple(this.objectList.simplifyListRelationshipValue().asJsonB(), null, null)
+                Triple(value.asJsonB(), null, null)
             )
+        }
     }
     if (attributeValue == Triple(null, null, null)) {
         JsonLdUtils.logger.warn("Unable to get a value from attribute: $this")
@@ -292,19 +296,10 @@ private fun applyPropertyNgsiLdNullRemoval(
 }
 
 // Extracts an ordered expanded URI list for temporal storage.
-fun Any.simplifyListRelationshipValue(): Map<String, Any> {
-    val listObject = (if (this is List<*>) single() else this) as Map<*, *>
-    val entries = listObject[JSONLD_LIST_KW] as List<Map<String, Any>>
-    return mapOf(
-        JSONLD_LIST_KW to entries.flatMap { entry ->
-            if (entry.containsKey(NGSILD_RELATIONSHIP_OBJECT)) {
-                val objects = entry[NGSILD_RELATIONSHIP_OBJECT] as List<Map<String, Any>>
-                objects.map { mapOf(JSONLD_VALUE_KW to it[JSONLD_ID_KW]!!) }
-            } else {
-                listOf(mapOf(JSONLD_VALUE_KW to (entry[JSONLD_ID_KW] ?: entry[JSONLD_VALUE_KW])!!))
-            }
-        }
-    )
+fun Any.simplifyListRelationshipValue(): Either<BadRequestDataException, Map<String, Any>> = either {
+    val objects = this@simplifyListRelationshipValue
+        .getListRelationshipObjects(NGSILD_LISTRELATIONSHIP_OBJECT_LIST).bind()
+    mapOf(JSONLD_LIST_KW to objects.map { mapOf(JSONLD_VALUE_KW to it) })
 }
 
 /**

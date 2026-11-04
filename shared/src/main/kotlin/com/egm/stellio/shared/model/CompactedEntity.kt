@@ -213,11 +213,12 @@ private fun simplifyAttribute(value: Map<String, Any>): Any {
         LANGUAGEPROPERTY -> mapOf(NGSILD_LANGUAGEMAP_TERM to value.getOrDefault(NGSILD_LANGUAGEMAP_TERM, value))
         VOCABPROPERTY -> mapOf(NGSILD_VOCAB_TERM to value.getOrDefault(NGSILD_VOCAB_TERM, value))
         LISTPROPERTY -> value[NGSILD_LISTPROPERTY_VALUE_LIST_TERM] ?: value
-        LISTRELATIONSHIP ->
-            when (val linkedEntities = value[NGSILD_ENTITY_LIST_TERM]) {
-                is List<*> -> linkedEntities.map { (it as CompactedEntity).toSimplifiedAttributes() }
-                else -> value.getListRelationshipObjectIds()
-            }
+        LISTRELATIONSHIP -> {
+            val linkedEntities = value[NGSILD_ENTITY_LIST_TERM]
+            if (linkedEntities is List<*>)
+                linkedEntities.map { (it as CompactedEntity).toSimplifiedAttributes() }
+            else value.getListRelationshipObjectIds()
+        }
     }
 }
 

@@ -361,6 +361,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "localizedName[*]!=\"Bee Hive One\", 1, urn:ngsi-ld:BeeHive:02",
         "localizedName[*]!=\"anything\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "'a''b==1', 0, ",
+        "'a''b==urn:ngsi-ld:AnotherEntity:01', 0, ",
+        "'a''b==urn:ngsi-ld:AnotherEntity:01,urn:ngsi-ld:AnotherEntity:02', 0, ",
         "'a''b', 0, ",
         "'jsonObject[a''b]!=1', 0, "
     )

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
 import java.time.ZonedDateTime
 
@@ -650,6 +651,11 @@ class NgsiLdEntityTests {
                     "type": "VocabProperty",
                     "vocab": "sensor",
                     "valueType": "DeviceCategory"
+                },
+                "orderedValues": {
+                    "type": "ListProperty",
+                    "valueList": [12, "mixed", true],
+                    "valueType": "String"
                 }
             }
             """.trimIndent()
@@ -658,7 +664,7 @@ class NgsiLdEntityTests {
             .shouldSucceedAndResult()
 
         // valueType is a core member, it must not be parsed as a sub-attribute
-        assertEquals(5, ngsiLdEntity.attributes.size)
+        assertEquals(6, ngsiLdEntity.attributes.size)
         assertTrue(ngsiLdEntity.attributes.all { it.getAttributeInstances()[0].attributes.isEmpty() })
     }
 
@@ -1611,6 +1617,98 @@ class NgsiLdEntityTests {
         )
     }
 
+    @ParameterizedTest
+    @MethodSource("invalidValueLists")
+    fun `ListProperty should reject invalid expanded list contents`(valueList: Any) = runTest {
+        NgsiLdListPropertyInstance.create(
+            "orderedValues",
+            mapOf(NGSILD_LISTPROPERTY_VALUE_LIST to listOf(valueList))
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(400, it.status.value())
+            assertEquals("ListProperty orderedValues has an invalid valueList member", it.message)
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidObjectLists")
+    fun `ListRelationship should reject invalid expanded URI entries`(objectList: Any) = runTest {
+        NgsiLdListRelationshipInstance.create(
+            "orderedObjects",
+            mapOf(NGSILD_LISTRELATIONSHIP_OBJECT_LIST to listOf(objectList))
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(400, it.status.value())
+            assertTrue(it.message.startsWith("ListRelationship orderedObjects has an invalid object:"))
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["42", "true", "{}", """{"object":42}""", """{"datasetId":"urn:dataset:1"}"""])
+    fun `toNgsiLdEntity should reject malformed ListRelationship entries`(entry: String) = runTest {
+        val payload = """
+            {
+                "id": "urn:entity:1",
+                "type": "Device",
+                "orderedObjects": {"type": "ListRelationship", "objectList": [$entry]}
+            }
+        """.trimIndent()
+        expandJsonLdEntity(payload, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(400, it.status.value())
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["[]", """[12,"ordered",true,{"custom":42}]""", """["urn:ngsi-ld:null"]"""])
+    fun `toNgsiLdEntity should accept valid ListProperty contents`(values: String) = runTest {
+        val payload = """
+            {
+                "id": "urn:entity:1",
+                "type": "Device",
+                "orderedValues": {"type": "ListProperty", "valueList": $values}
+            }
+        """.trimIndent()
+        val entity = expandJsonLdEntity(payload, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+        val valueList = entity.listProperties.single().instances.single().valueList as Map<*, *>
+        assertEquals(
+            when (values) {
+                "[]" -> 0
+                """["urn:ngsi-ld:null"]""" -> 1
+                else -> 4
+            },
+            (valueList[JSONLD_LIST_KW] as List<*>).size
+        )
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            """["urn:entity:2","urn:entity:1","urn:entity:2"]""",
+            """[{"object":"urn:entity:2"},{"object":"urn:entity:1"},{"object":"urn:entity:2"}]""",
+            """["urn:ngsi-ld:null"]"""
+        ]
+    )
+    fun `toNgsiLdEntity should accept valid ordered ListRelationship contents`(objects: String) = runTest {
+        val payload = """
+            {
+                "id": "urn:entity:1",
+                "type": "Device",
+                "orderedObjects": {"type": "ListRelationship", "objectList": $objects}
+            }
+        """.trimIndent()
+        val entity = expandJsonLdEntity(payload, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+        val value = entity.listRelationships.single().instances.single().objectList
+        val uris = value.getListRelationshipObjects("orderedObjects").shouldSucceedAndResult()
+        assertEquals(
+            if (objects == """["urn:ngsi-ld:null"]""") listOf(NGSILD_NULL)
+            else listOf("urn:entity:2", "urn:entity:1", "urn:entity:2"),
+            uris
+        )
+    }
+
     @Test
     fun `checkAttributeHasNoForbiddenMembers should reject list members on incompatible attribute types`() {
         val invalidAttributes = listOf(
@@ -1635,5 +1733,118 @@ class NgsiLdEntityTests {
                     )
                 }
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["12", """["String", "Text"]""", """"Free Text""""])
+    fun `ListProperty should reject an invalid valueType`(valueType: String) = runTest {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "orderedValues": {"type": "ListProperty", "valueList": [12], "valueType": $valueType}
+            }
+        """.trimIndent()
+
+        expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertEquals(
+                "Attribute ${NGSILD_DEFAULT_VOCAB}orderedValues has a valueType member that is not a single string",
+                it.message
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = [""""Device"""", """["Device", "Sensor"]"""])
+    fun `ListRelationship should accept objectType as a core member`(objectType: String) = runTest {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "orderedObjects": {
+                    "type": "ListRelationship",
+                    "objectList": [{"object": "urn:ngsi-ld:Device:01"}],
+                    "objectType": $objectType
+                }
+            }
+        """.trimIndent()
+
+        val parsed = expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldSucceedAndResult()
+        assertTrue(parsed.attributes.single().getAttributeInstances().single().attributes.isEmpty())
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["12", """"Device Model""""])
+    fun `ListRelationship should reject an invalid objectType`(objectType: String) = runTest {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "orderedObjects": {
+                    "type": "ListRelationship",
+                    "objectList": [{"object": "urn:ngsi-ld:Device:01"}],
+                    "objectType": $objectType
+                }
+            }
+        """.trimIndent()
+
+        expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            """{"type": "ListProperty", "valueList": [12], "objectType": "Device"}""",
+            """{"type": "ListRelationship", "objectList": [], "valueType": "String"}"""
+        ]
+    )
+    fun `list attributes should reject type members belonging to the other attribute kind`(
+        attribute: String
+    ) = runTest {
+        val entity = """
+            {"id": "urn:ngsi-ld:Entity:01", "type": "Entity", "orderedAttribute": $attribute}
+        """.trimIndent()
+
+        expandJsonLdEntity(entity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity().shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
+            assertTrue(it.message.contains("forbidden member"))
+        }
+    }
+
+    companion object {
+        @JvmStatic
+        fun invalidValueLists(): List<Any> = listOf(
+            mapOf(JSONLD_VALUE_KW to 42),
+            mapOf(JSONLD_LIST_KW to "not an array"),
+            listValue(42),
+            listValue(null),
+            listValue(mapOf(JSONLD_VALUE_KW to null))
+        )
+
+        @JvmStatic
+        fun invalidObjectLists(): List<Any> = listOf(
+            mapOf(JSONLD_VALUE_KW to "urn:entity:1"),
+            mapOf(JSONLD_LIST_KW to "not an array"),
+            listValue(42),
+            listValue(null),
+            listValue(emptyMap<String, Any>()),
+            listValue(mapOf(JSONLD_VALUE_KW to 42)),
+            listValue(mapOf(JSONLD_VALUE_KW to "relative-id")),
+            listValue(mapOf(JSONLD_ID_KW to "http://[invalid")),
+            listValue(mapOf(NGSILD_RELATIONSHIP_OBJECT to emptyList<Any>())),
+            listValue(mapOf(NGSILD_RELATIONSHIP_OBJECT to listOf(mapOf(JSONLD_ID_KW to 42)))),
+            listValue(
+                mapOf(
+                    NGSILD_RELATIONSHIP_OBJECT to listOf(
+                        mapOf(JSONLD_ID_KW to "urn:entity:1"), mapOf(JSONLD_ID_KW to "urn:entity:2")
+                    )
+                )
+            )
+        )
+
+        private fun listValue(vararg entries: Any?): Map<String, Any> = mapOf(JSONLD_LIST_KW to entries.toList())
     }
 }

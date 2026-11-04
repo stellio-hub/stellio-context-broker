@@ -20,6 +20,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.jsonPropertyInvalidJsonM
 import com.egm.stellio.shared.util.ErrorMessages.Entity.jsonPropertyMissingJsonMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.languagePropertyInvalidLanguageMapMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.languagePropertyMissingLanguageMapMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.listPropertyInvalidValueListMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.listPropertyMissingValueListMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.listRelationshipMissingObjectListMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.propertyMissingValueMessage
@@ -601,6 +602,14 @@ class NgsiLdListPropertyInstance private constructor(
             ensureNotNull(valueList) {
                 BadRequestDataException(listPropertyMissingValueListMessage(name))
             }
+            val entries = (valueList as? Map<*, *>)?.get(JSONLD_LIST_KW)
+            ensure(
+                entries is List<*> && entries.all {
+                    it is Map<*, *> && (!it.containsKey(JSONLD_VALUE_KW) || it[JSONLD_VALUE_KW] != null)
+                }
+            ) {
+                BadRequestDataException(listPropertyInvalidValueListMessage(name))
+            }
             val unitCode = values.getMemberValueAsString(NGSILD_UNIT_CODE_IRI)
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
@@ -641,6 +650,7 @@ class NgsiLdListRelationshipInstance private constructor(
             ensureNotNull(objectList) {
                 BadRequestDataException(listRelationshipMissingObjectListMessage(name))
             }
+            objectList.getListRelationshipObjects(name).bind()
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
             val expiresAt = values.getAndCheckExpiresAt().bind()

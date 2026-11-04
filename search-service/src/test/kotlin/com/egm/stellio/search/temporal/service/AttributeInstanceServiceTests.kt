@@ -26,6 +26,7 @@ import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.JSONLD_ID_KW
@@ -60,6 +61,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.LUMINOSITY_IRI
 import com.egm.stellio.shared.util.LUMINOSITY_TERM
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.OUTGOING_TERM
 import com.egm.stellio.shared.util.loadSampleData
@@ -193,6 +195,45 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             .fetch()
             .rowsUpdated()
             .block()
+    }
+
+    @Test
+    fun `partial update should reject invalid list objects without changing stored data`() = runTest {
+        val name = "${NGSILD_DEFAULT_VOCAB}validatedObjects"
+        val payload = """
+            {
+                "id": "$entityId",
+                "type": "BeeHive",
+                "$name": {
+                    "type": "ListRelationship",
+                    "objectList": [{"object": "urn:entity:1"}],
+                    "observedAt": "2026-10-01T12:00:00Z"
+                }
+            }
+        """.trimIndent()
+        entityAttributeService.createAttributes(payload, NGSILD_TEST_CORE_CONTEXTS).shouldSucceed()
+        val attribute = entityAttributeService.getForEntity(entityId, setOf(name), emptySet(), emptySet()).single()
+        for (invalidEntry in listOf(mapOf("object" to 42), emptyMap<String, Any>())) {
+            val patch = JsonLdUtils.expandAttribute(
+                name,
+                mapOf(
+                    "type" to "ListRelationship",
+                    "objectList" to listOf(invalidEntry),
+                    "observedAt" to "2026-10-02T12:00:00Z"
+                ),
+                NGSILD_TEST_CORE_CONTEXTS
+            )
+            entityAttributeService.partialUpdateAttribute(entityId, patch, now).shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(400, it.status.value())
+            }
+        }
+        val current = entityAttributeService.getForEntity(entityId, setOf(name), emptySet(), emptySet()).single()
+        assertEquals(attribute.payload.asString(), current.payload.asString())
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery(), TemporalRepresentation.TEMPORAL_VALUES),
+            current
+        ).shouldSucceedWith { assertEquals(1, it.size) }
     }
 
     @Test

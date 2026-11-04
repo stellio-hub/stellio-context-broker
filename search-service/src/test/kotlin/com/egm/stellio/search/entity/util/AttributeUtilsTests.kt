@@ -7,6 +7,8 @@ import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.NGSILD_DEFAULT_VOCAB
 import com.egm.stellio.shared.model.NGSILD_VALUE_TYPE_IRI
 import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
+import com.egm.stellio.shared.model.getMemberValue
 import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
@@ -231,6 +233,23 @@ class AttributeUtilsTests {
     }
 
     @Test
+    fun `simplifyListRelationshipValue should report malformed entries as BadRequestData`() {
+        val invalidLists = listOf(
+            emptyList<Any>(),
+            mapOf("@list" to listOf(emptyMap<String, Any>())),
+            mapOf("@list" to listOf(mapOf("@value" to 42))),
+            mapOf("@list" to listOf(mapOf("@id" to "relative-id"))),
+            mapOf("@list" to listOf(mapOf(NGSILD_RELATIONSHIP_OBJECT to listOf(mapOf("@id" to 42)))))
+        )
+        invalidLists.forEach { value ->
+            value.simplifyListRelationshipValue().shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(400, it.status.value())
+            }
+        }
+    }
+
+    @Test
     fun `simplifyListRelationshipValue should unnest the object id`() = runTest {
         val uris = listOf("urn:entity:2", "urn:entity:1", "urn:entity:2")
         val expanded = expandAttribute(
@@ -241,7 +260,9 @@ class AttributeUtilsTests {
 
         assertEquals(
             mapOf("@list" to uris.map { mapOf("@value" to it) }),
-            expanded[NGSILD_LISTRELATIONSHIP_OBJECT_LIST]!!.simplifyListRelationshipValue()
+            expanded.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST).shouldSucceedAndResult()
+                .simplifyListRelationshipValue()
+                .shouldSucceedAndResult()
         )
     }
 

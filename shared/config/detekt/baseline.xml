@@ -12,6 +12,5 @@
     <ID>NestedBlockDepth:JsonLdUtils.kt$JsonLdUtils$fun expandJsonLdTerm(term: String, contexts: List&lt;String&gt;): String</ID>
     <ID>TooManyFunctions:ErrorMessages.kt$ErrorMessages$Entity</ID>
     <ID>TooManyFunctions:JsonLdUtils.kt$JsonLdUtils</ID>
-    <ID>UseIfInsteadOfWhen:CompactedEntity.kt$when (val linkedEntities = value[NGSILD_ENTITY_LIST_TERM]) { is List&lt;*&gt; -&gt; linkedEntities.map { (it as CompactedEntity).toSimplifiedAttributes() } else -&gt; value.getListRelationshipObjectIds() }</ID>
   </CurrentIssues>
 </SmellBaseline>

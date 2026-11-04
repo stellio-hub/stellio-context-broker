@@ -987,13 +987,16 @@ class EntityAttributeService(
             Attribute.AttributeType.ListRelationship ->
                 Triple(
                     attributePayload.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST)
-                        .bind().simplifyListRelationshipValue().asJsonB(),
+                        .bind().simplifyListRelationshipValue().bind().asJsonB(),
                     null,
                     null
                 )
         }
     }.fold(
-        { NotImplementedException(NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE, it.message).left() },
+        {
+            if (it is BadRequestDataException) it.left()
+            else NotImplementedException(NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE, it.message).left()
+        },
         { it.right() }
     )
 

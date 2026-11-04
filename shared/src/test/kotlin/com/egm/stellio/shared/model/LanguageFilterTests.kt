@@ -290,4 +290,40 @@ class LanguageFilterTests {
             serializeObject(filteredEntity)
         )
     }
+
+    @Test
+    fun `toFilteredLanguageProperties should keep the valueType of a filtered language property`() = runTest {
+        val entity = """
+            {
+                "id": "urn:ngsi-ld:Beehive:01",
+                "type": "Beehive",
+                "name": {
+                    "type": "LanguageProperty",
+                    "languageMap": {
+                        "en": "beekeeper",
+                        "fr": "apiculteur"
+                    },
+                    "valueType": "langString"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val filteredEntity = entity.toFilteredLanguageProperties("en")
+
+        assertJsonPayloadsAreEqual(
+            """
+            {
+                "id": "urn:ngsi-ld:Beehive:01",
+                "type": "Beehive",
+                "name": {
+                    "type": "Property",
+                    "value": "beekeeper",
+                    "valueType": "langString",
+                    "lang": "en"
+                }
+            }
+            """.trimIndent(),
+            serializeObject(filteredEntity)
+        )
+    }
 }

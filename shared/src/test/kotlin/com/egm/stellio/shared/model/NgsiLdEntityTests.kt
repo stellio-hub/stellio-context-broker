@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.time.ZonedDateTime
 
 class NgsiLdEntityTests {
@@ -616,6 +618,131 @@ class NgsiLdEntityTests {
                 )
             }
     }
+
+    @Test
+    fun `toNgsiLdEntity should parse an entity with attributes having a valueType`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "address": {
+                    "type": "Property",
+                    "value": "Pariser Platz, Berlin, Germany",
+                    "valueType": "String"
+                },
+                "location": {
+                    "type": "GeoProperty",
+                    "value": { "type": "Point", "coordinates": [24.30623, 60.07966] },
+                    "valueType": "Point"
+                },
+                "config": {
+                    "type": "JsonProperty",
+                    "json": { "mode": "eco" },
+                    "valueType": "DeviceConfig"
+                },
+                "name": {
+                    "type": "LanguageProperty",
+                    "languageMap": { "fr": "Capteur", "en": "Sensor" },
+                    "valueType": "langString"
+                },
+                "category": {
+                    "type": "VocabProperty",
+                    "vocab": "sensor",
+                    "valueType": "DeviceCategory"
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldSucceedAndResult()
+
+        // valueType is a core member, it must not be parsed as a sub-attribute
+        assertEquals(5, ngsiLdEntity.attributes.size)
+        assertTrue(ngsiLdEntity.attributes.all { it.getAttributeInstances()[0].attributes.isEmpty() })
+    }
+
+    @Test
+    fun `toNgsiLdEntity should not parse an entity with a relationship having a valueType`() = runTest {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "refDeviceModel": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:DeviceModel:09876",
+                    "valueType": "DeviceModel"
+                }
+            }
+            """.trimIndent()
+
+        expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+            .shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(
+                    "Attribute ${NGSILD_DEFAULT_VOCAB}refDeviceModel has an instance with a forbidden member: " +
+                        NGSILD_VALUE_TYPE_IRI,
+                    it.message
+                )
+            }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["12", """["String", "Text"]""", """"Free Text""""])
+    fun `toNgsiLdEntity should not parse an entity with a property having an invalid valueType`(valueType: String) =
+        runTest {
+            val rawEntity =
+                """
+                {
+                    "id": "urn:ngsi-ld:Device:01234",
+                    "type": "Device",
+                    "name": {
+                        "type": "Property",
+                        "value": "Device 01234",
+                        "valueType": $valueType
+                    }
+                }
+                """.trimIndent()
+
+            expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+                .shouldFail {
+                    assertInstanceOf(BadRequestDataException::class.java, it)
+                    assertEquals(
+                        "Attribute ${NGSILD_DEFAULT_VOCAB}name has a valueType member that is not a single string",
+                        it.message
+                    )
+                }
+        }
+
+    @ParameterizedTest
+    @ValueSource(strings = [""""String"""", "123"])
+    fun `toNgsiLdEntity should not parse a language property having a valueType other than langString`(
+        valueType: String
+    ) =
+        runTest {
+            val rawEntity =
+                """
+                {
+                    "id": "urn:ngsi-ld:Device:01234",
+                    "type": "Device",
+                    "name": {
+                        "type": "LanguageProperty",
+                        "languageMap": { "fr": "Capteur", "en": "Sensor" },
+                        "valueType": $valueType
+                    }
+                }
+                """.trimIndent()
+
+            expandJsonLdEntity(rawEntity, NGSILD_TEST_CORE_CONTEXTS).toNgsiLdEntity()
+                .shouldFail {
+                    assertInstanceOf(BadRequestDataException::class.java, it)
+                    assertEquals(
+                        "Attribute ${NGSILD_DEFAULT_VOCAB}name has a valueType member that is not langString",
+                        it.message
+                    )
+                }
+        }
 
     @Test
     fun `toNgsiLdEntity should parse an entity with a multi-attribute relationship`() = runTest {

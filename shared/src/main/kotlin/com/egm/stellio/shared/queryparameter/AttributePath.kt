@@ -12,6 +12,7 @@ import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_OBJECT
+import com.egm.stellio.shared.model.NGSILD_VALUE_TYPE_IRI
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -28,10 +29,13 @@ data class AttributePath(
 ) {
     val compactMainAttr: String = term.substringBefore("[").substringBefore(".").trim()
     val isJsonKeysAttribute: Boolean = compactMainAttr in jsonKeys
-    val isExpandValuesAttribute: Boolean = compactMainAttr in expandValues
 
     val mainPath: List<ExpandedTerm> = term.substringBefore("[").split(".")
         .map { JsonLdUtils.expandJsonLdTerm(it, contexts) }
+
+    // valueType is coerced to a URI by the core context, so its query values are always expanded
+    private val targetsValueType: Boolean = mainPath.size > 1 && mainPath.last() == NGSILD_VALUE_TYPE_IRI
+    val isExpandValuesAttribute: Boolean = compactMainAttr in expandValues || targetsValueType
 
     val languageTag: String?
     val trailingPath: List<ExpandedTerm>
@@ -89,8 +93,8 @@ data class AttributePath(
 
     fun buildJsonBRelationshipPath(): String {
         val mainPathString = mainPath.toQuotedJsonPath()
-        // datasetId targets a URI value but has no hasObject path and cannot have a trailing path
-        return if (mainPath.size > 1 && mainPath.last() != NGSILD_DATASET_ID_IRI)
+        // datasetId and valueType target a URI value but have no hasObject path and cannot have a trailing path
+        return if (mainPath.size > 1 && mainPath.last() != NGSILD_DATASET_ID_IRI && !targetsValueType)
             """$.$mainPathString.**{0 to 2}."$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW""""
         else if (mainPath.size > 1)
             """$.$mainPathString.**{0 to 2}."$JSONLD_ID_KW""""

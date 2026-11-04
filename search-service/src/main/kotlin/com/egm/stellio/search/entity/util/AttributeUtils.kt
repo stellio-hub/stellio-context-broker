@@ -25,6 +25,7 @@ import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_VALUE_TYPE_IRI
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NgsiLdAttributeInstance
 import com.egm.stellio.shared.model.NgsiLdEntity
@@ -180,8 +181,12 @@ private fun isNgsiLdNullDatasetId(attrName: ExpandedTerm, attrValue: List<Any>):
     attrName == NGSILD_DATASET_ID_IRI &&
         (attrValue.firstOrNull() as? Map<*, *>)?.get(JSONLD_ID_KW) == NGSILD_NULL
 
-private fun isNgsiLdNullValue(attrValue: List<Any>): Boolean =
-    (attrValue.firstOrNull() as? Map<*, *>)?.get(JSONLD_VALUE_KW) == NGSILD_NULL
+private fun isNgsiLdNullValue(attrName: ExpandedTerm, attrValue: List<Any>): Boolean {
+    val member = attrValue.firstOrNull() as? Map<*, *>
+    // valueType is @vocab-typed, so NGSI-LD Null is expanded as an @id
+    return member?.get(JSONLD_VALUE_KW) == NGSILD_NULL ||
+        attrName == NGSILD_VALUE_TYPE_IRI && member?.get(JSONLD_ID_KW) == NGSILD_NULL
+}
 
 private fun mergeLanguageProperty(
     source: ExpandedAttributeInstance,
@@ -295,7 +300,7 @@ fun partialUpdatePatch(
         when {
             isNgsiLdNullDatasetId(attrName, attrValue) ->
                 raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE))
-            isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrValue) ->
+            isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrName, attrValue) ->
                 target.remove(attrName)
             else -> target[attrName] = attrValue
         }
@@ -314,7 +319,7 @@ fun mergePatch(
                 raise(BadRequestDataException(NGSI_LD_NULL_NOT_ALLOWED_IN_DATASET_ID_MESSAGE))
             attrName == NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP ->
                 target[attrName] = mergeLanguageProperty(source, attrValue as ExpandedLanguageMapValue)
-            isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrValue) ->
+            isNgsiLdNullSubAttribute(attrValue) || isNgsiLdNullValue(attrName, attrValue) ->
                 target.remove(attrName)
             !source.containsKey(attrName) ->
                 target[attrName] = attrValue

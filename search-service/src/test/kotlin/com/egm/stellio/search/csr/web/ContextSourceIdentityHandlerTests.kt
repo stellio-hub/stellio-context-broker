@@ -92,11 +92,11 @@ class ContextSourceIdentityHandlerTests {
     }
 
     @Test
-    fun `retrieve source identity should return 200 without body on a HEAD request`() {
+    fun `retrieve source identity should return 204 without body on a HEAD request`() {
         webClient.head()
             .uri(sourceIdentityUri)
             .exchange()
-            .expectStatus().isOk
+            .expectStatus().isNoContent
             .expectBody().isEmpty
     }
 

@@ -534,6 +534,11 @@ class NgsiLdEntityTests {
                     "type": "Relationship",
                     "object": "urn:ngsi-ld:DeviceModel:09876",
                     "objectType": ["DeviceModel", "Model"]
+                },
+                "orderedModels": {
+                    "type": "ListRelationship",
+                    "objectList": [{"object": "urn:ngsi-ld:DeviceModel:09876"}],
+                    "objectType": "DeviceModel"
                 }
             }
             """.trimIndent()
@@ -543,6 +548,7 @@ class NgsiLdEntityTests {
 
         // objectType is a core member, it must not be parsed as a sub-attribute
         assertTrue(ngsiLdEntity.relationships[0].instances[0].attributes.isEmpty())
+        assertTrue(ngsiLdEntity.listRelationships.single().instances.single().attributes.isEmpty())
     }
 
     @Test
@@ -1715,7 +1721,9 @@ class NgsiLdEntityTests {
             PROPERTIES_FORBIDDEN_MEMBERS to NGSILD_LISTPROPERTY_VALUE_LIST,
             RELATIONSHIPS_FORBIDDEN_MEMBERS to NGSILD_LISTRELATIONSHIP_OBJECT_LIST,
             LISTPROPERTIES_FORBIDDEN_MEMBERS to NGSILD_LISTRELATIONSHIP_OBJECT_LIST,
-            LISTRELATIONSHIPS_FORBIDDEN_MEMBERS to NGSILD_LISTPROPERTY_VALUE_LIST
+            LISTRELATIONSHIPS_FORBIDDEN_MEMBERS to NGSILD_LISTPROPERTY_VALUE_LIST,
+            LISTPROPERTIES_FORBIDDEN_MEMBERS to NGSILD_RELATIONSHIP_OBJECT_TYPE,
+            LISTRELATIONSHIPS_FORBIDDEN_MEMBERS to NGSILD_VALUE_TYPE_IRI
         )
 
         invalidAttributes.forEach { (forbiddenMembers, forbiddenMember) ->

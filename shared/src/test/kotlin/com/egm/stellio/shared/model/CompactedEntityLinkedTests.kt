@@ -36,6 +36,14 @@ class CompactedEntityLinkedTests {
                 "prop": {
                     "type": "Property",
                     "value": "urn:ngsi-ld:LinkedEntity:04"
+                },
+                "orderedRel": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        {"object": "urn:ngsi-ld:LinkedEntity:02"},
+                        {"object": "urn:ngsi-ld:LinkedEntity:05"}
+                    ],
+                    "objectType": "OrderedType"
                 }
             }
         """.trimIndent().deserializeAsMap()
@@ -43,9 +51,10 @@ class CompactedEntityLinkedTests {
         val objectsWithTypes = listOf(compactedEntity).getRelationshipsObjectsWithObjectTypes()
 
         assertThat(objectsWithTypes)
-            .hasSize(2)
+            .hasSize(3)
             .containsEntry("urn:ngsi-ld:LinkedEntity:01".toUri(), setOf("LinkedEntity", "OtherType"))
-            .containsEntry("urn:ngsi-ld:LinkedEntity:02".toUri(), setOf("LinkedEntity", "OtherType"))
+            .containsEntry("urn:ngsi-ld:LinkedEntity:02".toUri(), setOf("LinkedEntity", "OtherType", "OrderedType"))
+            .containsEntry("urn:ngsi-ld:LinkedEntity:05".toUri(), setOf("OrderedType"))
     }
 
     @Test

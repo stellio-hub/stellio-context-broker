@@ -315,6 +315,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         """'propertyWithMetadata.valueType=="Text","Number"', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'""",
         "propertyWithMetadata.valueType!=\"Text\", 1, urn:ngsi-ld:BeeHive:02",
         "propertyWithMetadata.valueType==\"Boolean\", 0, ",
+        "listProperty.valueType==\"Text\", 1, urn:ngsi-ld:BeeHive:01",
         "jsonObject[aString]==\"flow monitoring\", 1, urn:ngsi-ld:BeeHive:02",
         "jsonObject[aNumber]==93.93, 1, urn:ngsi-ld:BeeHive:02",
         "jsonObject[aSimpleQuote]==\"precipitation's measures\", 1, urn:ngsi-ld:BeeHive:01",

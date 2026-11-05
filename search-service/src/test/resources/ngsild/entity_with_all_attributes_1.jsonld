@@ -148,6 +148,7 @@
   },
   "listProperty": {
     "type": "ListProperty",
+    "valueType": "Text",
     "valueList": [1, "first", true]
   },
   "listRelationship": {

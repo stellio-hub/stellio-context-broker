@@ -364,11 +364,7 @@ class NgsiLdRelationshipInstance private constructor(
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdRelationshipInstance> = either {
             val objectId = values.getRelationshipObjects(name).bind()
-            values[NGSILD_RELATIONSHIP_OBJECT_TYPE]?.forEach {
-                val objectType = (it as? Map<*, *>)?.takeIf { it.size == 1 }?.get(JSONLD_ID_KW) as? String
-                ensureNotNull(objectType) { BadRequestDataException(relationshipInvalidObjectTypeValueMessage(name)) }
-                ensure(objectType.isURI()) { BadRequestDataException(invalidTypeUriMessage(objectType)) }
-            }
+            checkObjectType(name, values).bind()
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
             val expiresAt = values.getAndCheckExpiresAt().bind()
@@ -616,6 +612,7 @@ class NgsiLdListPropertyInstance private constructor(
             val expiresAt = values.getAndCheckExpiresAt().bind()
 
             checkAttributeHasNoForbiddenMembers(name, values, LISTPROPERTIES_FORBIDDEN_MEMBERS).bind()
+            checkValueType(name, values).bind()
 
             val rawAttributes = getNonCoreMembers(values, LISTPROPERTIES_CORE_MEMBERS)
             val attributes = parseAttributes(rawAttributes).bind()
@@ -651,6 +648,7 @@ class NgsiLdListRelationshipInstance private constructor(
                 BadRequestDataException(listRelationshipMissingObjectListMessage(name))
             }
             objectList.getListRelationshipObjects(name).bind()
+            checkObjectType(name, values).bind()
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
             val expiresAt = values.getAndCheckExpiresAt().bind()
@@ -773,6 +771,17 @@ fun checkAttributeHasNoForbiddenMembers(
 ): Either<APIException, Unit> = either {
     forbiddenMembers.find { instance.containsKey(it) }?.let {
         raise(BadRequestDataException(attributeForbiddenMemberMessage(name, it)))
+    }
+}
+
+private fun checkObjectType(
+    name: ExpandedTerm,
+    instance: ExpandedAttributeInstance
+): Either<APIException, Unit> = either {
+    instance[NGSILD_RELATIONSHIP_OBJECT_TYPE]?.forEach {
+        val objectType = (it as? Map<*, *>)?.takeIf { it.size == 1 }?.get(JSONLD_ID_KW) as? String
+        ensureNotNull(objectType) { BadRequestDataException(relationshipInvalidObjectTypeValueMessage(name)) }
+        ensure(objectType.isURI()) { BadRequestDataException(invalidTypeUriMessage(objectType)) }
     }
 }
 

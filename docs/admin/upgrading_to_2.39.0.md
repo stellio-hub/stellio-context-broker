@@ -58,3 +58,25 @@ Do not postpone this step indefinitely if your cluster reports an old `metadata.
 version still supported by Kafka 4.3): a future major version of Kafka will likely drop support for it, and the broker
 would then refuse to start until the metadata version is upgraded. Finalize the upgrade before moving to the next major
 version of Kafka.
+
+## `q` and `scopeQ` of a Subscription and `q` of a Query are no longer URL-decoded
+
+The `q` and `scopeQ` members of a Subscription, and the `q` member of a Query (`POST /ngsi-ld/v1/entityOperations/query`),
+are JSON strings: as mandated by the NGSI-LD specification, percent-encoding only applies to a query that is part of a
+URL. Previous versions of Stellio wrongly URL-decoded these members; they are now used as sent.
+
+Subscriptions created with a percent-encoded `q` or `scopeQ` (e.g. `name=="Eiffel%20Tower"`) now look for the literal
+`%20` and will no longer send the expected notifications. A `+` in `q` is no longer turned into a space.
+
+As a side effect, the `+` single-level wildcard in the `scopeQ` of a Subscription (e.g. `/Nantes/+`), that was
+previously turned into a space, now works as expected.
+
+To find the affected subscriptions, run the following query in the `stellio_subscription` database (once for each
+tenant schema if you use multi-tenancy):
+
+```sql
+SELECT id, q, scope_q FROM subscription WHERE q ~ '%[0-9A-Fa-f]{2}|\+' OR scope_q ~ '%[0-9A-Fa-f]{2}';
+```
+
+Then update them (e.g. with a `PATCH` on the subscription) with a non-encoded value (e.g. `name=="Eiffel Tower"`).
+Clients sending a percent-encoded `q` in the body of a Query must be updated the same way.

@@ -40,7 +40,6 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.SetToCommaSeparatedConverter
 import com.egm.stellio.shared.util.compactTypeSelection
-import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.toFinalRepresentation
@@ -149,7 +148,7 @@ data class Subscription(
         } ?: Unit.right()
 
     private fun checkScopeQIsValid(): Either<APIException, Unit> =
-        validateScopeQ(scopeQ?.decode()).map { }
+        validateScopeQ(scopeQ).map { }
 
     private fun checkSubscriptionValidity(): Either<APIException, Unit> =
         when {

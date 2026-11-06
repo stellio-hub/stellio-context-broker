@@ -167,24 +167,9 @@ internal class TransactionalEitherInterceptor : MethodInterceptor {
 internal class TransactionalEitherRollbackInterceptor : MethodInterceptor {
 
     override fun invoke(invocation: MethodInvocation): Any? {
-        wrapContinuation(invocation)
         val result = invocation.proceed()
         // Spring adapts suspending methods to Mono before completing their reactive transaction.
         return if (result is Mono<*>) result.map { rollbackOnLeft(it) } else rollbackOnLeft(result)
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun wrapContinuation(invocation: MethodInvocation) {
-        val continuationIndex = invocation.arguments.lastIndex
-        val continuation = invocation.arguments.getOrNull(continuationIndex) as? Continuation<Any?> ?: return
-
-        invocation.arguments[continuationIndex] = object : Continuation<Any?> {
-            override val context = continuation.context
-
-            override fun resumeWith(result: Result<Any?>) {
-                continuation.resumeWith(result.mapCatching { rollbackOnLeft(it) })
-            }
-        }
     }
 
     private fun <T> rollbackOnLeft(result: T): T {

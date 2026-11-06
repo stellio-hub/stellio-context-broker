@@ -240,6 +240,10 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             ngsiLdEntity,
             jsonLdEntity
         ).shouldFail { assertInstanceOf(BadRequestDataException::class.java, it) }
+
+        entityQueryService.retrieve(entity01Uri, excludeDeleted = false).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+        }
     }
 
     @Test

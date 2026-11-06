@@ -65,6 +65,15 @@ data class ContextSourceRegistration(
     fun isMatchingOperation(operation: Operation): Boolean =
         operations.any { it in operation.getMatchingOperations() }
 
+    @JsonIgnore
+    fun isTypeAllowed(type: ExpandedTerm): Boolean =
+        information.any { it.allowsType(type) }
+
+    // a type and an attribute are only allowed together if they are declared in the same RegistrationInfo
+    @JsonIgnore
+    fun isAttributeAllowed(attribute: ExpandedTerm, forType: ExpandedTerm? = null): Boolean =
+        information.any { it.allowsAttribute(attribute) && (forType == null || it.allowsType(forType)) }
+
     data class TimeInterval(
         val start: ZonedDateTime,
         val end: ZonedDateTime? = null

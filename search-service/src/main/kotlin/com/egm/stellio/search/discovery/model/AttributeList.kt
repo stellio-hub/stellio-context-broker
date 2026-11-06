@@ -9,3 +9,6 @@ data class AttributeList(
     val type: String = "AttributeList",
     val attributeList: List<String>
 )
+
+fun List<AttributeList>.merge(): AttributeList =
+    singleOrNull() ?: AttributeList(attributeList = flatMap { it.attributeList }.distinct().sorted())

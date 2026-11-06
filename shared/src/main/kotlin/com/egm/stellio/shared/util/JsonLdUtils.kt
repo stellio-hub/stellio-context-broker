@@ -137,6 +137,17 @@ object JsonLdUtils {
     fun expandJsonLdTerm(term: String, context: String): String =
         expandJsonLdTerm(term, listOf(context))
 
+    /**
+     * Expand a term using the provided context, memoizing the result in the caller-provided cache so a term
+     * repeated across a batch is only expanded once.
+     */
+    fun expandJsonLdTermWithCache(
+        term: String,
+        contexts: List<String>,
+        cache: MutableMap<String, ExpandedTerm>
+    ): ExpandedTerm =
+        cache.getOrPut(term) { expandJsonLdTerm(term, contexts) }
+
     fun expandJsonLdTerm(term: String, contexts: List<String>): String =
         when (term) {
             // avoid an expensive expansion operation for well-known terms from the Core Context

@@ -349,6 +349,29 @@ class EntitiesQueryUtilsTests {
     }
 
     @Test
+    fun `composeEntitiesQueryFromPost should not URL-decode the q member of a Query`() = runTest {
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{
+                    "type": "BeeHive"
+                }],
+                "q": "name==\"A+B%20C\""
+            }
+        """.trimIndent()
+
+        composeEntitiesQueryFromPostRequest(
+            buildDefaultPagination(30, 100),
+            query,
+            LinkedMultiValueMap(),
+            APIC_COMPOUND_CONTEXTS
+        ).shouldSucceedWith {
+            val value = (it.q as ComparisonNode).value as SingleValue
+            assertEquals("\"A+B%20C\"", value.raw)
+        }
+    }
+
+    @Test
     fun `composeEntitiesQueryFromPost should parse jsonKeys and expandValues as comma separated strings or arrays`() =
         runTest {
             mapOf(

@@ -166,7 +166,7 @@ fun composeEntitiesQueryFromPost(
             expandTypeSelection(entitySelector.typeSelection, contexts)!!
         )
     }
-    val q = query.q?.decode()?.let { parseQQuery(it).bind() }
+    val q = query.q?.let { parseQQuery(it).bind() }
     val attrs = query.attrs.orEmpty().map { JsonLdUtils.expandJsonLdTerm(it.trim(), contexts) }.toSet()
     val (pick, omit) = parsePickOmitParameters(
         query.pick?.joinToString(","),

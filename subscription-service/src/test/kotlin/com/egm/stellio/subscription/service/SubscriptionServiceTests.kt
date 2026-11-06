@@ -554,7 +554,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         val subscription = gimmeSubscriptionFromMembers(
             mapOf(
                 "entities" to listOf(mapOf("type" to BEEHIVE_TERM)),
-                "q" to "name==\"C%27est%20une%20belle%20ruche\""
+                "q" to "name==\"C'est une belle ruche\""
             )
         )
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
@@ -566,6 +566,26 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
             assertEquals(1, it.size)
+        }
+    }
+
+    @Test
+    fun `getMatchingSubscriptions should not URL-decode the q member of a subscription`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(mapOf("type" to BEEHIVE_TERM)),
+                "q" to "name==\"C%27est%20une%20belle%20ruche\""
+            )
+        )
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+
+        val expandedEntity = loadAndExpandSampleData("beehive_single_quote.jsonld")
+        subscriptionService.getMatchingSubscriptions(
+            expandedEntity,
+            Pair(NAME_IRI, null),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            assertEquals(0, it.size)
         }
     }
 
@@ -1038,6 +1058,25 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { assertEquals(1, it.size) }
     }
+
+    @Test
+    fun `getMatchingSubscriptions should return a subscription if entity matches a single-level wildcard scope query`() =
+        runTest {
+            val expandedEntity = expandJsonLdEntity(entity, APIC_COMPOUND_CONTEXTS)
+            val subscription = gimmeSubscriptionFromMembers(
+                mapOf(
+                    "watchedAttributes" to listOf(NGSILD_LOCATION_TERM),
+                    "scopeQ" to "/Nantes/+"
+                )
+            )
+            subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+
+            subscriptionService.getMatchingSubscriptions(
+                expandedEntity,
+                Pair(NGSILD_LOCATION_IRI, null),
+                ATTRIBUTE_UPDATED
+            ).shouldSucceedWith { assertEquals(1, it.size) }
+        }
 
     @Test
     fun `getMatchingSubscriptions should not return a subscription if entity does not match a scope query`() = runTest {

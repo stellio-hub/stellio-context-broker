@@ -1,6 +1,7 @@
 package com.egm.stellio.search.common.tenant
 
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.config.TransactionalEitherConfiguration.Companion.TRANSACTION_ADVISOR_ORDER
 import com.egm.stellio.shared.config.withTransactionTimeout
 import io.r2dbc.postgresql.PostgresqlConnectionFactoryProvider
 import io.r2dbc.spi.ConnectionFactories
@@ -22,7 +23,7 @@ import org.springframework.transaction.ReactiveTransactionManager
 import org.springframework.transaction.annotation.EnableTransactionManagement
 
 @Configuration
-@EnableTransactionManagement
+@EnableTransactionManagement(order = TRANSACTION_ADVISOR_ORDER)
 class DatabaseTenantConfig(
     private val r2dbcProperties: R2dbcProperties,
     private val applicationProperties: ApplicationProperties

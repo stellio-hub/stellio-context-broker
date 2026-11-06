@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Database.DATABASE_TIMEOUT_MESSA
 import com.egm.stellio.shared.util.ErrorMessages.Database.DATABASE_TRANSACTION_FAILURE_MESSAGE
 import io.r2dbc.spi.R2dbcException
 import io.r2dbc.spi.R2dbcTimeoutException
+import kotlinx.coroutines.CancellationException
 import org.aopalliance.intercept.MethodInterceptor
 import org.aopalliance.intercept.MethodInvocation
 import org.slf4j.LoggerFactory
@@ -27,6 +28,7 @@ import org.springframework.dao.QueryTimeoutException
 import org.springframework.transaction.TransactionException
 import org.springframework.transaction.TransactionTimedOutException
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource
+import reactor.core.publisher.Mono
 import java.lang.reflect.Method
 import kotlin.coroutines.Continuation
 import kotlin.reflect.jvm.kotlinFunction
@@ -41,6 +43,18 @@ class TransactionalEitherConfiguration {
         DefaultPointcutAdvisor(TransactionalEitherPointcut, TransactionalEitherInterceptor()).apply {
             order = Ordered.HIGHEST_PRECEDENCE
         }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    fun transactionalEitherRollbackAdvisor(): DefaultPointcutAdvisor =
+        DefaultPointcutAdvisor(TransactionalEitherPointcut, TransactionalEitherRollbackInterceptor()).apply {
+            order = Ordered.LOWEST_PRECEDENCE
+        }
+
+    companion object {
+        // Error conversion wraps Spring's transaction advice; Left detection must run inside it, before commit.
+        const val TRANSACTION_ADVISOR_ORDER = Ordered.LOWEST_PRECEDENCE - 1
+    }
 }
 
 internal object TransactionalEitherPointcut : StaticMethodMatcherPointcut() {
@@ -72,6 +86,8 @@ internal class TransactionalEitherInterceptor : MethodInterceptor {
 
         return try {
             invocation.proceed()
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             exception.toTransactionAPIException().left()
         }
@@ -87,7 +103,7 @@ internal class TransactionalEitherInterceptor : MethodInterceptor {
 
             override fun resumeWith(result: Result<Any?>) {
                 continuation.resumeWith(
-                    result.recover { exception ->
+                    if (result.exceptionOrNull() is CancellationException) result else result.recover { exception ->
                         exception.toTransactionAPIException().left()
                     }
                 )
@@ -147,3 +163,21 @@ internal class TransactionalEitherInterceptor : MethodInterceptor {
         private val TIMEOUT_SQL_STATES = setOf("57014", "25P04")
     }
 }
+
+internal class TransactionalEitherRollbackInterceptor : MethodInterceptor {
+
+    override fun invoke(invocation: MethodInvocation): Any? {
+        val result = invocation.proceed()
+        // Spring adapts suspending methods to Mono before completing their reactive transaction.
+        return if (result is Mono<*>) result.map { rollbackOnLeft(it) } else rollbackOnLeft(result)
+    }
+
+    private fun <T> rollbackOnLeft(result: T): T {
+        val error = (result as? Either.Left<*>)?.value
+        if (error is APIException) throw EitherRollbackException(error)
+        return result
+    }
+}
+
+// APIException is checked. This runtime wrapper triggers Spring rollback and preserves the original error as its cause.
+private class EitherRollbackException(error: APIException) : RuntimeException(error)

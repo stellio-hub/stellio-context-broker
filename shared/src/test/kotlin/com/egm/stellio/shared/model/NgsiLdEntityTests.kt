@@ -1650,7 +1650,11 @@ class NgsiLdEntityTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["42", "true", "{}", """{"object":42}""", """{"datasetId":"urn:dataset:1"}"""])
+    @ValueSource(
+        strings = [
+            "42", "true", "{}", """{"object":42}""", """{"datasetId":"urn:dataset:1"}""", """"urn:entity:1""""
+        ]
+    )
     fun `toNgsiLdEntity should reject malformed ListRelationship entries`(entry: String) = runTest {
         val payload = """
             {
@@ -1691,7 +1695,6 @@ class NgsiLdEntityTests {
     @ParameterizedTest
     @ValueSource(
         strings = [
-            """["urn:entity:2","urn:entity:1","urn:entity:2"]""",
             """[{"object":"urn:entity:2"},{"object":"urn:entity:1"},{"object":"urn:entity:2"}]""",
             """["urn:ngsi-ld:null"]"""
         ]
@@ -1841,6 +1844,8 @@ class NgsiLdEntityTests {
             listValue(emptyMap<String, Any>()),
             listValue(mapOf(JSONLD_VALUE_KW to 42)),
             listValue(mapOf(JSONLD_VALUE_KW to "relative-id")),
+            listValue(mapOf(JSONLD_VALUE_KW to "urn:entity:1")),
+            listValue(mapOf(JSONLD_ID_KW to "urn:entity:1")),
             listValue(mapOf(JSONLD_ID_KW to "http://[invalid")),
             listValue(mapOf(NGSILD_RELATIONSHIP_OBJECT to emptyList<Any>())),
             listValue(mapOf(NGSILD_RELATIONSHIP_OBJECT to listOf(mapOf(JSONLD_ID_KW to 42)))),

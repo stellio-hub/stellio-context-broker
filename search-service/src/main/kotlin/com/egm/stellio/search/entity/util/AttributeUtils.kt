@@ -24,7 +24,6 @@ import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
-import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.NGSILD_VALUE_TYPE_IRI
@@ -114,7 +113,9 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
                 Triple(this.valueList.asJsonB(), null, null)
             )
         is NgsiLdListRelationshipInstance -> {
-            val value = this.objectList.simplifyListRelationshipValue().fold({ return it.left() }, { it })
+            // name unknown here but objectList was already validated when the instance was parsed
+            val value = this.objectList.simplifyListRelationshipValue("")
+                .fold({ return it.left() }, { it })
             Triple(
                 AttributeType.ListRelationship,
                 Attribute.AttributeValueType.ARRAY,
@@ -295,9 +296,8 @@ private fun applyPropertyNgsiLdNullRemoval(
 }
 
 // Extracts an ordered expanded URI list for temporal storage.
-fun Any.simplifyListRelationshipValue(): Either<BadRequestDataException, Map<String, Any>> = either {
-    val objects = this@simplifyListRelationshipValue
-        .getListRelationshipObjects(NGSILD_LISTRELATIONSHIP_OBJECT_LIST).bind()
+fun Any.simplifyListRelationshipValue(name: ExpandedTerm): Either<BadRequestDataException, Map<String, Any>> = either {
+    val objects = this@simplifyListRelationshipValue.getListRelationshipObjects(name).bind()
     mapOf(JSONLD_LIST_KW to objects.map { mapOf(JSONLD_VALUE_KW to it) })
 }
 

@@ -45,13 +45,16 @@ fun sqlAggregateForJsonObject(aggregate: TemporalQuery.Aggregate): String = when
     else -> "null"
 }
 
+// ListProperty and ListRelationship values are stored as {"@list": [...]}, other arrays as plain JSON arrays
+private const val JSON_ARRAY_LENGTH = "jsonb_array_length(coalesce(value->'@list', value))"
+
 fun sqlAggregateForJsonArray(aggregate: TemporalQuery.Aggregate): String = when (aggregate) {
     TemporalQuery.Aggregate.TOTAL_COUNT -> "count(value)"
     TemporalQuery.Aggregate.DISTINCT_COUNT -> "count(distinct(value))"
-    TemporalQuery.Aggregate.SUM -> "sum(jsonb_array_length(value))"
-    TemporalQuery.Aggregate.AVG -> "round(avg(jsonb_array_length(value)), 5)"
-    TemporalQuery.Aggregate.MIN -> "min(jsonb_array_length(value))"
-    TemporalQuery.Aggregate.MAX -> "max(jsonb_array_length(value))"
+    TemporalQuery.Aggregate.SUM -> "sum($JSON_ARRAY_LENGTH)"
+    TemporalQuery.Aggregate.AVG -> "round(avg($JSON_ARRAY_LENGTH), 5)"
+    TemporalQuery.Aggregate.MIN -> "min($JSON_ARRAY_LENGTH)"
+    TemporalQuery.Aggregate.MAX -> "max($JSON_ARRAY_LENGTH)"
     else -> "null"
 }
 

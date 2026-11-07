@@ -20,17 +20,20 @@ import com.egm.stellio.search.support.gimmeNumericPropertyAttributeInstance
 import com.egm.stellio.search.support.gimmePropertyAttributeInstance
 import com.egm.stellio.search.support.gimmeTemporalEntitiesQuery
 import com.egm.stellio.search.support.gimmeVocabPropertyAttributeInstance
+import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
+import com.egm.stellio.search.temporal.util.WHOLE_TIME_RANGE_DURATION
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
+import com.egm.stellio.shared.model.JSONLD_LIST_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATE_TIME_TYPE
@@ -1371,6 +1374,51 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             val simplifiedResults = results as List<SimplifiedAttributeInstanceResult>
             assertThat(simplifiedResults.map { it.value })
                 .containsExactlyElementsOf(arrayValues)
+        }
+    }
+
+    @Test
+    fun `search should aggregate the length of list attributes stored as JSON-LD lists`() = runTest {
+        val listAttribute = Attribute(
+            entityId = entityId,
+            attributeName = "listProperty",
+            attributeType = Attribute.AttributeType.ListProperty,
+            attributeValueType = Attribute.AttributeValueType.ARRAY,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        entityAttributeService.upsert(listAttribute)
+
+        listOf(
+            mapOf(JSONLD_LIST_KW to listOf(mapOf(JSONLD_VALUE_KW to 1), mapOf(JSONLD_VALUE_KW to 2))),
+            mapOf(JSONLD_LIST_KW to listOf(mapOf(JSONLD_VALUE_KW to "a"))),
+            listOf("plain", "array", "value")
+        ).forEachIndexed { index, value ->
+            attributeInstanceService.create(
+                gimmePropertyAttributeInstance(
+                    attributeUuid = listAttribute.id,
+                    value = value,
+                    valueType = Attribute.AttributeValueType.ARRAY,
+                    time = now.plusHours(index.toLong())
+                )
+            )
+        }
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = now,
+                    aggrPeriodDuration = WHOLE_TIME_RANGE_DURATION,
+                    aggrMethods = listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.MAX)
+                ),
+                TemporalRepresentation.AGGREGATED_VALUES
+            ),
+            listAttribute
+        ).shouldSucceedWith { results ->
+            val aggregates = (results.single() as AggregatedAttributeInstanceResult).values
+                .associate { it.aggregate to (it.value as Number).toInt() }
+            assertEquals(mapOf(TemporalQuery.Aggregate.SUM to 6, TemporalQuery.Aggregate.MAX to 3), aggregates)
         }
     }
 

@@ -987,7 +987,7 @@ class EntityAttributeService(
             Attribute.AttributeType.ListRelationship ->
                 Triple(
                     attributePayload.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST)
-                        .bind().simplifyListRelationshipValue().bind().asJsonB(),
+                        .bind().simplifyListRelationshipValue(attribute.attributeName).bind().asJsonB(),
                     null,
                     null
                 )

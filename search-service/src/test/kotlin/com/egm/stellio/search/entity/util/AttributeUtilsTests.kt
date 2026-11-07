@@ -242,9 +242,10 @@ class AttributeUtilsTests {
             mapOf("@list" to listOf(mapOf(NGSILD_RELATIONSHIP_OBJECT to listOf(mapOf("@id" to 42)))))
         )
         invalidLists.forEach { value ->
-            value.simplifyListRelationshipValue().shouldFail {
+            value.simplifyListRelationshipValue("orderedRelationships").shouldFail {
                 assertInstanceOf(BadRequestDataException::class.java, it)
                 assertEquals(400, it.status.value())
+                assertTrue(it.message.startsWith("ListRelationship orderedRelationships has an invalid object"))
             }
         }
     }
@@ -261,7 +262,7 @@ class AttributeUtilsTests {
         assertEquals(
             mapOf("@list" to uris.map { mapOf("@value" to it) }),
             expanded.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST).shouldSucceedAndResult()
-                .simplifyListRelationshipValue()
+                .simplifyListRelationshipValue("orderedRelationships")
                 .shouldSucceedAndResult()
         )
     }

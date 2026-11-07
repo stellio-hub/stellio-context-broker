@@ -32,6 +32,7 @@ import com.egm.stellio.search.entity.util.hasNgsiLdNullValue
 import com.egm.stellio.search.entity.util.mergePatch
 import com.egm.stellio.search.entity.util.partialUpdatePatch
 import com.egm.stellio.search.entity.util.prepareAttributes
+import com.egm.stellio.search.entity.util.simplifyListRelationshipValue
 import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.entity.util.toExpandedAttributeInstance
 import com.egm.stellio.search.temporal.model.AttributeInstance
@@ -49,6 +50,8 @@ import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PREFIX
@@ -388,9 +391,10 @@ class EntityAttributeService(
             }
 
         attributesToDeleteWithPayload.forEach { (attribute, expandedAttributePayload) ->
+            val value = expandedAttributePayload.getMemberValue(attribute.attributeType.toExpandedValueMember()).bind()
             attributeInstanceService.addDeletedAttributeInstance(
                 attributeUuid = attribute.id,
-                value = NGSILD_NULL.asJsonB(),
+                value = value.asJsonB(),
                 deletedAt = deletedAt,
                 attributeValues = expandedAttributePayload
             ).bind()
@@ -974,9 +978,25 @@ class EntityAttributeService(
                     null,
                     null
                 )
+            Attribute.AttributeType.ListProperty ->
+                Triple(
+                    attributePayload.getMemberValue(NGSILD_LISTPROPERTY_VALUE_LIST).bind().asJsonB(),
+                    null,
+                    null
+                )
+            Attribute.AttributeType.ListRelationship ->
+                Triple(
+                    attributePayload.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST)
+                        .bind().simplifyListRelationshipValue(attribute.attributeName).bind().asJsonB(),
+                    null,
+                    null
+                )
         }
     }.fold(
-        { NotImplementedException(NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE, it.message).left() },
+        {
+            if (it is BadRequestDataException) it.left()
+            else NotImplementedException(NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE, it.message).left()
+        },
         { it.right() }
     )
 

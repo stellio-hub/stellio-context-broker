@@ -20,6 +20,9 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.jsonPropertyInvalidJsonM
 import com.egm.stellio.shared.util.ErrorMessages.Entity.jsonPropertyMissingJsonMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.languagePropertyInvalidLanguageMapMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.languagePropertyMissingLanguageMapMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.listPropertyInvalidValueListMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.listPropertyMissingValueListMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.listRelationshipMissingObjectListMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.propertyMissingValueMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipInvalidObjectTypeValueMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.vocabPropertyInvalidVocabMessage
@@ -77,6 +80,8 @@ class NgsiLdEntity private constructor(
     val jsonProperties = getAttributesOfType<NgsiLdJsonProperty>()
     val languageProperties = getAttributesOfType<NgsiLdLanguageProperty>()
     val vocabProperties = getAttributesOfType<NgsiLdVocabProperty>()
+    val listProperties = getAttributesOfType<NgsiLdListProperty>()
+    val listRelationships = getAttributesOfType<NgsiLdListRelationship>()
 }
 
 sealed class NgsiLdAttribute(val name: ExpandedTerm) {
@@ -239,6 +244,58 @@ class NgsiLdVocabProperty private constructor(
     override fun getAttributeInstances(): List<NgsiLdVocabPropertyInstance> = instances
 }
 
+class NgsiLdListProperty private constructor(
+    name: ExpandedTerm,
+    val instances: List<NgsiLdListPropertyInstance>
+) : NgsiLdAttribute(name) {
+    companion object {
+        suspend fun create(
+            name: ExpandedTerm,
+            instances: ExpandedAttributeInstances
+        ): Either<APIException, NgsiLdListProperty> = either {
+            checkInstancesAreOfSameType(name, instances, NGSILD_LISTPROPERTY_TYPE).bind()
+
+            val ngsiLdListPropertyInstances = instances.parMap { instance ->
+                NgsiLdListPropertyInstance.create(name, instance).bind()
+            }
+
+            checkAttributeDefaultInstance(name, ngsiLdListPropertyInstances).bind()
+            checkAttributeDuplicateDatasetId(name, ngsiLdListPropertyInstances).bind()
+            checkAttributeNullDatasetId(name, ngsiLdListPropertyInstances).bind()
+
+            NgsiLdListProperty(name, ngsiLdListPropertyInstances)
+        }
+    }
+
+    override fun getAttributeInstances(): List<NgsiLdListPropertyInstance> = instances
+}
+
+class NgsiLdListRelationship private constructor(
+    name: ExpandedTerm,
+    val instances: List<NgsiLdListRelationshipInstance>
+) : NgsiLdAttribute(name) {
+    companion object {
+        suspend fun create(
+            name: ExpandedTerm,
+            instances: ExpandedAttributeInstances
+        ): Either<APIException, NgsiLdListRelationship> = either {
+            checkInstancesAreOfSameType(name, instances, NGSILD_LISTRELATIONSHIP_TYPE).bind()
+
+            val ngsiLdListRelationshipInstances = instances.parMap { instance ->
+                NgsiLdListRelationshipInstance.create(name, instance).bind()
+            }
+
+            checkAttributeDefaultInstance(name, ngsiLdListRelationshipInstances).bind()
+            checkAttributeDuplicateDatasetId(name, ngsiLdListRelationshipInstances).bind()
+            checkAttributeNullDatasetId(name, ngsiLdListRelationshipInstances).bind()
+
+            NgsiLdListRelationship(name, ngsiLdListRelationshipInstances)
+        }
+    }
+
+    override fun getAttributeInstances(): List<NgsiLdListRelationshipInstance> = instances
+}
+
 sealed class NgsiLdAttributeInstance(
     val observedAt: ZonedDateTime?,
     val datasetId: URI?,
@@ -307,11 +364,7 @@ class NgsiLdRelationshipInstance private constructor(
             values: ExpandedAttributeInstance
         ): Either<APIException, NgsiLdRelationshipInstance> = either {
             val objectId = values.getRelationshipObjects(name).bind()
-            values[NGSILD_RELATIONSHIP_OBJECT_TYPE]?.forEach {
-                val objectType = (it as? Map<*, *>)?.takeIf { it.size == 1 }?.get(JSONLD_ID_KW) as? String
-                ensureNotNull(objectType) { BadRequestDataException(relationshipInvalidObjectTypeValueMessage(name)) }
-                ensure(objectType.isURI()) { BadRequestDataException(invalidTypeUriMessage(objectType)) }
-            }
+            checkObjectType(name, values).bind()
             val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
             val datasetId = values.getDatasetId()
             val expiresAt = values.getAndCheckExpiresAt().bind()
@@ -528,6 +581,96 @@ class NgsiLdVocabPropertyInstance private constructor(
     override fun toString(): String = "NgsiLdVocabPropertyInstance(vocab=$vocab)"
 }
 
+class NgsiLdListPropertyInstance private constructor(
+    val valueList: Any,
+    val unitCode: String?,
+    observedAt: ZonedDateTime?,
+    datasetId: URI?,
+    expiresAt: ZonedDateTime?,
+    attributes: List<NgsiLdAttribute>
+) : NgsiLdAttributeInstance(observedAt, datasetId, expiresAt, attributes) {
+    companion object {
+        suspend fun create(
+            name: ExpandedTerm,
+            values: ExpandedAttributeInstance
+        ): Either<APIException, NgsiLdListPropertyInstance> = either {
+            val valueList = values.getMemberValue(NGSILD_LISTPROPERTY_VALUE_LIST).getOrNull()
+            ensureNotNull(valueList) {
+                BadRequestDataException(listPropertyMissingValueListMessage(name))
+            }
+            val entries = (valueList as? Map<*, *>)?.get(JSONLD_LIST_KW)
+            ensure(
+                entries is List<*> && entries.all {
+                    it is Map<*, *> && (!it.containsKey(JSONLD_VALUE_KW) || it[JSONLD_VALUE_KW] != null)
+                }
+            ) {
+                BadRequestDataException(listPropertyInvalidValueListMessage(name))
+            }
+            val unitCode = values.getMemberValueAsString(NGSILD_UNIT_CODE_IRI)
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
+            val datasetId = values.getDatasetId()
+            val expiresAt = values.getAndCheckExpiresAt().bind()
+
+            checkAttributeHasNoForbiddenMembers(name, values, LISTPROPERTIES_FORBIDDEN_MEMBERS).bind()
+            checkValueType(name, values).bind()
+
+            val rawAttributes = getNonCoreMembers(values, LISTPROPERTIES_CORE_MEMBERS)
+            val attributes = parseAttributes(rawAttributes).bind()
+
+            NgsiLdListPropertyInstance(
+                valueList,
+                unitCode,
+                observedAt,
+                datasetId,
+                expiresAt,
+                attributes
+            )
+        }
+    }
+
+    override fun toString(): String = "NgsiLdListPropertyInstance(valueList=$valueList)"
+}
+
+class NgsiLdListRelationshipInstance private constructor(
+    val objectList: Any,
+    observedAt: ZonedDateTime?,
+    datasetId: URI?,
+    expiresAt: ZonedDateTime?,
+    attributes: List<NgsiLdAttribute>
+) : NgsiLdAttributeInstance(observedAt, datasetId, expiresAt, attributes) {
+    companion object {
+        suspend fun create(
+            name: ExpandedTerm,
+            values: ExpandedAttributeInstance
+        ): Either<APIException, NgsiLdListRelationshipInstance> = either {
+            val objectList = values.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST).getOrNull()
+            ensureNotNull(objectList) {
+                BadRequestDataException(listRelationshipMissingObjectListMessage(name))
+            }
+            objectList.getListRelationshipObjects(name).bind()
+            checkObjectType(name, values).bind()
+            val observedAt = values.getMemberValueAsDateTime(NGSILD_OBSERVED_AT_IRI)
+            val datasetId = values.getDatasetId()
+            val expiresAt = values.getAndCheckExpiresAt().bind()
+
+            checkAttributeHasNoForbiddenMembers(name, values, LISTRELATIONSHIPS_FORBIDDEN_MEMBERS).bind()
+
+            val rawAttributes = getNonCoreMembers(values, LISTRELATIONSHIPS_CORE_MEMBERS)
+            val attributes = parseAttributes(rawAttributes).bind()
+
+            NgsiLdListRelationshipInstance(
+                objectList,
+                observedAt,
+                datasetId,
+                expiresAt,
+                attributes
+            )
+        }
+    }
+
+    override fun toString(): String = "NgsiLdListRelationshipInstance(objectList=$objectList)"
+}
+
 @JvmInline
 value class AttributeType(val uri: String)
 
@@ -537,6 +680,8 @@ val NGSILD_RELATIONSHIP_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Relat
 val NGSILD_JSONPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/JsonProperty")
 val NGSILD_LANGUAGEPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/LanguageProperty")
 val NGSILD_VOCABPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/VocabProperty")
+val NGSILD_LISTPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/ListProperty")
+val NGSILD_LISTRELATIONSHIP_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/ListRelationship")
 
 @JvmInline
 value class WKTCoordinates(val value: String)
@@ -564,6 +709,8 @@ private suspend fun parseAttributes(
                 NGSILD_JSONPROPERTY_TYPE.uri -> NgsiLdJsonProperty.create(it.first, it.second)
                 NGSILD_LANGUAGEPROPERTY_TYPE.uri -> NgsiLdLanguageProperty.create(it.first, it.second)
                 NGSILD_VOCABPROPERTY_TYPE.uri -> NgsiLdVocabProperty.create(it.first, it.second)
+                NGSILD_LISTPROPERTY_TYPE.uri -> NgsiLdListProperty.create(it.first, it.second)
+                NGSILD_LISTRELATIONSHIP_TYPE.uri -> NgsiLdListRelationship.create(it.first, it.second)
                 else -> BadRequestDataException(
                     attributeInvalidOrNotImplementedTypeMessage(it.first, attributeType)
                 ).left()
@@ -627,6 +774,17 @@ fun checkAttributeHasNoForbiddenMembers(
     }
 }
 
+private fun checkObjectType(
+    name: ExpandedTerm,
+    instance: ExpandedAttributeInstance
+): Either<APIException, Unit> = either {
+    instance[NGSILD_RELATIONSHIP_OBJECT_TYPE]?.forEach {
+        val objectType = (it as? Map<*, *>)?.takeIf { it.size == 1 }?.get(JSONLD_ID_KW) as? String
+        ensureNotNull(objectType) { BadRequestDataException(relationshipInvalidObjectTypeValueMessage(name)) }
+        ensure(objectType.isURI()) { BadRequestDataException(invalidTypeUriMessage(objectType)) }
+    }
+}
+
 private fun checkValueType(
     name: ExpandedTerm,
     instance: ExpandedAttributeInstance
@@ -666,6 +824,10 @@ suspend fun ExpandedAttributeInstances.toNgsiLdAttribute(
         NgsiLdLanguageProperty.create(attributeName, this)
     isAttributeOfType(this[0], NGSILD_VOCABPROPERTY_TYPE) ->
         NgsiLdVocabProperty.create(attributeName, this)
+    isAttributeOfType(this[0], NGSILD_LISTPROPERTY_TYPE) ->
+        NgsiLdListProperty.create(attributeName, this)
+    isAttributeOfType(this[0], NGSILD_LISTRELATIONSHIP_TYPE) ->
+        NgsiLdListRelationship.create(attributeName, this)
     else -> BadRequestDataException(attributeInvalidOrNotImplementedTypeMessage(attributeName)).left()
 }
 

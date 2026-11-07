@@ -162,7 +162,9 @@ private fun singleValueComparisonSql(
         }
         effectiveValue.type in scalarTypes -> {
             val propertyPath = attrPath.buildJsonBPropertyPath()
-            singlePathFilter(targetExpr, propertyPath, operator, effectiveValue)
+            val listPropertyPath = attrPath.buildJsonBListPropertyPath()
+            "(${singlePathFilter(targetExpr, propertyPath, operator, effectiveValue)} OR " +
+                "${singlePathFilter(targetExpr, listPropertyPath, operator, effectiveValue)})"
         }
         operator == ComparisonOperator.LIKE_REGEX || operator == ComparisonOperator.NOT_LIKE_REGEX -> {
             likeRegexMultiPathSql(targetExpr, attrPath, operator, effectiveValue)
@@ -185,12 +187,16 @@ private fun uriValueSql(
     val propPath = attrPath.buildJsonBPropertyPath()
     val vocabPath = attrPath.buildJsonBVocabPath()
     val langMapPath = attrPath.buildJsonBLanguageMapPath()
+    val listPropPath = attrPath.buildJsonBListPropertyPath()
+    val listRelPath = attrPath.buildJsonBListRelationshipPath()
 
     return """
         (${singlePathFilter(targetExpr, relPath, operator, uriValue)} OR
         ${singlePathFilter(targetExpr, propPath, operator, uriValue)} OR
         ${singlePathFilter(targetExpr, vocabPath, operator, uriValue)} OR
-        ${singlePathFilter(targetExpr, langMapPath, operator, uriValue)})
+        ${singlePathFilter(targetExpr, langMapPath, operator, uriValue)} OR
+        ${singlePathFilter(targetExpr, listPropPath, operator, uriValue)} OR
+        ${singlePathFilter(targetExpr, listRelPath, operator, uriValue)})
     """
 }
 
@@ -202,10 +208,12 @@ private fun stringValueSql(
 ): String {
     val propPath = attrPath.buildJsonBPropertyPath()
     val langMapPath = attrPath.buildJsonBLanguageMapPath()
+    val listPropPath = attrPath.buildJsonBListPropertyPath()
 
     return """
         (${singlePathFilter(targetExpr, propPath, operator, value)} OR
-            ${singlePathFilter(targetExpr, langMapPath, operator, value)})
+            ${singlePathFilter(targetExpr, langMapPath, operator, value)} OR
+            ${singlePathFilter(targetExpr, listPropPath, operator, value)})
         """
 }
 
@@ -217,17 +225,20 @@ private fun likeRegexMultiPathSql(
 ): String {
     val propPath = attrPath.buildJsonBPropertyPath()
     val langMapPath = attrPath.buildJsonBLanguageMapPath()
+    val listPropPath = attrPath.buildJsonBListPropertyPath()
     val pattern = value.toJsonValue().escapeSingleQuotes()
 
     return if (operator == ComparisonOperator.NOT_LIKE_REGEX) {
         """
             NOT ((jsonb_path_exists($targetExpr, '$propPath ? (@ like_regex $pattern)') OR 
-                jsonb_path_exists($targetExpr, '$langMapPath ? (@ like_regex $pattern)')))
+                jsonb_path_exists($targetExpr, '$langMapPath ? (@ like_regex $pattern)') OR
+                jsonb_path_exists($targetExpr, '$listPropPath ? (@ like_regex $pattern)')))
         """
     } else {
         """
             (jsonb_path_exists($targetExpr, '$propPath ? (@ like_regex $pattern)') OR
-                jsonb_path_exists($targetExpr, '$langMapPath ? (@ like_regex $pattern)'))
+                jsonb_path_exists($targetExpr, '$langMapPath ? (@ like_regex $pattern)') OR
+                jsonb_path_exists($targetExpr, '$listPropPath ? (@ like_regex $pattern)'))
         """
     }
 }
@@ -238,7 +249,11 @@ private fun rangeComparisonSql(
     value: RangeValue
 ): String {
     val propertyPath = attrPath.buildJsonBPropertyPath()
-    return rangeFilter(targetExpr, propertyPath, value)
+    val listPropertyPath = attrPath.buildJsonBListPropertyPath()
+    return """
+          (${rangeFilter(targetExpr, propertyPath, value)} OR
+          ${rangeFilter(targetExpr, listPropertyPath, value)})
+        """
 }
 
 private fun listComparisonSql(
@@ -252,7 +267,9 @@ private fun listComparisonSql(
         val paths = listOf(
             attrPath.buildJsonBRelationshipPath(),
             attrPath.buildJsonBPropertyPath(),
-            attrPath.buildJsonBVocabPath()
+            attrPath.buildJsonBVocabPath(),
+            attrPath.buildJsonBListPropertyPath(),
+            attrPath.buildJsonBListRelationshipPath()
         )
         val effectiveValue = if (attrPath.isExpandValuesAttribute) {
             ListValue(value.items.map { it.expandIfTerm(contexts) })
@@ -261,7 +278,10 @@ private fun listComparisonSql(
         }
         paths.joinToString(" OR ") { path -> listFilter(targetExpr, path, effectiveValue) }
     } else {
-        listFilter(targetExpr, attrPath.buildJsonBPropertyPath(), value)
+        """
+          (${listFilter(targetExpr, attrPath.buildJsonBPropertyPath(), value)} OR
+            ${listFilter(targetExpr, attrPath.buildJsonBListPropertyPath(), value)})
+        """
     }
 }
 

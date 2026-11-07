@@ -168,6 +168,13 @@ object TemporalEntityBuilder {
                                 mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
                             )
                         }
+                        Attribute.AttributeType.ListProperty,
+                        Attribute.AttributeType.ListRelationship -> {
+                            listOf(
+                                attributeInstanceResult.value,
+                                mapOf(JSONLD_VALUE_KW to attributeInstanceResult.time)
+                            )
+                        }
                         Attribute.AttributeType.GeoProperty -> {
                             val expendedGeoProperty = expandGeoPropertyFragment(
                                 attributeInstanceResult.value as Map<String, Any>,

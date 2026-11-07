@@ -279,6 +279,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "relationship==urn:ngsi-ld:AnotherEntity:01;name==\"anotherName\", 0, ",
         "multiValuedRelationship==urn:ngsi-ld:AnotherEntity:01, 1, urn:ngsi-ld:BeeHive:01",
         "multiValuedRelationship==urn:ngsi-ld:AnotherEntity:05, 0, ",
+        "listProperty, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
+        "listRelationship, 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "(float==21.34|float==44.75), 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "integer==213;boolean==true, 1, urn:ngsi-ld:BeeHive:01",
         "(integer>200|integer<100);observedProperty.observedAt<2023-02-25T00:00:00Z, 1, urn:ngsi-ld:BeeHive:01",
@@ -313,6 +315,7 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         """'propertyWithMetadata.valueType=="Text","Number"', 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'""",
         "propertyWithMetadata.valueType!=\"Text\", 1, urn:ngsi-ld:BeeHive:02",
         "propertyWithMetadata.valueType==\"Boolean\", 0, ",
+        "listProperty.valueType==\"Text\", 1, urn:ngsi-ld:BeeHive:01",
         "jsonObject[aString]==\"flow monitoring\", 1, urn:ngsi-ld:BeeHive:02",
         "jsonObject[aNumber]==93.93, 1, urn:ngsi-ld:BeeHive:02",
         "jsonObject[aSimpleQuote]==\"precipitation's measures\", 1, urn:ngsi-ld:BeeHive:01",
@@ -359,6 +362,8 @@ class EntityServiceQueriesTests : WithTimescaleContainer, WithKafkaContainer() {
         "localizedName[*]!=\"Bee Hive One\", 1, urn:ngsi-ld:BeeHive:02",
         "localizedName[*]!=\"anything\", 2, 'urn:ngsi-ld:BeeHive:01,urn:ngsi-ld:BeeHive:02'",
         "'a''b==1', 0, ",
+        "'a''b==urn:ngsi-ld:AnotherEntity:01', 0, ",
+        "'a''b==urn:ngsi-ld:AnotherEntity:01,urn:ngsi-ld:AnotherEntity:02', 0, ",
         "'a''b', 0, ",
         "'jsonObject[a''b]!=1', 0, "
     )

@@ -4,7 +4,7 @@ This note describes the necessary steps to upgrade to Stellio 1.7.0
 
 ## Add support for recurring notifications
 
-Stellio now supports the `timeInterval` property for subscriptions (for more details on this feature, you can refer to the NGSI-LD specification, section 5.2.11).
+Stellio now supports the `timeInterval` property for subscriptions (for more details on this feature, you can refer to the [Subscription data type](https://ngsild.org/ts104175/html/index.html#5.2.6.5.2) in the NGSI-LD specification).
 
 In order to get matching NGSI-LD entities for such subscriptions, the subscription service calls the entity service and thus needs to know how to do so.
 

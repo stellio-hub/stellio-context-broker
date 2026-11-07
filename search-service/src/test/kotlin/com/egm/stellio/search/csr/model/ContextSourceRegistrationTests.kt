@@ -4,10 +4,12 @@ import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_CSR_TERM
+import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.MANAGED_BY_IRI
 import com.egm.stellio.shared.util.NAME_IRI
+import com.egm.stellio.shared.util.TEMPERATURE_IRI
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldFailWith
@@ -17,6 +19,8 @@ import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertInstanceOf
 import java.net.URI
@@ -279,5 +283,55 @@ class ContextSourceRegistrationTests {
                 it.information[0].propertyNames == listOf(MANAGED_BY_IRI, NAME_IRI) ||
                     it.information[0].relationshipNames == listOf(MANAGED_BY_IRI)
             }
+    }
+
+    @Test
+    fun `isTypeAllowed should allow any type when an information does not declare entities`() {
+        val csr = gimmeRawCSR(
+            information = listOf(
+                RegistrationInfo(entities = listOf(EntityInfo(types = listOf(APIARY_IRI)))),
+                RegistrationInfo(propertyNames = listOf(NAME_IRI))
+            )
+        )
+
+        assertTrue(csr.isTypeAllowed(BEEHIVE_IRI))
+    }
+
+    @Test
+    fun `isTypeAllowed should only allow the registered types`() {
+        val csr = gimmeRawCSR()
+
+        assertTrue(csr.isTypeAllowed(APIARY_IRI))
+        assertFalse(csr.isTypeAllowed(BEEHIVE_IRI))
+    }
+
+    @Test
+    fun `isAttributeAllowed should only allow a type and an attribute declared in the same information`() {
+        val csr = gimmeRawCSR(
+            information = listOf(
+                RegistrationInfo(
+                    entities = listOf(EntityInfo(types = listOf(APIARY_IRI))),
+                    propertyNames = listOf(NAME_IRI)
+                ),
+                RegistrationInfo(
+                    entities = listOf(EntityInfo(types = listOf(BEEHIVE_IRI))),
+                    propertyNames = listOf(TEMPERATURE_IRI)
+                )
+            )
+        )
+
+        assertTrue(csr.isAttributeAllowed(NAME_IRI))
+        assertTrue(csr.isAttributeAllowed(TEMPERATURE_IRI))
+        assertTrue(csr.isAttributeAllowed(NAME_IRI, APIARY_IRI))
+        assertFalse(csr.isAttributeAllowed(TEMPERATURE_IRI, APIARY_IRI))
+        assertFalse(csr.isAttributeAllowed(MANAGED_BY_IRI))
+    }
+
+    @Test
+    fun `isAttributeAllowed should allow any attribute of a registered type when no attribute is declared`() {
+        val csr = gimmeRawCSR()
+
+        assertTrue(csr.isAttributeAllowed(TEMPERATURE_IRI, APIARY_IRI))
+        assertFalse(csr.isAttributeAllowed(TEMPERATURE_IRI, BEEHIVE_IRI))
     }
 }

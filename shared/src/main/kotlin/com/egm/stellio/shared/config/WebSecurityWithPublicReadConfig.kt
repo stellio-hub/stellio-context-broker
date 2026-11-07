@@ -30,8 +30,10 @@ class WebSecurityWithPublicReadConfig(
             .authorizeExchange { exchanges ->
                 exchanges.pathMatchers("/actuator/**").permitAll()
                 exchanges.pathMatchers(HttpMethod.GET, "/ngsi-ld/v1/entities/**").permitAll()
+                exchanges.pathMatchers(HttpMethod.HEAD, "/ngsi-ld/v1/entities/**").permitAll()
                 exchanges.pathMatchers(HttpMethod.POST, "/ngsi-ld/v1/entities/entityOperations/query").permitAll()
                 exchanges.pathMatchers(HttpMethod.GET, "/ngsi-ld/v1/temporal/entities/**").permitAll()
+                exchanges.pathMatchers(HttpMethod.HEAD, "/ngsi-ld/v1/temporal/entities/**").permitAll()
                 exchanges.pathMatchers(HttpMethod.POST, "/ngsi-ld/v1/temporal/entities/entityOperations/query")
                     .permitAll()
                 exchanges.pathMatchers("/**").authenticated()

@@ -7,6 +7,7 @@ import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.toListOfUri
+import com.egm.stellio.shared.util.validateScopeQ
 import org.springframework.util.MultiValueMap
 import java.net.URI
 
@@ -37,7 +38,7 @@ data class PermissionFilters(
             val assignee = queryParams.getFirst(QueryParameter.ASSIGNEE.key)
             val assigner = queryParams.getFirst(QueryParameter.ASSIGNER.key)
             val targetType = expandTypeSelection(queryParams.getFirst(QueryParameter.TARGET_TYPE.key), contexts)
-            val targetScope = queryParams.getFirst(QueryParameter.TARGET_SCOPEQ.key)
+            val targetScope = validateScopeQ(queryParams.getFirst(QueryParameter.TARGET_SCOPEQ.key)).bind()
 
             PermissionFilters(ids, action, assignee, assigner, targetType, targetScope, kind)
         }

@@ -13,7 +13,7 @@ every day in a production deployment, and as it implies not easily automatable o
 does not currently support on-the-fly creation of tenants. So for a tenant to be taken into account, you need to update the configuration of Stellio then
 restart it. 
 
-The detailed behavior of tenants is defined in the NGSI-LD specification, section 4.14 - Supporting multiple tenants.
+The detailed behavior of tenants is defined in the NGSI-LD specification, [TS 104 175 §7.8 - Tenants](https://ngsild.org/ts104175/html/index.html#7.8).
 
 ## Declaration
 

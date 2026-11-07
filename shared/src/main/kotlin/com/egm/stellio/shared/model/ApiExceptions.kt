@@ -270,8 +270,8 @@ enum class ErrorType(val type: URI) {
     ALREADY_EXISTS(URI("https://uri.etsi.org/ngsi-ld/errors/AlreadyExists")),
     CONFLICT(URI("https://uri.etsi.org/ngsi-ld/errors/Conflict")),
     MULTI_STATUS(URI("https://uri.etsi.org/ngsi-ld/errors/MultiStatus")),
-    BAD_GATEWAY(URI("https://uri.etsi.org/ngsi-ld/errors/BadGateway")), // defined only in 6.3.17
-    GATEWAY_TIMEOUT(URI("https://uri.etsi.org/ngsi-ld/errors/GatewayTimeout")), // defined only in 6.3.17
+    BAD_GATEWAY(URI("https://uri.etsi.org/ngsi-ld/errors/BadGateway")), // defined only in TS 104 176 §6.3.5
+    GATEWAY_TIMEOUT(URI("https://uri.etsi.org/ngsi-ld/errors/GatewayTimeout")), // defined only in TS 104 176 §6.3.5
     OPERATION_NOT_SUPPORTED(URI("https://uri.etsi.org/ngsi-ld/errors/OperationNotSupported")),
     RESOURCE_NOT_FOUND(URI("https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound")),
     INTERNAL_ERROR(URI("https://uri.etsi.org/ngsi-ld/errors/InternalError")),

@@ -33,6 +33,8 @@ object ContextSourceHttpUtils {
         httpHeaders: HttpHeaders,
         queryParams: MultiValueMap<String, String>,
         csr: ContextSourceRegistration,
+        // encoded as a single segment ('/' and '#' included) and appended to uri
+        lastPathSegment: String? = null
     ): Either<NGSILDWarning, Pair<String?, ClientResponse.Headers>> = either {
         val request = WebClient.create()
             .method(HttpMethod.GET)
@@ -41,6 +43,7 @@ object ContextSourceHttpUtils {
                     .host(uri.host)
                     .port(uri.port)
                     .path(uri.path)
+                    .apply { lastPathSegment?.let { pathSegment(it) } }
                     .queryParams(queryParams)
                     .build()
             }.headers { newHeaders ->

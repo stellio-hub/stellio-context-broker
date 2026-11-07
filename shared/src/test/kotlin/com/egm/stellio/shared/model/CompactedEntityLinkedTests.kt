@@ -14,6 +14,79 @@ import org.junit.jupiter.api.Test
 class CompactedEntityLinkedTests {
 
     @Test
+    fun `getRelationshipsObjectsWithObjectTypes should only extract relationships having an objectType`() {
+        val compactedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "rel1": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:LinkedEntity:01",
+                    "objectType": "LinkedEntity"
+                },
+                "rel2": [{
+                    "type": "Relationship",
+                    "object": ["urn:ngsi-ld:LinkedEntity:02", "urn:ngsi-ld:LinkedEntity:01"],
+                    "objectType": ["LinkedEntity", "OtherType"],
+                    "datasetId": "urn:ngsi-ld:Dataset:01"
+                }, {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:LinkedEntity:03"
+                }],
+                "prop": {
+                    "type": "Property",
+                    "value": "urn:ngsi-ld:LinkedEntity:04"
+                },
+                "orderedRel": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        {"object": "urn:ngsi-ld:LinkedEntity:02"},
+                        {"object": "urn:ngsi-ld:LinkedEntity:05"}
+                    ],
+                    "objectType": "OrderedType"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        val objectsWithTypes = listOf(compactedEntity).getRelationshipsObjectsWithObjectTypes()
+
+        assertThat(objectsWithTypes)
+            .hasSize(3)
+            .containsEntry("urn:ngsi-ld:LinkedEntity:01".toUri(), setOf("LinkedEntity", "OtherType"))
+            .containsEntry("urn:ngsi-ld:LinkedEntity:02".toUri(), setOf("LinkedEntity", "OtherType", "OrderedType"))
+            .containsEntry("urn:ngsi-ld:LinkedEntity:05".toUri(), setOf("OrderedType"))
+    }
+
+    @Test
+    fun `toConciseAttributes should keep the objectType of a relationship`() {
+        val compactedEntity = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "rel": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:LinkedEntity:01",
+                    "objectType": "LinkedEntity"
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        assertJsonPayloadsAreEqual(
+            """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "Entity",
+                "rel": {
+                    "object": "urn:ngsi-ld:LinkedEntity:01",
+                    "objectType": "LinkedEntity"
+                }
+            }
+            """.trimIndent(),
+            serializeObject(compactedEntity.toConciseAttributes())
+        )
+    }
+
+    @Test
     fun `getRelationshipsNamesWithObjects should extract a single-instance relationship`() {
         val relationships = normalizedEntity.getRelationshipsNamesWithObjects()
 
@@ -211,6 +284,29 @@ class CompactedEntityLinkedTests {
                     "r2" to setOf("urn:ngsi-ld:LinkedEntity:02".toUri()),
                     "r3" to setOf("urn:ngsi-ld:LinkedEntity:04".toUri())
                 )
+            )
+    }
+
+    @Test
+    fun `getRelationshipsNamesWithObjects should extract and inline a ListRelationship in order`() = runTest {
+        val linkingEntity = """
+            {
+                "id": "urn:ngsi-ld:LinkingEntity:01",
+                "type": "LinkingEntity",
+                "rel": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        { "object": "urn:ngsi-ld:LinkedEntity:02" },
+                        { "object": "urn:ngsi-ld:LinkedEntity:01" }
+                    ]
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+
+        assertThat(linkingEntity.getRelationshipsNamesWithObjects()["rel"])
+            .containsExactlyInAnyOrder(
+                "urn:ngsi-ld:LinkedEntity:01".toUri(),
+                "urn:ngsi-ld:LinkedEntity:02".toUri()
             )
     }
 
@@ -578,6 +674,60 @@ class CompactedEntityLinkedTests {
                 ]
             """.trimIndent(),
             serializeObject(inlinedEntity)
+        )
+    }
+
+    @Test
+    fun `inlineLinkedEntities should  inline a ListRelationship in order`() = runTest {
+        val linkingEntity = """
+            {
+                "id": "urn:ngsi-ld:LinkingEntity:01",
+                "type": "LinkingEntity",
+                "rel": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        { "object": "urn:ngsi-ld:LinkedEntity:02" },
+                        { "object": "urn:ngsi-ld:LinkedEntity:01" }
+                    ]
+                }
+            }
+        """.trimIndent().deserializeAsMap()
+        val linkedEntities = mapOf(
+            "urn:ngsi-ld:LinkedEntity:01" to mapOf(
+                "id" to "urn:ngsi-ld:LinkedEntity:01",
+                "type" to "LinkedEntity"
+            ),
+            "urn:ngsi-ld:LinkedEntity:02" to mapOf(
+                "id" to "urn:ngsi-ld:LinkedEntity:02",
+                "type" to "LinkedEntity"
+            )
+        )
+
+        assertJsonPayloadsAreEqual(
+            """
+            {
+                "id": "urn:ngsi-ld:LinkingEntity:01",
+                "type": "LinkingEntity",
+                "rel": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        { "object": "urn:ngsi-ld:LinkedEntity:02" },
+                        { "object": "urn:ngsi-ld:LinkedEntity:01" }
+                    ],
+                    "entityList": [
+                        {
+                            "id": "urn:ngsi-ld:LinkedEntity:02",
+                            "type": "LinkedEntity"
+                        },
+                        {
+                            "id": "urn:ngsi-ld:LinkedEntity:01",
+                            "type": "LinkedEntity"
+                        }
+                    ]
+                }
+            }
+            """.trimIndent(),
+            serializeObject(linkingEntity.inlineLinkedEntities(linkedEntities))
         )
     }
 

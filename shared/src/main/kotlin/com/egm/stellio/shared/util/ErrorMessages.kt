@@ -214,6 +214,17 @@ object ErrorMessages {
             "VocabProperty $name has an instance without a vocab member"
         fun vocabPropertyInvalidVocabMessage(name: String) =
             "VocabProperty $name has a vocab member that is not a string, nor an array of string"
+        fun listPropertyMissingValueListMessage(name: String) =
+            "ListProperty $name has an instance without a valueList member"
+        fun listPropertyInvalidValueListMessage(name: String) =
+            "ListProperty $name has an invalid valueList member"
+        fun listRelationshipMissingObjectListMessage(name: String) =
+            "ListRelationship $name does not have an objectList field"
+        fun listRelationshipInvalidObjectMessage(name: String, objectValue: Any?) =
+            "ListRelationship $name has an invalid object: $objectValue"
+        fun attributeInvalidValueTypeMessage(name: String, expectedValueType: String? = null) =
+            if (expectedValueType == null) "Attribute $name has a valueType member that is not a single string"
+            else "Attribute $name has a valueType member that is not $expectedValueType"
 
         fun relationshipMissingObjectMessage(name: String) = "Relationship $name does not have an object field"
         fun relationshipEmptyMessage(name: String) = "Relationship $name is empty"
@@ -221,6 +232,8 @@ object ErrorMessages {
             "Relationship $name has an invalid object type: ${javaClass.simpleName}"
         fun relationshipInvalidObjectIdMessage(name: String, objectValue: Any?) =
             "Relationship $name has an invalid or no object id: $objectValue"
+        fun relationshipInvalidObjectTypeValueMessage(name: String) =
+            "Relationship $name has an objectType member that is not a string, nor an array of string"
 
         const val CANNOT_ADD_SUBATTRIBUTE_MESSAGE = "Cannot add a sub-attribute into empty or multi-instance attribute"
         const val EXPECTED_SINGLE_ENTRY_MESSAGE = "Expected a single entry but got none or more than one"
@@ -272,6 +285,9 @@ object ErrorMessages {
     }
 
     object Json {
+        fun notAStringOrArrayOfStringsMessage(value: Any) =
+            "Expected a comma separated String or an array of Strings, got: $value"
+
         const val JSON_PARSING_ERROR_MESSAGE = "JSON payload could not be parsed"
 
         fun cannotDeserializeToObjectMessage(cause: String? = null) =
@@ -318,6 +334,7 @@ object ErrorMessages {
     object QueryParameter {
         fun unparsableQueryMessage(message: String?) = "Query could not be parsed: $message"
         fun invalidQQueryMessage(message: String) = "Q query is invalid: $message"
+        fun invalidScopeQQueryMessage(scopeQ: String) = "Scope query is invalid: $scopeQ"
 
         const val MISSING_REQUIRED_QUERY_PARAMETER_MESSAGE =
             "One of 'type', 'attrs', 'q', 'geoQ' must be provided in the query unless local is true"
@@ -382,6 +399,7 @@ object ErrorMessages {
 
     object Scope {
         const val SCOPE_DOES_NOT_EXIST_MESSAGE = "Scope does not exist and operation does not allow creating it"
+        const val SCOPE_NOT_A_TARGET_ATTRIBUTE_MESSAGE = "scope cannot be the target attribute of this operation"
         fun unrecognizedOperationTypeMessage(operationType: String) = "Unrecognized operation type: $operationType"
     }
 

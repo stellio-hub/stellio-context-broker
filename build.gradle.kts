@@ -179,6 +179,8 @@ subprojects {
         )
     )
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
+    // non-blocking entropy source for SecureRandom (UUID generation), see docs/admin/performance.md
+    project.ext.set("jibContainerJvmFlags", listOf("-Djava.security.egd=file:/dev/./urandom"))
     project.ext.set(
         "jibContainerLabels",
         mapOf(

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ngsi-ld-spec": {
+      "command": "uv",
+      "args": ["run", "--with-requirements", ".claude/mcp/ngsi-ld-spec/requirements.txt", "python", ".claude/mcp/ngsi-ld-spec/server.py"]
+    }
+  }
+}

@@ -55,6 +55,7 @@ nav:
         - Upgrading to 2.34.0: 'admin/upgrading_to_2.34.0.md'
         - Upgrading to 2.35.0: 'admin/upgrading_to_2.35.0.md'
         - Upgrading to 2.37.0: 'admin/upgrading_to_2.37.0.md'
+        - Upgrading to 2.39.0: 'admin/upgrading_to_2.39.0.md'
   - Contributing :
       - Development: 'contributing/development_guide.md'
       - Error messages: 'contributing/error_messages_guideline.md'

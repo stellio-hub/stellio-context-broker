@@ -100,14 +100,16 @@ data class ExpandedEntity(
             this.plus(propertyKey to JsonLdUtils.buildNonReifiedTemporalValue(dateTime))
         else this
 
-    fun filterAttributes(includedAttributes: Set<String>): ExpandedEntity = ExpandedEntity(
-        if (includedAttributes.isEmpty()) {
-            members
-        } else members.filterKeys {
-            includedAttributes.isEmpty() ||
-                EXPANDED_ENTITY_CORE_MEMBERS.plus(includedAttributes).contains(it)
-        }
-    )
+    // attrs is a synonym for pick (TS 104 176 §6.19.3.1): scope is only kept if explicitly asked for
+    fun filterAttributes(includedAttributes: Set<String>, includeScope: Boolean = false): ExpandedEntity =
+        ExpandedEntity(
+            if (includedAttributes.isEmpty()) {
+                members
+            } else members.filterKeys {
+                it in EXPANDED_ENTITY_CORE_MEMBERS && (it != NGSILD_SCOPE_IRI || includeScope) ||
+                    it in includedAttributes
+            }
+        )
 
     fun omitAttributes(attributes: Set<String>): ExpandedEntity = ExpandedEntity(
         members.filterKeys { it !in attributes }

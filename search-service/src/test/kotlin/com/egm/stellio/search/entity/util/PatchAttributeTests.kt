@@ -172,6 +172,138 @@ class PatchAttributeTests {
                         }
                     }
                     """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListProperty",
+                            "valueList": [1, 2, 3]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListProperty",
+                            "valueList": [3, 2, 1]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListProperty",
+                            "valueList": [3, 2, 1]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListRelationship",
+                            "objectList": [
+                                { "object": "urn:ngsi-ld:Entity:01" },
+                                { "object": "urn:ngsi-ld:Entity:02" }
+                            ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListRelationship",
+                            "objectList": [
+                                { "object": "urn:ngsi-ld:Entity:02" },
+                                { "object": "urn:ngsi-ld:Entity:01" }
+                            ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListRelationship",
+                            "objectList": [
+                                { "object": "urn:ngsi-ld:Entity:02" },
+                                { "object": "urn:ngsi-ld:Entity:01" }
+                            ]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subListProperty": {
+                                "type": "ListProperty",
+                                "valueList": [1, 2, 3]
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subListProperty": {
+                                "type": "ListProperty",
+                                "valueList": ["urn:ngsi-ld:null"]
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subListRelationship": {
+                                "type": "ListRelationship",
+                                "objectList": [
+                                    { "object": "urn:ngsi-ld:Entity:01" },
+                                    { "object": "urn:ngsi-ld:Entity:02" }
+                                ]
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subListRelationship": {
+                                "type": "ListRelationship",
+                                "objectList": ["urn:ngsi-ld:null"]
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
+                        }
+                    }
+                    """.trimIndent()
                 )
             )
         }
@@ -451,6 +583,138 @@ class PatchAttributeTests {
                         "attribute": {
                             "type": "VocabProperty",
                             "vocab": ["egm", "nantes"]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListProperty",
+                            "valueList": [1, 2, 3]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListProperty",
+                            "valueList": [3, 2, 1]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListProperty",
+                            "valueList": [3, 2, 1]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListRelationship",
+                            "objectList": [
+                                { "object": "urn:ngsi-ld:Entity:01" },
+                                { "object": "urn:ngsi-ld:Entity:02" }
+                            ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListRelationship",
+                            "objectList": [
+                                { "object": "urn:ngsi-ld:Entity:02" },
+                                { "object": "urn:ngsi-ld:Entity:01" }
+                            ]
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "ListRelationship",
+                            "objectList": [
+                                { "object": "urn:ngsi-ld:Entity:02" },
+                                { "object": "urn:ngsi-ld:Entity:01" }
+                            ]
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subListProperty": {
+                                "type": "ListProperty",
+                                "valueList": [1, 2, 3]
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subListProperty": {
+                                "type": "ListProperty",
+                                "valueList": ["urn:ngsi-ld:null"]
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
+                        }
+                    }
+                    """.trimIndent()
+                ),
+                Arguments.of(
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subListRelationship": {
+                                "type": "ListRelationship",
+                                "objectList": [
+                                    { "object": "urn:ngsi-ld:Entity:01" },
+                                    { "object": "urn:ngsi-ld:Entity:02" }
+                                ]
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5,
+                            "subListRelationship": {
+                                "type": "ListRelationship",
+                                "objectList": ["urn:ngsi-ld:null"]
+                            }
+                        }
+                    }
+                    """.trimIndent(),
+                    """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": 12.5
                         }
                     }
                     """.trimIndent()

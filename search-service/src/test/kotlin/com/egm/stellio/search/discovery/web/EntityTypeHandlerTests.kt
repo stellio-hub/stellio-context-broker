@@ -3,6 +3,10 @@ package com.egm.stellio.search.discovery.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
+import com.egm.stellio.search.csr.model.MiscellaneousWarning
+import com.egm.stellio.search.csr.model.NGSILDWarning
+import com.egm.stellio.search.csr.service.DistributedDiscoveryService
 import com.egm.stellio.search.discovery.model.AttributeInfo
 import com.egm.stellio.search.discovery.model.AttributeType
 import com.egm.stellio.search.discovery.model.EntityType
@@ -24,6 +28,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockkClass
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -50,6 +55,11 @@ class EntityTypeHandlerTests {
 
     @MockkBean
     private lateinit var entityTypeService: EntityTypeService
+
+    @MockkBean
+    private lateinit var distributedDiscoveryService: DistributedDiscoveryService
+
+    private val csrWarning = MiscellaneousWarning("CSR unreachable", gimmeRawCSR())
 
     private val deadFishesType = "https://ontology.eglobalmark.com/aquac#DeadFishes"
     private val sensorType = "https://ontology.eglobalmark.com/egm#Sensor"
@@ -121,6 +131,17 @@ class EntityTypeHandlerTests {
             .apply(csrf())
             .build()
     }
+
+    @BeforeEach
+    fun mockNoMatchingContextSource() {
+        coEvery { distributedDiscoveryService.distributeRetrieveEntityTypes(any(), any()) } returns noResults()
+        coEvery { distributedDiscoveryService.distributeRetrieveEntityTypeDetails(any(), any()) } returns noResults()
+        coEvery {
+            distributedDiscoveryService.distributeRetrieveEntityTypeInfo(any(), any(), any())
+        } returns noResults()
+    }
+
+    private fun <T> noResults(): Pair<List<NGSILDWarning>, List<T>> = emptyList<NGSILDWarning>() to emptyList()
 
     @Test
     fun `get entity types should return a 200 and an EntityTypeList`() {
@@ -315,5 +336,71 @@ class EntityTypeHandlerTests {
                       }
                 """
             )
+    }
+
+    @Test
+    fun `get entity types should merge local and remote types and return the warnings`() {
+        coEvery { entityTypeService.getEntityTypeList(any()) } returns EntityTypeList(typeList = listOf(sensorType))
+        coEvery { distributedDiscoveryService.distributeRetrieveEntityTypes(any(), any()) } returns
+            (listOf(csrWarning) to listOf(EntityTypeList(typeList = listOf(deadFishesType, sensorType))))
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/types")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(NGSILDWarning.HEADER_NAME, csrWarning.getHeaderMessage())
+            .expectBody()
+            .jsonPath("$.typeList").isEqualTo(listOf(deadFishesType, sensorType))
+    }
+
+    @Test
+    fun `get entity types should not contact context sources if local is true`() {
+        coEvery { entityTypeService.getEntityTypes(any()) } returns emptyList()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/types?details=true&local=true")
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify(exactly = 0) { distributedDiscoveryService.distributeRetrieveEntityTypeDetails(any(), any()) }
+    }
+
+    @Test
+    fun `get entity type information should return a 200 if the type is only known by a context source`() {
+        coEvery { entityTypeService.getEntityTypeInfoByType(any(), any()) } returns
+            ResourceNotFoundException(typeNotFoundMessage(BEEHIVE_IRI)).left()
+        val remoteEntityTypeInfo = EntityTypeInfo(
+            id = BEEHIVE_IRI.toUri(),
+            typeName = BEEHIVE_TERM,
+            entityCount = 3,
+            attributeDetails = emptyList()
+        )
+        coEvery { distributedDiscoveryService.distributeRetrieveEntityTypeInfo(any(), any(), any()) } returns
+            (emptyList<NGSILDWarning>() to listOf(remoteEntityTypeInfo))
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/types/$BEEHIVE_TERM")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.entityCount").isEqualTo(3)
+
+        coVerify { distributedDiscoveryService.distributeRetrieveEntityTypeInfo(BEEHIVE_IRI, any(), any()) }
+    }
+
+    @Test
+    fun `get entity type information should return a 404 with the warnings if no source knows the type`() {
+        coEvery { entityTypeService.getEntityTypeInfoByType(any(), any()) } returns
+            ResourceNotFoundException(typeNotFoundMessage(BEEHIVE_IRI)).left()
+        coEvery { distributedDiscoveryService.distributeRetrieveEntityTypeInfo(any(), any(), any()) } returns
+            (listOf(csrWarning) to emptyList())
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/types/$BEEHIVE_TERM")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isNotFound
+            .expectHeader().valueEquals(NGSILDWarning.HEADER_NAME, csrWarning.getHeaderMessage())
     }
 }

@@ -1,0 +1,19 @@
+# Settings for load test campaigns (see docs/admin/performance.md), to apply on top of docker-compose.yml:
+#   docker compose -f docker-compose.yml -f perf/docker-compose-perf.yml up -d
+services:
+  postgres:
+    environment:
+      # pg_stat_statements has to be preloaded (only applied when the data volume is created)
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,timescaledb,pgcrypto,pg_stat_statements
+      - SHARED_PRELOAD_LIBRARIES=timescaledb,pg_cron,pg_stat_statements
+  search-service:
+    environment:
+      # size of the connection pool to the database (default is 10)
+      - SPRING_R2DBC_URL=r2dbc:pool:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}?maxSize=${SEARCH_SERVICE_DB_POOL_MAX_SIZE:-10}
+      # read-only access to /actuator/metrics (JVM, HTTP server, R2DBC pool, ...)
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,metrics
+      - MANAGEMENT_ENDPOINT_METRICS_ACCESS=read_only
+  api-gateway:
+    environment:
+      # Logbook logs the requests and responses at TRACE level, set LOGBOOK_LOG_LEVEL=OFF to disable it
+      - LOGGING_LEVEL_ORG_ZALANDO_LOGBOOK=${LOGBOOK_LOG_LEVEL:-TRACE}

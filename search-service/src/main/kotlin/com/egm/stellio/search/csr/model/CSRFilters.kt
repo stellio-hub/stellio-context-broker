@@ -32,7 +32,7 @@ open class CSRFilters( // we should use a combination of EntitiesQuery TemporalQ
             ids,
             typeSelection,
             idPattern,
-            csf = operations?.joinToString(",") { "${ContextSourceRegistration::operations.name}==${it.key}" },
+            csf = operations?.joinToString("|") { "${ContextSourceRegistration::operations.name}==${it.key}" },
             attrs
         )
 

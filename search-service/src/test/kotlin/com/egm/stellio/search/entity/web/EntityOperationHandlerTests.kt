@@ -2,6 +2,7 @@ package com.egm.stellio.search.entity.web
 
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.entity.model.EntitiesQueryFromPost
 import com.egm.stellio.search.entity.service.EntityOperationService
 import com.egm.stellio.search.entity.service.EntityQueryService
@@ -550,8 +551,8 @@ class EntityOperationHandlerTests {
             entityQueryService.queryEntities(any())
         } returns Pair(emptyList<ExpandedEntity>(), 0).right()
         coEvery {
-            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any())
-        } returns emptyList<CompactedEntity>().right()
+            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any(), any())
+        } returns (emptyList<CompactedEntity>() to emptyList<NGSILDWarning>()).right()
 
         val query = """
             {
@@ -590,8 +591,8 @@ class EntityOperationHandlerTests {
             entityQueryService.queryEntities(any())
         } returns Pair(emptyList<ExpandedEntity>(), 0).right()
         coEvery {
-            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any())
-        } returns emptyList<CompactedEntity>().right()
+            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any(), any())
+        } returns (emptyList<CompactedEntity>() to emptyList<NGSILDWarning>()).right()
 
         val query = """
             {
@@ -624,8 +625,8 @@ class EntityOperationHandlerTests {
             entityQueryService.queryEntities(any())
         } returns Pair(emptyList<ExpandedEntity>(), 0).right()
         coEvery {
-            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any())
-        } returns emptyList<CompactedEntity>().right()
+            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any(), any())
+        } returns (emptyList<CompactedEntity>() to emptyList<NGSILDWarning>()).right()
 
         val query = """
             {
@@ -667,8 +668,8 @@ class EntityOperationHandlerTests {
             entityQueryService.queryEntities(any())
         } returns Pair(listOf(loadAndExpandSampleData("beehive_for_replacement.jsonld")), 1).right()
         coEvery {
-            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any())
-        } answers { firstArg<List<CompactedEntity>>().right() }
+            linkedEntityService.processLinkedEntities(any<List<CompactedEntity>>(), any(), any())
+        } answers { (firstArg<List<CompactedEntity>>() to emptyList<NGSILDWarning>()).right() }
 
         val query = """
             {

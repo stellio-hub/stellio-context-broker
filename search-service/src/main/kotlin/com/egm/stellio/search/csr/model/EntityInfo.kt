@@ -18,7 +18,7 @@ import java.net.URI
 import java.util.regex.Pattern
 
 /**
- * EntityInfo type as defined in 5.2.8
+ * EntityInfo type as defined in TS 104 175 §5.2.6.6.2
  */
 data class EntityInfo(
     val id: URI? = null,

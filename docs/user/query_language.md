@@ -1,6 +1,6 @@
 # Query Language
 
-Stellio implements the NGSI-LD Query Language as defined in [ETSI GS CIM 009 §4.9](https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.9).
+Stellio implements the NGSI-LD Query Language as defined in [ETSI TS 104 175 §7.2.3](https://ngsild.org/ts104175/html/index.html#7.2.3).
 It is available through the `q` query parameter on:
 
 - `GET /ngsi-ld/v1/entities`

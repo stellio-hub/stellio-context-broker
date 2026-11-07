@@ -50,7 +50,7 @@ data class AttributeInstance private constructor(
             value = attributeMetadata.value,
             measuredValue = attributeMetadata.measuredValue,
             geoValue = attributeMetadata.geoValue,
-            payload = payload.addInstanceId(instanceId).addModifiedAt(modifiedAt).asJsonB(),
+            payload = buildPayload(payload, instanceId, modifiedAt),
             sub = sub
         )
 
@@ -69,9 +69,15 @@ data class AttributeInstance private constructor(
             value = value.first,
             measuredValue = value.second,
             geoValue = value.third,
-            payload = payload.addInstanceId(instanceId).asJsonB(),
+            payload = buildPayload(payload, instanceId, null),
             sub = sub
         )
+
+        internal fun buildPayload(
+            payload: ExpandedAttributeInstance,
+            instanceId: URI,
+            modifiedAt: ZonedDateTime?
+        ): Json = payload.addInstanceId(instanceId).addModifiedAt(modifiedAt).asJsonB()
 
         private fun ExpandedAttributeInstance.addInstanceId(instanceId: URI): ExpandedAttributeInstance =
             this.plus(NGSILD_INSTANCE_ID_IRI to buildNonReifiedPropertyValue(instanceId.toString()))
@@ -84,7 +90,7 @@ data class AttributeInstance private constructor(
         private fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
     }
 
-    // a TemporalProperty as defined in 4.8
+    // a TemporalProperty as defined in TS 104 175 §5.2.4
     enum class TemporalProperty(val propertyName: String) {
         OBSERVED_AT("observedAt"),
         CREATED_AT("createdAt"),

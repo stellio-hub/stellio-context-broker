@@ -34,7 +34,7 @@ import java.util.UUID
 typealias SingleEntityInfoCSR = ContextSourceRegistration
 
 /**
- * CSourceRegistration type as defined in 5.2.9
+ * CSourceRegistration type as defined in TS 104 175 §5.2.6.5.3
  */
 data class ContextSourceRegistration(
     val id: URI = "urn:ngsi-ld:ContextSourceRegistration:${UUID.randomUUID()}".toUri(),
@@ -64,6 +64,15 @@ data class ContextSourceRegistration(
     @JsonIgnore
     fun isMatchingOperation(operation: Operation): Boolean =
         operations.any { it in operation.getMatchingOperations() }
+
+    @JsonIgnore
+    fun isTypeAllowed(type: ExpandedTerm): Boolean =
+        information.any { it.allowsType(type) }
+
+    // a type and an attribute are only allowed together if they are declared in the same RegistrationInfo
+    @JsonIgnore
+    fun isAttributeAllowed(attribute: ExpandedTerm, forType: ExpandedTerm? = null): Boolean =
+        information.any { it.allowsAttribute(attribute) && (forType == null || it.allowsType(forType)) }
 
     data class TimeInterval(
         val start: ZonedDateTime,

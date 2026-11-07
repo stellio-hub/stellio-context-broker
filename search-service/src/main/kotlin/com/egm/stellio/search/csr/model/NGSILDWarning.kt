@@ -4,7 +4,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 
 /**
- * Implements NGSILD-Warning as defined in 6.3.17
+ * Implements NGSILD-Warning as defined in TS 104 176 §6.3.5
  */
 open class NGSILDWarning(
     private val code: Int,
@@ -50,7 +50,7 @@ data class MiscellaneousPersistentWarning(
 fun ResponseEntity<*>.addWarnings(warnings: List<NGSILDWarning>?): ResponseEntity<*> =
     if (!warnings.isNullOrEmpty()) {
         val headers = HttpHeaders(this.headers).apply {
-            addAll(NGSILDWarning.HEADER_NAME, warnings.map { it.getHeaderMessage() })
+            addAll(NGSILDWarning.HEADER_NAME, warnings.map { it.getHeaderMessage() }.distinct())
         }
 
         ResponseEntity.status(this.statusCode)

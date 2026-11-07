@@ -20,7 +20,6 @@ import com.egm.stellio.search.temporal.web.Range
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityOrAttrsNotFoundMessage
 import org.springframework.stereotype.Service
@@ -61,7 +60,7 @@ class TemporalQueryService(
         val origin = calculateOldestTimestamp(entityId, temporalEntitiesQuery, attributes)
 
         val scopeHistory =
-            if ((pick.isEmpty() || pick.contains(NGSILD_SCOPE_IRI)) && !omit.contains(NGSILD_SCOPE_IRI))
+            if (temporalEntitiesQuery.includesScope())
                 scopeService.retrieveHistory(listOf(entityId), temporalEntitiesQuery, origin).bind()
             else emptyList()
 
@@ -101,9 +100,8 @@ class TemporalQueryService(
             val originForAttributes =
                 attributeInstanceService.selectOldestDate(temporalQuery, attributes)
 
-            val attrs = temporalEntitiesQuery.entitiesQuery.attrs
             val originForScope =
-                if (attrs.isEmpty() || attrs.contains(NGSILD_SCOPE_IRI))
+                if (temporalEntitiesQuery.includesScope())
                     scopeService.selectOldestDate(entityId, temporalEntitiesQuery.temporalQuery.timeproperty)
                 else null
 
@@ -145,7 +143,7 @@ class TemporalQueryService(
         )
 
         val scopesHistory =
-            if ((pick.isEmpty() || pick.contains(NGSILD_SCOPE_IRI)) && !omit.contains(NGSILD_SCOPE_IRI))
+            if (temporalEntitiesQuery.includesScope())
                 scopeService.retrieveHistory(entitiesIds, temporalEntitiesQuery).bind().groupBy { it.entityId }
             else emptyMap()
 

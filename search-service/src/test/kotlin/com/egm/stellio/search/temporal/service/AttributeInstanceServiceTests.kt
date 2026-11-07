@@ -20,15 +20,20 @@ import com.egm.stellio.search.support.gimmeNumericPropertyAttributeInstance
 import com.egm.stellio.search.support.gimmePropertyAttributeInstance
 import com.egm.stellio.search.support.gimmeTemporalEntitiesQuery
 import com.egm.stellio.search.support.gimmeVocabPropertyAttributeInstance
+import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.AttributeInstance
 import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.model.TemporalQuery.Timerel
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
+import com.egm.stellio.search.temporal.util.WHOLE_TIME_RANGE_DURATION
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_LANGUAGE_KW
+import com.egm.stellio.shared.model.JSONLD_LIST_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATE_TIME_TYPE
@@ -59,6 +64,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.buildExpandedPropertyValue
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.LUMINOSITY_IRI
 import com.egm.stellio.shared.util.LUMINOSITY_TERM
+import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.OUTGOING_TERM
 import com.egm.stellio.shared.util.loadSampleData
@@ -192,6 +198,45 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
             .fetch()
             .rowsUpdated()
             .block()
+    }
+
+    @Test
+    fun `partial update should reject invalid list objects without changing stored data`() = runTest {
+        val name = "${NGSILD_DEFAULT_VOCAB}validatedObjects"
+        val payload = """
+            {
+                "id": "$entityId",
+                "type": "BeeHive",
+                "$name": {
+                    "type": "ListRelationship",
+                    "objectList": [{"object": "urn:entity:1"}],
+                    "observedAt": "2026-10-01T12:00:00Z"
+                }
+            }
+        """.trimIndent()
+        entityAttributeService.createAttributes(payload, NGSILD_TEST_CORE_CONTEXTS).shouldSucceed()
+        val attribute = entityAttributeService.getForEntity(entityId, setOf(name), emptySet(), emptySet()).single()
+        for (invalidEntry in listOf(mapOf("object" to 42), emptyMap<String, Any>())) {
+            val patch = JsonLdUtils.expandAttribute(
+                name,
+                mapOf(
+                    "type" to "ListRelationship",
+                    "objectList" to listOf(invalidEntry),
+                    "observedAt" to "2026-10-02T12:00:00Z"
+                ),
+                NGSILD_TEST_CORE_CONTEXTS
+            )
+            entityAttributeService.partialUpdateAttribute(entityId, patch, now).shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(400, it.status.value())
+            }
+        }
+        val current = entityAttributeService.getForEntity(entityId, setOf(name), emptySet(), emptySet()).single()
+        assertEquals(attribute.payload.asString(), current.payload.asString())
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(buildDefaultTestTemporalQuery(), TemporalRepresentation.TEMPORAL_VALUES),
+            current
+        ).shouldSucceedWith { assertEquals(1, it.size) }
     }
 
     @Test
@@ -965,6 +1010,86 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
+    fun `modifyAttributeInstance should move the instance to the new observedAt`() = runTest {
+        val attributeInstance = gimmeNumericPropertyAttributeInstance(
+            incomingAttribute.id,
+            time = ZonedDateTime.parse("2025-06-01T00:00:00Z")
+        )
+        attributeInstanceService.create(attributeInstance).shouldSucceed()
+
+        attributeInstanceService.modifyAttributeInstance(
+            entityId,
+            INCOMING_IRI,
+            attributeInstance.instanceId,
+            loadTemporalInstanceFragment()
+        ).shouldSucceed()
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
+                )
+            ),
+            incomingAttribute
+        ).shouldSucceedWith {
+            val result = (it as List<FullAttributeInstanceResult>).single()
+            assertEquals(ZonedDateTime.parse("2023-03-13T12:33:06Z"), result.time)
+            assertThat(result.payload).contains(attributeInstance.instanceId.toString())
+        }
+    }
+
+    @Test
+    fun `modifyAttributeInstance should replace another instance existing at the new observedAt`() = runTest {
+        val attributeInstance = gimmeNumericPropertyAttributeInstance(
+            incomingAttribute.id,
+            time = ZonedDateTime.parse("2025-06-01T00:00:00Z")
+        )
+        attributeInstanceService.create(attributeInstance).shouldSucceed()
+        val otherAttributeInstance = gimmeNumericPropertyAttributeInstance(
+            incomingAttribute.id,
+            time = ZonedDateTime.parse("2023-03-13T12:33:06Z")
+        )
+        attributeInstanceService.create(otherAttributeInstance).shouldSucceed()
+
+        attributeInstanceService.modifyAttributeInstance(
+            entityId,
+            INCOMING_IRI,
+            attributeInstance.instanceId,
+            loadTemporalInstanceFragment()
+        ).shouldSucceed()
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = ZonedDateTime.parse("1970-01-01T00:00:00Z")
+                )
+            ),
+            incomingAttribute
+        ).shouldSucceedWith {
+            val result = (it as List<FullAttributeInstanceResult>).single()
+            assertEquals(ZonedDateTime.parse("2023-03-13T12:33:06Z"), result.time)
+            assertThat(result.payload).contains(attributeInstance.instanceId.toString())
+        }
+    }
+
+    @Test
+    fun `modifyAttributeInstance should return a ResourceNotFound error if the instance is not found`() = runTest {
+        val instanceId = "urn:ngsi-ld:Instance:notFound".toUri()
+
+        attributeInstanceService.modifyAttributeInstance(
+            entityId,
+            INCOMING_IRI,
+            instanceId,
+            loadTemporalInstanceFragment()
+        ).shouldFail {
+            assertInstanceOf(ResourceNotFoundException::class.java, it)
+            assertEquals(attributeOrInstanceNotFoundMessage(INCOMING_IRI, instanceId.toString()), it.message)
+        }
+    }
+
+    @Test
     fun `deleteInstance should delete attribute instance`() = runTest {
         val attributeInstance = gimmeNumericPropertyAttributeInstance(incomingAttribute.id)
         attributeInstanceService.create(attributeInstance).shouldSucceed()
@@ -1253,6 +1378,51 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
     }
 
     @Test
+    fun `search should aggregate the length of list attributes stored as JSON-LD lists`() = runTest {
+        val listAttribute = Attribute(
+            entityId = entityId,
+            attributeName = "listProperty",
+            attributeType = Attribute.AttributeType.ListProperty,
+            attributeValueType = Attribute.AttributeValueType.ARRAY,
+            createdAt = now,
+            payload = EMPTY_JSON_PAYLOAD
+        )
+        entityAttributeService.upsert(listAttribute)
+
+        listOf(
+            mapOf(JSONLD_LIST_KW to listOf(mapOf(JSONLD_VALUE_KW to 1), mapOf(JSONLD_VALUE_KW to 2))),
+            mapOf(JSONLD_LIST_KW to listOf(mapOf(JSONLD_VALUE_KW to "a"))),
+            listOf("plain", "array", "value")
+        ).forEachIndexed { index, value ->
+            attributeInstanceService.create(
+                gimmePropertyAttributeInstance(
+                    attributeUuid = listAttribute.id,
+                    value = value,
+                    valueType = Attribute.AttributeValueType.ARRAY,
+                    time = now.plusHours(index.toLong())
+                )
+            )
+        }
+
+        attributeInstanceService.search(
+            gimmeTemporalEntitiesQuery(
+                buildDefaultTestTemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = now,
+                    aggrPeriodDuration = WHOLE_TIME_RANGE_DURATION,
+                    aggrMethods = listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.MAX)
+                ),
+                TemporalRepresentation.AGGREGATED_VALUES
+            ),
+            listAttribute
+        ).shouldSucceedWith { results ->
+            val aggregates = (results.single() as AggregatedAttributeInstanceResult).values
+                .associate { it.aggregate to (it.value as Number).toInt() }
+            assertEquals(mapOf(TemporalQuery.Aggregate.SUM to 6, TemporalQuery.Aggregate.MAX to 3), aggregates)
+        }
+    }
+
+    @Test
     fun `search should retrieve temporal values for geoproperty`() = runTest {
         val geoAttribute = Attribute(
             entityId = entityId,
@@ -1297,5 +1467,13 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                     geoValues.map { wktToGeoJson(it.value) }
                 )
         }
+    }
+
+    private suspend fun loadTemporalInstanceFragment(): ExpandedAttributeInstances {
+        val attributeInstancePayload =
+            mapOf(INCOMING_TERM to loadSampleData("fragments/temporal_instance_fragment.jsonld").deserializeAsMap())
+        val jsonLdAttribute =
+            JsonLdUtils.expandJsonLdFragment(attributeInstancePayload, APIC_COMPOUND_CONTEXTS) as ExpandedAttributes
+        return jsonLdAttribute.entries.first().value
     }
 }

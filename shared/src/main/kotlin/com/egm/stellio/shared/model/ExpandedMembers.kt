@@ -7,11 +7,13 @@ import arrow.core.raise.ensureNotNull
 import com.egm.stellio.shared.util.ErrorMessages.Entity.CANNOT_ADD_SUBATTRIBUTE_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.EXPECTED_SINGLE_ENTRY_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeMissingValueMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.listRelationshipInvalidObjectMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipEmptyMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipInvalidObjectIdMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipInvalidObjectTypeMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.relationshipMissingObjectMessage
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
+import com.egm.stellio.shared.util.isURI
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.LocalDate
@@ -76,24 +78,21 @@ fun ExpandedAttributeInstances.getSingleEntry(): ExpandedAttributeInstance {
 }
 
 fun ExpandedAttributeInstance.addSysAttrs(
-    withSysAttrs: Boolean,
     createdAt: ZonedDateTime,
     modifiedAt: ZonedDateTime? = null,
     deletedAt: ZonedDateTime? = null
 ): ExpandedAttributeInstance =
-    if (withSysAttrs)
-        this.plus(NGSILD_CREATED_AT_IRI to buildNonReifiedTemporalValue(createdAt))
-            .let {
-                if (modifiedAt != null)
-                    it.plus(NGSILD_MODIFIED_AT_IRI to buildNonReifiedTemporalValue(modifiedAt))
-                else it
-            }
-            .let {
-                if (deletedAt != null)
-                    it.plus(NGSILD_DELETED_AT_IRI to buildNonReifiedTemporalValue(deletedAt))
-                else it
-            }
-    else this
+    this.plus(NGSILD_CREATED_AT_IRI to buildNonReifiedTemporalValue(createdAt))
+        .let {
+            if (modifiedAt != null)
+                it.plus(NGSILD_MODIFIED_AT_IRI to buildNonReifiedTemporalValue(modifiedAt))
+            else it
+        }
+        .let {
+            if (deletedAt != null)
+                it.plus(NGSILD_DELETED_AT_IRI to buildNonReifiedTemporalValue(deletedAt))
+            else it
+        }
 
 /**
  * Extract the actual value (@value) of a member from an expanded property.
@@ -198,6 +197,37 @@ fun ExpandedAttributeInstance.getRelationshipObjects(name: String = ""):
         ensure(idList.isNotEmpty()) { BadRequestDataException(relationshipEmptyMessage(name)) }
         if (idList.size == 1) RelationshipObjects.Single(idList.first())
         else RelationshipObjects.Multiple(idList)
+    }
+}
+
+/**
+ * Validates ordered relationship entries and extracts their URI values without losing order or duplicates.
+ *
+ * In the normalized form, entries are {"object": <URI>} (TS 104 175 §5.2.6.4.9). The only plain string accepted is
+ * the NGSI-LD Null, used to delete the attribute.
+ */
+fun Any.getListRelationshipObjects(name: String): Either<BadRequestDataException, List<String>> = either {
+    val entries = ensureNotNull(
+        (this@getListRelationshipObjects as? Map<*, *>)?.get(JSONLD_LIST_KW) as? List<*>
+    ) {
+        BadRequestDataException(listRelationshipInvalidObjectMessage(name, this@getListRelationshipObjects))
+    }
+    entries.map { rawEntry ->
+        val entry = rawEntry as? Map<*, *>
+        val objectValue = if (entry?.size == 1) {
+            if (entry.containsKey(NGSILD_RELATIONSHIP_OBJECT)) {
+                ((entry[NGSILD_RELATIONSHIP_OBJECT] as? List<*>)?.singleOrNull() as? Map<*, *>)
+                    ?.takeIf { it.size == 1 }?.get(JSONLD_ID_KW)
+            } else {
+                entry[JSONLD_VALUE_KW]?.takeIf { it == NGSILD_NULL }
+            }
+        } else {
+            null
+        }
+        ensure(objectValue is String && objectValue.isURI()) {
+            BadRequestDataException(listRelationshipInvalidObjectMessage(name, rawEntry))
+        }
+        objectValue
     }
 }
 

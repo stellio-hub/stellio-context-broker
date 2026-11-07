@@ -12,7 +12,7 @@ import org.springframework.http.MediaType
 import org.springframework.util.MultiValueMap
 
 /**
- * Wrapper data class used to convey possible NGSI-LD Data Representations for entities as defined in 4.5
+ * Wrapper data class used to convey possible NGSI-LD Data Representations for entities as defined in TS 104 175 §5.3
  */
 data class NgsiLdDataRepresentation(
     val entityRepresentation: EntityRepresentation,

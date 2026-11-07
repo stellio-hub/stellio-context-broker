@@ -4,9 +4,11 @@ import com.egm.stellio.shared.model.EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.fasterxml.jackson.annotation.JsonIgnore
 import java.net.URI
+import java.time.ZonedDateTime
+import java.util.UUID
 
 /**
- * UpdateResult datatype as defined in 5.2.18
+ * UpdateResult datatype as defined in TS 104 175 §5.2.6.8.5
  */
 data class UpdateResult(
     val updated: List<String>,
@@ -37,7 +39,7 @@ data class UpdateResult(
 val EMPTY_UPDATE_RESULT: UpdateResult = UpdateResult(emptyList(), emptyList())
 
 /**
- * NotUpdatedDetails as defined in 5.2.19
+ * NotUpdatedDetails (NotUpdatedResult) as defined in TS 104 175 §5.2.6.8.4
  */
 data class NotUpdatedDetails(
     val attributeName: String,
@@ -83,6 +85,17 @@ enum class OperationStatus {
 fun List<AttributeOperationResult>.hasSuccessfulResult(): Boolean =
     this.any { it is SucceededAttributeOperationResult }
 
-fun List<AttributeOperationResult>.getSucceededAttributesOperations(): List<SucceededAttributeOperationResult> =
+fun List<AttributeOperationResult>.getSucceededOperations(
+    onlyAttributes: Boolean = true
+): List<SucceededAttributeOperationResult> =
     this.filterIsInstance<SucceededAttributeOperationResult>()
-        .filter { it.attributeName !in EXPANDED_ENTITY_CORE_MEMBERS }
+        .let {
+            if (onlyAttributes)
+                it.filter { result -> result.attributeName !in EXPANDED_ENTITY_CORE_MEMBERS }
+            else it
+        }
+
+/**
+ * Result of an attribute upsert conveying the DB-generated UUID and timestamps to use when updating the entity payload
+ */
+internal data class AttributeUpsertResult(val id: UUID, val createdAt: ZonedDateTime, val modifiedAt: ZonedDateTime)

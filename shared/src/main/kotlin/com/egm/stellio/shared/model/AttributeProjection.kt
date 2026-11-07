@@ -20,7 +20,8 @@ import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.projectionInvali
 import com.egm.stellio.shared.util.isNgsiLdSupportedName
 
 /**
- * Represents a parsed attribute projection expression following the NGSI-LD Attribute Projection Language (4.21).
+ * Represents a parsed attribute projection expression following the NGSI-LD Attribute projection language
+ * (TS 104 175 §7.3.2).
  *
  * For example, the following expression: `pick=observation{temperature,humidity}` will be parsed as:
  * ```
@@ -47,7 +48,7 @@ data class AttributeProjection(
 
         /**
          * Parse pick/omit parameters, according to NGSI-LD Attribute Projection Language ABNF grammar
-         * as defined in section 4.21 of the NGSI-LD specification.
+         * as defined in TS 104 175 §7.3.2.
          */
         fun parsePickOmitParameters(
             pickParam: String?,
@@ -227,28 +228,5 @@ private fun List<AttributeProjection>.getRootAttributes(projectionType: Projecti
 fun List<AttributeProjection>.removeAttributes(attributes: Set<String>): List<AttributeProjection> =
     filter { it.attributeName !in attributes }
 
-fun List<AttributeProjection>.getAttributesToPickFor(parentAttributeName: String, level: UInt): Set<String> =
-    getAttributesFor(parentAttributeName, level, ProjectionType.PICK)
-
-fun List<AttributeProjection>.getAttributesToOmitFor(parentAttributeName: String, level: UInt): Set<String> =
-    getAttributesFor(parentAttributeName, level, ProjectionType.OMIT)
-
-private fun List<AttributeProjection>.getAttributesFor(
-    parentAttributeName: String,
-    level: UInt,
-    projectionType: ProjectionType
-): Set<String> =
-    if (level.toInt() == 1)
-        filter { it.attributeName == parentAttributeName }
-            .flatMap { it.nestedProjections ?: emptyList() }
-            .mapNotNull {
-                when (projectionType) {
-                    ProjectionType.PICK -> it.attributeName
-                    // for omit projection, only consider the leaves
-                    ProjectionType.OMIT -> if (it.nestedProjections == null) it.attributeName else null
-                }
-            }
-            .toSet()
-    else
-        flatMap { it.nestedProjections ?: emptyList() }
-            .getAttributesFor(parentAttributeName, level - 1.toUInt(), projectionType)
+fun List<AttributeProjection>.getNestedProjectionsFor(relationshipName: String): List<AttributeProjection> =
+    filter { it.attributeName == relationshipName }.flatMap { it.nestedProjections.orEmpty() }

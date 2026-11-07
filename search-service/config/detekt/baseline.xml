@@ -8,6 +8,7 @@
     <ID>ComplexCondition:EntitiesQueryUtils.kt$typeSelection.isNullOrEmpty() &amp;&amp; keep.isEmpty() &amp;&amp; drop.isEmpty() &amp;&amp; q == null &amp;&amp; geoQuery == null &amp;&amp; !local</ID>
     <ID>Filename:V0_29__JsonLd_migration.kt$db.migration.V0_29__JsonLd_migration.kt</ID>
     <ID>LongMethod:AttributeInstanceService.kt$AttributeInstanceService$@Transactional suspend fun create(attributeInstance: AttributeInstance): Either&lt;APIException, Unit&gt;</ID>
+    <ID>LongMethod:AttributeUtils.kt$fun NgsiLdAttributeInstance.toAttributeMetadata(): Either&lt;APIException, AttributeMetadata&gt;</ID>
     <ID>LongMethod:ContextSourceRegistrationService.kt$ContextSourceRegistrationService$@Transactional suspend fun upsert( csr: ContextSourceRegistration ): Either&lt;APIException, Unit&gt;</ID>
     <ID>LongMethod:EntitiesQueryUtils.kt$fun composeEntitiesQueryFromPost( defaultPagination: ApplicationProperties.Pagination, query: Query, queryParams: MultiValueMap&lt;String, String&gt;, contexts: List&lt;String&gt; ): Either&lt;APIException, EntitiesQueryFromPost&gt;</ID>
     <ID>LongMethod:EntitiesQueryUtilsTests.kt$EntitiesQueryUtilsTests$@Test fun `composeEntitiesQueryFromPost should parse a valid complete Query datatype`()</ID>
@@ -17,7 +18,6 @@
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun mergePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:PatchAttributeTests.kt$PatchAttributeTests.Companion$@JvmStatic fun partialUpdatePatchProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:PermissionHandlerTests.kt$PermissionHandlerTests$@Test fun `query Permissions with details=true should return entire entity and subject information`()</ID>
-    <ID>LongMethod:ServiceRegistrationTests.kt$ServiceRegistrationTests$@Test fun `deserialize should parse a complete service registration`()</ID>
     <ID>LongMethod:TemporalEntityBuilder.kt$TemporalEntityBuilder$private fun buildAttributesSimplifiedRepresentation( attributeAndResultsMap: AttributesWithInstances, coreContext: String ): Map&lt;Attribute, SimplifiedTemporalAttribute&gt;</ID>
     <ID>LongMethod:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( attributeUuid: UUID, instanceId: URI = generateRandomInstanceId(), timeAndProperty: Pair&lt;ZonedDateTime, TemporalProperty&gt;, value: Triple&lt;Json?, Double?, WKTCoordinates?&gt;, payload: ExpandedAttributeInstance, sub: String? )</ID>
@@ -55,7 +55,5 @@
     <ID>MaxLineLength:PermissionServiceTests.kt$PermissionServiceTests$fun</ID>
     <ID>NestedBlockDepth:DistributedEntityProvisionService.kt$DistributedEntityProvisionService$suspend fun distributePurgeEntities( httpHeaders: HttpHeaders, entitiesQuery: EntitiesQueryFromGet, queryParams: MultiValueMap&lt;String, String&gt; ): Either&lt;APIException, BatchOperationResult&gt;</ID>
     <ID>NestedBlockDepth:V0_29__JsonLd_migration.kt$V0_29__JsonLd_migration$override fun migrate(context: Context)</ID>
-    <ID>UnusedPrivateProperty:ServiceExecutionLauncherTests.kt$ServiceExecutionLauncherTests$@MockkBean private lateinit var serviceExecutionService: ServiceExecutionService</ID>
-    <ID>UnusedPrivateProperty:ServiceExecutionLauncherTests.kt$ServiceExecutionLauncherTests$@MockkBean private lateinit var serviceRegistrationService: ServiceRegistrationService</ID>
   </CurrentIssues>
 </SmellBaseline>

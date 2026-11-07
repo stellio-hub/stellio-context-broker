@@ -2,22 +2,34 @@
 
 This note describes the necessary steps to upgrade to Stellio 2.39.0
 
-## Upgrade to Kafka 4.3 (Confluent Platform 8.3.2)
+## Upgrade of Kafka, TimescaleDB and PostGIS
 
-This release moves the Docker image used by the `kafka` service from `confluentinc/cp-kafka:8.1.0` (Apache Kafka 4.1)
-to `confluentinc/cp-kafka:8.3.2` (Apache Kafka 4.3).
+This release upgrades the Docker images of the two dependencies of Stellio:
 
-It is a minor Kafka upgrade: the broker starts directly on an existing data volume, topics, messages and consumer
-group offsets are kept, no backup and restore is needed.
+- `kafka` service: from `confluentinc/cp-kafka:8.1.0` (Apache Kafka 4.1) to `confluentinc/cp-kafka:8.3.2`
+  (Apache Kafka 4.3)
+- `postgres` service: from `stellio/stellio-timescale-postgis:18-2.29.2-3.6` to
+  [`stellio/stellio-timescale-postgis:18-2.31.0-3.7`](https://hub.docker.com/repository/docker/stellio/stellio-timescale-postgis/tags/18-2.31.0-3.7/sha256-d204a6bda181e7924069532e86288a5a5b33e80420e77c6059a0e3182af7818a)
+  (TimescaleDB 2.31.0 and PostGIS 3.7)
 
-### 1 - Update the Kafka image
+Both upgrades are done in a single restart of the platform. For Kafka, it is a minor upgrade: the broker starts
+directly on an existing data volume, topics, messages and consumer group offsets are kept. For the database, the
+extensions keep running in their previous version until they are explicitly updated (step 3), so Stellio keeps
+working in between.
+
+Remember to do a backup of the databases before starting the upgrade!
+
+### 1 - Update the images
 
 If you use the `docker-compose-dependencies.yml` file provided by Stellio, it is already up-to-date. Otherwise, edit
-the `image:` line of the `kafka` service:
+the `image:` lines of the `kafka` and `postgres` services:
 
 ```diff
 -    image: confluentinc/cp-kafka:8.1.0
 +    image: confluentinc/cp-kafka:8.3.2
+...
+-    image: stellio/stellio-timescale-postgis:18-2.29.2-3.6
++    image: stellio/stellio-timescale-postgis:18-2.31.0-3.7
 ```
 
 While you are there, you can also remove the `KAFKA_BROKER_ID` environment variable: `broker.id` is deprecated in
@@ -33,7 +45,19 @@ docker compose up -d && docker compose logs -f --tail=100
 During the restart of Kafka, a few `DUPLICATE_BROKER_REGISTRATION` messages may be logged, they disappear on their own
 after some seconds.
 
-### 3 - (Optional) Finalize the Kafka upgrade
+### 3 - Update the TimescaleDB and PostGIS extensions
+
+```shell
+docker exec -it stellio-postgres psql --host=localhost -d stellio_search -U stellio -W -X -c "ALTER EXTENSION timescaledb UPDATE;"
+docker exec -it stellio-postgres psql --host=localhost -d stellio_search -U stellio -W -X -c "ALTER EXTENSION postgis UPDATE;"
+docker exec -it stellio-postgres psql --host=localhost -d stellio_subscription -U stellio -W -X -c "ALTER EXTENSION timescaledb UPDATE;"
+docker exec -it stellio-postgres psql --host=localhost -d stellio_subscription -U stellio -W -X -c "ALTER EXTENSION postgis UPDATE;"
+```
+
+More details on the TimescaleDB upgrade procedure are available in the
+[Timescale documentation](https://www.tigerdata.com/docs/deploy/self-hosted/upgrades/upgrade-docker#upgrade-timescaledb-within-docker).
+
+### 4 - (Optional) Finalize the Kafka upgrade
 
 After the upgrade, the cluster keeps its current metadata version, which still allows to roll back to the `8.1.0`
 image. You can check it (shown as `metadata.version`) with:

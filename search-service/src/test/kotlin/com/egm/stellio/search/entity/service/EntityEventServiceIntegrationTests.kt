@@ -20,6 +20,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -30,6 +31,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
 import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.kafka.core.ProducerFactory
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.ReactiveTransactionManager
 import org.springframework.transaction.reactive.TransactionalOperator
@@ -55,6 +57,9 @@ class EntityEventServiceIntegrationTests : WithTimescaleContainer, WithKafkaCont
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
+
+    @Autowired
+    private lateinit var producerFactory: ProducerFactory<String, String>
 
     @MockkBean(relaxed = true)
     private lateinit var kafkaTemplate: KafkaTemplate<String, String>
@@ -133,6 +138,17 @@ class EntityEventServiceIntegrationTests : WithTimescaleContainer, WithKafkaCont
 
         verify(timeout = SEND_TIMEOUT_MS, exactly = 2) { kafkaTemplate.send(any(), any(), any()) }
         assertThat(sentPayloads).allMatch { it.contains(EventsType.ENTITY_CREATE.name) }
+    }
+
+    @Test
+    fun `producerFactory should create a producer with the entity events tuning`() {
+        assertThat(producerFactory.configurationProperties)
+            .containsEntry(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "600000")
+            .containsEntry(ProducerConfig.MAX_BLOCK_MS_CONFIG, "5000")
+            .containsEntry(ProducerConfig.BUFFER_MEMORY_CONFIG, 64L * 1024 * 1024)
+
+        // the client rejects a delivery timeout lower than linger.ms + request.timeout.ms when creating a producer
+        producerFactory.createProducer().close()
     }
 
     private suspend fun beehiveExpandedEntity(): ExpandedEntity =

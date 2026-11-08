@@ -31,8 +31,6 @@ class EntityEventService(
     private val kafkaTemplate: KafkaTemplate<String, String>
 ) {
 
-    private val catchAllTopic = "cim.entity._CatchAll"
-
     private val logger = LoggerFactory.getLogger(javaClass)
 
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, exception ->
@@ -42,7 +40,7 @@ class EntityEventService(
     private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + coroutineExceptionHandler)
 
     internal fun publishEntityEvent(event: EntityEvent): Boolean {
-        kafkaTemplate.send(catchAllTopic, event.entityId.toString(), serializeObject(event))
+        kafkaTemplate.send(ENTITY_EVENTS_TOPIC, event.entityId.toString(), serializeObject(event))
         return true
     }
 
@@ -271,4 +269,8 @@ class EntityEventService(
             logger.error("Unable to find attribute $expandedAttributeName ($datasetId) in entity ${entity.id}")
             ""
         }
+
+    companion object {
+        const val ENTITY_EVENTS_TOPIC = "cim.entity._CatchAll"
+    }
 }

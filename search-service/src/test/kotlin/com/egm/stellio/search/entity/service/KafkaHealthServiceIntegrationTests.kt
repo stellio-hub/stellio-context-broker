@@ -21,14 +21,10 @@ import java.util.Optional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class KafkaHealthServiceIntegrationTests : WithKafkaContainer() {
 
-    // lazy: the container is only started after the test instance is created
-    private val admin by lazy {
+    private val admin =
         Admin.create(mapOf<String, Any>(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG to kafkaContainer.bootstrapServers))
-    }
 
-    private val kafkaHealthService by lazy {
-        KafkaHealthService(admin, SearchProperties(onOwnerDeleteCascadeEntities = false))
-    }
+    private val kafkaHealthService = KafkaHealthService(admin, SearchProperties(onOwnerDeleteCascadeEntities = false))
 
     @AfterAll
     fun closeAdmin() = admin.close()

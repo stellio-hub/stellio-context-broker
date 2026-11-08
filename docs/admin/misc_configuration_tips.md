@@ -91,6 +91,39 @@ If running Stellio from `docker-compose`, it can be configured in the environmen
       - SEARCH_TRANSIENT-DATA_GC_INTERVAL=0 0 * * * *
 ```
 
+## Configure the handling of Kafka outages
+
+`search-service` rejects write operations while Kafka is unavailable (see
+[Delivery of entity events](architecture.md#delivery-of-entity-events)). Kafka is probed periodically, each probe
+having a timeout:
+
+```properties
+# Spring duration format; 5s and 2s by default, the interval can't be lower than 1s
+search.kafka-health.interval = 5s
+search.kafka-health.timeout = 2s
+```
+
+The Kafka producer of `search-service` is tuned to ride out short outages:
+
+```properties
+# how long a send is retried, 10 minutes by default
+spring.kafka.producer.properties[delivery.timeout.ms] = 600000
+# memory used to buffer the events waiting to be sent, 64MB by default
+spring.kafka.producer.buffer-memory = 64MB
+# how long a send can wait for the topic metadata or for buffer space, 5 seconds by default
+spring.kafka.producer.properties[max.block.ms] = 5000
+```
+
+`delivery.timeout.ms` must be at least `linger.ms` + `request.timeout.ms` (30 seconds by default), otherwise the
+producer can't be created.
+
+When running Stellio with Docker Compose, use `SEARCH_KAFKAHEALTH_INTERVAL`, `SEARCH_KAFKAHEALTH_TIMEOUT` and
+`SPRING_KAFKA_PRODUCER_BUFFERMEMORY`. The producer `properties` keys contain dots, set them with `SPRING_APPLICATION_JSON`:
+
+```dotenv
+SPRING_APPLICATION_JSON={"spring.kafka.producer.properties[delivery.timeout.ms]": "900000"}
+```
+
 ## Change the log level of a library / namespace
 
 Add a new environment for the target namespace. For instance, adding:

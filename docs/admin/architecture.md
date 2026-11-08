@@ -37,6 +37,24 @@ Currently, the following events are flowing inside the platform:
 
 One core principle of the event model is that an event is atomic, i.e., it contains only one operation. So, for instance, if 2 attributes are added to an entity, 2 events will be propagated.
 
+### Delivery of entity events
+
+Entity events are published by `search-service` only once the database transaction of the operation has committed,
+in commit order. An operation that fails or is rolled back publishes no event.
+
+`search-service` probes Kafka every few seconds (by default, every 5 seconds). While Kafka is detected as
+unavailable, write operations are rejected with a `500 InternalError` and nothing is stored, so that no write is
+accepted without its events. This happens when the cluster can't be reached, when a partition of the
+`cim.entity._CatchAll` topic has no leader or fewer in-sync replicas than `min.insync.replicas`, or when
+`search-service` is not allowed to publish to the topic. Read operations are not affected.
+
+The Kafka producer retries a send for up to 10 minutes, which covers short outages and the few seconds needed to
+detect a longer one. Events can still be lost in two cases, each one logged as an `ERROR` with the entity id, tenant
+and event type:
+
+- Kafka stays unavailable longer than the retry period: the events written just before the outage was detected
+- `search-service` stops or crashes while events are waiting to be sent
+
 ### Types and structure of events
 
 Below is the list of supported events, accompanied by a sample payload (for ease of reading, the payloads presented

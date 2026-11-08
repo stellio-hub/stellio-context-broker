@@ -64,6 +64,7 @@ class EntityEventService(
     fun stopSender() {
         committedEvents.close()
         runBlocking { withTimeoutOrNull(SHUTDOWN_DRAIN_TIMEOUT) { sender.join() } }
+            ?: logger.error("Entity event sender not finished after {}, queued events are lost", SHUTDOWN_DRAIN_TIMEOUT)
         senderScope.cancel()
     }
 

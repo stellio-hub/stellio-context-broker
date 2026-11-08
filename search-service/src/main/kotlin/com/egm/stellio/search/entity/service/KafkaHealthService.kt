@@ -28,6 +28,7 @@ import org.apache.kafka.common.errors.UnknownTopicOrPartitionException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toKotlinDuration
 
 /**
@@ -43,7 +44,8 @@ class KafkaHealthService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    private val interval = searchProperties.kafkaHealth.interval.toKotlinDuration()
+    // a zero or negative interval would turn the probe loop into a busy loop
+    private val interval = searchProperties.kafkaHealth.interval.toKotlinDuration().coerceAtLeast(MIN_INTERVAL)
     private val timeout = searchProperties.kafkaHealth.timeout.toKotlinDuration()
 
     // null until the first probe, so that the initial state is always logged
@@ -131,6 +133,10 @@ class KafkaHealthService(
     private suspend fun <T> KafkaFuture<T>.awaitEither(): Either<Throwable, T> =
         Either.catch { toCompletionStage().await() }
 
-    private inline fun <reified T : Throwable> Throwable.hasCause(): Boolean =
-        generateSequence(this) { it.cause }.any { it is T }
+    companion object {
+        private val MIN_INTERVAL = 1.seconds
+    }
 }
+
+internal inline fun <reified T : Throwable> Throwable.hasCause(): Boolean =
+    generateSequence(this) { it.cause }.any { it is T }

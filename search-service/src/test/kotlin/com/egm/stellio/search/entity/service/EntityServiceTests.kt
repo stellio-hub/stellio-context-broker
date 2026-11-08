@@ -68,7 +68,6 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -166,7 +165,7 @@ class EntityServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     @WithMockCustomUser(sub = USER_UUID, name = "Mock User")
     fun `createEntity should only create an entity payload for a minimal entity`() = runTest {
         coEvery { authorizationService.userCanCreateEntities() } returns Unit.right()
-        coEvery { entityEventService.publishEntityCreateEvent(any(), any()) } returns Job()
+        coEvery { entityEventService.publishEntityCreateEvent(any(), any()) } returns Unit
         coEvery {
             entityAttributeService.createAttributes(any(), any(), any(), any())
         } returns emptyList<SucceededAttributeOperationResult>().right()

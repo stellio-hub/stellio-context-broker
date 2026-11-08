@@ -110,8 +110,9 @@ The Kafka producer of `search-service` is tuned to ride out short outages:
 spring.kafka.producer.properties[delivery.timeout.ms] = 600000
 # memory used to buffer the events waiting to be sent, 64MB by default
 spring.kafka.producer.buffer-memory = 64MB
-# how long a send can wait for the topic metadata or for buffer space, 5 seconds by default
-spring.kafka.producer.properties[max.block.ms] = 5000
+# how long a send can wait for the topic metadata or for buffer space, 10 minutes by default
+# the client drops the topic metadata once the broker is gone, so this must also cover the outages to ride out
+spring.kafka.producer.properties[max.block.ms] = 600000
 ```
 
 `delivery.timeout.ms` must be at least `linger.ms` + `request.timeout.ms` (30 seconds by default), otherwise the

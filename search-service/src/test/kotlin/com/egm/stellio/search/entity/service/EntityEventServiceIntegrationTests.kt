@@ -144,7 +144,7 @@ class EntityEventServiceIntegrationTests : WithTimescaleContainer, WithKafkaCont
     fun `producerFactory should create a producer with the entity events tuning`() {
         assertThat(producerFactory.configurationProperties)
             .containsEntry(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "600000")
-            .containsEntry(ProducerConfig.MAX_BLOCK_MS_CONFIG, "5000")
+            .containsEntry(ProducerConfig.MAX_BLOCK_MS_CONFIG, "600000")
             .containsEntry(ProducerConfig.BUFFER_MEMORY_CONFIG, 64L * 1024 * 1024)
 
         // the client rejects a delivery timeout lower than linger.ms + request.timeout.ms when creating a producer

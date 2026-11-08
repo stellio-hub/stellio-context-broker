@@ -48,7 +48,7 @@ accepted without its events. This happens when the cluster can't be reached, whe
 `cim.entity._CatchAll` topic has no leader or fewer in-sync replicas than `min.insync.replicas`, or when
 `search-service` is not allowed to publish to the topic. Read operations are not affected.
 
-The Kafka producer retries a send for up to 10 minutes, which covers short outages and the few seconds needed to
+The Kafka producer waits for and retries a send for up to 10 minutes, which covers short outages and the few seconds needed to
 detect a longer one. Events can still be lost in two cases, each one logged as an `ERROR` with the entity id, tenant
 and event type:
 

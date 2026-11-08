@@ -178,7 +178,6 @@ class EntityEventService(
             return
         }
 
-        // nested @Transactional calls join the outer transaction: they share its resources and its commit
         val transactionEvents = synchronizationManager.getResource(this) as? TransactionEvents
             ?: TransactionEvents().also {
                 synchronizationManager.bindResource(this, it)

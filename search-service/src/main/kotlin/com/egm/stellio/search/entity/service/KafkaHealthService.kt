@@ -33,8 +33,8 @@ import kotlin.time.toKotlinDuration
 
 /**
  * Tracks whether entity events can currently be published, so that writes are rejected instead of losing their
- * events. Starts as unavailable; a probe runs right away, then periodically, independently of the Spring scheduler
- * (whose single thread is shared with long-running jobs).
+ * events. Probes from its own coroutine, as the single thread of the Spring scheduler is shared with long-running
+ * jobs.
  */
 @Component
 class KafkaHealthService(
@@ -44,7 +44,6 @@ class KafkaHealthService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    // a zero or negative interval would turn the probe loop into a busy loop
     private val interval = searchProperties.kafkaHealth.interval.toKotlinDuration().coerceAtLeast(MIN_INTERVAL)
     private val timeout = searchProperties.kafkaHealth.timeout.toKotlinDuration()
 

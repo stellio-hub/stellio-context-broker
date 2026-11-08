@@ -563,7 +563,6 @@ class EntityEventServiceTests {
         match { payload -> (deserializeAs<EntityEvent>(payload) as? T)?.let(predicate) ?: false }
 
     companion object {
-        // events are sent asynchronously by the sender coroutine
         private const val SEND_TIMEOUT_MS = 2_000L
     }
 }

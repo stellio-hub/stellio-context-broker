@@ -55,6 +55,11 @@ object ErrorMessages {
         const val DATABASE_TRANSACTION_FAILURE_MESSAGE = "The database transaction failed"
     }
 
+    object Kafka {
+        const val EVENT_BROKER_UNAVAILABLE_MESSAGE =
+            "The event broker is unavailable, the request has not been processed. Please retry later"
+    }
+
     object Csr {
         fun csrNotFoundMessage(id: URI) = "Context source registration $id does not exist"
         fun csrAlreadyExistsMessage(id: URI) = "Context source registration $id already exists"

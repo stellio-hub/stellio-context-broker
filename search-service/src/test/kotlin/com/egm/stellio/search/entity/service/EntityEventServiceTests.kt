@@ -17,6 +17,7 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.loadSampleData
@@ -25,12 +26,16 @@ import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.MockkSpyBean
+import io.mockk.MockKMatcherScope
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
+import org.apache.kafka.common.errors.RecordTooLargeException
+import org.apache.kafka.common.errors.TopicAuthorizationException
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.kafka.KafkaException
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
 import java.util.concurrent.CompletableFuture
@@ -44,6 +49,9 @@ class EntityEventServiceTests {
 
     @MockkBean(relaxed = true)
     private lateinit var kafkaTemplate: KafkaTemplate<String, String>
+
+    @MockkBean(relaxed = true)
+    private lateinit var kafkaHealthService: KafkaHealthService
 
     private val originalEntity =
         ExpandedEntity(loadSampleData("aquac/breedingService_expanded.jsonld").deserializeAsMap())
@@ -123,7 +131,63 @@ class EntityEventServiceTests {
             )
         )
 
-        verify { kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any()) }
+        verify(timeout = SEND_TIMEOUT_MS) {
+            kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any())
+        }
+    }
+
+    @Test
+    fun `publishEntityEvent should mark Kafka unavailable when publishing is not authorized`() {
+        every { kafkaTemplate.send(any(), any(), any()) } returns
+            CompletableFuture.failedFuture(TopicAuthorizationException("not allowed"))
+
+        entityEventService.publishEntityEvent(
+            EntityCreateEvent(
+                null,
+                DEFAULT_TENANT_NAME,
+                breedingServiceUri,
+                listOf(breedingServiceType),
+                EMPTY_PAYLOAD
+            )
+        )
+
+        verify { kafkaHealthService.markUnavailable(any()) }
+    }
+
+    @Test
+    fun `publishEntityEvent should not mark Kafka unavailable when a single event cannot be published`() {
+        every { kafkaTemplate.send(any(), any(), any()) } returns
+            CompletableFuture.failedFuture(RecordTooLargeException("too large"))
+
+        entityEventService.publishEntityEvent(
+            EntityCreateEvent(
+                null,
+                DEFAULT_TENANT_NAME,
+                breedingServiceUri,
+                listOf(breedingServiceType),
+                EMPTY_PAYLOAD
+            )
+        )
+
+        verify(exactly = 0) { kafkaHealthService.markUnavailable(any()) }
+    }
+
+    @Test
+    fun `publishEntityEvent should not throw when the send fails synchronously`() {
+        every { kafkaTemplate.send(any(), any(), any()) } throws
+            KafkaException("max.block.ms elapsed")
+
+        entityEventService.publishEntityEvent(
+            EntityCreateEvent(
+                null,
+                DEFAULT_TENANT_NAME,
+                breedingServiceUri,
+                listOf(breedingServiceType),
+                EMPTY_PAYLOAD
+            )
+        )
+
+        verify(exactly = 0) { kafkaHealthService.markUnavailable(any()) }
     }
 
     @Test
@@ -133,9 +197,11 @@ class EntityEventServiceTests {
         entityEventService.publishEntityCreateEvent(
             null,
             originalEntity
-        ).join()
+        )
 
-        verify { kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any()) }
+        verify(timeout = SEND_TIMEOUT_MS) {
+            kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any())
+        }
     }
 
     @Test
@@ -145,9 +211,11 @@ class EntityEventServiceTests {
         }
         every { kafkaTemplate.send(any(), any(), any()) } returns CompletableFuture()
 
-        entityEventService.publishEntityDeleteEvent(null, entity, ExpandedEntity(emptyMap())).join()
+        entityEventService.publishEntityDeleteEvent(null, entity, ExpandedEntity(emptyMap()))
 
-        verify { kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any()) }
+        verify(timeout = SEND_TIMEOUT_MS) {
+            kafkaTemplate.send("cim.entity._CatchAll", breedingServiceUri.toString(), any())
+        }
     }
 
     @Test
@@ -165,11 +233,13 @@ class EntityEventServiceTests {
                     newExpandedValue = expandedAttribute.second[0]
                 )
             )
-        ).join()
+        )
 
-        verify {
-            entityEventService["publishEntityEvent"](
-                match<AttributeCreateEvent> {
+        verify(timeout = SEND_TIMEOUT_MS) {
+            kafkaTemplate.send(
+                any(),
+                any(),
+                matchEvent<AttributeCreateEvent> {
                     it.operationType == EventsType.ATTRIBUTE_CREATE &&
                         it.sub == "sub" &&
                         it.entityId == breedingServiceUri &&
@@ -211,11 +281,13 @@ class EntityEventServiceTests {
                 originalEntity,
                 updatedEntity,
                 operationResult
-            ).join()
+            )
 
-            verify {
-                entityEventService["publishEntityEvent"](
-                    match<EntityEvent> { entityEvent ->
+            verify(timeout = SEND_TIMEOUT_MS) {
+                kafkaTemplate.send(
+                    any(),
+                    any(),
+                    matchEvent<EntityEvent> { entityEvent ->
                         when (entityEvent) {
                             is AttributeCreateEvent ->
                                 listOf(entityEvent).any {
@@ -274,11 +346,13 @@ class EntityEventServiceTests {
             originalEntity,
             updatedEntity,
             operationResult
-        ).join()
+        )
 
-        verify {
-            entityEventService["publishEntityEvent"](
-                match<AttributeUpdateEvent> { entityEvent ->
+        verify(timeout = SEND_TIMEOUT_MS) {
+            kafkaTemplate.send(
+                any(),
+                any(),
+                matchEvent<AttributeUpdateEvent> { entityEvent ->
                     listOf(entityEvent).all {
                         it.operationType == EventsType.ATTRIBUTE_UPDATE &&
                             it.entityId == breedingServiceUri &&
@@ -334,11 +408,13 @@ class EntityEventServiceTests {
             originalEntity,
             updatedEntity,
             operationResult
-        ).join()
+        )
 
-        verify {
-            entityEventService["publishEntityEvent"](
-                match<AttributeUpdateEvent> { entityEvent ->
+        verify(timeout = SEND_TIMEOUT_MS) {
+            kafkaTemplate.send(
+                any(),
+                any(),
+                matchEvent<AttributeUpdateEvent> { entityEvent ->
                     listOf(entityEvent).all {
                         it.operationType == EventsType.ATTRIBUTE_UPDATE &&
                             it.entityId == breedingServiceUri &&
@@ -384,11 +460,13 @@ class EntityEventServiceTests {
             originalEntity,
             updatedEntity,
             operationResult
-        ).join()
+        )
 
-        verify {
-            entityEventService["publishEntityEvent"](
-                match<AttributeUpdateEvent> {
+        verify(timeout = SEND_TIMEOUT_MS) {
+            kafkaTemplate.send(
+                any(),
+                any(),
+                matchEvent<AttributeUpdateEvent> {
                     it.operationType == EventsType.ATTRIBUTE_UPDATE &&
                         it.entityId == breedingServiceUri &&
                         it.entityTypes == listOf(breedingServiceType) &&
@@ -414,11 +492,13 @@ class EntityEventServiceTests {
                     emptyMap()
                 )
             )
-        ).join()
+        )
 
-        verify {
-            entityEventService["publishEntityEvent"](
-                match<AttributeDeleteEvent> { entityEvent ->
+        verify(timeout = SEND_TIMEOUT_MS) {
+            kafkaTemplate.send(
+                any(),
+                any(),
+                matchEvent<AttributeDeleteEvent> { entityEvent ->
                     listOf(entityEvent).all {
                         it.operationType == EventsType.ATTRIBUTE_DELETE &&
                             it.entityId == breedingServiceUri &&
@@ -444,11 +524,13 @@ class EntityEventServiceTests {
                 OperationStatus.DELETED,
                 emptyMap()
             )
-        ).join()
+        )
 
-        verify {
-            entityEventService["publishEntityEvent"](
-                match<AttributeDeleteEvent> { entityEvent ->
+        verify(timeout = SEND_TIMEOUT_MS) {
+            kafkaTemplate.send(
+                any(),
+                any(),
+                matchEvent<AttributeDeleteEvent> { entityEvent ->
                     listOf(entityEvent).all {
                         it.operationType == EventsType.ATTRIBUTE_DELETE &&
                             it.entityId == breedingServiceUri &&
@@ -474,4 +556,14 @@ class EntityEventServiceTests {
         index: Int = 0
     ): String =
         serializeObject(expandedAttribute.second[index])
+
+    private inline fun <reified T : EntityEvent> MockKMatcherScope.matchEvent(
+        crossinline predicate: (T) -> Boolean
+    ): String =
+        match { payload -> (deserializeAs<EntityEvent>(payload) as? T)?.let(predicate) ?: false }
+
+    companion object {
+        // events are sent asynchronously by the sender coroutine
+        private const val SEND_TIMEOUT_MS = 2_000L
+    }
 }

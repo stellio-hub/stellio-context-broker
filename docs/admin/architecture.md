@@ -42,17 +42,27 @@ One core principle of the event model is that an event is atomic, i.e., it conta
 Entity events are published by `search-service` only once the database transaction of the operation has committed,
 in commit order. An operation that fails or is rolled back publishes no event.
 
-`search-service` probes Kafka every few seconds (by default, every 5 seconds). While Kafka is detected as
-unavailable, write operations are rejected with a `500 InternalError` and nothing is stored, so that no write is
-accepted without its events. This happens when the cluster can't be reached, when a partition of the
-`cim.entity._CatchAll` topic has no leader or fewer in-sync replicas than `min.insync.replicas`, or when
-`search-service` is not allowed to publish to the topic. Read operations are not affected.
+`search-service` probes Kafka every few seconds (by default, every 5 seconds). Kafka is detected as unavailable
+when the cluster can't be reached, when a partition of the `cim.entity._CatchAll` topic has no leader or fewer
+in-sync replicas than `min.insync.replicas`, or when `search-service` is not allowed to publish to the topic. While
+it is, write operations behave according to `search.on-kafka-unavailable`:
+
+- `warn` (default): the write is stored and the response carries an `NGSILD-Warning` header
+  (`199 stellio "The event broker is unavailable, notifications for this request may not be sent"`). Its events are
+  queued and sent once Kafka is back, within the limits described below
+- `fail`: the write is rejected with a `500 InternalError` and nothing is stored, so that no write is accepted
+  without its events
+
+Read operations are not affected.
 
 The Kafka producer waits for and retries a send for up to 10 minutes, which covers short outages and the few seconds needed to
 detect a longer one. Events can still be lost in two cases, each one logged as an `ERROR` with the entity id, tenant
 and event type:
 
-- Kafka stays unavailable longer than the retry period: the events written just before the outage was detected
+- Kafka stays unavailable longer than the retry period: the events queued during the outage (with `fail`, only
+  those written just before the outage was detected)
+- the queue of events waiting to be sent is full (`search.entity-events-queue-capacity`, 20000 events by default),
+  which only happens during a long outage
 - `search-service` stops or crashes while events are waiting to be sent
 
 ### Types and structure of events

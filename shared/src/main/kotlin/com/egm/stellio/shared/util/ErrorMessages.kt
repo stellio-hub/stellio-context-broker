@@ -58,6 +58,8 @@ object ErrorMessages {
     object Kafka {
         const val EVENT_BROKER_UNAVAILABLE_MESSAGE =
             "The event broker is unavailable, the request has not been processed. Please retry later"
+        const val ENTITY_EVENTS_MAY_BE_LOST_WARNING =
+            "The event broker is unavailable, notifications for this request may not be sent"
     }
 
     object Csr {

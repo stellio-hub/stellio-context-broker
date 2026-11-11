@@ -93,9 +93,17 @@ If running Stellio from `docker-compose`, it can be configured in the environmen
 
 ## Configure the handling of Kafka outages
 
-`search-service` rejects write operations while Kafka is unavailable (see
-[Delivery of entity events](architecture.md#delivery-of-entity-events)). Kafka is probed periodically, each probe
-having a timeout:
+While Kafka is unavailable, `search-service` either accepts write operations with a warning or rejects them (see
+[Delivery of entity events](architecture.md#delivery-of-entity-events)):
+
+```properties
+# warn (default) or fail
+search.on-kafka-unavailable = warn
+# maximum number of events waiting to be sent, 20000 by default; each event holds the full entity payload
+search.entity-events-queue-capacity = 20000
+```
+
+Kafka is probed periodically, each probe having a timeout:
 
 ```properties
 # Spring duration format; 5s and 2s by default, the interval can't be lower than 1s
@@ -118,8 +126,8 @@ spring.kafka.producer.properties[max.block.ms] = 600000
 `delivery.timeout.ms` must be at least `linger.ms` + `request.timeout.ms` (30 seconds by default), otherwise the
 producer can't be created.
 
-When running Stellio with Docker Compose, use `SEARCH_KAFKAHEALTH_INTERVAL`, `SEARCH_KAFKAHEALTH_TIMEOUT` and
-`SPRING_KAFKA_PRODUCER_BUFFERMEMORY`. The producer `properties` keys contain dots, set them with `SPRING_APPLICATION_JSON`:
+When running Stellio with Docker Compose, use `SEARCH_ONKAFKAUNAVAILABLE`, `SEARCH_ENTITYEVENTSQUEUECAPACITY`,
+`SEARCH_KAFKAHEALTH_INTERVAL`, `SEARCH_KAFKAHEALTH_TIMEOUT` and `SPRING_KAFKA_PRODUCER_BUFFERMEMORY`. The producer `properties` keys contain dots, set them with `SPRING_APPLICATION_JSON`:
 
 ```dotenv
 SPRING_APPLICATION_JSON={"spring.kafka.producer.properties[delivery.timeout.ms]": "900000"}

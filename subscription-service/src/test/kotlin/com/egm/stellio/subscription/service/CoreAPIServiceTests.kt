@@ -88,7 +88,7 @@ class CoreAPIServiceTests {
                 DEFAULT_TENANT_NAME,
                 query,
                 APIC_HEADER_LINK
-            )
+            ).shouldSucceedAndResult()
             assertEquals(1, compactedEntities.size)
             assertEquals("urn:ngsi-ld:BeeHive:TESTC", compactedEntities[0]["id"])
         }
@@ -113,7 +113,7 @@ class CoreAPIServiceTests {
                 DEFAULT_TENANT_NAME,
                 "?type=BeeHive",
                 APIC_HEADER_LINK
-            )
+            ).shouldSucceedAndResult()
             assertEquals(2, compactedEntities.size)
             assertEquals("urn:ngsi-ld:BeeHive:TESTC", compactedEntities[0]["id"])
             assertEquals("urn:ngsi-ld:BeeHive:TESTD", compactedEntities[1]["id"])

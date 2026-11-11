@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.config.WebClientConfig
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
@@ -62,7 +63,7 @@ class CoreAPIServiceNoAuthTests {
                 tenantName = "urn:ngsi-ld:tenant:01",
                 paramRequest = "?type=BeeHive",
                 contextLink = APIC_HEADER_LINK
-            )
+            ).shouldSucceedAndResult()
             assertEquals(0, result.size)
         }
 

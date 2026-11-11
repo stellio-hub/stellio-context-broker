@@ -415,10 +415,8 @@ object ErrorMessages {
         const val SHOW_CHANGES_WITH_SIMPLIFIED_MESSAGE =
             "Cannot use 'showChanges' with 'simplified' or 'keyValues' format"
 
-        fun linkedEntitiesUnreachableMessage(entityId: URI, cause: String?) =
-            "Unable to retrieve the linked entities of $entityId: $cause"
-        fun linkedEntitiesTimeoutMessage(entityId: URI) =
-            "Timeout while retrieving the linked entities of $entityId"
+        fun entitiesRetrievalFailedMessage(target: String, cause: String?) = "Unable to retrieve $target: $cause"
+        fun entitiesRetrievalTimeoutMessage(target: String) = "Timeout while retrieving $target"
     }
 
     object Temporal {

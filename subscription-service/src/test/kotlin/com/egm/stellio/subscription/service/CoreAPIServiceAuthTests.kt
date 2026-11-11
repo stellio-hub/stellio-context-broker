@@ -3,6 +3,8 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
+import com.egm.stellio.shared.util.shouldFail
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.config.WebClientConfig
 import com.github.tomakehurst.wiremock.client.BasicCredentials
@@ -21,7 +23,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.fail
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -83,7 +85,7 @@ class CoreAPIServiceAuthTests {
                 tenantName = "urn:ngsi-ld:tenant:default",
                 paramRequest = "?type=BeeHive",
                 contextLink = APIC_HEADER_LINK
-            )
+            ).shouldSucceedAndResult()
             assertEquals(0, result.size)
         }
 
@@ -112,20 +114,13 @@ class CoreAPIServiceAuthTests {
         )
 
         runBlocking {
-            try {
-                coreApiService.getEntities(
-                    tenantName = "urn:ngsi-ld:tenant:unknown",
-                    paramRequest = "?type=BeeHive",
-                    contextLink = APIC_HEADER_LINK
-                )
-                // Should not reach here - expect an exception
-                fail("Expected an exception for unknown tenant")
-            } catch (e: Exception) {
-                // Verify that an exception is thrown for unknown tenant
-                // The error should be related to client registration not found
-                assertEquals(
-                    "Could not find ClientRegistration with id 'urn:ngsi-ld:tenant:unknown'",
-                    e.message
+            coreApiService.getEntities(
+                tenantName = "urn:ngsi-ld:tenant:unknown",
+                paramRequest = "?type=BeeHive",
+                contextLink = APIC_HEADER_LINK
+            ).shouldFail {
+                assertTrue(
+                    it.message.contains("Could not find ClientRegistration with id 'urn:ngsi-ld:tenant:unknown'")
                 )
             }
         }

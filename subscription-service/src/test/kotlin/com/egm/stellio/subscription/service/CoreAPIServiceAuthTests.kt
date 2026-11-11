@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
+import com.egm.stellio.subscription.config.SubscriptionProperties
 import com.egm.stellio.subscription.config.WebClientConfig
 import com.github.tomakehurst.wiremock.client.BasicCredentials
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
@@ -33,7 +34,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [CoreAPIService::class])
-@EnableConfigurationProperties(ApplicationProperties::class)
+@EnableConfigurationProperties(ApplicationProperties::class, SubscriptionProperties::class)
 @WireMockTest(httpPort = 8089)
 @Import(WebClientConfig::class)
 @ActiveProfiles("test")

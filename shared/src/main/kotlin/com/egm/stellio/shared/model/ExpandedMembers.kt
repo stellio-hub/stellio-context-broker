@@ -201,10 +201,7 @@ fun ExpandedAttributeInstance.getRelationshipObjects(name: String = ""):
 }
 
 /**
- * Validates ordered relationship entries and extracts their URI values without losing order or duplicates.
- *
- * In the normalized form, entries are {"object": <URI>} (TS 104 175 §5.2.6.4.9). The only plain string accepted is
- * the NGSI-LD Null, used to delete the attribute.
+ * Validates a normalized list relationship and extracts its URI values.
  */
 fun Any.getListRelationshipObjects(name: String): Either<BadRequestDataException, List<String>> = either {
     val entries = ensureNotNull(

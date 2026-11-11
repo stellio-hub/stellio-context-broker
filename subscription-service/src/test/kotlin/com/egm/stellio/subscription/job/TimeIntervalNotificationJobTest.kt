@@ -1,12 +1,16 @@
 package com.egm.stellio.subscription.job
 
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.config.ApplicationProperties.TenantConfiguration
 import com.egm.stellio.shared.model.EntitySelector
+import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.subscription.config.WebClientConfig
@@ -125,11 +129,11 @@ class TimeIntervalNotificationJobTest {
         coEvery {
             coreAPIService.getEntities(any(), any(), any())
         } returnsMany listOf(
-            listOf(loadSampleData("beehive.jsonld").deserializeAsMap()),
+            listOf(loadSampleData("beehive.jsonld").deserializeAsMap()).right(),
             listOf(
                 loadSampleData("beehive.jsonld").deserializeAsMap(),
                 loadSampleData("beehive2.jsonld").deserializeAsMap()
-            )
+            ).right()
         )
 
         runBlocking {
@@ -137,7 +141,7 @@ class TimeIntervalNotificationJobTest {
                 DEFAULT_TENANT_NAME,
                 subscription,
                 APIC_HEADER_LINK
-            )
+            ).shouldSucceedAndResult()
             assertEquals(2, compactedEntities.size)
             assertTrue(
                 compactedEntities.all {
@@ -180,7 +184,7 @@ class TimeIntervalNotificationJobTest {
         } returns listOf(TenantConfiguration(DEFAULT_TENANT_NAME, "", "public"))
         coEvery { subscriptionService.getRecurringSubscriptionsToNotify() } returns listOf(subscription)
         coEvery { subscriptionService.getContextsLink(any()) } returns NGSILD_TEST_CORE_CONTEXT
-        coEvery { coreAPIService.getEntities(any(), any(), any()) } returns listOf(entity.deserializeAsMap())
+        coEvery { coreAPIService.getEntities(any(), any(), any()) } returns listOf(entity.deserializeAsMap()).right()
         coEvery {
             notificationService.callSubscriber(any(), any())
         } returns Triple(subscription, mockkClass(Notification::class), true)
@@ -192,4 +196,44 @@ class TimeIntervalNotificationJobTest {
         }
         confirmVerified(notificationService)
     }
+
+    @Test
+    fun `sendTimeIntervalNotification should notify other subscriptions when entities of one can't be retrieved`() =
+        runTest {
+            val entity = loadSampleData("beehive.jsonld")
+            val failingSubscription = gimmeRecurringSubscription()
+            val subscription = gimmeRecurringSubscription()
+
+            every {
+                applicationProperties.tenants
+            } returns listOf(TenantConfiguration(DEFAULT_TENANT_NAME, "", "public"))
+            coEvery {
+                subscriptionService.getRecurringSubscriptionsToNotify()
+            } returns listOf(failingSubscription, subscription)
+            coEvery { subscriptionService.getContextsLink(any()) } returns NGSILD_TEST_CORE_CONTEXT
+            coEvery {
+                coreAPIService.getEntities(any(), any(), any())
+            } returns InternalErrorException("400 Bad Request").left() andThen listOf(entity.deserializeAsMap()).right()
+            coEvery {
+                notificationService.callSubscriber(any(), any())
+            } returns Triple(subscription, mockkClass(Notification::class), true)
+
+            timeIntervalNotificationJob.sendTimeIntervalNotification()
+
+            coVerify(exactly = 1, timeout = 1000L) {
+                notificationService.callSubscriber(subscription, listOf(entity.deserializeAsMap()))
+            }
+            confirmVerified(notificationService)
+        }
+
+    private fun gimmeRecurringSubscription(): Subscription =
+        gimmeRawSubscription(withEndpointReceiverInfo = false).copy(
+            entities = setOf(
+                EntitySelector(
+                    id = null,
+                    idPattern = null,
+                    typeSelection = "https://uri.fiware.org/ns/data-models#BeeHive"
+                )
+            )
+        )
 }

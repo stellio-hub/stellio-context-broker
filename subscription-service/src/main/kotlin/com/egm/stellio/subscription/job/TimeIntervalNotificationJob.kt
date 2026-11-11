@@ -1,7 +1,10 @@
 package com.egm.stellio.subscription.job
 
+import arrow.core.Either
 import arrow.core.flatten
+import arrow.core.raise.either
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.queryparameter.QueryParameter
@@ -36,10 +39,16 @@ class TimeIntervalNotificationJob(
                     subscriptionService.getRecurringSubscriptionsToNotify().forEach { subscription ->
                         val contextLink = subscriptionService.getContextsLink(subscription)
                         // TODO send one notification per subscription
-                        getEntitiesToNotify(tenantConfiguration.name, subscription, contextLink)
-                            .forEach { compactedEntity ->
-                                sendNotification(compactedEntity, subscription)
-                            }
+                        getEntitiesToNotify(tenantConfiguration.name, subscription, contextLink).fold({
+                            logger.warn(
+                                "Unable to notify recurring subscription {} in tenant {}: {}",
+                                subscription.id,
+                                tenantConfiguration.name,
+                                it.message
+                            )
+                        }, { compactedEntities ->
+                            compactedEntities.forEach { sendNotification(it, subscription) }
+                        })
                     }
                 }.contextWrite {
                     it.put(NGSILD_TENANT_HEADER, tenantConfiguration.name)
@@ -73,7 +82,7 @@ class TimeIntervalNotificationJob(
         tenantName: String,
         subscription: Subscription,
         contextLink: String
-    ): Set<CompactedEntity> =
+    ): Either<APIException, Set<CompactedEntity>> = either {
         // if a subscription has a "timeInterval" member defined, it has at least one "entities" member
         // because it can't have a "watchedAttributes" member
         subscription.entities!!
@@ -82,7 +91,7 @@ class TimeIntervalNotificationJob(
                     tenantName,
                     prepareQueryParams(it, subscription.q, subscription.notification.attributes),
                     contextLink
-                )
+                ).bind()
             }
             .flatten()
             .toSet()
@@ -94,4 +103,5 @@ class TimeIntervalNotificationJob(
                         tenantName
                     )
             }
+    }
 }

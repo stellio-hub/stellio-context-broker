@@ -10,8 +10,8 @@ import com.egm.stellio.shared.model.GatewayTimeoutException
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
-import com.egm.stellio.shared.util.ErrorMessages.Subscription.linkedEntitiesTimeoutMessage
-import com.egm.stellio.shared.util.ErrorMessages.Subscription.linkedEntitiesUnreachableMessage
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.entitiesRetrievalFailedMessage
+import com.egm.stellio.shared.util.ErrorMessages.Subscription.entitiesRetrievalTimeoutMessage
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
@@ -49,7 +49,7 @@ class CoreAPIService(
         tenantName: String,
         paramRequest: String,
         contextLink: String
-    ): List<CompactedEntity> =
+    ): Either<APIException, List<CompactedEntity>> =
         webClient.get()
             .uri("/ngsi-ld/v1/entities$paramRequest")
             .header(HttpHeaders.LINK, contextLink)
@@ -57,7 +57,9 @@ class CoreAPIService(
             .attributes(ServerOAuth2AuthorizedClientExchangeFilterFunction.clientRegistrationId(tenantName))
             .retrieve()
             .bodyToMono<String>()
-            .map { deserializeListOfObjects(it) }
+            .timeout(linkedEntitiesProperties.timeout)
+            .map<Either<APIException, List<CompactedEntity>>> { deserializeListOfObjects(it).right() }
+            .onErrorResume { Mono.just(it.toSearchServiceError("the entities matching $paramRequest").left()) }
             .awaitFirst()
 
     /**
@@ -91,7 +93,7 @@ class CoreAPIService(
                     deserializeListOfObjects(it).right()
                 else listOf(deserializeObject(it)).right()
             }
-            .onErrorResume { Mono.just(it.toLinkedEntitiesError(entityId).left()) }
+            .onErrorResume { Mono.just(it.toSearchServiceError("the linked entities of $entityId").left()) }
             .awaitFirst()
     }
 
@@ -135,11 +137,11 @@ private fun Throwable.isTransientFailure(): Boolean =
         this is WebClientRequestException ||
         this is WebClientResponseException && this.statusCode.is5xxServerError
 
-private fun Throwable.toLinkedEntitiesError(entityId: URI): APIException =
+private fun Throwable.toSearchServiceError(target: String): APIException =
     when {
-        this is TimeoutException -> GatewayTimeoutException(linkedEntitiesTimeoutMessage(entityId))
-        this.isTransientFailure() -> BadGatewayException(linkedEntitiesUnreachableMessage(entityId, this.message))
-        else -> InternalErrorException(linkedEntitiesUnreachableMessage(entityId, this.message))
+        this is TimeoutException -> GatewayTimeoutException(entitiesRetrievalTimeoutMessage(target))
+        this.isTransientFailure() -> BadGatewayException(entitiesRetrievalFailedMessage(target, this.message))
+        else -> InternalErrorException(entitiesRetrievalFailedMessage(target, this.message))
     }
 
 fun APIException.isTransientFailure(): Boolean =

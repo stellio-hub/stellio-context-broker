@@ -1,10 +1,12 @@
 package com.egm.stellio.search.common.config
 
+import org.apache.kafka.clients.admin.Admin
 import org.springframework.boot.kafka.autoconfigure.ConcurrentKafkaListenerContainerFactoryConfigurer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.ConsumerFactory
+import org.springframework.kafka.core.KafkaAdmin
 import org.springframework.kafka.listener.DefaultErrorHandler
 
 @Configuration
@@ -20,4 +22,7 @@ class KafkaConfig {
         factory.setCommonErrorHandler(DefaultErrorHandler())
         return factory
     }
+
+    @Bean(destroyMethod = "close")
+    fun kafkaAdminClient(kafkaAdmin: KafkaAdmin): Admin = Admin.create(kafkaAdmin.configurationProperties)
 }

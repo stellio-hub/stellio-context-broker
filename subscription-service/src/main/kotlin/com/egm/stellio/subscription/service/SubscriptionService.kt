@@ -46,13 +46,11 @@ import com.egm.stellio.subscription.utils.toOptionalEnum
 import com.egm.stellio.subscription.utils.toUri
 import com.egm.stellio.subscription.utils.toZonedDateTime
 import io.r2dbc.postgresql.codec.Json
-import kotlinx.coroutines.reactive.awaitFirst
 import org.locationtech.jts.geom.Geometry
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.delete
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
-import org.springframework.data.relational.core.query.Update
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Component
@@ -60,6 +58,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 @Component
 class SubscriptionService(
@@ -72,7 +71,7 @@ class SubscriptionService(
         SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
             modified_at, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes,
             notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status,
-            times_sent, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
+            times_sent, times_failed, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
             id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates,
             pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang,
             datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout,
@@ -443,21 +442,40 @@ class SubscriptionService(
         subscription: Subscription,
         notification: Notification,
         success: Boolean
-    ): Long {
-        val subscriptionStatus =
-            if (success) NotificationParams.StatusType.OK.name else NotificationParams.StatusType.FAILED.name
-        val lastStatusName = if (success) "last_success" else "last_failure"
-        val updateStatement = Update.update("status", subscriptionStatus)
-            .set("times_sent", subscription.notification.timesSent + 1)
-            .set("last_notification", notification.notifiedAt)
-            .set(lastStatusName, notification.notifiedAt)
-
-        return r2dbcEntityTemplate.update(
-            query(where("id").`is`(subscription.id)),
-            updateStatement,
-            Subscription::class.java
-        ).awaitFirst()
+    ): Either<APIException, Unit> {
+        val status = if (success) NotificationParams.StatusType.OK else NotificationParams.StatusType.FAILED
+        val lastStatusColumn = if (success) "last_success" else "last_failure"
+        val timesFailedIncrement = if (success) 0 else 1
+        // counters are incremented in SQL since the in-memory subscription may be stale (e.g., on a delayed retry)
+        return databaseClient.sql(
+            """
+            UPDATE subscription
+            SET status = :status, times_sent = times_sent + 1, times_failed = times_failed + $timesFailedIncrement,
+                last_notification = :notified_at, $lastStatusColumn = :notified_at
+            WHERE id = :id
+            """.trimIndent()
+        )
+            .bind("status", status.name)
+            .bind("notified_at", notification.notifiedAt)
+            .bind("id", subscription.id)
+            .execute()
     }
+
+    suspend fun updateSubscriptionNotificationFailure(
+        subscription: Subscription,
+        failedAt: ZonedDateTime
+    ): Either<APIException, Unit> =
+        databaseClient.sql(
+            """
+            UPDATE subscription
+            SET status = :status, times_failed = times_failed + 1, last_failure = :failed_at
+            WHERE id = :id
+            """.trimIndent()
+        )
+            .bind("status", NotificationParams.StatusType.FAILED.name)
+            .bind("failed_at", failedAt)
+            .bind("id", subscription.id)
+            .execute()
 
     private val rowToSubscription: ((Map<String, Any>) -> Subscription) = { row ->
         Subscription(
@@ -490,6 +508,7 @@ class SubscriptionService(
                 ),
                 status = toOptionalEnum<NotificationParams.StatusType>(row["status"]),
                 timesSent = row["times_sent"] as Int,
+                timesFailed = row["times_failed"] as Int,
                 lastNotification = toNullableZonedDateTime(row["last_notification"]),
                 lastFailure = toNullableZonedDateTime(row["last_failure"]),
                 lastSuccess = toNullableZonedDateTime(row["last_success"]),

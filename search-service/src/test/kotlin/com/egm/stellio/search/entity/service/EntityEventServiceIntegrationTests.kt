@@ -2,6 +2,8 @@ package com.egm.stellio.search.entity.service
 
 import arrow.core.right
 import com.egm.stellio.search.authorization.permission.service.AuthorizationService
+import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.common.config.SearchProperties.OnKafkaUnavailable
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
@@ -16,6 +18,7 @@ import com.egm.stellio.shared.util.shouldSucceed
 import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
+import com.ninjasquad.springmockk.MockkSpyBean
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.verify
@@ -70,6 +73,9 @@ class EntityEventServiceIntegrationTests : WithTimescaleContainer, WithKafkaCont
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
 
+    @MockkSpyBean
+    private lateinit var searchProperties: SearchProperties
+
     private val beehiveTestCId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     private val sentPayloads = CopyOnWriteArrayList<String>()
@@ -101,20 +107,36 @@ class EntityEventServiceIntegrationTests : WithTimescaleContainer, WithKafkaCont
     }
 
     @Test
-    fun `createEntity should return an InternalError and store nothing when Kafka is unavailable`() = runTest {
-        every { kafkaHealthService.isAvailable() } returns false
-        val (expandedEntity, ngsiLdEntity) = loadAndPrepareSampleData().shouldSucceedAndResult()
+    fun `createEntity should store the entity and publish its events when Kafka is unavailable in warn mode`() =
+        runTest {
+            every { kafkaHealthService.isAvailable() } returns false
+            val (expandedEntity, ngsiLdEntity) = loadAndPrepareSampleData().shouldSucceedAndResult()
 
-        entityService.createEntity(ngsiLdEntity, expandedEntity).shouldFail {
-            assertThat(it).isInstanceOf(InternalErrorException::class.java)
-            assertThat(it.message).isEqualTo(EVENT_BROKER_UNAVAILABLE_MESSAGE)
+            entityService.createEntity(ngsiLdEntity, expandedEntity).shouldSucceed()
+
+            entityQueryService.retrieve(beehiveTestCId).shouldSucceed()
+            verify(timeout = SEND_TIMEOUT_MS, exactly = 5) {
+                kafkaTemplate.send(any(), beehiveTestCId.toString(), any())
+            }
         }
 
-        entityQueryService.retrieve(beehiveTestCId).shouldFail {
-            assertThat(it).isInstanceOf(ResourceNotFoundException::class.java)
+    @Test
+    fun `createEntity should return an InternalError and store nothing when Kafka is unavailable in fail mode`() =
+        runTest {
+            every { kafkaHealthService.isAvailable() } returns false
+            every { searchProperties.onKafkaUnavailable } returns OnKafkaUnavailable.FAIL
+            val (expandedEntity, ngsiLdEntity) = loadAndPrepareSampleData().shouldSucceedAndResult()
+
+            entityService.createEntity(ngsiLdEntity, expandedEntity).shouldFail {
+                assertThat(it).isInstanceOf(InternalErrorException::class.java)
+                assertThat(it.message).isEqualTo(EVENT_BROKER_UNAVAILABLE_MESSAGE)
+            }
+
+            entityQueryService.retrieve(beehiveTestCId).shouldFail {
+                assertThat(it).isInstanceOf(ResourceNotFoundException::class.java)
+            }
+            verify(exactly = 0) { kafkaTemplate.send(any(), any(), any()) }
         }
-        verify(exactly = 0) { kafkaTemplate.send(any(), any(), any()) }
-    }
 
     @Test
     fun `publishEntityCreateEvent should not publish anything when the transaction rolls back`() = runTest {

@@ -9,14 +9,13 @@ import org.springframework.http.ResponseEntity
 open class NGSILDWarning(
     private val code: Int,
     open val message: String,
-    open val csr: ContextSourceRegistration
+    private val warnAgent: String
 ) {
     // follow rfc7234 https://www.rfc-editor.org/rfc/rfc7234.html#section-5.5
-    fun getHeaderMessage(): String = "$code ${getWarnAgent()} \"${getWarnText()}\""
+    fun getHeaderMessage(): String = "$code $warnAgent \"${getWarnText()}\""
 
     // new line are forbidden in headers
     private fun getWarnText(): String = message.replace("\n", " ")
-    private fun getWarnAgent(): String = csr.registrationName ?: csr.id.toString()
 
     companion object {
         const val HEADER_NAME = "NGSILD-Warning"
@@ -29,23 +28,25 @@ open class NGSILDWarning(
 
 data class ResponseIsStaleWarning(
     override val message: String,
-    override val csr: ContextSourceRegistration
-) : NGSILDWarning(RESPONSE_IS_STALE_WARNING_CODE, message, csr)
+    val csr: ContextSourceRegistration
+) : NGSILDWarning(RESPONSE_IS_STALE_WARNING_CODE, message, csr.warnAgent())
 
 data class RevalidationFailedWarning(
     override val message: String,
-    override val csr: ContextSourceRegistration
-) : NGSILDWarning(REVALIDATION_FAILED_WARNING_CODE, message, csr)
+    val csr: ContextSourceRegistration
+) : NGSILDWarning(REVALIDATION_FAILED_WARNING_CODE, message, csr.warnAgent())
 
 data class MiscellaneousWarning(
     override val message: String,
-    override val csr: ContextSourceRegistration
-) : NGSILDWarning(MISCELLANEOUS_WARNING_CODE, message, csr)
+    val csr: ContextSourceRegistration
+) : NGSILDWarning(MISCELLANEOUS_WARNING_CODE, message, csr.warnAgent())
 
 data class MiscellaneousPersistentWarning(
     override val message: String,
-    override val csr: ContextSourceRegistration
-) : NGSILDWarning(MISCELLANEOUS_PERSISTENT_WARNING_CODE, message, csr)
+    val csr: ContextSourceRegistration
+) : NGSILDWarning(MISCELLANEOUS_PERSISTENT_WARNING_CODE, message, csr.warnAgent())
+
+private fun ContextSourceRegistration.warnAgent(): String = registrationName ?: id.toString()
 
 fun ResponseEntity<*>.addWarnings(warnings: List<NGSILDWarning>?): ResponseEntity<*> =
     if (!warnings.isNullOrEmpty()) {

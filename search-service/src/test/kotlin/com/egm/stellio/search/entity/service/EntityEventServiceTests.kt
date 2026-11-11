@@ -1,8 +1,10 @@
 package com.egm.stellio.search.entity.service
 
+import com.egm.stellio.search.common.config.SearchProperties
 import com.egm.stellio.search.entity.model.Entity
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
+import com.egm.stellio.search.entity.service.EntityEventService.Companion.EVENTS_MAY_BE_LOST_FLAG
 import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.shared.model.AttributeCreateEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
@@ -30,18 +32,27 @@ import io.mockk.MockKMatcherScope
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.reactor.asCoroutineContext
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.apache.kafka.common.errors.RecordTooLargeException
 import org.apache.kafka.common.errors.TopicAuthorizationException
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.kafka.KafkaException
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
+import reactor.util.context.Context
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityEventService::class])
 @ActiveProfiles("test")
+@EnableConfigurationProperties(SearchProperties::class)
 class EntityEventServiceTests {
 
     @MockkSpyBean
@@ -542,6 +553,55 @@ class EntityEventServiceTests {
                 }
             )
         }
+    }
+
+    @Test
+    fun `publishEntityCreateEvent should flag the request when Kafka is unavailable`() = runTest {
+        every { kafkaHealthService.isAvailable() } returns false
+
+        assertThat(publishEntityCreateEventWithFlag()).isTrue()
+    }
+
+    @Test
+    fun `publishEntityCreateEvent should not flag the request when Kafka is available`() = runTest {
+        every { kafkaHealthService.isAvailable() } returns true
+
+        assertThat(publishEntityCreateEventWithFlag()).isFalse()
+    }
+
+    @Test
+    fun `publishEntityCreateEvent should drop the events that do not fit in the queue`() = runTest {
+        val sendStarted = CountDownLatch(1)
+        val releaseSend = CountDownLatch(1)
+        val blockingKafkaTemplate = mockk<KafkaTemplate<String, String>>()
+        every { blockingKafkaTemplate.send(any(), any(), any()) } answers {
+            sendStarted.countDown()
+            releaseSend.await(SEND_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            CompletableFuture()
+        }
+        val boundedEntityEventService = EntityEventService(
+            blockingKafkaTemplate,
+            kafkaHealthService,
+            SearchProperties(onOwnerDeleteCascadeEntities = false, entityEventsQueueCapacity = 1)
+        )
+
+        // the first event is taken by the sender and blocks it, the second one fills the queue
+        boundedEntityEventService.publishEntityCreateEvent(null, originalEntity)
+        sendStarted.await(SEND_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+        boundedEntityEventService.publishEntityCreateEvent(null, originalEntity)
+        boundedEntityEventService.publishEntityCreateEvent(null, originalEntity)
+        releaseSend.countDown()
+        boundedEntityEventService.stopSender()
+
+        verify(exactly = 2) { blockingKafkaTemplate.send(any(), any(), any()) }
+    }
+
+    private suspend fun publishEntityCreateEventWithFlag(): Boolean {
+        val eventsMayBeLost = AtomicBoolean(false)
+        withContext(Context.of(EVENTS_MAY_BE_LOST_FLAG, eventsMayBeLost).asCoroutineContext()) {
+            entityEventService.publishEntityCreateEvent(null, originalEntity)
+        }
+        return eventsMayBeLost.get()
     }
 
     private fun serializedAttributePayload(

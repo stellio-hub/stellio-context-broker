@@ -387,6 +387,48 @@ class ScopeServiceTests : WithTimescaleContainer, WithKafkaContainer() {
         }
 
     @Test
+    fun `retrieveHistory should apply offsets and page limits independently to each entity`() = runTest {
+        val start = ZonedDateTime.parse("2024-08-01T00:00:00Z")
+        val otherId = "urn:ngsi-ld:BeeHive:scope-pagination".toUri()
+        val sample = loadSampleData("beehive_with_scope.jsonld")
+        for (entityId in listOf(beehiveTestCId, otherId)) {
+            sample.replace(beehiveTestCId.toString(), entityId.toString()).sampleDataToNgsiLdEntity()
+                .map { entityService.createEntityPayload(it.second, it.first, start) }.shouldSucceed()
+            (0..3).forEach { index ->
+                scopeService.addHistoryEntry(
+                    entityId,
+                    listOf("/scope$index"),
+                    TemporalProperty.MODIFIED_AT,
+                    start.plusDays(index.toLong())
+                ).shouldSucceed()
+            }
+        }
+        for (descending in listOf(false, true)) {
+            val query = TemporalEntitiesQueryFromGet(
+                entitiesQuery = EntitiesQueryFromGet(
+                    paginationQuery = PaginationQuery(limit = 100, offset = 0),
+                    contexts = APIC_COMPOUND_CONTEXTS
+                ),
+                temporalQuery = TemporalQuery(
+                    timeproperty = TemporalProperty.MODIFIED_AT,
+                    instanceLimit = 2,
+                    offsetN = 1,
+                    lastN = if (descending) 2 else null
+                ),
+                temporalRepresentation = TemporalRepresentation.NORMALIZED,
+                withAudit = false
+            )
+            val results = scopeService.retrieveHistory(listOf(beehiveTestCId, otherId), query)
+                .shouldSucceedAndResult().groupBy { it.entityId }
+            assertEquals(setOf(beehiveTestCId, otherId), results.keys)
+            results.values.forEach { instances ->
+                val days = if (descending) listOf(2L, 1L) else listOf(1L, 2L)
+                assertEquals(days.map { start.plusDays(it) }, instances.map { it.getComparableTime() })
+            }
+        }
+    }
+
+    @Test
     fun `retrieveHistory should return the last n instances of history of scopes with aggregated values`() = runTest {
         createScopeHistory()
 

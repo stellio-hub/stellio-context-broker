@@ -72,6 +72,7 @@ import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldFail
 import com.egm.stellio.shared.util.shouldSucceed
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.util.wktToGeoJson
@@ -498,6 +499,72 @@ class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer
                     assertNotEquals(ZonedDateTime.parse("2022-07-05T00:00:00Z"), result.time)
                 }
             }
+    }
+
+    @Test
+    fun `search should apply offsets in both directions for all temporal representations`() = runTest {
+        val start = ZonedDateTime.parse("2022-07-01T00:00:00Z")
+        (0..5).forEach { index ->
+            attributeInstanceService.create(
+                gimmeNumericPropertyAttributeInstance(
+                    attributeUuid = incomingAttribute.id,
+                    measuredValue = index.toDouble(),
+                    time = start.plusDays(index.toLong())
+                )
+            ).shouldSucceed()
+        }
+        for (representation in TemporalRepresentation.entries) {
+            for (descending in listOf(false, true)) {
+                val query = TemporalQuery(
+                    timerel = Timerel.AFTER,
+                    timeAt = start,
+                    instanceLimit = 2,
+                    firstN = if (descending) null else 2,
+                    lastN = if (descending) 2 else null,
+                    offsetN = 2,
+                    aggrPeriodDuration =
+                    if (representation == TemporalRepresentation.AGGREGATED_VALUES) "P1D" else null,
+                    aggrMethods = if (representation == TemporalRepresentation.AGGREGATED_VALUES)
+                        listOf(TemporalQuery.Aggregate.SUM) else null
+                )
+                val results = attributeInstanceService.search(
+                    gimmeTemporalEntitiesQuery(query, representation),
+                    incomingAttribute
+                ).shouldSucceedAndResult()
+                val expectedDays = if (descending) listOf(3L, 2L) else listOf(2L, 3L)
+                assertEquals(expectedDays.map { start.plusDays(it) }, results.map { it.getComparableTime() })
+            }
+        }
+    }
+
+    @Test
+    fun `search should return disjoint pages for instances sharing a timestamp`() = runTest {
+        val time = ZonedDateTime.parse("2022-07-01T00:00:00Z")
+        (0..5).forEach { index ->
+            attributeInstanceService.create(
+                gimmeNumericPropertyAttributeInstance(
+                    incomingAttribute.id,
+                    timeProperty = AttributeInstance.TemporalProperty.MODIFIED_AT,
+                    time = time,
+                    measuredValue = index.toDouble()
+                )
+            ).shouldSucceed()
+        }
+        suspend fun pages(descending: Boolean): List<Any> = (0..2).flatMap { page ->
+            val query = TemporalQuery(
+                instanceLimit = 2,
+                offsetN = page * 2,
+                lastN = if (descending) 2 else null,
+                timeproperty = AttributeInstance.TemporalProperty.MODIFIED_AT
+            )
+            attributeInstanceService.search(
+                gimmeTemporalEntitiesQuery(query, TemporalRepresentation.TEMPORAL_VALUES),
+                incomingAttribute
+            ).shouldSucceedAndResult().map { (it as SimplifiedAttributeInstanceResult).value }
+        }
+        val ascending = pages(false)
+        assertEquals(6, ascending.toSet().size)
+        assertEquals(ascending.reversed(), pages(true))
     }
 
     @Test

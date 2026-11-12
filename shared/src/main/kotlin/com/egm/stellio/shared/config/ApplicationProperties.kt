@@ -24,7 +24,8 @@ data class ApplicationProperties(
     data class Pagination(
         val limitDefault: Int,
         val limitMax: Int,
-        val temporalLimit: Int
+        val temporalLimit: Int,
+        val temporalLimitMax: Int
     )
 
     data class TenantConfiguration(

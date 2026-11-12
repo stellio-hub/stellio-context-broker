@@ -24,6 +24,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.model.TooManyResultsException
 import com.egm.stellio.shared.model.getRootAttributesToOmit
 import com.egm.stellio.shared.model.getRootAttributesToPick
 import com.egm.stellio.shared.model.removeAttributes
@@ -32,7 +33,10 @@ import com.egm.stellio.shared.queryparameter.QueryParameter
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.AGGR_METHODS_MANDATORY_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.DIFFERENT_TEMPORAL_REPRESENTATIONS_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.END_TIME_AT_MANDATORY_FOR_BETWEEN_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.FIRSTN_AND_LASTN_BOTH_PROVIDED_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.invalidTemporalPaginationValueMessage
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.invalidTemporalRepresentationMessage
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.tooHighTemporalLimitMessage
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.unrecognizedAggregationMethodMessage
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.hasValueInOptionsParam
@@ -99,7 +103,9 @@ fun composeTemporalEntitiesQueryFromPost(
         QueryParameter.ENDTIMEAT.key to listOfNotNull(query.temporalQ?.endTimeAt),
         QueryParameter.AGGRPERIODDURATION.key to listOfNotNull(query.temporalQ?.aggrPeriodDuration),
         QueryParameter.AGGRMETHODS.key to listOfNotNull(query.temporalQ?.aggrMethods?.joinToString(",")),
-        QueryParameter.LASTN.key to listOfNotNull(query.temporalQ?.lastN.toString()),
+        QueryParameter.LASTN.key to listOfNotNull(query.temporalQ?.lastN?.toString()),
+        QueryParameter.FIRSTN.key to listOfNotNull(query.temporalQ?.firstN?.toString()),
+        QueryParameter.OFFSETN.key to listOfNotNull(requestParams.getFirst(QueryParameter.OFFSETN.key)),
         QueryParameter.TIMEPROPERTY.key to listOfNotNull(query.temporalQ?.timeproperty)
     )
     val temporalQuery = buildTemporalQuery(
@@ -135,7 +141,6 @@ fun buildTemporalQuery(
             params.getFirst(QueryParameter.AGGRPERIODDURATION.key) ?: WHOLE_TIME_RANGE_DURATION
         else null
     val aggrMethodsParam = params.getFirst(QueryParameter.AGGRMETHODS.key)
-    val lastNParam = params.getFirst(QueryParameter.LASTN.key)
     val timeproperty = params.getFirst(QueryParameter.TIMEPROPERTY.key)?.let {
         AttributeInstance.TemporalProperty.fromTimeProperty(it).getOrElse { apiException ->
             return apiException.left()
@@ -164,10 +169,9 @@ fun buildTemporalQuery(
             return BadRequestDataException(unrecognizedAggregationMethodMessage(it)).left()
     }
 
-    val lastN = lastNParam?.toIntOrNull()?.let {
-        if (it >= 1) it else null
-    }
-    val limit = if (lastN != null && lastN < pagination.temporalLimit) lastN else pagination.temporalLimit
+    val temporalPagination = parseTemporalPagination(params, pagination).getOrElse { return it.left() }
+    val (firstN, lastN, offsetN) = temporalPagination
+    val limit = firstN ?: lastN ?: pagination.temporalLimit
 
     return TemporalQuery(
         timerel = timerel,
@@ -177,8 +181,32 @@ fun buildTemporalQuery(
         aggrMethods = aggregate,
         instanceLimit = limit,
         lastN = lastN,
+        firstN = firstN,
+        offsetN = offsetN ?: 0,
         timeproperty = timeproperty
     ).right()
+}
+
+private fun parseTemporalPagination(
+    params: MultiValueMap<String, String>,
+    pagination: ApplicationProperties.Pagination
+): Either<APIException, Triple<Int?, Int?, Int?>> = either {
+    fun parse(parameter: QueryParameter, minimum: Int): Int? = params.getFirst(parameter.key)?.let { value ->
+        value.toIntOrNull()?.takeIf { it >= minimum }
+            ?: raise(BadRequestDataException(invalidTemporalPaginationValueMessage(parameter.key, minimum)))
+    }
+
+    val firstN = parse(QueryParameter.FIRSTN, 1)
+    val lastN = parse(QueryParameter.LASTN, 1)
+    if (firstN != null && lastN != null)
+        raise(BadRequestDataException(FIRSTN_AND_LASTN_BOTH_PROVIDED_MESSAGE))
+    val offsetN = parse(QueryParameter.OFFSETN, 0)
+    val limit = firstN ?: lastN
+    if (limit != null && limit > pagination.temporalLimitMax) {
+        val parameter = if (firstN != null) QueryParameter.FIRSTN.key else QueryParameter.LASTN.key
+        raise(TooManyResultsException(tooHighTemporalLimitMessage(parameter, limit, pagination.temporalLimitMax)))
+    }
+    Triple(firstN, lastN, offsetN)
 }
 
 fun buildTimerelAndTime(

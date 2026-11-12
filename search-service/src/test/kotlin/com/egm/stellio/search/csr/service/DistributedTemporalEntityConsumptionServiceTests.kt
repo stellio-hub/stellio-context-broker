@@ -12,7 +12,6 @@ import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.model.TemporalPagination
-import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.queryparameter.QP
@@ -131,8 +130,7 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
             csr,
             CSRFilters(),
             apiaryId.toUri(),
-            emptyParams,
-            TemporalQuery(instanceLimit = 10)
+            emptyParams
         )
 
         assertJsonPayloadsAreEqual(temporalEntityPayload, serializeObject(response.getOrNull()!!.first!!))
@@ -150,8 +148,7 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
             csr,
             CSRFilters(),
             apiaryId.toUri(),
-            emptyParams,
-            TemporalQuery(instanceLimit = 10)
+            emptyParams
         )
 
         assertTrue(response.isRight())
@@ -176,8 +173,7 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
             csr,
             CSRFilters(),
             apiaryId.toUri(),
-            emptyParams,
-            TemporalQuery(instanceLimit = 10)
+            emptyParams
         )
 
         assertTrue(response.isLeft())
@@ -196,7 +192,7 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
 
             coEvery {
                 distributedTemporalEntityConsumptionService.retrieveTemporalEntityFromContextSource(
-                    any(), any(), any(), any(), any(), any()
+                    any(), any(), any(), any(), any()
                 )
             } returns (remoteEntity to TemporalPagination()).right() andThen
                 (remoteEntity to TemporalPagination(offsetAfter = 7)).right()
@@ -229,7 +225,7 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
 
         coEvery {
             distributedTemporalEntityConsumptionService.retrieveTemporalEntityFromContextSource(
-                any(), any(), any(), any(), any(), any()
+                any(), any(), any(), any(), any()
             )
         } returns MiscellaneousWarning("error1", csr).left() andThen
             MiscellaneousWarning("error2", csr).left()
@@ -265,8 +261,7 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
             HttpHeaders.EMPTY,
             csr,
             CSRFilters(),
-            emptyParams,
-            TemporalQuery(instanceLimit = 10)
+            emptyParams
         ).getOrNull()
 
         assertNotNull(response)
@@ -287,8 +282,7 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
             HttpHeaders.EMPTY,
             csr,
             CSRFilters(),
-            emptyParams,
-            TemporalQuery(instanceLimit = 10)
+            emptyParams
         )
 
         assertTrue(response.isLeft())
@@ -308,7 +302,7 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
 
             coEvery {
                 distributedTemporalEntityConsumptionService.queryTemporalEntitiesFromContextSource(
-                    any(), any(), any(), any(), any()
+                    any(), any(), any(), any()
                 )
             } returns Triple(listOf(remoteEntity), count, TemporalPagination()).right() andThen
                 Triple(listOf(remoteEntity), count, TemporalPagination(offsetAfter = 7)).right()
@@ -339,7 +333,7 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
 
         coEvery {
             distributedTemporalEntityConsumptionService.queryTemporalEntitiesFromContextSource(
-                any(), any(), any(), any(), any()
+                any(), any(), any(), any()
             )
         } returns MiscellaneousWarning("error1", csr).left() andThen
             MiscellaneousWarning("error2", csr).left()

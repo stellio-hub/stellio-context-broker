@@ -214,11 +214,15 @@ class AttributeInstanceService(
 
         if (temporalQuery.hasLastN())
             // in order to get first or last instances, need to order by time
-            // final ascending ordering of instances is done in query service
+            // keep the selected direction when returning the page
             sqlQueryBuilder.append(" ORDER BY start DESC")
         else sqlQueryBuilder.append(" ORDER BY start ASC")
 
-        sqlQueryBuilder.append(" LIMIT ${temporalQuery.instanceLimit}")
+        // A stable order prevents duplicate or skipped instances sharing a timestamp across pages.
+        if (temporalEntitiesQuery.temporalRepresentation != TemporalRepresentation.AGGREGATED_VALUES)
+            sqlQueryBuilder.append(", instance_id ${if (temporalQuery.hasLastN()) "DESC" else "ASC"}")
+
+        sqlQueryBuilder.append(" LIMIT ${temporalQuery.instanceLimit} OFFSET ${temporalQuery.offsetN}")
 
         val finalTemporalQuery = composeFinalTemporalQuery(attributes, sqlQueryBuilder.toString())
 

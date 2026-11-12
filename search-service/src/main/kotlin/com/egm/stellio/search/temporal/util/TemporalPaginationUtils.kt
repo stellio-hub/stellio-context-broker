@@ -1,89 +1,53 @@
 package com.egm.stellio.search.temporal.util
 
-import com.egm.stellio.search.temporal.model.AggregatedAttributeInstanceResult
-import com.egm.stellio.search.temporal.model.AttributeInstanceResult
-import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalPagination
 import com.egm.stellio.search.temporal.model.TemporalQuery
-import java.time.ZonedDateTime
-
-typealias Range = Pair<ZonedDateTime, ZonedDateTime>
+import org.springframework.http.MediaType
+import org.springframework.util.LinkedMultiValueMap
+import org.springframework.util.MultiValueMap
+import org.springframework.web.util.UriComponentsBuilder
+import org.springframework.web.util.UriUtils
+import java.nio.charset.StandardCharsets.UTF_8
 
 object TemporalPaginationUtils {
 
-    fun getPaginatedAttributeWithInstancesAndRange(
-        attributesWithInstances: AttributesWithInstances,
-        query: TemporalEntitiesQuery,
-    ): Pair<AttributesWithInstances, Range?> {
-        val temporalQuery = query.temporalQuery
-        if (temporalQuery.isLastNTheLimit()) {
-            return attributesWithInstances to null
-        }
-
-        val attributeInstancesWhoReachedLimit = getAttributesWhoReachedLimit(attributesWithInstances, query)
-
-        if (attributeInstancesWhoReachedLimit.isEmpty()) {
-            return attributesWithInstances to null
-        }
-
-        val range = getTemporalPaginationRange(attributeInstancesWhoReachedLimit, query)
-        val paginatedAttributesWithInstances = filterInRange(attributesWithInstances, range)
-
-        return paginatedAttributesWithInstances to range
+    fun getPagingOffsets(query: TemporalQuery, hasMore: Boolean): TemporalPagination {
+        val lowerOffset = if (query.offsetN > 0) maxOf(0, query.offsetN.toLong() - query.instanceLimit) else null
+        val higherOffset = if (hasMore) query.offsetN.toLong() + query.instanceLimit else null
+        return if (query.hasLastN()) TemporalPagination(offsetBefore = higherOffset, offsetAfter = lowerOffset)
+        else TemporalPagination(offsetBefore = lowerOffset, offsetAfter = higherOffset)
     }
 
-    private fun getAttributesWhoReachedLimit(
-        attributesWithInstances: AttributesWithInstances,
-        query: TemporalEntitiesQuery
-    ): List<List<AttributeInstanceResult>> =
-        attributesWithInstances.values.filter { instances ->
-            instances.size >= query.temporalQuery.instanceLimit
+    fun getPagingLinks(
+        resourceUrl: String,
+        requestParams: MultiValueMap<String, String>,
+        pagination: TemporalPagination,
+        mediaType: MediaType
+    ): List<String> = buildList {
+        pagination.offsetBefore?.let {
+            add(buildPagingLink(resourceUrl, requestParams, it, "intervalbefore", mediaType))
         }
-
-    private fun getTemporalPaginationRange(
-        attributeInstancesWhoReachedLimit: List<List<AttributeInstanceResult>>,
-        query: TemporalEntitiesQuery
-    ): Range {
-        val temporalQuery = query.temporalQuery
-
-        val attributesTimeRanges = attributeInstancesWhoReachedLimit.map {
-            it.first().getComparableTime() to
-                if (query.temporalRepresentation == TemporalRepresentation.AGGREGATED_VALUES) {
-                    val lastInstance = it.last() as AggregatedAttributeInstanceResult
-                    lastInstance.values.first().endDateTime
-                } else {
-                    it.last().getComparableTime()
-                }
-        }
-
-        return if (temporalQuery.hasLastN()) {
-            val discriminatingTimeRange = attributesTimeRanges.maxOf { it.second } to
-                attributesTimeRanges.maxOf { it.first }
-            val rangeStart = when (temporalQuery.timerel) {
-                TemporalQuery.Timerel.BEFORE -> temporalQuery.timeAt!!
-                TemporalQuery.Timerel.BETWEEN -> temporalQuery.endTimeAt!!
-                else -> discriminatingTimeRange.first
-            }
-            rangeStart to discriminatingTimeRange.second
-        } else {
-            val discriminatingTimeRange = attributesTimeRanges.minOf { it.first } to
-                attributesTimeRanges.minOf { it.second }
-            val rangeStart = when (temporalQuery.timerel) {
-                TemporalQuery.Timerel.AFTER -> temporalQuery.timeAt!!
-                TemporalQuery.Timerel.BETWEEN -> temporalQuery.timeAt!!
-                else -> discriminatingTimeRange.first
-            }
-            rangeStart to discriminatingTimeRange.second
+        pagination.offsetAfter?.let {
+            add(buildPagingLink(resourceUrl, requestParams, it, "intervalafter", mediaType))
         }
     }
 
-    private fun filterInRange(
-        attributesWithInstances: AttributesWithInstances,
-        range: Range,
-    ): AttributesWithInstances =
-        attributesWithInstances.mapValues { (_, value) ->
-            value.filter { range.contains(it.getComparableTime()) }
-        }
-
-    private fun Range.contains(time: ZonedDateTime): Boolean =
-        this.first >= time && time >= this.second || this.first <= time && time <= this.second
+    private fun buildPagingLink(
+        resourceUrl: String,
+        requestParams: MultiValueMap<String, String>,
+        offset: Long,
+        relation: String,
+        mediaType: MediaType
+    ): String {
+        val params = LinkedMultiValueMap(requestParams)
+        params.set("offsetN", offset.toString())
+        val path = UriComponentsBuilder.fromPath(resourceUrl).build().encode().toUriString()
+        val queryString = params.flatMap { (key, values) ->
+            values.map { "${UriUtils.encode(key, UTF_8)}=${UriUtils.encode(it, UTF_8)}" }
+        }.joinToString("&")
+        val url = "$path?$queryString"
+        return """
+            <$url>;rel="$relation";type="$mediaType"
+        """.trimIndent()
+    }
 }

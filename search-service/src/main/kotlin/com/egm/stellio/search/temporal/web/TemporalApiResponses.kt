@@ -2,22 +2,17 @@ package com.egm.stellio.search.temporal.web
 
 import arrow.core.raise.either
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
-import com.egm.stellio.search.temporal.model.TemporalQuery
+import com.egm.stellio.search.temporal.model.TemporalPagination
+import com.egm.stellio.search.temporal.util.TemporalPaginationUtils.getPagingLinks
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.toFinalRepresentation
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
-import com.egm.stellio.shared.util.toHttpHeaderFormat
 import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
-import java.time.ZonedDateTime
-
-typealias Range = Pair<ZonedDateTime, ZonedDateTime>
 
 object TemporalApiResponses {
     @SuppressWarnings("LongParameterList")
@@ -29,7 +24,7 @@ object TemporalApiResponses {
         requestParams: MultiValueMap<String, String>,
         mediaType: MediaType,
         contexts: List<String>,
-        range: Range?,
+        pagination: TemporalPagination,
         lang: String? = null,
     ): ResponseEntity<*> = either {
         val baseRepresentation = parseRepresentations(requestParams, mediaType).bind()
@@ -49,17 +44,10 @@ object TemporalApiResponses {
             contexts
         )
 
-        if (range == null)
-            successResponse
-        else ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).apply {
-            this.headers(
-                successResponse.headers
-            )
-            this.header(
-                HttpHeaders.CONTENT_RANGE,
-                getHeaderRange(range, query.temporalQuery)
-            )
-        }.body(serializeObject(entities.toFinalRepresentation(representation)))
+        val links = getPagingLinks(resourceUrl, requestParams, pagination, mediaType)
+        ResponseEntity.ok().headers(successResponse.headers).apply {
+            links.forEach { header(HttpHeaders.LINK, it) }
+        }.body(successResponse.body)
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -68,26 +56,13 @@ object TemporalApiResponses {
     fun buildEntityTemporalResponse(
         mediaType: MediaType,
         contexts: List<String>,
-        query: TemporalEntitiesQuery,
-        range: Range?
-    ): ResponseEntity.BodyBuilder {
-        val successResponseHeader = prepareGetSuccessResponseHeaders(mediaType, contexts)
-
-        return if (range == null)
-            successResponseHeader
-        else ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).apply {
-            this.headers(
-                successResponseHeader.body("").headers
-            )
-            this.header(
-                HttpHeaders.CONTENT_RANGE,
-                getHeaderRange(range, query.temporalQuery)
-            )
+        pagination: TemporalPagination,
+        resourceUrl: String,
+        requestParams: MultiValueMap<String, String>
+    ): ResponseEntity.BodyBuilder =
+        prepareGetSuccessResponseHeaders(mediaType, contexts).apply {
+            getPagingLinks(resourceUrl, requestParams, pagination, mediaType).forEach {
+                header(HttpHeaders.LINK, it)
+            }
         }
-    }
-
-    private fun getHeaderRange(range: Range, temporalQuery: TemporalQuery): String {
-        val size = temporalQuery.lastN ?: "*"
-        return "date-time ${range.first.toHttpHeaderFormat()}-${range.second.toHttpHeaderFormat()}/$size"
-    }
 }

@@ -14,6 +14,7 @@ import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.support.gimmeEntityPayload
+import com.egm.stellio.search.support.gimmeTemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
@@ -37,6 +38,7 @@ import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldSucceed
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.called
@@ -53,6 +55,8 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -178,6 +182,35 @@ class TemporalQueryServiceTests {
             )
             scopeService.retrieveHistory(listOf(entityUri), any())
         }
+    }
+
+    @ParameterizedTest
+    @CsvSource("0,false", "1,false", "2,true")
+    fun `queryTemporalEntity should flag full pages`(instanceCount: Int, expectedHasMore: Boolean) = runTest {
+        val attributes = listOf(INCOMING_IRI, OUTGOING_IRI).map {
+            Attribute(
+                entityId = entityUri,
+                attributeName = it,
+                attributeValueType = Attribute.AttributeValueType.NUMBER,
+                createdAt = now,
+                payload = EMPTY_JSON_PAYLOAD
+            )
+        }
+        val instances = attributes.flatMapIndexed { index, attribute ->
+            List(instanceCount) { instance ->
+                val time = now.plusDays(index * 10L + instance)
+                FullAttributeInstanceResult(attribute.id, EMPTY_PAYLOAD, time, NGSILD_CREATED_AT_TERM, null)
+            }
+        }
+        coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
+        coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
+        coEvery { entityAttributeService.getForEntity(any(), any(), any(), any(), any()) } returns attributes
+        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
+        coEvery { attributeInstanceService.search(any(), any<List<Attribute>>()) } returns instances.right()
+        val query = gimmeTemporalEntitiesQuery(TemporalQuery(instanceLimit = 2))
+
+        val hasMore = temporalQueryService.queryTemporalEntity(entityUri, query).shouldSucceedAndResult().second
+        assertEquals(expectedHasMore, hasMore)
     }
 
     @Test

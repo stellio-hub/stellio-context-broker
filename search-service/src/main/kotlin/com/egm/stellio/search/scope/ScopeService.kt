@@ -116,7 +116,7 @@ class ScopeService(
         sqlQueryBuilder.append(
             """
             FROM scope_history
-            WHERE entity_id IN (:entities_ids)
+            WHERE entity_id = entities.entity_id
             AND time_property = :time_property                    
             """.trimIndent()
         )
@@ -136,14 +136,20 @@ class ScopeService(
             sqlQueryBuilder.append(" GROUP BY entity_id")
         if (temporalQuery.hasLastN())
             // in order to get first or last instances, need to order by time
-            // final ascending ordering of instances is done in query service
+            // keep the selected direction when returning the page
             sqlQueryBuilder.append(" ORDER BY start DESC")
         else sqlQueryBuilder.append(" ORDER BY start ASC")
 
-        sqlQueryBuilder.append(" LIMIT ${temporalQuery.instanceLimit}")
+        sqlQueryBuilder.append(" LIMIT ${temporalQuery.instanceLimit} OFFSET ${temporalQuery.offsetN}")
 
-        return databaseClient.sql(sqlQueryBuilder.toString())
-            .bind("entities_ids", entitiesIds)
+        // Paginate scope independently for each entity, just like other Attributes.
+        val query = """
+            SELECT history.*
+            FROM unnest(:entities_ids::text[]) AS entities(entity_id)
+            JOIN LATERAL ($sqlQueryBuilder) history ON true
+        """.trimIndent()
+        return databaseClient.sql(query)
+            .bind("entities_ids", entitiesIds.map { it.toString() }.toTypedArray())
             .bind("time_property", temporalEntitiesQuery.temporalQuery.timeproperty.toString())
             .runCatching {
                 this.allToMappedList { rowToScopeInstanceResult(it, temporalEntitiesQuery) }

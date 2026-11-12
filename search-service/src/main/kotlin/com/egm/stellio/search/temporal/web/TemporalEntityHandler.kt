@@ -4,12 +4,15 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.egm.stellio.search.csr.model.DistributedTemporalQueryResult
 import com.egm.stellio.search.csr.model.addWarnings
 import com.egm.stellio.search.csr.service.DistributedTemporalEntityConsumptionService
 import com.egm.stellio.search.csr.util.ContextSourceUtils
+import com.egm.stellio.search.csr.util.mergeTemporalPagination
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.service.TemporalService
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder.wrapSingleValuesToList
+import com.egm.stellio.search.temporal.util.TemporalPaginationUtils.getPagingOffsets
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromGet
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntityTemporalResponse
@@ -146,7 +149,8 @@ class TemporalEntityHandler(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.COUNT, QP.OFFSET, QP.LIMIT, QP.ID, QP.TYPE, QP.ID_PATTERN, QP.ATTRS, QP.Q,
                 QP.GEOMETRY, QP.GEOREL, QP.COORDINATES, QP.GEOPROPERTY, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT,
-                QP.ENDTIMEAT, QP.LASTN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.SCOPEQ, QP.DATASET_ID,
+                QP.ENDTIMEAT, QP.LASTN, QP.FIRSTN, QP.OFFSETN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION,
+                QP.SCOPEQ, QP.DATASET_ID,
                 QP.PICK, QP.OMIT, QP.ORDER_BY, QP.LOCAL, QP.JSON_KEYS, QP.EXPAND_VALUES
             ],
             notImplemented = [
@@ -162,33 +166,41 @@ class TemporalEntityHandler(
         val temporalEntitiesQuery =
             composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts, true).bind()
 
-        val (localEntities, localTotal, localRange) = either {
-            val (expandedEntities, total, range) =
+        val (localEntities, localTotal, localHasMore) = either {
+            val (expandedEntities, total, hasMore) =
                 temporalQueryService.queryTemporalEntities(temporalEntitiesQuery).bind()
-            Triple(compactEntities(expandedEntities, contexts), total, range)
+            Triple(compactEntities(expandedEntities, contexts), total, hasMore)
         }.bind()
 
-        val (warnings, compactedEntities, total) =
-            if (!temporalEntitiesQuery.entitiesQuery.local) {
-                val (queryWarnings, remoteEntitiesWithCSR, remoteCounts) =
-                    distributedTemporalEntityConsumptionService.distributeQueryTemporalEntitiesOperation(
-                        temporalEntitiesQuery,
-                        httpHeaders,
-                        queryParams
-                    )
-                val maxCount = (remoteCounts + localTotal).maxBy { it ?: 0 } ?: 0
+        val remoteResponse = if (!temporalEntitiesQuery.entitiesQuery.local)
+            distributedTemporalEntityConsumptionService.distributeQueryTemporalEntitiesOperation(
+                temporalEntitiesQuery,
+                httpHeaders,
+                queryParams
+            )
+        else null
+        val localPagination = getPagingOffsets(temporalEntitiesQuery.temporalQuery, localHasMore)
+        val result =
+            if (remoteResponse != null) {
                 val (mergeWarnings, mergedEntities) = ContextSourceUtils.mergeTemporalEntitiesLists(
                     localEntities,
-                    remoteEntitiesWithCSR,
+                    remoteResponse.entities,
                     temporalEntitiesQuery
-                ).toPair().let { (mergeWarnings, mergedEntities) ->
-                    val allWarnings = mergeWarnings?.let { queryWarnings + it } ?: queryWarnings
-                    allWarnings to (mergedEntities ?: emptyList())
-                }
-                Triple(mergeWarnings, mergedEntities, maxCount)
-            } else Triple(emptyList(), localEntities, localTotal)
+                ).toPair()
+                DistributedTemporalQueryResult(
+                    warnings = remoteResponse.warnings + mergeWarnings.orEmpty(),
+                    entities = mergedEntities.orEmpty(),
+                    count = maxOf(remoteResponse.count, localTotal),
+                    pagination = listOf(localPagination, remoteResponse.pagination)
+                        .mergeTemporalPagination(temporalEntitiesQuery.temporalQuery)
+                )
+            } else DistributedTemporalQueryResult(
+                entities = localEntities,
+                count = localTotal,
+                pagination = localPagination
+            )
 
-        val finalEntities = compactedEntities
+        val finalEntities = result.entities
             .filterPickAndOmit(
                 temporalEntitiesQuery.entitiesQuery.pick.getRootAttributesToPick(),
                 temporalEntitiesQuery.entitiesQuery.omit.getRootAttributesToOmit()
@@ -197,14 +209,14 @@ class TemporalEntityHandler(
 
         buildEntitiesTemporalResponse(
             finalEntities,
-            total,
+            result.count,
             "/ngsi-ld/v1/temporal/entities",
             temporalEntitiesQuery,
             queryParams,
             mediaType,
             contexts,
-            localRange
-        ).addWarnings(warnings)
+            result.pagination
+        ).addWarnings(result.warnings)
     }.fold(
         { it.toErrorResponse() },
         { it }
@@ -220,7 +232,8 @@ class TemporalEntityHandler(
         @AllowedParameters(
             implemented = [
                 QP.OPTIONS, QP.FORMAT, QP.ATTRS, QP.TIMEPROPERTY, QP.TIMEREL, QP.TIMEAT, QP.ENDTIMEAT, QP.LASTN,
-                QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.DATASET_ID, QP.PICK, QP.OMIT, QP.LOCAL
+                QP.FIRSTN, QP.OFFSETN, QP.LANG, QP.AGGRMETHODS, QP.AGGRPERIODDURATION, QP.DATASET_ID, QP.PICK, QP.OMIT,
+                QP.LOCAL
             ],
             notImplemented = [QP.VIA]
         )
@@ -233,30 +246,34 @@ class TemporalEntityHandler(
             composeTemporalEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
 
         val localResult = either {
-            val (expandedEntity, range) =
+            val (expandedEntity, hasMore) =
                 temporalQueryService.queryTemporalEntity(entityId, temporalEntitiesQuery).bind()
-            compactEntity(expandedEntity, contexts) to range
+            compactEntity(expandedEntity, contexts) to hasMore
         }
 
-        val (compactedEntity, range, warnings) =
-            if (!temporalEntitiesQuery.entitiesQuery.local) {
-                val (queryWarnings, remoteEntitiesWithCSR) =
-                    distributedTemporalEntityConsumptionService.distributeRetrieveTemporalEntityOperation(
-                        entityId,
-                        temporalEntitiesQuery,
-                        httpHeaders,
-                        queryParams
-                    ).let { (warnings, it) -> warnings.toMutableList() to it }
+        val remoteResponse = if (!temporalEntitiesQuery.entitiesQuery.local)
+            distributedTemporalEntityConsumptionService.distributeRetrieveTemporalEntityOperation(
+                entityId,
+                temporalEntitiesQuery,
+                httpHeaders,
+                queryParams
+            )
+        else null
+        val localPagination = getPagingOffsets(
+            temporalEntitiesQuery.temporalQuery,
+            localResult.getOrNull()?.second ?: false
+        )
+        val (compactedEntity, pagination, warnings) =
+            if (remoteResponse != null) {
                 val (mergeWarnings, mergedEntity) = ContextSourceUtils.mergeTemporalEntities(
                     localResult.getOrNull()?.first,
-                    remoteEntitiesWithCSR,
+                    remoteResponse.entities,
                     temporalEntitiesQuery
                 ).toPair()
-                mergeWarnings?.let { queryWarnings.addAll(it) }
-                Triple(mergedEntity, localResult.getOrNull()?.second, queryWarnings.toList())
-            } else {
-                Triple(localResult.getOrNull()?.first, localResult.getOrNull()?.second, emptyList())
-            }
+                val mergedPagination = listOf(localPagination, remoteResponse.pagination)
+                    .mergeTemporalPagination(temporalEntitiesQuery.temporalQuery)
+                Triple(mergedEntity, mergedPagination, remoteResponse.warnings + mergeWarnings.orEmpty())
+            } else Triple(localResult.getOrNull()?.first, localPagination, emptyList())
 
         if (compactedEntity == null) {
             val localError = localResult.leftOrNull()
@@ -271,7 +288,13 @@ class TemporalEntityHandler(
             .wrapSingleValuesToList(temporalEntitiesQuery.temporalRepresentation)
 
         val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
-        buildEntityTemporalResponse(mediaType, contexts, temporalEntitiesQuery, range)
+        buildEntityTemporalResponse(
+            mediaType,
+            contexts,
+            pagination,
+            "/ngsi-ld/v1/temporal/entities/$entityId",
+            queryParams
+        )
             .body(serializeObject(finalEntity.toFinalRepresentation(ngsiLdDataRepresentation)))
             .addWarnings(warnings)
     }.fold(

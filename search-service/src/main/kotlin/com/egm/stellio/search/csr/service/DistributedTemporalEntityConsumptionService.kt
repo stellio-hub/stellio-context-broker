@@ -8,6 +8,7 @@ import arrow.core.right
 import arrow.core.separateEither
 import arrow.fx.coroutines.parMap
 import com.egm.stellio.search.csr.model.CSRFilters
+import com.egm.stellio.search.csr.model.DistributedTemporalQueryResult
 import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.model.Operation
 import com.egm.stellio.search.csr.model.RevalidationFailedWarning
@@ -15,8 +16,11 @@ import com.egm.stellio.search.csr.model.SingleEntityInfoCSR
 import com.egm.stellio.search.csr.util.CompactedEntitiesWithCSR
 import com.egm.stellio.search.csr.util.CompactedEntityWithCSR
 import com.egm.stellio.search.csr.util.ContextSourceHttpUtils
+import com.egm.stellio.search.csr.util.getTemporalPagination
+import com.egm.stellio.search.csr.util.mergeTemporalPagination
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
+import com.egm.stellio.search.temporal.model.TemporalPagination
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.CompactedEntity
 import com.egm.stellio.shared.queryparameter.QueryParameter
@@ -34,8 +38,6 @@ import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.client.ClientResponse
 import java.net.URI
 
-typealias QueryTemporalEntitiesResponse = Pair<List<CompactedEntity>, Int?>
-
 @Service
 class DistributedTemporalEntityConsumptionService(
     private val contextSourceRegistrationService: ContextSourceRegistrationService,
@@ -49,7 +51,7 @@ class DistributedTemporalEntityConsumptionService(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         httpHeaders: HttpHeaders,
         queryParams: MultiValueMap<String, String>
-    ): Pair<List<NGSILDWarning>, List<CompactedEntityWithCSR>> {
+    ): DistributedTemporalQueryResult<CompactedEntityWithCSR> {
         val csrFilters = CSRFilters(
             ids = setOf(id),
             operations = Operation.RETRIEVE_TEMPORAL.getMatchingOperations().toList(),
@@ -60,12 +62,25 @@ class DistributedTemporalEntityConsumptionService(
             .flatMap { it.toSingleEntityInfoCSRList(csrFilters) }
 
         return matchingCSR.parMap { csr ->
-            val response = retrieveTemporalEntityFromContextSource(httpHeaders, csr, csrFilters, id, queryParams)
+            val response = retrieveTemporalEntityFromContextSource(
+                httpHeaders,
+                csr,
+                csrFilters,
+                id,
+                queryParams
+            )
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
-            response.map { it?.let { it to csr } }
+            response.map { (entity, pagination) -> entity?.let { it to csr } to pagination }
         }.separateEither()
             .let { (warnings, maybeResponses) ->
-                warnings.toMutableList() to maybeResponses.filterNotNull()
+                val entities = maybeResponses.mapNotNull { it.first }
+                DistributedTemporalQueryResult(
+                    warnings = warnings,
+                    entities = entities,
+                    count = if (entities.isEmpty()) 0 else 1,
+                    pagination = maybeResponses.map { it.second }
+                        .mergeTemporalPagination(temporalEntitiesQuery.temporalQuery)
+                )
             }
     }
 
@@ -75,13 +90,16 @@ class DistributedTemporalEntityConsumptionService(
         csrFilters: CSRFilters,
         id: URI,
         params: MultiValueMap<String, String>
-    ): Either<NGSILDWarning, CompactedEntity?> = either {
+    ): Either<NGSILDWarning, Pair<CompactedEntity?, TemporalPagination>> = either {
         val path = "/ngsi-ld/v1/temporal/entities/$id"
 
         return catch(
             {
                 getTemporalDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind()
-                    .first?.deserializeAsMap().right()
+                    .let { (response, headers) ->
+                        response?.deserializeAsMap() to if (response == null) TemporalPagination()
+                        else getTemporalPagination(headers.header(HttpHeaders.LINK))
+                    }.right()
             },
             { e ->
                 logger.warn("Badly formed data received from CSR ${csr.id} at $path: ${e.message}")
@@ -97,7 +115,7 @@ class DistributedTemporalEntityConsumptionService(
         temporalEntitiesQuery: TemporalEntitiesQueryFromGet,
         httpHeaders: HttpHeaders,
         queryParams: MultiValueMap<String, String>
-    ): Triple<List<NGSILDWarning>, List<CompactedEntitiesWithCSR>, List<Int?>> {
+    ): DistributedTemporalQueryResult<CompactedEntitiesWithCSR> {
         val entitiesQuery = temporalEntitiesQuery.entitiesQuery
         val csrFilters = CSRFilters(
             ids = entitiesQuery.ids,
@@ -111,15 +129,22 @@ class DistributedTemporalEntityConsumptionService(
             .flatMap { it.toSingleEntityInfoCSRList(csrFilters) }
 
         return matchingCSR.parMap { csr ->
-            val response = queryTemporalEntitiesFromContextSource(httpHeaders, csr, csrFilters, queryParams)
+            val response = queryTemporalEntitiesFromContextSource(
+                httpHeaders,
+                csr,
+                csrFilters,
+                queryParams
+            )
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
-            response.map { (entities, count) -> Triple(entities, csr, count) }
+            response.map { (entities, count, pagination) -> Triple(entities to csr, count, pagination) }
         }.separateEither()
             .let { (warnings, response) ->
-                Triple(
-                    warnings.toMutableList(),
-                    response.map { (entities, csr, _) -> entities to csr },
-                    response.map { (_, _, counts) -> counts }
+                DistributedTemporalQueryResult(
+                    warnings = warnings,
+                    entities = response.map { it.first },
+                    count = response.mapNotNull { it.second }.maxOrNull() ?: 0,
+                    pagination = response.map { it.third }
+                        .mergeTemporalPagination(temporalEntitiesQuery.temporalQuery)
                 )
             }
     }
@@ -129,15 +154,19 @@ class DistributedTemporalEntityConsumptionService(
         csr: SingleEntityInfoCSR,
         csrFilters: CSRFilters,
         params: MultiValueMap<String, String>
-    ): Either<NGSILDWarning, QueryTemporalEntitiesResponse> = either {
+    ): Either<NGSILDWarning, Triple<List<CompactedEntity>, Int?, TemporalPagination>> = either {
         val path = "/ngsi-ld/v1/temporal/entities"
 
         return catch(
             {
                 getTemporalDistributedInformation(httpHeaders, csr, csrFilters, path, params).bind()
                     .let { (response, headers) ->
-                        (response?.deserializeAsList() ?: emptyList()) to
-                            headers.header(RESULTS_COUNT_HEADER).firstOrNull()?.toInt()
+                        Triple(
+                            response?.deserializeAsList() ?: emptyList(),
+                            headers.header(RESULTS_COUNT_HEADER).firstOrNull()?.toInt(),
+                            if (response == null) TemporalPagination()
+                            else getTemporalPagination(headers.header(HttpHeaders.LINK))
+                        )
                     }
                     .right()
             },

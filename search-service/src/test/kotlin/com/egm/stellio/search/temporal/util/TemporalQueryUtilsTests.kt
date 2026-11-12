@@ -10,9 +10,11 @@ import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntitySelector
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.model.TooManyResultsException
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
 import com.egm.stellio.shared.util.BEEHIVE_IRI
+import com.egm.stellio.shared.util.ErrorMessages.Temporal.tooHighTemporalLimitMessage
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.OUTGOING_IRI
@@ -32,6 +34,8 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertInstanceOf
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.LinkedMultiValueMap
 import java.time.ZonedDateTime
@@ -306,40 +310,97 @@ class TemporalQueryUtilsTests {
     }
 
     @Test
-    fun `buildTemporalQuery should ignore lastN when it is not an integer`() = runTest {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("timerel", "after")
-        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
-        queryParams.add("lastN", "A")
-        val pagination = buildDefaultPagination()
-        val temporalQuery = buildTemporalQuery(
-            queryParams,
-            pagination,
-            false,
-            TemporalRepresentation.NORMALIZED
-        ).shouldSucceedAndResult()
-
-        assertEquals(pagination.temporalLimit, temporalQuery.instanceLimit)
-        assertNull(temporalQuery.lastN)
+    fun `buildTemporalQuery should reject invalid pagination values and conflicting directions`() {
+        val invalidParams = listOf(
+            mapOf("lastN" to "A"), mapOf("lastN" to "0"), mapOf("lastN" to "-2"),
+            mapOf("firstN" to "A"), mapOf("firstN" to "0"), mapOf("firstN" to "-2"),
+            mapOf("offsetN" to "A"), mapOf("offsetN" to "-1"),
+            mapOf("firstN" to "2", "lastN" to "3")
+        )
+        invalidParams.forEach { params ->
+            val queryParams = LinkedMultiValueMap<String, String>()
+            params.forEach { (key, value) -> queryParams.add(key, value) }
+            assertTrue(
+                buildTemporalQuery(
+                    queryParams,
+                    buildDefaultPagination(),
+                    false,
+                    TemporalRepresentation.NORMALIZED
+                ).isLeft(),
+                params.toString()
+            )
+        }
     }
 
     @Test
-    fun `buildTemporalQuery should ignore lastN when it is not a positive integer`() = runTest {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("timerel", "after")
-        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
-        queryParams.add("lastN", "-2")
+    fun `buildTemporalQuery should parse firstN and offsetN`() {
+        val params = LinkedMultiValueMap<String, String>()
+        params.add("firstN", "20")
+        params.add("offsetN", "4")
         val pagination = buildDefaultPagination()
-
-        val temporalQuery = buildTemporalQuery(
-            queryParams,
+        val query = buildTemporalQuery(
+            params,
             pagination,
             false,
             TemporalRepresentation.NORMALIZED
         ).shouldSucceedAndResult()
+        assertEquals(20, query.instanceLimit)
+        assertEquals(20, query.firstN)
+        assertEquals(4, query.offsetN)
+        assertNull(query.lastN)
+    }
 
-        assertEquals(pagination.temporalLimit, temporalQuery.instanceLimit)
-        assertNull(temporalQuery.lastN)
+    @ParameterizedTest
+    @CsvSource("none,0,5", "firstN,3,3", "lastN,3,3", "firstN,12,12", "lastN,12,12", "firstN,20,20", "lastN,20,20")
+    fun `buildTemporalQuery should use the requested or default temporal page size`(
+        parameter: String,
+        requested: Int,
+        expected: Int
+    ) {
+        val params = LinkedMultiValueMap<String, String>()
+        if (parameter != "none") params.add(parameter, requested.toString())
+        val query = buildTemporalQuery(
+            params,
+            buildDefaultPagination(temporalLimit = 5, temporalLimitMax = 20),
+            false,
+            TemporalRepresentation.NORMALIZED
+        ).shouldSucceedAndResult()
+        assertEquals(expected, query.instanceLimit)
+    }
+
+    @ParameterizedTest
+    @CsvSource("firstN,21", "lastN,21", "firstN,2147483647", "lastN,2147483647")
+    fun `buildTemporalQuery should reject page sizes above the maximum`(parameter: String, requested: Int) {
+        buildTemporalQuery(
+            LinkedMultiValueMap(mapOf(parameter to listOf(requested.toString()))),
+            buildDefaultPagination(temporalLimit = 5, temporalLimitMax = 20),
+            false,
+            TemporalRepresentation.NORMALIZED
+        ).shouldFail {
+            assertInstanceOf(TooManyResultsException::class.java, it)
+            assertEquals(tooHighTemporalLimitMessage(parameter, requested, 20), it.message)
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource("firstN,12,12", "lastN,12,12", "firstN,20,20", "lastN,20,20")
+    fun `composeTemporalEntitiesQueryFromPost should accept page sizes up to the maximum`(
+        parameter: String,
+        requested: Int,
+        expected: Int
+    ) = runTest {
+        val body = mapOf(
+            "type" to "Query",
+            "entities" to listOf(mapOf("type" to "BeeHive")),
+            "temporalQ" to mapOf("timerel" to "after", "timeAt" to "2024-11-07T07:31:39Z", parameter to requested)
+        )
+        val query = composeTemporalEntitiesQueryFromPost(
+            buildDefaultPagination(temporalLimit = 5, temporalLimitMax = 20),
+            Query(body).shouldSucceedAndResult(),
+            LinkedMultiValueMap(),
+            APIC_COMPOUND_CONTEXTS
+        ).shouldSucceedAndResult()
+        assertEquals(expected, query.temporalQuery.instanceLimit)
     }
 
     @Test

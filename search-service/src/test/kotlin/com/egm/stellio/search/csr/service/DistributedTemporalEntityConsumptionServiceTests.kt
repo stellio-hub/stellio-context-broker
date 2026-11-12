@@ -11,6 +11,8 @@ import com.egm.stellio.search.csr.model.RevalidationFailedWarning
 import com.egm.stellio.search.support.WithKafkaContainer
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQueryFromGet
+import com.egm.stellio.search.temporal.model.TemporalPagination
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromGet
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.queryparameter.QP
@@ -71,6 +73,8 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
 
     private val apiaryId = "urn:ngsi-ld:Apiary:TEST"
 
+    private val temporalLink = "<http://localhost:8089/temporal/entities?offsetN=7>;rel=\"intervalafter\""
+
     private val emptyParams = LinkedMultiValueMap<String, String>()
 
     private val temporalEntityPayload =
@@ -116,7 +120,10 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
         val path = "/ngsi-ld/v1/temporal/entities/$apiaryId"
         stubFor(
             get(urlMatching(path))
-                .willReturn(ok().withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE).withBody(temporalEntityPayload))
+                .willReturn(
+                    ok().withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                        .withHeader(HttpHeaders.LINK, temporalLink).withBody(temporalEntityPayload)
+                )
         )
 
         val response = distributedTemporalEntityConsumptionService.retrieveTemporalEntityFromContextSource(
@@ -124,10 +131,12 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
             csr,
             CSRFilters(),
             apiaryId.toUri(),
-            emptyParams
+            emptyParams,
+            TemporalQuery(instanceLimit = 10)
         )
 
-        assertJsonPayloadsAreEqual(temporalEntityPayload, serializeObject(response.getOrNull()!!))
+        assertJsonPayloadsAreEqual(temporalEntityPayload, serializeObject(response.getOrNull()!!.first!!))
+        assertEquals(TemporalPagination(offsetAfter = 7), response.getOrNull()!!.second)
     }
 
     @Test
@@ -141,11 +150,12 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
             csr,
             CSRFilters(),
             apiaryId.toUri(),
-            emptyParams
+            emptyParams,
+            TemporalQuery(instanceLimit = 10)
         )
 
         assertTrue(response.isRight())
-        assertNull(response.getOrNull())
+        assertNull(response.getOrNull()!!.first)
     }
 
     @Test
@@ -166,7 +176,8 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
             csr,
             CSRFilters(),
             apiaryId.toUri(),
-            emptyParams
+            emptyParams,
+            TemporalQuery(instanceLimit = 10)
         )
 
         assertTrue(response.isLeft())
@@ -181,17 +192,18 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
 
             coEvery {
                 contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
-            } returns listOf(csr)
+            } returns listOf(csr, csr)
 
             coEvery {
                 distributedTemporalEntityConsumptionService.retrieveTemporalEntityFromContextSource(
-                    any(), any(), any(), any(), any()
+                    any(), any(), any(), any(), any(), any()
                 )
-            } returns remoteEntity.right()
+            } returns (remoteEntity to TemporalPagination()).right() andThen
+                (remoteEntity to TemporalPagination(offsetAfter = 7)).right()
 
             coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
 
-            val (warnings, entities) =
+            val result =
                 distributedTemporalEntityConsumptionService.distributeRetrieveTemporalEntityOperation(
                     apiaryId.toUri(),
                     buildTemporalEntitiesQuery(),
@@ -199,10 +211,12 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
                     emptyParams
                 )
 
-            assertThat(warnings).isEmpty()
-            assertThat(entities).hasSize(1)
-            assertEquals(remoteEntity, entities.first().first)
-            coVerify(exactly = 1) { contextSourceRegistrationService.updateContextSourceStatus(any(), true) }
+            assertThat(result.warnings).isEmpty()
+            assertThat(result.entities).hasSize(2)
+            assertEquals(remoteEntity, result.entities.first().first)
+            assertEquals(1, result.count)
+            assertEquals(TemporalPagination(offsetAfter = 7), result.pagination)
+            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), true) }
         }
 
     @Test
@@ -215,21 +229,21 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
 
         coEvery {
             distributedTemporalEntityConsumptionService.retrieveTemporalEntityFromContextSource(
-                any(), any(), any(), any(), any()
+                any(), any(), any(), any(), any(), any()
             )
         } returns MiscellaneousWarning("error1", csr).left() andThen
             MiscellaneousWarning("error2", csr).left()
 
         coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
 
-        val (warnings, _) = distributedTemporalEntityConsumptionService.distributeRetrieveTemporalEntityOperation(
+        val result = distributedTemporalEntityConsumptionService.distributeRetrieveTemporalEntityOperation(
             apiaryId.toUri(),
             buildTemporalEntitiesQuery(),
             HttpHeaders(),
             emptyParams
         )
 
-        assertThat(warnings).hasSize(2)
+        assertThat(result.warnings).hasSize(2)
         coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
     }
 
@@ -242,6 +256,7 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
                 .willReturn(
                     ok()
                         .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                        .withHeader(HttpHeaders.LINK, temporalLink)
                         .withBody(temporalEntityListPayload)
                 )
         )
@@ -250,11 +265,13 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
             HttpHeaders.EMPTY,
             csr,
             CSRFilters(),
-            emptyParams
+            emptyParams,
+            TemporalQuery(instanceLimit = 10)
         ).getOrNull()
 
         assertNotNull(response)
         assertJsonPayloadsAreEqual(temporalEntityPayload, serializeObject(response!!.first.first()))
+        assertEquals(TemporalPagination(offsetAfter = 7), response.third)
     }
 
     @Test
@@ -270,7 +287,8 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
             HttpHeaders.EMPTY,
             csr,
             CSRFilters(),
-            emptyParams
+            emptyParams,
+            TemporalQuery(instanceLimit = 10)
         )
 
         assertTrue(response.isLeft())
@@ -286,27 +304,29 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
 
             coEvery {
                 contextSourceRegistrationService.getContextSourceRegistrations(any(), any(), any())
-            } returns listOf(csr)
+            } returns listOf(csr, csr)
 
             coEvery {
                 distributedTemporalEntityConsumptionService.queryTemporalEntitiesFromContextSource(
-                    any(), any(), any(), any()
+                    any(), any(), any(), any(), any()
                 )
-            } returns (listOf(remoteEntity) to count).right()
+            } returns Triple(listOf(remoteEntity), count, TemporalPagination()).right() andThen
+                Triple(listOf(remoteEntity), count, TemporalPagination(offsetAfter = 7)).right()
 
             coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
 
-            val (warnings, entitiesWithCSR, counts) =
+            val result =
                 distributedTemporalEntityConsumptionService.distributeQueryTemporalEntitiesOperation(
                     buildTemporalEntitiesQuery(),
                     HttpHeaders(),
                     emptyParams
                 )
 
-            assertThat(warnings).isEmpty()
-            assertThat(entitiesWithCSR).hasSize(1)
-            assertThat(counts).containsExactly(count)
-            coVerify(exactly = 1) { contextSourceRegistrationService.updateContextSourceStatus(any(), true) }
+            assertThat(result.warnings).isEmpty()
+            assertThat(result.entities).hasSize(2)
+            assertEquals(count, result.count)
+            assertEquals(TemporalPagination(offsetAfter = 7), result.pagination)
+            coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), true) }
         }
 
     @Test
@@ -319,20 +339,20 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
 
         coEvery {
             distributedTemporalEntityConsumptionService.queryTemporalEntitiesFromContextSource(
-                any(), any(), any(), any()
+                any(), any(), any(), any(), any()
             )
         } returns MiscellaneousWarning("error1", csr).left() andThen
             MiscellaneousWarning("error2", csr).left()
 
         coEvery { contextSourceRegistrationService.updateContextSourceStatus(any(), any()) } returns Unit
 
-        val (warnings, _, _) = distributedTemporalEntityConsumptionService.distributeQueryTemporalEntitiesOperation(
+        val result = distributedTemporalEntityConsumptionService.distributeQueryTemporalEntitiesOperation(
             buildTemporalEntitiesQuery(),
             HttpHeaders(),
             emptyParams
         )
 
-        assertThat(warnings).hasSize(2)
+        assertThat(result.warnings).hasSize(2)
         coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), false) }
     }
 

@@ -14,9 +14,6 @@ val formatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
 fun ZonedDateTime.toNgsiLdFormat(): String =
     formatter.format(this)
 
-fun ZonedDateTime.toHttpHeaderFormat(): String =
-    formatter.format(this)
-
 fun ngsiLdDateTime(): ZonedDateTime =
     Instant.now().truncatedTo(ChronoUnit.MICROS).atZone(ZoneOffset.UTC)
 

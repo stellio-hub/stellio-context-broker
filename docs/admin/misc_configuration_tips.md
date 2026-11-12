@@ -67,13 +67,16 @@ If running Stellio from `docker-compose`, it can be configured in the environmen
 ```
 
 ### Temporal pagination
-There is also a default limit for temporal pagination set at 10 000.
 
-you can change it via `application.pagination.temporal-limit` in shared.properties.
+In `shared.properties`, `application.pagination.temporal-limit` sets the default page size and
+`application.pagination.temporal-limit-max` sets the maximum. Both default to 10 000 instances
+per attribute and entity. `firstN`/`lastN` above the maximum return `403 TooManyResults`.
 
-Or by adding the variable in the environment target service  (`search-service`)
-```
-    - APPLICATION_PAGINATION_TEMPORAL-LIMIT=9999
+For Docker Compose, set these variables in `.env`:
+
+```dotenv
+APPLICATION_PAGINATION_TEMPORAL_LIMIT=10000
+APPLICATION_PAGINATION_TEMPORAL_LIMIT_MAX=10000
 ```
 
 ## Change the interval of the transient data garbage collection job

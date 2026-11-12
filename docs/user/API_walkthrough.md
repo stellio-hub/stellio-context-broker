@@ -962,16 +962,17 @@ The list contains multiple values if multiple entities match the request.
       <i>(Advanced)</i>
   </summary>
 
-When retrieving a huge number of temporal instances (default max = 10 000 by attribute). 
+Use `firstN` (ascending) or `lastN` (descending) to limit instances per attribute and entity;
+they are mutually exclusive positive integers. `offsetN` skips instances in that order,
+independently of entity pagination (`limit`/`offset`).
+For POST queries, put `firstN`/`lastN` in `temporalQ` and `offsetN` in the query string.
 
-Stellio will automatically trigger the temporal pagination and returns a 206 partial-content
-containing a range header describing the temporal range of the data returned.
+Responses use the `Link` header: `intervalafter` points to later timestamps and `intervalbefore` to earlier ones.
 
-Caveats : 
-- In the distributed scenario the pagination is only applied locally, meaning that data
-from remote broker can be from outside the returned range.
-- In future version of NGSI-LD, the behavior of temporal pagination will be aligned with the behavior of the query entities pagination. 
-By adding of the firstN offsetN parameter.
+Stellio will automatically trigger temporal pagination when the number of instance is more than the default limit;
+see [configuration](../admin/misc_configuration_tips.md#temporal-pagination).
+
+For distributed queries, merged remote histories can exceed the page size; links use continuation offsets from local and remote results.
 
 </details>
 

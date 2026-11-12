@@ -1,7 +1,7 @@
 package com.egm.stellio.search.temporal.web
 
 import com.egm.stellio.search.common.config.SearchProperties
-import com.egm.stellio.search.csr.model.NGSILDWarning
+import com.egm.stellio.search.csr.model.DistributedTemporalQueryResult
 import com.egm.stellio.search.csr.service.DistributedTemporalEntityConsumptionService
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.service.TemporalService
@@ -42,12 +42,12 @@ open class TemporalEntityHandlerTestCommon {
             distributedTemporalEntityConsumptionService.distributeRetrieveTemporalEntityOperation(
                 any(), any(), any(), any()
             )
-        } returns (emptyList<NGSILDWarning>() to emptyList())
+        } returns DistributedTemporalQueryResult()
         coEvery {
             distributedTemporalEntityConsumptionService.distributeQueryTemporalEntitiesOperation(
                 any(), any(), any()
             )
-        } returns Triple(emptyList(), emptyList(), emptyList())
+        } returns DistributedTemporalQueryResult()
     }
 
     @BeforeAll

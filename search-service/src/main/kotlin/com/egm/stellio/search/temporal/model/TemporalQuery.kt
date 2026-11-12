@@ -10,11 +10,11 @@ data class TemporalQuery(
     val aggrMethods: List<Aggregate>? = null,
     val lastN: Int? = null,
     val instanceLimit: Int,
+    val firstN: Int? = null,
+    val offsetN: Int = 0,
     val timeproperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
 ) {
     fun hasLastN(): Boolean = lastN != null
-
-    fun isLastNTheLimit(): Boolean = lastN != null && instanceLimit == lastN
 
     enum class Timerel {
         BEFORE,

@@ -71,10 +71,10 @@ class SubscriptionService(
         SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
             modified_at, description, watched_attributes, notification_trigger, time_interval, q, notif_attributes,
             notif_format, endpoint_uri, endpoint_accept, endpoint_receiver_info, endpoint_notifier_info, status,
-            times_sent, times_failed, is_active, last_notification, last_failure, last_success, entity_selector.id as entity_id,
-            id_pattern, entity_selector.type_selection as type_selection, georel, geometry, coordinates,
-            pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, lang,
-            datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout,
+            times_sent, times_failed, is_active, last_notification, last_failure, last_success, 
+            entity_selector.id as entity_id, id_pattern, entity_selector.type_selection as type_selection, georel, 
+            geometry, coordinates, pgis_geometry, geoproperty, scope_q, expires_at, contexts, throttling, sys_attrs, 
+            lang, datasetId, jsonld_context, join_type, join_level, show_changes, pick, omit, cooldown, timeout,
             json_keys, expand_values
         FROM subscription
         LEFT JOIN entity_selector on subscription.id = entity_selector.subscription_id

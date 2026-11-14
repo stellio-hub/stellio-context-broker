@@ -414,6 +414,9 @@ object ErrorMessages {
 
         const val SHOW_CHANGES_WITH_SIMPLIFIED_MESSAGE =
             "Cannot use 'showChanges' with 'simplified' or 'keyValues' format"
+
+        fun entitiesRetrievalFailedMessage(target: String, cause: String?) = "Unable to retrieve $target: $cause"
+        fun entitiesRetrievalTimeoutMessage(target: String) = "Timeout while retrieving $target"
     }
 
     object Temporal {

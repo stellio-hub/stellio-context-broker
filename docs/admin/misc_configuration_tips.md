@@ -91,6 +91,30 @@ If running Stellio from `docker-compose`, it can be configured in the environmen
       - SEARCH_TRANSIENT-DATA_GC_INTERVAL=0 0 * * * *
 ```
 
+## Configure the retrieval of linked entities in notifications
+
+For a subscription with `join` set to `flat` or `inline`, `subscription-service` retrieves the linked entities from
+`search-service` before sending the notification. If `search-service` can't be reached, times out or answers with a
+5xx error, the retrieval is retried in the background with an exponential backoff, without delaying the processing of
+the other entity events. If it still fails, the notification is not sent and the failure is recorded on the
+subscription (`status`, `timesFailed` and `lastFailure`).
+
+```properties
+# Spring duration format; timeout of each attempt, including the connection, 5s by default
+subscription.linked-entities.timeout = 5s
+# number of retries in the background after a failed first attempt, 8 by default
+subscription.linked-entities.retry-max-attempts = 8
+# delay before the first retry, doubled at each retry up to the maximum; 1s and 30s by default
+subscription.linked-entities.retry-min-backoff = 1s
+subscription.linked-entities.retry-max-backoff = 30s
+```
+
+Pending retries are lost if `subscription-service` is restarted.
+
+When running Stellio with Docker Compose, use `SUBSCRIPTION_LINKEDENTITIES_TIMEOUT`,
+`SUBSCRIPTION_LINKEDENTITIES_RETRYMAXATTEMPTS`, `SUBSCRIPTION_LINKEDENTITIES_RETRYMINBACKOFF` and
+`SUBSCRIPTION_LINKEDENTITIES_RETRYMAXBACKOFF`.
+
 ## Change the log level of a library / namespace
 
 Add a new environment for the target namespace. For instance, adding:

@@ -250,6 +250,62 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer() {
     }
 
     @Test
+    fun `updateSubscriptionNotification should increment timesFailed when the notification has failed`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(
+                    mapOf("id" to "urn:ngsi-ld:smartDoor:77".toUri(), "type" to DEVICE_TERM)
+                )
+            )
+        )
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+
+        val notifiedAt = ngsiLdDateTime()
+        val notification =
+            Notification(subscriptionId = subscription.id, notifiedAt = notifiedAt, data = emptyList<Any>())
+        // the subscription is passed twice with the same in-memory counters, counters must still be incremented
+        subscriptionService.updateSubscriptionNotification(subscription, notification, false).shouldSucceed()
+        subscriptionService.updateSubscriptionNotification(subscription, notification, false).shouldSucceed()
+
+        val persistedSubscription = subscriptionService.getById(subscription.id)
+        assertThat(persistedSubscription)
+            .matches {
+                it.notification.lastFailure != null &&
+                    it.notification.lastFailure.isEqual(notifiedAt) &&
+                    it.notification.lastSuccess == null &&
+                    it.notification.timesSent == 2 &&
+                    it.notification.timesFailed == 2 &&
+                    it.notification.status == StatusType.FAILED
+            }
+    }
+
+    @Test
+    fun `updateSubscriptionNotificationFailure should record a failure without incrementing timesSent`() = runTest {
+        val subscription = gimmeSubscriptionFromMembers(
+            mapOf(
+                "entities" to listOf(
+                    mapOf("id" to "urn:ngsi-ld:smartDoor:77".toUri(), "type" to DEVICE_TERM)
+                )
+            )
+        )
+        subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()
+
+        val failedAt = ngsiLdDateTime()
+        subscriptionService.updateSubscriptionNotificationFailure(subscription, failedAt).shouldSucceed()
+
+        val persistedSubscription = subscriptionService.getById(subscription.id)
+        assertThat(persistedSubscription)
+            .matches {
+                it.notification.lastFailure != null &&
+                    it.notification.lastFailure.isEqual(failedAt) &&
+                    it.notification.lastNotification == null &&
+                    it.notification.timesSent == 0 &&
+                    it.notification.timesFailed == 1 &&
+                    it.notification.status == StatusType.FAILED
+            }
+    }
+
+    @Test
     fun `delete should remove an existing subscription`() = runTest {
         val subscription = loadAndDeserializeSubscription("subscription_minimal_entities.json")
         subscriptionService.upsert(subscription, mockUserSub).shouldSucceed()

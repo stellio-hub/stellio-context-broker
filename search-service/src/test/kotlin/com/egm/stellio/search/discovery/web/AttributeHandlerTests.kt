@@ -3,6 +3,10 @@ package com.egm.stellio.search.discovery.web
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.common.config.SearchProperties
+import com.egm.stellio.search.csr.CsrUtils.gimmeRawCSR
+import com.egm.stellio.search.csr.model.MiscellaneousWarning
+import com.egm.stellio.search.csr.model.NGSILDWarning
+import com.egm.stellio.search.csr.service.DistributedDiscoveryService
 import com.egm.stellio.search.discovery.model.AttributeDetails
 import com.egm.stellio.search.discovery.model.AttributeList
 import com.egm.stellio.search.discovery.model.AttributeType
@@ -28,6 +32,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockkClass
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -54,6 +59,11 @@ class AttributeHandlerTests {
 
     @MockkBean
     private lateinit var attributeService: AttributeService
+
+    @MockkBean
+    private lateinit var distributedDiscoveryService: DistributedDiscoveryService
+
+    private val csrWarning = MiscellaneousWarning("CSR unreachable", gimmeRawCSR())
 
     private val expectedAttributeDetails =
         """
@@ -92,6 +102,17 @@ class AttributeHandlerTests {
             .apply(csrf())
             .build()
     }
+
+    @BeforeEach
+    fun mockNoMatchingContextSource() {
+        coEvery { distributedDiscoveryService.distributeRetrieveAttributes(any(), any()) } returns noResults()
+        coEvery { distributedDiscoveryService.distributeRetrieveAttributeDetails(any(), any()) } returns noResults()
+        coEvery {
+            distributedDiscoveryService.distributeRetrieveAttributeTypeInfo(any(), any(), any())
+        } returns noResults()
+    }
+
+    private fun <T> noResults(): Pair<List<NGSILDWarning>, List<T>> = emptyList<NGSILDWarning>() to emptyList()
 
     @Test
     fun `get attributes should return a 200 and an AttributeList`() {
@@ -262,5 +283,58 @@ class AttributeHandlerTests {
                     }
                 """
             )
+    }
+
+    @Test
+    fun `get attributes should merge local and remote attributes and return the warnings`() {
+        coEvery { attributeService.getAttributeList(any()) } returns AttributeList(attributeList = listOf(OUTGOING_IRI))
+        coEvery { distributedDiscoveryService.distributeRetrieveAttributes(any(), any()) } returns
+            (listOf(csrWarning) to listOf(AttributeList(attributeList = listOf(INCOMING_IRI, OUTGOING_IRI))))
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/attributes")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(NGSILDWarning.HEADER_NAME, csrWarning.getHeaderMessage())
+            .expectBody()
+            .jsonPath("$.attributeList").isEqualTo(listOf(INCOMING_IRI, OUTGOING_IRI).sorted())
+    }
+
+    @Test
+    fun `get attributes should not contact context sources if local is true`() {
+        coEvery { attributeService.getAttributeDetails(any()) } returns emptyList()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/attributes?details=true&local=true")
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify(exactly = 0) { distributedDiscoveryService.distributeRetrieveAttributeDetails(any(), any()) }
+    }
+
+    @Test
+    fun `get attribute type information should return a 200 if the attribute is only known by a context source`() {
+        coEvery { attributeService.getAttributeTypeInfoByAttribute(any(), any()) } returns
+            ResourceNotFoundException(attributeWithDatasetIdNotFoundMessage(TEMPERATURE_IRI)).left()
+        val remoteAttributeTypeInfo = AttributeTypeInfo(
+            id = TEMPERATURE_IRI.toUri(),
+            attributeName = TEMPERATURE_TERM,
+            attributeTypes = setOf(AttributeType.Property),
+            typeNames = setOf(BEEHIVE_TERM),
+            attributeCount = 4
+        )
+        coEvery { distributedDiscoveryService.distributeRetrieveAttributeTypeInfo(any(), any(), any()) } returns
+            (listOf(csrWarning) to listOf(remoteAttributeTypeInfo))
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/attributes/$TEMPERATURE_TERM")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(NGSILDWarning.HEADER_NAME, csrWarning.getHeaderMessage())
+            .expectBody()
+            .jsonPath("$.attributeCount").isEqualTo(4)
+
+        coVerify { distributedDiscoveryService.distributeRetrieveAttributeTypeInfo(TEMPERATURE_IRI, any(), any()) }
     }
 }

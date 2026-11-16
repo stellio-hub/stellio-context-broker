@@ -14,7 +14,7 @@ import org.springframework.http.ResponseEntity
 import java.net.URI
 
 /**
- * BatchOperationResult type as defined in 5.2.16
+ * BatchOperationResult (OperationResult) type as defined in TS 104 175 §5.2.6.8.1
  */
 data class BatchOperationResult(
     val success: MutableList<URI> = mutableListOf(),
@@ -68,7 +68,7 @@ data class BatchOperationResult(
 }
 
 /**
- * BatchEntityError type as defined in 5.2.17
+ * BatchEntityError type as defined in TS 104 175 §5.2.6.8.2
  */
 data class BatchEntityError(
     val entityId: URI,

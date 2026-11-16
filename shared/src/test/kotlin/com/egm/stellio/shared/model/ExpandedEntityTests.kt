@@ -214,6 +214,22 @@ class ExpandedEntityTests {
     }
 
     @Test
+    fun `filterAttributes should only keep the scope if explicitly asked for`() {
+        val expandedEntity = ExpandedEntity(
+            mapOf(JSONLD_ID_KW to "urn:ngsi-ld:Entity:01", NGSILD_SCOPE_IRI to "", INCOMING_IRI to "")
+        )
+
+        assertEquals(
+            setOf(JSONLD_ID_KW, INCOMING_IRI),
+            expandedEntity.filterAttributes(setOf(INCOMING_IRI)).members.keys
+        )
+        assertEquals(
+            setOf(JSONLD_ID_KW, NGSILD_SCOPE_IRI, INCOMING_IRI),
+            expandedEntity.filterAttributes(setOf(INCOMING_IRI), includeScope = true).members.keys
+        )
+    }
+
+    @Test
     fun `applyDatasetView should filter the attributes based on attrs and apply the datasetId view`() = runTest {
         val entity = loadAndExpandSampleData("beehive_with_multi_attribute_instances.jsonld")
 

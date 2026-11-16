@@ -22,7 +22,7 @@ class ExpandedMembersTests {
     fun `addSysAttrs should add createdAt information into an attribute`() {
         val attrPayload = mapOf("attribute" to buildExpandedPropertyValue(12.0))
 
-        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), null)
+        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(ngsiLdDateTime())
 
         assertThat(attrPayloadWithSysAttrs)
             .containsKey(NGSILD_CREATED_AT_IRI)
@@ -34,7 +34,7 @@ class ExpandedMembersTests {
     fun `addSysAttrs should add createdAt and modifiedAt information into an attribute`() {
         val attrPayload = mapOf("attribute" to buildExpandedPropertyValue(12.0))
 
-        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(true, ngsiLdDateTime(), ngsiLdDateTime())
+        val attrPayloadWithSysAttrs = attrPayload.addSysAttrs(ngsiLdDateTime(), ngsiLdDateTime())
 
         assertThat(attrPayloadWithSysAttrs)
             .containsKey(NGSILD_CREATED_AT_IRI)
@@ -47,7 +47,7 @@ class ExpandedMembersTests {
         val attrPayload = mapOf("attribute" to buildExpandedPropertyValue(12.0))
 
         val attrPayloadWithSysAttrs =
-            attrPayload.addSysAttrs(true, ngsiLdDateTime(), ngsiLdDateTime(), ngsiLdDateTime())
+            attrPayload.addSysAttrs(ngsiLdDateTime(), ngsiLdDateTime(), ngsiLdDateTime())
 
         assertThat(attrPayloadWithSysAttrs)
             .containsKey(NGSILD_CREATED_AT_IRI)

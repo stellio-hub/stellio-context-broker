@@ -9,3 +9,6 @@ data class EntityTypeList(
     val type: String = "EntityTypeList",
     val typeList: List<String>
 )
+
+fun List<EntityTypeList>.merge(): EntityTypeList =
+    singleOrNull() ?: EntityTypeList(typeList = flatMap { it.typeList }.distinct().sorted())

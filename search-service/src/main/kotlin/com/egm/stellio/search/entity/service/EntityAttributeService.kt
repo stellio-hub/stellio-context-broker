@@ -22,6 +22,7 @@ import com.egm.stellio.search.common.util.toZonedDateTime
 import com.egm.stellio.search.entity.model.Attribute
 import com.egm.stellio.search.entity.model.AttributeMetadata
 import com.egm.stellio.search.entity.model.AttributeOperationResult
+import com.egm.stellio.search.entity.model.AttributeUpsertResult
 import com.egm.stellio.search.entity.model.FailedAttributeOperationResult
 import com.egm.stellio.search.entity.model.OperationStatus
 import com.egm.stellio.search.entity.model.SucceededAttributeOperationResult
@@ -31,6 +32,7 @@ import com.egm.stellio.search.entity.util.hasNgsiLdNullValue
 import com.egm.stellio.search.entity.util.mergePatch
 import com.egm.stellio.search.entity.util.partialUpdatePatch
 import com.egm.stellio.search.entity.util.prepareAttributes
+import com.egm.stellio.search.entity.util.simplifyListRelationshipValue
 import com.egm.stellio.search.entity.util.toAttributeMetadata
 import com.egm.stellio.search.entity.util.toExpandedAttributeInstance
 import com.egm.stellio.search.temporal.model.AttributeInstance
@@ -48,6 +50,8 @@ import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
+import com.egm.stellio.shared.model.NGSILD_LISTPROPERTY_VALUE_LIST
+import com.egm.stellio.shared.model.NGSILD_LISTRELATIONSHIP_OBJECT_LIST
 import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PREFIX
@@ -105,7 +109,7 @@ class EntityAttributeService(
      * Called when doing a creation or replacement of an attribute.
      */
     @Transactional
-    suspend fun upsert(attribute: Attribute): Either<APIException, UUID> =
+    internal suspend fun upsert(attribute: Attribute): Either<APIException, AttributeUpsertResult> =
         databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
@@ -121,7 +125,7 @@ class EntityAttributeService(
                     modified_at = :created_at,
                     expires_at = :expires_at,
                     payload = :payload
-            RETURNING id
+            RETURNING id, created_at, modified_at
             """.trimIndent()
         )
             .bind("id", attribute.id)
@@ -133,10 +137,17 @@ class EntityAttributeService(
             .bind("dataset_id", attribute.datasetId)
             .bind("expires_at", attribute.expiresAt)
             .bind("payload", attribute.payload)
-            .oneToResult { row -> toUuid(row["id"]) }
+            .oneToResult { row ->
+                AttributeUpsertResult(
+                    toUuid(row["id"]),
+                    toZonedDateTime(row["created_at"]),
+                    toZonedDateTime(row["modified_at"])
+                )
+            }
 
     /**
-     * Called when doing a merge (5.5.12) or partial update patch (5.5.8) operation over an attribute.
+     * Called when doing a merge (TS 104 175 §8.4.3) or partial update patch (TS 104 175 §8.4.2) operation over an
+     * attribute.
      */
     @Transactional
     suspend fun update(
@@ -236,7 +247,7 @@ class EntityAttributeService(
             expiresAt = attributeMetadata.expiresAt,
             payload = Json.of(serializeObject(attributePayload))
         )
-        val attributeUuid = upsert(attribute).bind()
+        val attributeUpdateResult = upsert(attribute).bind()
 
         val (timeProperty, operationStatus) =
             if (existedPreviously)
@@ -245,7 +256,7 @@ class EntityAttributeService(
                 AttributeInstance.TemporalProperty.CREATED_AT to OperationStatus.CREATED
 
         val attributeInstance = AttributeInstance(
-            attributeUuid = attributeUuid,
+            attributeUuid = attributeUpdateResult.id,
             timeProperty = timeProperty,
             time = createdAt,
             attributeMetadata = attributeMetadata,
@@ -256,7 +267,7 @@ class EntityAttributeService(
 
         if (attributeMetadata.observedAt != null) {
             val attributeObservedAtInstance = AttributeInstance(
-                attributeUuid = attributeUuid,
+                attributeUuid = attributeUpdateResult.id,
                 time = attributeMetadata.observedAt,
                 attributeMetadata = attributeMetadata,
                 payload = attributePayload
@@ -268,7 +279,7 @@ class EntityAttributeService(
             attributeName,
             attributeMetadata.datasetId,
             operationStatus,
-            attributePayload
+            attributePayload.addSysAttrs(attributeUpdateResult.createdAt, attributeUpdateResult.modifiedAt)
         )
     }
 
@@ -306,7 +317,7 @@ class EntityAttributeService(
                     attribute.attributeName,
                     attributeMetadata.datasetId,
                     OperationStatus.UPDATED,
-                    attributePayload
+                    updatedAttributeInstance.addSysAttrs(attribute.createdAt, mergedAt)
                 )
             }.bind()
     }
@@ -380,9 +391,10 @@ class EntityAttributeService(
             }
 
         attributesToDeleteWithPayload.forEach { (attribute, expandedAttributePayload) ->
+            val value = expandedAttributePayload.getMemberValue(attribute.attributeType.toExpandedValueMember()).bind()
             attributeInstanceService.addDeletedAttributeInstance(
                 attributeUuid = attribute.id,
-                value = NGSILD_NULL.asJsonB(),
+                value = value.asJsonB(),
                 deletedAt = deletedAt,
                 attributeValues = expandedAttributePayload
             ).bind()
@@ -395,7 +407,6 @@ class EntityAttributeService(
                 attribute.datasetId,
                 OperationStatus.DELETED,
                 expandedAttributeInstance.addSysAttrs(
-                    true,
                     teaTimestamps.first,
                     teaTimestamps.second,
                     teaTimestamps.third
@@ -795,7 +806,7 @@ class EntityAttributeService(
             attribute.attributeName,
             attribute.datasetId,
             OperationStatus.UPDATED,
-            updatedAttributeInstance
+            updatedAttributeInstance.addSysAttrs(attribute.createdAt, modifiedAt)
         )
     }
 
@@ -805,7 +816,7 @@ class EntityAttributeService(
         ngsiLdAttribute: NgsiLdAttribute,
         expandedAttributes: ExpandedAttributes,
         createdAt: ZonedDateTime
-    ): Either<APIException, Unit> = either {
+    ): Either<APIException, SucceededAttributeOperationResult?> = either {
         val ngsiLdAttributeInstance = ngsiLdAttribute.getAttributeInstances()[0]
         logger.debug("Upserting temporal attribute {} in entity {}", ngsiLdAttribute.name, entityUri)
         val currentAttribute =
@@ -838,6 +849,7 @@ class EntityAttributeService(
                 attributeMetadata,
                 expandedAttributes[currentAttribute.attributeName]!!.first()
             ).bind()
+            null
         }
     }
 
@@ -873,14 +885,7 @@ class EntityAttributeService(
                     createdAt,
                     attributePayload,
                     false
-                ).map {
-                    SucceededAttributeOperationResult(
-                        ngsiLdAttribute.name,
-                        ngsiLdAttributeInstance.datasetId,
-                        OperationStatus.CREATED,
-                        attributePayload
-                    )
-                }.bind()
+                ).bind()
             else if (isNull)
                 deleteAttribute(
                     entityUri,
@@ -931,13 +936,6 @@ class EntityAttributeService(
                     expandedAttribute.second.first(),
                     true
                 ).bind()
-
-                SucceededAttributeOperationResult(
-                    ngsiLdAttribute.name,
-                    ngsiLdAttributeInstance.datasetId,
-                    OperationStatus.UPDATED,
-                    expandedAttribute.second.first()
-                )
             }
 
         attributeOperationResult
@@ -980,9 +978,25 @@ class EntityAttributeService(
                     null,
                     null
                 )
+            Attribute.AttributeType.ListProperty ->
+                Triple(
+                    attributePayload.getMemberValue(NGSILD_LISTPROPERTY_VALUE_LIST).bind().asJsonB(),
+                    null,
+                    null
+                )
+            Attribute.AttributeType.ListRelationship ->
+                Triple(
+                    attributePayload.getMemberValue(NGSILD_LISTRELATIONSHIP_OBJECT_LIST)
+                        .bind().simplifyListRelationshipValue(attribute.attributeName).bind().asJsonB(),
+                    null,
+                    null
+                )
         }
     }.fold(
-        { NotImplementedException(NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE, it.message).left() },
+        {
+            if (it is BadRequestDataException) it.left()
+            else NotImplementedException(NOT_IMPLEMENTED_PARTIAL_ATTRIBUTE_MESSAGE, it.message).left()
+        },
         { it.right() }
     )
 
@@ -1011,9 +1025,9 @@ class EntityAttributeService(
     }
 
     /**
-     * As specified in 5.6.17: If a common "observedAt" timestamp is defined and an existing Attribute to be merged
-     * previously contained an "observedAt" sub-Attribute, the "observedAt" sub-Attribute is also updated using the
-     * common timestamp, unless the Entity Fragment itself contains an explicit updated value for the
+     * As specified in TS 104 175 §10.2.9.4: If a common "observedAt" timestamp is defined and an existing Attribute
+     * to be merged previously contained an "observedAt" sub-Attribute, the "observedAt" sub-Attribute is also updated
+     * using the common timestamp, unless the Entity Fragment itself contains an explicit updated value for the
      * "observedAt" sub-Attribute.
      */
     internal fun processObservedAtInMergeOperation(

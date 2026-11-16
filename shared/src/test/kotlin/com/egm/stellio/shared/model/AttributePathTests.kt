@@ -108,6 +108,13 @@ class AttributePathTests {
     }
 
     @Test
+    fun `AttributePath should parse legacy language tags from bracket notation`() = runTest {
+        listOf("i-klingon", "zh-min-nan", "en-GB-oed").forEach { tag ->
+            assertEquals(tag, AttributePath("$INCOMING_TERM[$tag]", APIC_COMPOUND_CONTEXTS).languageTag)
+        }
+    }
+
+    @Test
     fun `AttributePath should expand trailing path terms when attribute is not in jsonKeys`() = runTest {
         val attrPath = AttributePath("$INCOMING_TERM[$TEMPERATURE_TERM.$NAME_TERM]", APIC_COMPOUND_CONTEXTS)
         assertFalse(attrPath.isJsonKeysAttribute)
@@ -178,6 +185,25 @@ class AttributePathTests {
         assertEquals(
             """$."$INCOMING_IRI"."$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW"""",
             attrPath.buildJsonBRelationshipPath()
+        )
+    }
+
+    @Test
+    fun `buildJsonBListPropertyPath should build a path to list members`() = runTest {
+        val attrPath = AttributePath(INCOMING_TERM, APIC_COMPOUND_CONTEXTS)
+        assertEquals(
+            """$."$INCOMING_IRI"."$NGSILD_LISTPROPERTY_VALUE_LIST"."@list"."$JSONLD_VALUE_KW"""",
+            attrPath.buildJsonBListPropertyPath()
+        )
+    }
+
+    @Test
+    fun `buildJsonBListRelationshipPath should build a path to list object members`() = runTest {
+        val attrPath = AttributePath(INCOMING_TERM, APIC_COMPOUND_CONTEXTS)
+        assertEquals(
+            """$."$INCOMING_IRI"."$NGSILD_LISTRELATIONSHIP_OBJECT_LIST"."@list".""" +
+                """"$NGSILD_RELATIONSHIP_OBJECT"[*]."$JSONLD_ID_KW"""",
+            attrPath.buildJsonBListRelationshipPath()
         )
     }
 

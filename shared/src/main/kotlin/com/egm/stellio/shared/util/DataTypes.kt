@@ -8,7 +8,7 @@ import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.jacksonMapperBuilder
 
-// regroups utils function specific to data types defined in 5.2
+// regroups utils function specific to data types defined in TS 104 175 §5.2.6
 object DataTypes {
 
     // unknown properties are not allowed (in contrast to entities)

@@ -182,42 +182,36 @@ enum class Operation(
         NGSILDPath.TEMPORAL_ENTITIES
     ),
 
-    // not implemented
     @JsonProperty("retrieveEntityTypes")
     RETRIEVE_ENTITY_TYPES(
         "retrieveEntityTypes",
         setOf(FEDERATION_OPS, REDIRECTION_OPS)
     ),
 
-    // not implemented
     @JsonProperty("retrieveEntityTypeDetails")
     RETRIEVE_ENTITY_TYPE_DETAILS(
         "retrieveEntityTypeDetails",
         setOf(FEDERATION_OPS, REDIRECTION_OPS)
     ),
 
-    // not implemented
     @JsonProperty("retrieveEntityTypeInfo")
     RETRIEVE_ENTITY_TYPE_INFO(
         "retrieveEntityTypeInfo",
         setOf(FEDERATION_OPS, REDIRECTION_OPS)
     ),
 
-    // not implemented
     @JsonProperty("retrieveAttrTypes")
     RETRIEVE_ATTR_TYPES(
         "retrieveAttrTypes",
         setOf(FEDERATION_OPS, REDIRECTION_OPS)
     ),
 
-    // not implemented
     @JsonProperty("retrieveAttrTypeDetails")
     RETRIEVE_ATTR_TYPE_DETAILS(
         "retrieveAttrTypeDetails",
         setOf(FEDERATION_OPS, REDIRECTION_OPS)
     ),
 
-    // not implemented
     @JsonProperty("retrieveAttrTypeInfo")
     RETRIEVE_ATTR_TYPE_INFO(
         "retrieveAttrTypeInfo",

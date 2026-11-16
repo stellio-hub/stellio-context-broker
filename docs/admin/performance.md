@@ -6,11 +6,72 @@ Performance in Stellio is mainly related to the performance of the underlying da
 
 Thus, by default, the Stellio databases are configured to provide a good balance between writing and reading. If you have more specific scenarios in one or another area, you may have to adapt these settings. You may also have to fine tune the settings of PostgreSQL / Timescale (for instance, sizes of chunks to store the history of attributes can be a very important one).
 
+## JVM settings
+
+### Entropy source
+
+Stellio generates random identifiers on hot paths (for instance, a UUID on every attribute update). In a container, the default `SecureRandom` implementation may block while reading `/dev/random` when the entropy pool runs low, stalling the thread that processes the request. In our load tests, switching to `/dev/urandom` improved the throughput of partial attribute updates by 4.5% to 7%.
+
+The Docker images of all Stellio services are thus started with `-Djava.security.egd=file:/dev/./urandom`. Nothing has to be configured.
+
+### Heap size
+
+The JVM sizes its heap from the memory available to the container. By default, the maximum heap is 25% of that memory, which is conservative when the container only runs a Stellio service. In our load tests (8 vCPU server, 50 concurrent users), setting `-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=75` improved the throughput of partial attribute updates by about 7%.
+
+The right values depend on your deployment (memory limit of the container, load profile), so the Docker images do not set them. Keep enough room for the memory used outside the heap (metaspace, thread stacks, direct buffers): a maximum above 75% is generally not advised.
+
+They can be set with the `JDK_JAVA_OPTIONS` environment variable (see [Change the JVM parameters in a container](misc_configuration_tips.md#change-the-jvm-parameters-in-a-container)):
+
+```yaml
+    environment:
+      - JDK_JAVA_OPTIONS=-XX:InitialRAMPercentage=25 -XX:MaxRAMPercentage=75
+```
+
+## Calling search-service directly
+
+By default, all requests go through api-gateway, which routes them to search-service or subscription-service. This extra hop has a cost: in our load tests (partial attribute updates, 50 concurrent users), sending the requests directly to search-service improved throughput by about 20% and reduced response times by about 20% at every percentile.
+
+Clients deployed in the same infrastructure as Stellio, and that only use the APIs served by search-service, can thus call it directly (on port 8083 by default, see `SEARCH_SERVICE_PORT`). Authentication is enforced by search-service itself, so it is not bypassed.
+
+For the following paths, api-gateway only forwards the request, so calling search-service directly is equivalent:
+
+* `/ngsi-ld/v1/entities/**`, `/ngsi-ld/v1/entityOperations/**`, `/ngsi-ld/v1/entityAccessControl/**`
+* `/ngsi-ld/v1/types/**`, `/ngsi-ld/v1/attributes/**`
+* `/ngsi-ld/v1/temporal/entities/**`, `/ngsi-ld/v1/temporal/entityOperations/**`
+* `/ngsi-ld/v1/csourceRegistrations/**`, `/ngsi-ld/v1/serviceRegistrations/**`, `/ngsi-ld/v1/services/**`
+* `/ngsi-ld/v1/auth/**`
+
+Keep going through api-gateway in the following cases:
+
+* `/ngsi-ld/v1/jsonldContexts/**`: api-gateway also forwards the request to subscription-service, so that both services stay in sync when a context is added, reloaded or deleted.
+* `/ngsi-ld/v1/subscriptions/**`: these requests are served by subscription-service.
+* Browser-based clients: the CORS configuration (`APPLICATION_CORS_ALLOWED_ORIGINS`) is applied by api-gateway.
+* Clients outside of your infrastructure: api-gateway is meant to be the single entry point exposed to them.
+
 ## Load test campaign
 
 An NGSI-LD load test suite is available in [GitHub](https://github.com/stellio-hub/ngsild-load-tests). In the README, you will find instructions on how to install and configure it. There is a description of all the scenarions that are currently available. They are currently focused on the most typical endpoints used in everyday life of a project but it is planned to add new ones soon (for instance, the Merge Entity endpoint or the subscription endpoints).
 
 The objective is to be as close as possible to data used in real life projects. Thus, the [template entity](https://github.com/stellio-hub/ngsild-load-tests/blob/master/src/data/template_entity.json) that is used in the different scenarios is composed of 6 properties (some being multi-instance ones), 1 relationship and 1 geolocation.
+
+### Launching Stellio for a load test campaign
+
+The `perf` folder contains Docker Compose override files to apply on top of `docker-compose.yml`:
+
+* `docker-compose-perf.yml` enables the tools used to analyze the results:
+    * the `pg_stat_statements` extension in PostgreSQL (only applied when the data volume is created, so start from a fresh volume),
+    * a read-only access to `/actuator/metrics` in search-service (JVM, HTTP server and connection pool metrics),
+    * the size of the connection pool of search-service (`SEARCH_SERVICE_DB_POOL_MAX_SIZE`, 10 by default),
+    * the log level of the requests and responses in api-gateway (`LOGBOOK_LOG_LEVEL`, `TRACE` by default).
+* `docker-compose-cpu-limit-search-service.yml` and `docker-compose-cpu-limit-postgres.yml` limit the number of CPUs of a service, to see how a scenario scales with CPU allocation. The limit (`SEARCH_SERVICE_CPU_LIMIT` or `POSTGRES_CPU_LIMIT`) has no default value and must always be set.
+
+```shell
+docker compose -f docker-compose.yml -f perf/docker-compose-perf.yml up -d
+SEARCH_SERVICE_CPU_LIMIT=4 docker compose -f docker-compose.yml -f perf/docker-compose-perf.yml \
+  -f perf/docker-compose-cpu-limit-search-service.yml up -d --force-recreate search-service
+```
+
+To compare the results with a previous campaign, check that the load tests target the same entry point: going through api-gateway or directly to search-service makes a significant difference.
 
 ## Current state of Stellio
 

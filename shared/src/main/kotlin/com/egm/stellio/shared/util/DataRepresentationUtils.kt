@@ -19,7 +19,7 @@ import com.egm.stellio.shared.util.JsonUtils.getAllValues
 
 /**
  * Checks whether the given JSON-LD object contains Type Names, Property Names and Relationship Names
- * that conforms to the restrictions defined in 4.6.2
+ * that conforms to the restrictions defined in TS 104 175 §5.2.2.3
  */
 suspend fun Map<String, Any>.checkNamesAreNgsiLdSupported(): Either<APIException, Map<String, Any>> = either {
     val keys = filter { it.key != JSONLD_CONTEXT_KW }.getAllKeys()
@@ -37,7 +37,7 @@ fun String.checkNameIsNgsiLdSupported(): Either<APIException, Unit> =
     else BadRequestDataException(invalidCharacterInNameMessage(this)).left()
 
 /**
- * Returns whether the given string is a supported name as defined in 4.6.2
+ * Returns whether the given string is a supported name as defined in TS 104 175 §5.2.2.3
  */
 fun String.isNgsiLdSupportedName(): Boolean =
     this.all { char -> char.isLetterOrDigit() || listOf(':', '_', '@').contains(char) }
@@ -62,7 +62,8 @@ fun String.checkScopeNameIsNgsiLdSupported(): Either<APIException, Unit> =
 fun String.isNgsiLdSupportedScopeName(): Boolean = this.matches(scopeNameRegex)
 
 /**
- * Checks whether the given JSON-LD object contains content that conforms to the restrictions defined in 4.6.3
+ * Checks whether the given JSON-LD object contains content that conforms to the restrictions defined in
+ * TS 104 175 §5.2.2.5
  */
 suspend fun Map<String, Any>.checkContentIsNgsiLdSupported(): Either<APIException, Map<String, Any>> = either {
     val values = filter {
@@ -82,14 +83,14 @@ private fun Any.checkContentIsNgsiLdSupported(): Either<APIException, Unit> =
     } else Unit.right()
 
 /**
- * List of forbidden characters in entity content as defined in 4.6.4 would be "<>\"'=()"
+ * List of forbidden characters in entity content as defined in TS 104 175 §5.2.2.5 would be "<>\"'=()"
  * We allow them to support more use-cases.
  * \u0000 is disabled as it is not supported by postgres
  */
 private val invalidCharactersForValues = "\u0000".toCharArray()
 
 /**
- * Returns whether the given string is a supported content as defined in 4.6.3
+ * Returns whether the given string is a supported content as defined in TS 104 175 §5.2.2.5
  */
 private fun String.isNgsiLdSupportedContent(): Boolean =
     this.indexOfAny(invalidCharactersForValues) == -1

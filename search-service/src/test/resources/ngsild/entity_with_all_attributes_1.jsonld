@@ -109,6 +109,7 @@
     "type": "Property",
     "value": "propertyWithMetadata",
     "unitCode": "C62",
+    "valueType": "Text",
     "license": {
       "type": "Property",
       "value": "APL"
@@ -144,6 +145,18 @@
   "multiValuedRelationship": {
     "type": "Relationship",
     "object": ["urn:ngsi-ld:AnotherEntity:01","urn:ngsi-ld:AnotherEntity:02"]
+  },
+  "listProperty": {
+    "type": "ListProperty",
+    "valueType": "Text",
+    "valueList": [1, "first", true]
+  },
+  "listRelationship": {
+    "type": "ListRelationship",
+    "objectList": [
+      { "object": "urn:ngsi-ld:AnotherEntity:01" },
+      { "object": "urn:ngsi-ld:AnotherEntity:02" }
+    ]
   },
   "location": {
     "type": "GeoProperty",

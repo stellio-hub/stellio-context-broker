@@ -12,14 +12,16 @@ import tools.jackson.databind.ser.std.SimpleBeanPropertyFilter
 import tools.jackson.databind.ser.std.SimpleFilterProvider
 import tools.jackson.module.kotlin.jsonMapper
 import tools.jackson.module.kotlin.kotlinModule
+import tools.jackson.module.kotlin.readValue
 import kotlin.reflect.KClass
 
 val mapper: JsonMapper = jsonMapper { addModule(kotlinModule()) }
 
 object JsonUtils {
 
+    // the reified readValue keeps generic type arguments (e.g. List<EntityType>), unlike T::class.java
     inline fun <reified T> deserializeAs(content: String): T =
-        mapper.readValue(content, T::class.java)
+        mapper.readValue<T>(content)
 
     @SuppressWarnings("SwallowedException")
     fun deserializeObject(input: String): Map<String, Any> =

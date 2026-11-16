@@ -239,7 +239,8 @@ class DistributedEntityProvisionService(
                     else if (csr.isMatchingOperation(operation)) {
                         resultToUpdate.addEither(
                             sendDistributedInformation(
-                                compactEntity(entity.filterAttributes(attrs), contexts),
+                                // keep scope so that scopeQ queries forwarded to the CSR still match the entity
+                                compactEntity(entity.filterAttributes(attrs, includeScope = true), contexts),
                                 csr,
                                 operation.getPath(entity.id),
                                 operation.method!!

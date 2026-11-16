@@ -52,6 +52,11 @@ enum class QueryParameter(
     TARGET_SCOPEQ("targetScopeQ"),
     DETAILS_PICK("detailsPick"),
 
+    // service executions
+    SERVICE_ID("serviceId"),
+    ENTITY_ID("entityId"),
+    EXECUTION_STATUS("executionStatus"),
+
     // pagination
     COUNT("count"),
     OFFSET("offset"),
@@ -72,7 +77,7 @@ enum class QueryParameter(
     ORDER_GEOMETRY("orderGeometry"),
     JSON_KEYS("jsonKeys"),
 
-    // 6.3.18 limiting distributed operations
+    // TS 104 176 §6.4.11 limiting distributed operations
     LOCAL("local"),
     VIA("Via");
 

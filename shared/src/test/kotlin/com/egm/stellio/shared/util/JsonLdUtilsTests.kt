@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.JSONLD_JSON_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
@@ -26,8 +27,11 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntitySafe
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTermWithCache
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -206,6 +210,49 @@ class JsonLdUtilsTests {
         val expandedAttribute = expandAttribute("attribute", payload, NGSILD_TEST_CORE_CONTEXTS)
         assertEquals(NGSILD_DEFAULT_VOCAB + "attribute", expandedAttribute.first)
         assertThat(expandedAttribute.second).hasSize(1)
+    }
+
+    @Test
+    fun `expandAttribute should return the same result whether the active context is cached or freshly resolved`() =
+        runTest {
+            val fragment =
+                """
+                    {
+                        "attribute": {
+                            "type": "Property",
+                            "value": "something"
+                        }
+                    }
+                """.trimIndent()
+
+            val firstExpansion = expandAttribute(fragment, NGSILD_TEST_CORE_CONTEXTS)
+            val secondExpansion = expandAttribute(fragment, NGSILD_TEST_CORE_CONTEXTS)
+
+            assertEquals(firstExpansion.first, secondExpansion.first)
+            assertEquals(firstExpansion.second, secondExpansion.second)
+        }
+
+    @Test
+    fun `expandAttribute should produce correct, uncorrupted results under concurrent expansion`() = runTest {
+        // all share the same context list, so all hit the same cached ActiveContext concurrently -
+        // this would surface any thread-safety issue in reusing it across coroutines
+        val values = (1..20).map { "value-$it" }
+
+        val expandedAttributes = values.map { value ->
+            async {
+                value to expandAttribute(
+                    "attribute",
+                    mapOf("type" to "Property", "value" to value),
+                    NGSILD_TEST_CORE_CONTEXTS
+                )
+            }
+        }.awaitAll()
+
+        expandedAttributes.forEach { (value, expandedAttribute) ->
+            assertEquals(NGSILD_DEFAULT_VOCAB + "attribute", expandedAttribute.first)
+            // each concurrently-expanded attribute must reflect its own value, not another coroutine's
+            assertThat(serializeObject(expandedAttribute.second)).contains(value)
+        }
     }
 
     @Test
@@ -455,10 +502,47 @@ class JsonLdUtilsTests {
         )
     }
 
+    @Test
+    fun `deleteAndReload should invalidate the cached active contexts built from the deleted context`() = runTest {
+        val contextName = "reloadable-context.jsonld"
+        val contextUrl = "http://localhost:8094/jsonld-contexts/$contextName"
+        val newIncomingIri = "https://vocab.egm.io/incoming"
+        fun contextContent(incomingIri: String) = """{ "@context": { "$INCOMING_TERM": "$incomingIri" } }"""
+
+        jsonLdContextServerExtension.stubContext(contextName, contextContent(INCOMING_IRI))
+        assertEquals(INCOMING_IRI, expandJsonLdTerm(INCOMING_TERM, listOf(contextUrl)))
+
+        // the context changes at its source: the cached version is still used until it is deleted
+        jsonLdContextServerExtension.stubContext(contextName, contextContent(newIncomingIri))
+        assertEquals(INCOMING_IRI, expandJsonLdTerm(INCOMING_TERM, listOf(contextUrl)))
+
+        deleteAndReload(contextUrl.toUri(), false).shouldSucceed()
+
+        assertEquals(newIncomingIri, expandJsonLdTerm(INCOMING_TERM, listOf(contextUrl)))
+    }
+
     companion object {
         // Create a specific instance of the JSON-LD context server extension to be able to call check methods on it
         @JvmStatic
         @RegisterExtension
         private val jsonLdContextServerExtension = JsonLdContextServerExtension(8094)
+    }
+
+    @Test
+    fun `expandJsonLdTermWithCache should expand a term and keep it in the cache`() {
+        val cache = mutableMapOf<String, ExpandedTerm>()
+
+        assertEquals(INCOMING_IRI, expandJsonLdTermWithCache(INCOMING_TERM, APIC_COMPOUND_CONTEXTS, cache))
+        assertEquals(mapOf(INCOMING_TERM to INCOMING_IRI), cache)
+    }
+
+    @Test
+    fun `expandJsonLdTermWithCache should return the cached value of an already expanded term`() {
+        val cache = mutableMapOf(INCOMING_TERM to "https://vocab.egm.io/cached")
+
+        assertEquals(
+            "https://vocab.egm.io/cached",
+            expandJsonLdTermWithCache(INCOMING_TERM, APIC_COMPOUND_CONTEXTS, cache)
+        )
     }
 }

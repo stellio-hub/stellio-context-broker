@@ -10,7 +10,17 @@ data class EntityTypeInfo(
     val attributeDetails: List<AttributeInfo>
 )
 
-// Called AttributeInfo (not Attribute as in 5.2.28) since there is already an Attribute class declared
+// counts are summed even if some entities are known by several sources (estimates are allowed, TS 104 175 §10.6.2)
+fun List<EntityTypeInfo>.merge(): EntityTypeInfo? =
+    if (size <= 1) firstOrNull()
+    else first().copy(
+        entityCount = sumOf { it.entityCount },
+        attributeDetails = flatMap { it.attributeDetails }.groupBy { it.id }.map { (_, attributes) ->
+            attributes.first().copy(attributeTypes = attributes.flatMap { it.attributeTypes }.distinct().sorted())
+        }.sortedBy { it.attributeName }
+    )
+
+// Called AttributeInfo (not Attribute as in TS 104 175 §5.2.6.10.1) since there is already an Attribute class declared
 data class AttributeInfo(
     val id: URI,
     val type: String = "Attribute",
@@ -24,7 +34,9 @@ enum class AttributeType(val key: String) {
     GeoProperty("GeoProperty"),
     JsonProperty("JsonProperty"),
     LanguageProperty("LanguageProperty"),
-    VocabProperty("VocabProperty");
+    VocabProperty("VocabProperty"),
+    ListProperty("ListProperty"),
+    ListRelationship("ListRelationship");
 
     companion object {
         fun forKey(key: String): AttributeType =

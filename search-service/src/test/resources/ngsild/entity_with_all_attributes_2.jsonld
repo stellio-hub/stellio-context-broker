@@ -1,6 +1,6 @@
 {
   "id": "urn:ngsi-ld:BeeHive:02",
-  "scope": "/Madrid/Gardens/ParqueNorte",
+  "scope": ["/Madrid/Gardens/ParqueNorte", "levelA/levelB"],
   "type": "BeeHive",
   "string": {
     "type": "Property",
@@ -95,6 +95,7 @@
     "type": "Property",
     "value": "propertyWithMetadata",
     "unitCode": "MTR",
+    "valueType": "Number",
     "license": {
       "type": "Property",
       "value": "GPL",
@@ -127,6 +128,17 @@
   "multiValuedRelationship": {
       "type": "Relationship",
       "object": ["urn:ngsi-ld:AnotherEntity:03","urn:ngsi-ld:AnotherEntity:04"]
+  },
+  "listProperty": {
+    "type": "ListProperty",
+    "valueList": [2, "second", false]
+  },
+  "listRelationship": {
+    "type": "ListRelationship",
+    "objectList": [
+      { "object": "urn:ngsi-ld:AnotherEntity:03" },
+      { "object": "urn:ngsi-ld:AnotherEntity:04" }
+    ]
   },
   "location": {
     "type": "GeoProperty",

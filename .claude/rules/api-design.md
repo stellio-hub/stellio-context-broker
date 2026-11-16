@@ -1,7 +1,7 @@
 # API Design Rules
 
 Stellio implements the NGSI-LD API
-([ETSI GS CIM 009](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf)).
+([ETSI TS 104 175](https://www.etsi.org/deliver/etsi_ts/104100_104199/104175/01.01.01_60/ts_104175v010101p.pdf) (NGSI-LD Core API) and [ETSI TS 104 176](https://www.etsi.org/deliver/etsi_ts/104100_104199/104176/01.01.01_60/ts_104176v010101p.pdf) (NGSI-LD HTTP Binding)).
 Every decision in this file derives from that spec. Before adding or changing any endpoint, consult the relevant spec
 section — do not infer behaviour from REST conventions alone. The sections below document what the spec mandates so 
 agents don't need to re-derive it each time.

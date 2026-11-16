@@ -182,6 +182,23 @@ class ConciseRepresentationUtilsTests {
     }
 
     @Test
+    fun `normalizeAttributeFragment should keep valueType untouched when normalizing a Property`() {
+        val conciseProp = mapOf("value" to "Pariser Platz, Berlin, Germany", "valueType" to "String")
+
+        val expectedNormalizedRepresentation = """
+            {
+                "type": "Property",
+                "value": "Pariser Platz, Berlin, Germany",
+                "valueType": "String"
+            }
+        """.trimIndent()
+
+        val result = normalizeAttributeFragment(conciseProp)
+
+        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
+    }
+
+    @Test
     fun `normalizeAttributeFragment should wrap a map with no identifying key as a Property value`() {
         val unknownMap = mapOf("someKey" to "someValue", "anotherKey" to 42)
 
@@ -302,6 +319,47 @@ class ConciseRepresentationUtilsTests {
                 "rel": {
                     "type": "Relationship",
                     "object": "urn:ngsi-ld:Entity:01"
+                }
+            }
+        """.trimIndent()
+
+        val result = normalizeEntityFragment(payload)
+
+        assertJsonPayloadsAreEqual(expectedNormalizedRepresentation, serializeObject(result))
+    }
+
+    @Test
+    fun `normalizeEntityFragment should normalize list attributes`() {
+        val payload = mapOf(
+            "id" to "urn:ngsi-ld:Entity:01",
+            "type" to "MyType",
+            "listProperty" to mapOf("valueList" to listOf(12, "ordered", true)),
+            "listRelationship" to mapOf(
+                "objectList" to listOf(
+                    "urn:ngsi-ld:Entity:02",
+                    "urn:ngsi-ld:Entity:01"
+                )
+            )
+        )
+
+        val expectedNormalizedRepresentation = """
+            {
+                "id": "urn:ngsi-ld:Entity:01",
+                "type": "MyType",
+                "listProperty": {
+                    "type": "ListProperty",
+                    "valueList": [12, "ordered", true]
+                },
+                "listRelationship": {
+                    "type": "ListRelationship",
+                    "objectList": [
+                        {
+                            "object": "urn:ngsi-ld:Entity:02"
+                        },
+                        {
+                            "object": "urn:ngsi-ld:Entity:01"
+                        }
+                    ]
                 }
             }
         """.trimIndent()

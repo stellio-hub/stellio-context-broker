@@ -30,4 +30,11 @@ class MockkedHandler : customExceptionHandler() {
 
     @GetMapping("/ok")
     suspend fun ok(): ResponseEntity<*> = ResponseEntity.status(HttpStatus.OK).build<String>()
+
+    @GetMapping("/with-body")
+    suspend fun withBody(): ResponseEntity<*> =
+        ResponseEntity.status(HttpStatus.OK).body("""{"id":"urn:ngsi-ld:A:1"}""")
+
+    @GetMapping("/not-found")
+    suspend fun notFound(): ResponseEntity<*> = ResponseEntity.status(HttpStatus.NOT_FOUND).build<String>()
 }

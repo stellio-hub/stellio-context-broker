@@ -128,7 +128,7 @@ subprojects {
         buildUponDefaultConfig = true
         baseline.set(file("$projectDir/config/detekt/baseline.xml"))
         source("src/main/kotlin", "src/test/kotlin", "src/testFixtures/kotlin")
-        // until detekt 2.0.0 is released (with Java 25 compatibility), stick to Java 21 
+        // until detekt 2.0.0 is released (with Java 25 compatibility), stick to Java 21
         jvmTarget = "21"
 
         reports {
@@ -179,6 +179,8 @@ subprojects {
         )
     )
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
+    // non-blocking entropy source for SecureRandom (UUID generation), see docs/admin/performance.md
+    project.ext.set("jibContainerJvmFlags", listOf("-Djava.security.egd=file:/dev/./urandom"))
     project.ext.set(
         "jibContainerLabels",
         mapOf(

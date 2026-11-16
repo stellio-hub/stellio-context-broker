@@ -482,4 +482,32 @@ class TemporalQueryUtilsTests {
                 )
         }
     }
+
+    @Test
+    fun `composeTemporalEntitiesQueryFromPost should parse aggrMethods as a comma separated string or an array`() =
+        runTest {
+            listOf(listOf("sum", "avg"), "sum,avg").forEach { aggrMethods ->
+                val query = mapOf(
+                    "type" to "Query",
+                    "entities" to listOf(mapOf("type" to "BeeHive")),
+                    "temporalQ" to mapOf(
+                        "timerel" to "after",
+                        "timeAt" to "2024-11-07T07:31:39Z",
+                        "aggrMethods" to aggrMethods
+                    )
+                )
+
+                composeTemporalEntitiesQueryFromPost(
+                    buildDefaultPagination(30, 100),
+                    Query(query).shouldSucceedAndResult(),
+                    LinkedMultiValueMap(mapOf("options" to listOf("aggregatedValues"))),
+                    APIC_COMPOUND_CONTEXTS
+                ).shouldSucceedWith {
+                    assertEquals(
+                        listOf(TemporalQuery.Aggregate.SUM, TemporalQuery.Aggregate.AVG),
+                        it.temporalQuery.aggrMethods
+                    )
+                }
+            }
+        }
 }

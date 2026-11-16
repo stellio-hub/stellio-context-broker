@@ -151,12 +151,63 @@ interface EntityChangesInjectionSource {
             """
         )
 
+        private val entityWithListAttributes = Arguments.arguments(
+            """
+            [{
+               "id": "$APIARY_ID",
+               "type": "Apiary",
+               "deletedAt": "2025-08-15T00:00:00.000Z",
+               "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+            }]
+            """,
+            """
+            {
+               "id": "$APIARY_ID",
+               "type": "Apiary",
+               "name": {
+                  "type": "ListProperty",
+                  "valueList": ["first", "second"]
+               },
+               "belongsTo": {
+                  "type": "ListRelationship",
+                  "objectList": [
+                     { "object": "urn:ngsi-ld:Entity:01" },
+                     { "object": "urn:ngsi-ld:Entity:02" }
+                  ]
+               },
+               "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+            }
+            """,
+            """
+            {
+               "id": "$APIARY_ID",
+               "type": "Apiary",
+               "deletedAt": "2025-08-15T00:00:00.000Z",
+               "name": {
+                  "type": "ListProperty",
+                  "previousValueList": ["first", "second"],
+                  "valueList": ["urn:ngsi-ld:null"]
+               },
+               "belongsTo": {
+                  "type": "ListRelationship",
+                  "previousObjectList": [
+                     { "object": "urn:ngsi-ld:Entity:01" },
+                     { "object": "urn:ngsi-ld:Entity:02" }
+                  ],
+                  "objectList": ["urn:ngsi-ld:null"]
+               },
+               "@context": [ "$APIC_COMPOUND_CONTEXT" ]
+            }
+            """
+        )
+
         @JvmStatic
         fun showChangesDataProvider(): Stream<Arguments> {
             return Stream.of(
                 entityWithSingleProperty,
                 entityWithMultiInstanceProperty,
-                entityWithManyAttributes
+                entityWithManyAttributes,
+                entityWithListAttributes
             )
         }
     }

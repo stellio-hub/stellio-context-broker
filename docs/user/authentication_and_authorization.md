@@ -19,7 +19,7 @@ The way to get your access token may depend on your identity provider, but we ma
 ## Manage access rights
 ### Introduction
 
-The described operations comply with the rules of section [#6.3.5](https://cim.etsi.org/NGSI-LD/official/clause-6.html#6.3.5) of the NGSI-LD specification, with the exception that the [EGM's compound authorization context](https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld) is considered the default context.
+The described operations comply with the rules of [TS 104 176 §6.2.4](https://ngsild.org/ts104176/html/index.html#6.2.4) of the NGSI-LD specification, with the exception that the [EGM's compound authorization context](https://easy-global-market.github.io/ngsild-api-data-models/authorization/jsonld-contexts/authorization-compound.jsonld) is considered the default context.
 
 #### Terminology
 
@@ -200,8 +200,8 @@ The result will look like this:
 You can filter the requested permissions with the following query parameters:
 
 - `targetId=urn:id:1,urn:id:2` to get the permissions targeting entities with id urn:id:1 and urn:id:2
-- `targetType=MyType` to get the permissions targeting selected type (note: it supports entity type selection as defined in section 4.17 of the specification)
-- `targetScopeQ=/my/Scope` to get the permissions targeting selected scope (note: it supports scope query as defined in section 4.19 of the specification)
+- `targetType=MyType` to get the permissions targeting selected type (note: it supports entity type selection as defined in TS 104 175 §7.2.2)
+- `targetScopeQ=/my/Scope` to get the permissions targeting selected scope (note: it supports scope query as defined in TS 104 175 §7.2.5)
 - `assignee=my:assignee` to get the permissions directly assigned to “my:assignee”
 - `assigner=my:assigner` to get the permissions created by “my:assigner”
 - `action=read` to get the permissions giving the right to read

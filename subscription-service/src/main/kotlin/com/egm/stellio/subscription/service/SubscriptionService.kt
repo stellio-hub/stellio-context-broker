@@ -18,7 +18,6 @@ import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.buildQQuery
 import com.egm.stellio.shared.util.buildScopeQQuery
 import com.egm.stellio.shared.util.buildTypeQuery
-import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.escapeSingleQuotes
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.subscription.config.SubscriptionProperties
@@ -371,8 +370,8 @@ class SubscriptionService(
         getMatchingSubscriptions(updatedAttribute, notificationTrigger)
             .filter {
                 val entitiesFilter = prepareEntitiesQuery(it.entities, expandedEntity)
-                val qFilter = prepareQQuery(it.q?.decode(), it.jsonKeys, it.expandValues, expandedEntity, it.contexts)
-                val scopeFilter = prepareScopeQQuery(it.scopeQ?.decode(), expandedEntity)
+                val qFilter = prepareQQuery(it.q, it.jsonKeys, it.expandValues, expandedEntity, it.contexts)
+                val scopeFilter = prepareScopeQQuery(it.scopeQ, expandedEntity)
                 val geoQueryFilter = prepareGeoQuery(it.geoQ, expandedEntity)
 
                 val query = listOfNotNull(entitiesFilter, qFilter, scopeFilter, geoQueryFilter)

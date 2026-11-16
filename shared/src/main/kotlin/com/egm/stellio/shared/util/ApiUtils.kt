@@ -51,8 +51,8 @@ val linkHeaderRegex: Regex =
     """<(.*)>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld\+json"""".toRegex()
 
 /**
- * As per 6.3.5, If the request verb is GET or DELETE, then the associated JSON-LD "@context" shall be obtained from a
- * Link header as mandated by JSON-LD, section 6.2.extract @context from Link header.
+ * As per TS 104 176 §6.2.4, If the request verb is GET or DELETE, then the associated JSON-LD "@context" shall be
+ * obtained from a Link header as mandated by JSON-LD, section 6.2.extract @context from Link header.
  * In the absence of such Link header, it returns the default JSON-LD @context.
  */
 fun getContextFromLinkHeaderOrDefault(
@@ -120,7 +120,7 @@ fun checkContentType(httpHeaders: HttpHeaders, body: Map<String, Any>): Either<A
 }
 
 /**
- * Checks the Link header with respect to Content-Type and rules defined 6.3.5
+ * Checks the Link header with respect to Content-Type and rules defined in TS 104 176 §6.2.4
  */
 fun checkLinkHeader(httpHeaders: HttpHeaders): Either<APIException, String?> = either {
     val linkHeader = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)).bind()
@@ -250,7 +250,7 @@ fun List<MediaType>.getApplicable(): Either<APIException, MediaType> {
     val mediaType = this.find {
         it.includes(MediaType.APPLICATION_JSON) || it.includes(JSON_LD_MEDIA_TYPE) || it.includes(GEO_JSON_MEDIA_TYPE)
     } ?: return NotAcceptableException(unsupportedAcceptHeaderMessage(this)).left()
-    // as per 6.3.4, application/json has a higher precedence than application/ld+json
+    // as per TS 104 176 §6.2.2, application/json has a higher precedence than application/ld+json
     return if (mediaType.includes(MediaType.APPLICATION_JSON))
         MediaType.APPLICATION_JSON.right()
     else

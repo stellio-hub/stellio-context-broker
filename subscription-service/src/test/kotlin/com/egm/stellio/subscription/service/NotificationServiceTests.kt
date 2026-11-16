@@ -8,13 +8,18 @@ import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_LANG_TERM
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.NGSILD_LOCATION_TERM
+import com.egm.stellio.shared.model.NGSILD_NULL
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TERM
 import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
+import com.egm.stellio.shared.util.FEATURES_PROPERTY_TERM
+import com.egm.stellio.shared.util.FEATURE_COLLECTION_TYPE
+import com.egm.stellio.shared.util.FEATURE_TYPE
 import com.egm.stellio.shared.util.FRIENDLYNAME_TERM
+import com.egm.stellio.shared.util.GEOMETRY_PROPERTY_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
@@ -25,6 +30,7 @@ import com.egm.stellio.shared.util.NAME_IRI
 import com.egm.stellio.shared.util.NAME_TERM
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXT
+import com.egm.stellio.shared.util.PROPERTIES_PROPERTY_TERM
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.expandJsonLdEntity
@@ -33,6 +39,8 @@ import com.egm.stellio.shared.util.shouldSucceedWith
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.Endpoint.Companion.PREFER_HEADER
+import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
@@ -165,7 +173,7 @@ class NotificationServiceTests {
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             assertEquals(subscription.id, it[0].second.subscriptionId)
-            assertEquals(1, it[0].second.data.size)
+            assertEquals(1, it[0].second.entities.size)
             assertTrue(it[0].third)
         }
 
@@ -258,10 +266,10 @@ class NotificationServiceTests {
         ).shouldSucceedWith {
             assertEquals(1, it.size)
             assertEquals(subscription.id, it[0].second.subscriptionId)
-            assertEquals(1, it[0].second.data.size)
-            assertEquals(5, it[0].second.data[0].size)
+            assertEquals(1, it[0].second.entities.size)
+            assertEquals(5, it[0].second.entities[0].size)
             assertTrue(
-                it[0].second.data[0].all { entry ->
+                it[0].second.entities[0].all { entry ->
                     COMPACTED_ENTITY_CORE_MEMBERS
                         .plus(NAME_TERM)
                         .plus(NGSILD_LOCATION_TERM)
@@ -306,10 +314,10 @@ class NotificationServiceTests {
             val notificationResult = notificationResults[0]
             assertEquals(subscription.id, notificationResult.first.id)
             assertEquals(subscription.id, notificationResult.second.subscriptionId)
-            assertEquals(1, notificationResult.second.data.size)
-            assertTrue(notificationResult.second.data[0].containsKey(NAME_IRI))
-            assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_IRI))
-            assertEquals(NGSILD_TEST_CORE_CONTEXT, notificationResult.second.data[0][JSONLD_CONTEXT_KW])
+            assertEquals(1, notificationResult.second.entities.size)
+            assertTrue(notificationResult.second.entities[0].containsKey(NAME_IRI))
+            assertTrue(notificationResult.second.entities[0].containsKey(MANAGED_BY_IRI))
+            assertEquals(NGSILD_TEST_CORE_CONTEXT, notificationResult.second.entities[0][JSONLD_CONTEXT_KW])
             assertTrue(notificationResult.third)
         }
     }
@@ -347,9 +355,9 @@ class NotificationServiceTests {
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { notificationResults ->
             val notificationResult = notificationResults[0]
-            assertTrue(notificationResult.second.data[0].containsKey(NAME_TERM))
-            assertTrue(notificationResult.second.data[0].containsKey(MANAGED_BY_TERM))
-            assertEquals(APIC_COMPOUND_CONTEXT, notificationResult.second.data[0][JSONLD_CONTEXT_KW])
+            assertTrue(notificationResult.second.entities[0].containsKey(NAME_TERM))
+            assertTrue(notificationResult.second.entities[0].containsKey(MANAGED_BY_TERM))
+            assertEquals(APIC_COMPOUND_CONTEXT, notificationResult.second.entities[0][JSONLD_CONTEXT_KW])
         }
     }
 
@@ -380,7 +388,7 @@ class NotificationServiceTests {
             ).shouldSucceedWith {
                 assertEquals(1, it.size)
                 assertEquals(subscription.id, it[0].second.subscriptionId)
-                assertEquals(1, it[0].second.data.size)
+                assertEquals(1, it[0].second.entities.size)
                 assertTrue(it[0].third)
             }
 
@@ -420,7 +428,7 @@ class NotificationServiceTests {
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith { results ->
-            val notifiedEntity = results[0].second.data[0]
+            val notifiedEntity = results[0].second.entities[0]
             val expectedNotifiedEntity = """
                 {
                     "id": "urn:ngsi-ld:Apiary:XYZ01",
@@ -683,7 +691,7 @@ class NotificationServiceTests {
 
         assertEquals(subscription.id, notificationResult.first.id)
         assertEquals(subscription.id, notificationResult.second.subscriptionId)
-        assertEquals(1, notificationResult.second.data.size)
+        assertEquals(1, notificationResult.second.entities.size)
         assertTrue(notificationResult.third)
 
         coVerify(exactly = 1) { subscriptionService.updateSubscriptionNotification(subscription, any(), true) }
@@ -714,7 +722,7 @@ class NotificationServiceTests {
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
-            val entity = it[0].second.data[0]
+            val entity = it[0].second.entities[0]
             assertFalse(entity.containsKey("createdAt"))
             assertFalse(entity.containsKey("modifiedAt"))
 
@@ -758,7 +766,7 @@ class NotificationServiceTests {
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
-            val entity = it[0].second.data[0]
+            val entity = it[0].second.entities[0]
             assertTrue(entity.containsKey("createdAt"))
             assertTrue(entity.containsKey("modifiedAt"))
 
@@ -819,7 +827,7 @@ class NotificationServiceTests {
             expandedEntity,
             ATTRIBUTE_UPDATED
         ).shouldSucceedWith {
-            val entity = it[0].second.data[0]
+            val entity = it[0].second.entities[0]
             entity.filterKeys { key -> key == FRIENDLYNAME_TERM }
                 .also { property ->
                     val propertyValues = property[FRIENDLYNAME_TERM] as Map<String, Any>
@@ -939,4 +947,132 @@ class NotificationServiceTests {
             )
         }
     }
+
+    private fun gimmeGeoJsonSubscription(receiverInfo: List<KeyValuePair>? = null) =
+        gimmeRawSubscription(contexts = APIC_COMPOUND_CONTEXTS).copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "http://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.GEOJSON,
+                    receiverInfo = receiverInfo
+                ),
+                showChanges = true
+            )
+        )
+
+    @Test
+    fun `notifyMatchingSubscribers should send a FeatureCollection with changes for a GeoJSON endpoint`() = runTest {
+        val subscription = gimmeGeoJsonSubscription()
+
+        coEvery {
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
+        } returns listOf(subscription).right()
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+        stubFor(post(urlMatching("/notification")).willReturn(ok()))
+
+        notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
+            Pair(NAME_IRI, null),
+            previousPayload(),
+            expandJsonLdEntity(rawEntity),
+            ATTRIBUTE_UPDATED
+        ).shouldSucceedWith {
+            val featureCollection = it[0].second.data as Map<String, Any>
+            assertEquals(FEATURE_COLLECTION_TYPE, featureCollection[NGSILD_TYPE_TERM])
+            assertEquals(APIC_COMPOUND_CONTEXTS, featureCollection[JSONLD_CONTEXT_KW])
+            val feature = (featureCollection[FEATURES_PROPERTY_TERM] as List<Map<String, Any>>)[0]
+            assertEquals(FEATURE_TYPE, feature[NGSILD_TYPE_TERM])
+            assertEquals(apiaryId, feature["id"])
+            assertFalse(feature.containsKey(JSONLD_CONTEXT_KW))
+            assertEquals(
+                mapOf("type" to "Point", "coordinates" to listOf(24.30623, 60.07966)),
+                feature[GEOMETRY_PROPERTY_TERM]
+            )
+            val name = (feature[PROPERTIES_PROPERTY_TERM] as Map<String, Any>)[NAME_TERM] as Map<String, Any>
+            assertThat(name)
+                .containsEntry(NGSILD_VALUE_TERM, "ApiarySophia")
+                .containsEntry("previousValue", "Rucher Nantais")
+        }
+
+        verify(
+            1,
+            postRequestedFor(urlPathEqualTo("/notification"))
+                .withHeader(HttpHeaders.CONTENT_TYPE, equalTo("application/geo+json"))
+                .withoutHeader(HttpHeaders.LINK)
+        )
+    }
+
+    @Test
+    fun `notifyMatchingSubscribers should add previous values in GeoJSON properties when an entity is deleted`() =
+        runTest {
+            val subscription = gimmeGeoJsonSubscription()
+
+            coEvery {
+                subscriptionService.getMatchingSubscriptions(any(), any(), any())
+            } returns listOf(subscription).right()
+            coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+            stubFor(post(urlMatching("/notification")).willReturn(ok()))
+
+            notificationService.notifyMatchingSubscribers(
+                DEFAULT_TENANT_NAME,
+                null,
+                expandJsonLdEntity(rawEntity).members as Map<String, List<Any>>,
+                expandJsonLdEntity(
+                    """
+                    {
+                       "id":"$apiaryId",
+                       "type":"Apiary",
+                       "@context":[ "$APIC_COMPOUND_CONTEXT" ]
+                    }
+                    """.trimIndent()
+                ),
+                ENTITY_DELETED
+            ).shouldSucceedWith {
+                val featureCollection = it[0].second.data as Map<String, Any>
+                val feature = (featureCollection[FEATURES_PROPERTY_TERM] as List<Map<String, Any>>)[0]
+                assertEquals(setOf("id", "type", GEOMETRY_PROPERTY_TERM, PROPERTIES_PROPERTY_TERM), feature.keys)
+                val name = (feature[PROPERTIES_PROPERTY_TERM] as Map<String, Any>)[NAME_TERM] as Map<String, Any>
+                assertThat(name)
+                    .containsEntry(NGSILD_VALUE_TERM, NGSILD_NULL)
+                    .containsEntry("previousValue", "ApiarySophia")
+            }
+        }
+
+    @Test
+    fun `callSubscriber should not send the context in the body of a GeoJSON notification if body=json is preferred`() =
+        runTest {
+            val subscription = gimmeGeoJsonSubscription(listOf(KeyValuePair(key = "Prefer", value = "body=json")))
+
+            coEvery { subscriptionService.getContextsLink(any()) } returns
+                buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+            coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+
+            stubFor(post(urlMatching("/notification")).willReturn(ok()))
+
+            // entities retrieved from the core API (time interval notifications) have no location nor context
+            val notificationResult = notificationService.callSubscriber(
+                subscription,
+                listOf(mapOf("id" to apiaryId, "type" to "Apiary"))
+            )
+
+            val featureCollection = notificationResult.second.data as Map<String, Any>
+            assertFalse(featureCollection.containsKey(JSONLD_CONTEXT_KW))
+            val feature = (featureCollection[FEATURES_PROPERTY_TERM] as List<Map<String, Any>>)[0]
+            assertTrue(feature.containsKey(GEOMETRY_PROPERTY_TERM))
+            assertEquals(null, feature[GEOMETRY_PROPERTY_TERM])
+
+            verify(
+                1,
+                postRequestedFor(urlPathEqualTo("/notification"))
+                    .withHeader(HttpHeaders.CONTENT_TYPE, equalTo("application/geo+json"))
+                    .withHeader(HttpHeaders.LINK, equalTo(buildContextLinkHeader(APIC_COMPOUND_CONTEXT)))
+                    .withHeader(PREFER_HEADER, equalTo("body=json"))
+            )
+        }
+
+    private val Notification.entities: List<Map<String, Any?>>
+        get() = data as List<Map<String, Any?>>
 }

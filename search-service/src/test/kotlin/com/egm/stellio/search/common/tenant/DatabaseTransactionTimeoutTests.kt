@@ -33,10 +33,26 @@ class DatabaseTransactionTimeoutTests : WithTimescaleContainer, WithKafkaContain
     private lateinit var databaseClient: DatabaseClient
 
     @Test
-    fun `runSlowQuery should return a gateway timeout when PostgreSQL cancels the statement`() = runTest {
+    fun `runSlowQuery should return a gateway timeout when the transaction times out`() = runTest {
         val result = databaseTimeoutTestService.runSlowQuery()
 
         assertThat(result.leftOrNull()).isInstanceOf(GatewayTimeoutException::class.java)
+    }
+
+    @Test
+    fun `runSlowStatements should time out when statements together exceed the transaction timeout`() = runTest {
+        val result = databaseTimeoutTestService.runSlowStatements()
+
+        assertThat(result.leftOrNull()).isInstanceOf(GatewayTimeoutException::class.java)
+    }
+
+    @Test
+    fun `a query should succeed after a previous transaction timed out`() = runTest {
+        databaseTimeoutTestService.runSlowQuery()
+
+        val result = databaseClient.sql("SELECT 1 AS one").fetch().one().awaitSingleOrNull()
+
+        assertThat(result).containsEntry("one", 1)
     }
 
     @Test
@@ -75,7 +91,17 @@ open class DatabaseTimeoutTestService(
         return Unit.right()
     }
 
-    @Transactional(timeout = 5)
+    @Transactional
+    open suspend fun runSlowStatements(): Either<APIException, Unit> {
+        repeat(3) {
+            databaseClient.sql("SELECT pg_sleep(0.06)")
+                .then()
+                .awaitSingleOrNull()
+        }
+        return Unit.right()
+    }
+
+    @Transactional
     open suspend fun createDuplicateEntity(entityId: String): Either<APIException, Unit> {
         repeat(2) {
             databaseClient.sql(

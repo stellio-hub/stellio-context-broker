@@ -18,6 +18,7 @@ nav:
   - User & Programmers Manual:
       - Information model : 'user/information_model.md'
       - API Walkthrough: 'user/API_walkthrough.md'
+      - Service registration and execution (beta): 'user/service_registration_and_execution.md'
       - NGSI-LD Query Language support: 'user/query_language.md'
       - Kafka telemetry ingestion: 'user/kafka_telemetry_ingestion.md'
       - Authentication and authorization: 'user/authentication_and_authorization.md'
@@ -54,6 +55,7 @@ nav:
         - Upgrading to 2.34.0: 'admin/upgrading_to_2.34.0.md'
         - Upgrading to 2.35.0: 'admin/upgrading_to_2.35.0.md'
         - Upgrading to 2.37.0: 'admin/upgrading_to_2.37.0.md'
+        - Upgrading to 2.39.0: 'admin/upgrading_to_2.39.0.md'
   - Contributing :
       - Development: 'contributing/development_guide.md'
       - Error messages: 'contributing/error_messages_guideline.md'

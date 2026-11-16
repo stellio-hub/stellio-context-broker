@@ -12,5 +12,6 @@ data class Notification(
     val type: String = NGSILD_NOTIFICATION_TERM,
     val subscriptionId: URI,
     val notifiedAt: ZonedDateTime = ngsiLdDateTime(),
-    val data: List<Map<String, Any?>>
+    // a list of entities, or a GeoJSON FeatureCollection if the endpoint accepts application/geo+json
+    val data: Any
 )

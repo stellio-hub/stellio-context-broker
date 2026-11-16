@@ -12,6 +12,7 @@ plugins {
 }
 
 dependencies {
+    implementation("com.networknt:json-schema-validator:3.0.7")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
@@ -49,4 +50,5 @@ jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParame
 jib.to.image = "stellio/stellio-search-service:${project.version}"
 jib.container.ports = listOf("8083")
 jib.container.creationTime.set(project.ext["jibContainerCreationTime"].toString())
+jib.container.jvmFlags = project.ext["jibContainerJvmFlags"] as List<String>
 jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)

@@ -28,6 +28,7 @@ import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEKEEPER_IRI
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.NGSILD_TEST_CORE_CONTEXTS
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.shouldFail
@@ -118,6 +119,21 @@ class EntitiesQueryUtilsTests {
 
         assertEquals(null, entitiesQuery.typeSelection)
         assertEquals(true, entitiesQuery.local)
+    }
+
+    @Test
+    fun `composeEntitiesQueryFromGet should return a BadRequest error when scopeQ is invalid`() = runTest {
+        composeEntitiesQueryFromGet(
+            buildDefaultPagination(30, 100),
+            LinkedMultiValueMap<String, String>().apply {
+                add("type", "BeeHive")
+                add("scopeQ", "/a,,/b")
+            },
+            NGSILD_TEST_CORE_CONTEXTS
+        ).shouldFail {
+            assertInstanceOf<BadRequestDataException>(it)
+            assertEquals("Scope query is invalid: /a,,/b", it.message)
+        }
     }
 
     @Test
@@ -329,6 +345,75 @@ class EntitiesQueryUtilsTests {
             assertEquals(BEEHIVE_IRI, it.entitySelectors!![0].typeSelection)
             assertEquals(setOf("${NGSILD_DEFAULT_VOCAB}attr1"), it.attrs)
             assertInstanceOf(ComparisonNode::class.java, it.q)
+        }
+    }
+
+    @Test
+    fun `composeEntitiesQueryFromPost should not URL-decode the q member of a Query`() = runTest {
+        val query = """
+            {
+                "type": "Query",
+                "entities": [{
+                    "type": "BeeHive"
+                }],
+                "q": "name==\"A+B%20C\""
+            }
+        """.trimIndent()
+
+        composeEntitiesQueryFromPostRequest(
+            buildDefaultPagination(30, 100),
+            query,
+            LinkedMultiValueMap(),
+            APIC_COMPOUND_CONTEXTS
+        ).shouldSucceedWith {
+            val value = (it.q as ComparisonNode).value as SingleValue
+            assertEquals("\"A+B%20C\"", value.raw)
+        }
+    }
+
+    @Test
+    fun `composeEntitiesQueryFromPost should parse jsonKeys and expandValues as comma separated strings or arrays`() =
+        runTest {
+            mapOf(
+                "a,b" to setOf("a", "b"),
+                " a , b," to setOf("a", "b"),
+                "a" to setOf("a"),
+                "" to emptySet(),
+                listOf("a", "b") to setOf("a", "b")
+            ).forEach { (input, expected) ->
+                val query = serializeObject(
+                    mapOf("type" to "Query", "q" to "temperature>32", "jsonKeys" to input, "expandValues" to input)
+                )
+
+                composeEntitiesQueryFromPostRequest(
+                    buildDefaultPagination(30, 100),
+                    query,
+                    LinkedMultiValueMap(),
+                    APIC_COMPOUND_CONTEXTS
+                ).shouldSucceedWith {
+                    assertEquals(expected, it.jsonKeys)
+                    assertEquals(expected, it.expandValues)
+                }
+            }
+        }
+
+    @Test
+    fun `composeEntitiesQueryFromPost should reject a non string jsonKeys`() = runTest {
+        val query = """
+            {
+                "type": "Query",
+                "q": "temperature>32",
+                "jsonKeys": 12
+            }
+        """.trimIndent()
+
+        composeEntitiesQueryFromPostRequest(
+            buildDefaultPagination(30, 100),
+            query,
+            LinkedMultiValueMap(),
+            APIC_COMPOUND_CONTEXTS
+        ).shouldFail {
+            assertInstanceOf(BadRequestDataException::class.java, it)
         }
     }
 

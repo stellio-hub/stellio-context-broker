@@ -5,13 +5,14 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.ErrorMessages.Csr.CSR_REGISTRATION_INFO_EMPTY_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.fasterxml.jackson.annotation.JsonIgnore
 
 /**
- * RegistrationInfo type as defined in 5.2.10
+ * RegistrationInfo type as defined in TS 104 175 §5.2.6.6.5
  */
 data class RegistrationInfo(
     val entities: List<EntityInfo>? = null,
@@ -48,6 +49,12 @@ data class RegistrationInfo(
         this.relationshipNames == null -> this.propertyNames.toSet()
         else -> this.propertyNames.toMutableSet().plus(this.relationshipNames.toSet())
     }
+
+    fun allowsType(type: ExpandedTerm): Boolean =
+        entities?.any { type in it.types } ?: true
+
+    fun allowsAttribute(attribute: ExpandedTerm): Boolean =
+        getAttributeNames()?.contains(attribute) ?: true
 
     fun matchCSF(csrFilters: CSRFilters): Boolean =
         entities?.any { entityInfo ->

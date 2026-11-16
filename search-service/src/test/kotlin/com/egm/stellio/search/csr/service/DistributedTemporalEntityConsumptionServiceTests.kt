@@ -210,7 +210,6 @@ class DistributedTemporalEntityConsumptionServiceTests : WithTimescaleContainer,
             assertThat(result.warnings).isEmpty()
             assertThat(result.entities).hasSize(2)
             assertEquals(remoteEntity, result.entities.first().first)
-            assertEquals(1, result.count)
             assertEquals(TemporalPagination(offsetAfter = 7), result.pagination)
             coVerify(exactly = 2) { contextSourceRegistrationService.updateContextSourceStatus(any(), true) }
         }

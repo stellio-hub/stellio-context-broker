@@ -972,7 +972,7 @@ Responses use the `Link` header: `intervalafter` points to later timestamps and 
 Stellio automatically triggers temporal pagination when the number of instance is above the default limit;
 see [configuration](../admin/misc_configuration_tips.md#temporal-pagination).
 
-For distributed queries, merged remote histories can exceed the page size; links use continuation offsets from local and remote results.
+For distributed queries, merged remote histories can exceed the page size. Pagination links use the `offsetN` closest to the current offset, considering both Stellio and the Context Sources, to avoid skipping data.
 
 </details>
 

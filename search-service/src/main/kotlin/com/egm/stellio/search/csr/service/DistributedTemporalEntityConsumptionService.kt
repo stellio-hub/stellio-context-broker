@@ -62,13 +62,7 @@ class DistributedTemporalEntityConsumptionService(
             .flatMap { it.toSingleEntityInfoCSRList(csrFilters) }
 
         return matchingCSR.parMap { csr ->
-            val response = retrieveTemporalEntityFromContextSource(
-                httpHeaders,
-                csr,
-                csrFilters,
-                id,
-                queryParams
-            )
+            val response = retrieveTemporalEntityFromContextSource(httpHeaders, csr, csrFilters, id, queryParams)
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
             response.map { (entity, pagination) -> entity?.let { it to csr } to pagination }
         }.separateEither()
@@ -77,7 +71,6 @@ class DistributedTemporalEntityConsumptionService(
                 DistributedTemporalQueryResult(
                     warnings = warnings,
                     entities = entities,
-                    count = if (entities.isEmpty()) 0 else 1,
                     pagination = maybeResponses.map { it.second }
                         .mergeTemporalPagination(temporalEntitiesQuery.temporalQuery)
                 )
@@ -129,12 +122,7 @@ class DistributedTemporalEntityConsumptionService(
             .flatMap { it.toSingleEntityInfoCSRList(csrFilters) }
 
         return matchingCSR.parMap { csr ->
-            val response = queryTemporalEntitiesFromContextSource(
-                httpHeaders,
-                csr,
-                csrFilters,
-                queryParams
-            )
+            val response = queryTemporalEntitiesFromContextSource(httpHeaders, csr, csrFilters, queryParams)
             contextSourceRegistrationService.updateContextSourceStatus(csr, response.isRight())
             response.map { (entities, count, pagination) -> Triple(entities to csr, count, pagination) }
         }.separateEither()

@@ -214,7 +214,7 @@ class AttributeInstanceService(
 
         if (temporalQuery.hasLastN())
             // in order to get first or last instances, need to order by time
-            // keep the selected direction when returning the page
+            // final ordering of instances is done in query service
             sqlQueryBuilder.append(" ORDER BY start DESC")
         else sqlQueryBuilder.append(" ORDER BY start ASC")
 

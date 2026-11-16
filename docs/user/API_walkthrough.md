@@ -969,7 +969,7 @@ For POST queries, put `firstN`/`lastN` in `temporalQ` and `offsetN` in the query
 
 Responses use the `Link` header: `intervalafter` points to later timestamps and `intervalbefore` to earlier ones.
 
-Stellio will automatically trigger temporal pagination when the number of instance is more than the default limit;
+Stellio automatically triggers temporal pagination when the number of instance is above the default limit;
 see [configuration](../admin/misc_configuration_tips.md#temporal-pagination).
 
 For distributed queries, merged remote histories can exceed the page size; links use continuation offsets from local and remote results.

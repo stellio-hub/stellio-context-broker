@@ -265,6 +265,8 @@ object ErrorMessages {
 
         fun invalidGeometryDefinitionMessage(geoJsonPayload: String, error: String) =
             "Invalid geometry definition: $geoJsonPayload ($error)"
+        fun geoPropertyValueNotGeoJsonMessage(value: String) =
+            "The value of a GeoProperty must be a GeoJSON geometry object, got: $value"
         fun unsupportedGeometryDefinitionMessage(geoJsonPayload: String, geometryType: String) =
             "Unsupported geometry type: $geometryType is not allowed in NGSI-LD ($geoJsonPayload)"
     }

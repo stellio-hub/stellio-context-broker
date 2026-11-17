@@ -13,6 +13,7 @@ import com.apicatalog.jsonld.loader.DocumentLoaderOptions
 import com.apicatalog.jsonld.loader.HttpLoader
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.COMPACTED_ATTRIBUTES_TERMS
 import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.CompactedAttributeInstance
 import com.egm.stellio.shared.model.CompactedEntity
@@ -42,6 +43,7 @@ import com.egm.stellio.shared.model.NGSILD_UNIT_CODE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.toAPIException
+import com.egm.stellio.shared.util.ErrorMessages.GenericValidation.geoPropertyValueNotGeoJsonMessage
 import com.egm.stellio.shared.util.ErrorMessages.JsonLd.UNABLE_TO_EXPAND_PAYLOAD_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.JsonLdContextServer.contextInvalidMessage
 import com.egm.stellio.shared.util.ErrorMessages.JsonLdContextServer.contextNotFoundInCacheMessage
@@ -224,7 +226,7 @@ object JsonLdUtils {
         // Contexts are passed via the expand options (see CachedContextExpansion), so drop any embedded @context
         val preparedFragment =
             if (doGeoPropertyTransformation)
-                fragment.mapValues(transformGeoPropertyToWKT()).minus(JSONLD_CONTEXT_KW)
+                transformGeoPropertiesToWKT(fragment).minus(JSONLD_CONTEXT_KW)
             else
                 fragment.minus(JSONLD_CONTEXT_KW)
 
@@ -258,62 +260,52 @@ object JsonLdUtils {
         }
     }
 
-    private fun transformGeoPropertyToWKT(): (Map.Entry<String, Any>) -> Any = {
-        when {
-            it.key in COMPACTED_ENTITY_CORE_MEMBERS -> it.value
-            it.value is Map<*, *> -> {
-                if ((it.value as Map<*, *>)[NGSILD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
-                    val geoProperty = it.value as Map<String, Any>
-                    val wktGeometry = geoPropertyToWKTOrNull(geoProperty[NGSILD_VALUE_TERM]!!)
-                    geoProperty.plus(NGSILD_VALUE_TERM to wktGeometry)
-                } else it.value
-            }
-            it.value is List<*> -> {
-                (it.value as List<Map<String, Any>>).map { geoProperty ->
-                    if (geoProperty[NGSILD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
-                        val wktGeometry = geoPropertyToWKTOrNull(geoProperty[NGSILD_VALUE_TERM]!!)
-                        geoProperty.plus(NGSILD_VALUE_TERM to wktGeometry)
-                    } else geoProperty
-                }
-            }
-            else -> it.value
+    private fun transformGeoPropertiesToWKT(compacted: Map<String, Any>): Map<String, Any> =
+        compacted.convertGeoProperties(COMPACTED_ENTITY_CORE_MEMBERS) { geoProperty ->
+            // a missing value is reported by the validation of the GeoProperty, after expansion
+            val geoPropertyValue = geoProperty[NGSILD_VALUE_TERM] ?: return@convertGeoProperties geoProperty
+            geoProperty.plus(NGSILD_VALUE_TERM to geoPropertyToWKTOrNull(geoPropertyValue))
         }
-    }
 
     private fun geoPropertyToWKTOrNull(geoPropertyValue: Any): String =
-        if (geoPropertyValue is String && geoPropertyValue == NGSILD_NULL)
-            NGSILD_NULL
-        else
-            throwingGeoJsonToWkt(geoPropertyValue as Map<String, Any>)
-
-    private fun restoreGeoPropertyFromWKT(): (Map.Entry<String, Any>) -> Any = {
-        when {
-            it.key in COMPACTED_ENTITY_CORE_MEMBERS -> it.value
-            it.value is Map<*, *> -> {
-                if ((it.value as Map<*, *>)[NGSILD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
-                    val geoValues = it.value as MutableMap<String, Any>
-                    // in case of an aggregated or temporalValues query, there is no "value" member
-                    if (geoValues.isNotEmpty() && geoValues.containsKey(NGSILD_VALUE_TERM)) {
-                        geoValues[NGSILD_VALUE_TERM] = wktToGeoJson(geoValues[NGSILD_VALUE_TERM] as String)
-                        geoValues
-                    } else geoValues
-                } else it.value
-            }
-            // case of a multi-instance geoproperty or when retrieving the history of a geoproperty
-            it.value is List<*> ->
-                (it.value as List<Map<String, Any>>).map { geoInstance ->
-                    if (geoInstance[NGSILD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) {
-                        val geoValues = geoInstance.toMutableMap()
-                        // in case of an aggregated or temporalValues query, there is no "value" member
-                        if (geoValues.containsKey(NGSILD_VALUE_TERM)) {
-                            geoValues[NGSILD_VALUE_TERM] = wktToGeoJson(geoValues[NGSILD_VALUE_TERM] as String)
-                            geoValues
-                        } else geoValues
-                    } else geoInstance
-                }
-            else -> it.value
+        when (geoPropertyValue) {
+            NGSILD_NULL -> NGSILD_NULL
+            is Map<*, *> -> throwingGeoJsonToWkt(geoPropertyValue as Map<String, Any>)
+            else -> throw BadRequestDataException(geoPropertyValueNotGeoJsonMessage(geoPropertyValue.toString()))
         }
-    }
+
+    private fun restoreGeoPropertiesFromWKT(compacted: Map<String, Any>): Map<String, Any> =
+        compacted.convertGeoProperties(COMPACTED_ENTITY_CORE_MEMBERS) { geoProperty ->
+            // in case of an aggregated or temporalValues query, there is no "value" member
+            val wktValue = geoProperty[NGSILD_VALUE_TERM] as? String ?: return@convertGeoProperties geoProperty
+            geoProperty.plus(NGSILD_VALUE_TERM to wktToGeoJson(wktValue))
+        }
+
+    /**
+     * Apply [convert] to every GeoProperty, including sub-attributes at any depth.
+     * Value members (value, json, ...) are never searched for nested GeoProperties.
+     */
+    private fun Map<String, Any>.convertGeoProperties(
+        skippedKeys: Set<String>,
+        convert: (Map<String, Any>) -> Map<String, Any>
+    ): Map<String, Any> =
+        mapValues { (key, value) ->
+            when {
+                key in skippedKeys -> value
+                value is Map<*, *> -> (value as Map<String, Any>).convertGeoInstance(convert)
+                // multi-instance attribute or history of an attribute
+                value is List<*> -> value.map {
+                    if (it is Map<*, *>) (it as Map<String, Any>).convertGeoInstance(convert) else it
+                }
+                else -> value
+            }
+        }
+
+    private fun Map<String, Any>.convertGeoInstance(
+        convert: (Map<String, Any>) -> Map<String, Any>
+    ): Map<String, Any> =
+        (if (this[NGSILD_TYPE_TERM] == NGSILD_GEOPROPERTY_TERM) convert(this) else this)
+            .convertGeoProperties(COMPACTED_ATTRIBUTES_TERMS, convert)
 
     fun compactEntity(
         expandedEntity: ExpandedEntity,
@@ -326,7 +318,7 @@ object JsonLdUtils {
             .options(jsonLdOptions)
             .get()
             .toPrimitiveMap()
-            .mapValues(restoreGeoPropertyFromWKT())
+            .let(::restoreGeoPropertiesFromWKT)
 
     private fun JsonObject.toPrimitiveMap(): Map<String, Any> {
         val outputStream = ByteArrayOutputStream()
@@ -350,7 +342,7 @@ object JsonLdUtils {
             .get()
 
         return if (entities.size == 1)
-            listOf(jsonObject.toPrimitiveMap().mapValues(restoreGeoPropertyFromWKT()))
+            listOf(restoreGeoPropertiesFromWKT(jsonObject.toPrimitiveMap()))
         else {
             // extract the context from the root of the object to inject it back in the compacted entities later
             val context: Any =
@@ -360,7 +352,7 @@ object JsonLdUtils {
             // extract compacted entities from the @graph key
             (jsonObject[JSONLD_GRAPH] as JsonArray).toPrimitiveListOfObjects()
                 .map {
-                    it.mapValues(restoreGeoPropertyFromWKT())
+                    restoreGeoPropertiesFromWKT(it)
                         .plus(JSONLD_CONTEXT_KW to context)
                 }
         }
@@ -413,7 +405,7 @@ object JsonLdUtils {
             .options(jsonLdOptions)
             .get()
             .toPrimitiveMap()
-            .mapValues(restoreGeoPropertyFromWKT())
+            .let(::restoreGeoPropertiesFromWKT)
             .minus(JSONLD_CONTEXT_KW)
             .mapValues { it.value as CompactedAttributeInstance }
 

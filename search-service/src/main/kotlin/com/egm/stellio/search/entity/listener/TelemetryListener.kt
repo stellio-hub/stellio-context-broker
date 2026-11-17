@@ -6,15 +6,15 @@ import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
-import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_TYPE
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.geoJsonToWkt
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
+import com.egm.stellio.shared.util.geoJsonToWkt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

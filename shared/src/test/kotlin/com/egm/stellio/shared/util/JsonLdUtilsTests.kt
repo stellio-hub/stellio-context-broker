@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.JSONLD_JSON_KW
@@ -16,6 +17,7 @@ import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.model.getMemberValueAsString
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.support.JsonLdContextServerExtension
 import com.egm.stellio.shared.util.JsonLdUtils.compactAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
@@ -42,6 +44,58 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.RegisterExtension
 
 class JsonLdUtilsTests {
+
+    private val geoSubAttributesPayload =
+        """
+        {
+            "id": "urn:ngsi-ld:Device:01234",
+            "type": "Device",
+            "temperature": {
+                "type": "Property",
+                "value": 12,
+                "origin": {
+                    "type": "GeoProperty",
+                    "value": { "type": "Point", "coordinates": [ 1, 2 ] }
+                },
+                "calibration": {
+                    "type": "Property",
+                    "value": "factory",
+                    "area": {
+                        "type": "GeoProperty",
+                        "value": { "type": "Polygon", "coordinates": [[ [1, 1], [2, 1], [2, 2], [1, 1] ]] }
+                    }
+                }
+            },
+            "config": {
+                "type": "JsonProperty",
+                "json": { "mode": "auto" },
+                "origin": {
+                    "type": "GeoProperty",
+                    "value": { "type": "Point", "coordinates": [ 3, 4 ] }
+                }
+            },
+            "speed": [
+                {
+                    "type": "Property",
+                    "value": 1,
+                    "datasetId": "urn:ds:1",
+                    "origin": {
+                        "type": "GeoProperty",
+                        "value": { "type": "Point", "coordinates": [ 5, 6 ] }
+                    }
+                },
+                {
+                    "type": "Property",
+                    "value": 2,
+                    "datasetId": "urn:ds:2",
+                    "origin": {
+                        "type": "GeoProperty",
+                        "value": { "type": "Point", "coordinates": [ 7, 8 ] }
+                    }
+                }
+            ]
+        }
+        """.trimIndent()
 
     @Test
     fun `expandJsonLdFragment should throw a LdContextNotAvailable exception when the context is not available`() =
@@ -379,6 +433,126 @@ class JsonLdUtilsTests {
             serializeObject(compactedEntity)
         )
     }
+
+    @Test
+    fun `expandJsonLdEntitySafe should transform GeoProperty sub-attributes to WKT`() = runTest {
+        val expandedEntity =
+            expandJsonLdEntitySafe(geoSubAttributesPayload.deserializeAsMap(), NGSILD_TEST_CORE_CONTEXTS)
+                .shouldSucceedAndResult()
+        expandedEntity.toNgsiLdEntity().shouldSucceed()
+        val attributes = expandedEntity.getAttributes()
+
+        assertEquals(
+            "POINT (1 2)",
+            attributes.getAttributeFromExpandedAttributes(NGSILD_DEFAULT_VOCAB + "temperature", null)!!
+                .getSubAttributeValue("origin")
+        )
+        assertEquals(
+            "POINT (3 4)",
+            attributes.getAttributeFromExpandedAttributes(NGSILD_DEFAULT_VOCAB + "config", null)!!
+                .getSubAttributeValue("origin")
+        )
+        assertEquals(
+            "POINT (5 6)",
+            attributes.getAttributeFromExpandedAttributes(NGSILD_DEFAULT_VOCAB + "speed", "urn:ds:1".toUri())!!
+                .getSubAttributeValue("origin")
+        )
+        assertEquals(
+            "POINT (7 8)",
+            attributes.getAttributeFromExpandedAttributes(NGSILD_DEFAULT_VOCAB + "speed", "urn:ds:2".toUri())!!
+                .getSubAttributeValue("origin")
+        )
+        val nestedGeoSubAttribute = attributes
+            .getAttributeFromExpandedAttributes(NGSILD_DEFAULT_VOCAB + "temperature", null)!!
+            .getSubAttribute("calibration")
+            .getSubAttributeValue("area")
+        assertEquals("POLYGON ((1 1, 2 1, 2 2, 1 1))", nestedGeoSubAttribute)
+    }
+
+    @Test
+    fun `compactEntity should restore GeoProperty sub-attributes to GeoJSON`() = runTest {
+        val deserializedPayload = geoSubAttributesPayload.deserializeAsMap()
+        val expandedEntity = expandJsonLdEntitySafe(deserializedPayload, NGSILD_TEST_CORE_CONTEXTS)
+            .shouldSucceedAndResult()
+
+        val compactedEntity = compactEntity(expandedEntity, NGSILD_TEST_CORE_CONTEXTS)
+
+        assertJsonPayloadsAreEqual(
+            serializeObject(deserializedPayload.plus(JSONLD_CONTEXT_KW to NGSILD_TEST_CORE_CONTEXT)),
+            serializeObject(compactedEntity)
+        )
+    }
+
+    @Test
+    fun `compactAttribute should restore GeoProperty sub-attributes to GeoJSON`() = runTest {
+        val attributePayload = mapOf(
+            "type" to "Property",
+            "value" to 12,
+            "origin" to mapOf(
+                "type" to "GeoProperty",
+                "value" to mapOf("type" to "Point", "coordinates" to listOf(1, 2))
+            )
+        )
+        val expandedAttribute = expandAttribute("temperature", attributePayload, NGSILD_TEST_CORE_CONTEXTS)
+
+        val compactedAttribute = compactAttribute(mapOf(expandedAttribute), NGSILD_TEST_CORE_CONTEXTS)
+
+        assertJsonPayloadsAreEqual(
+            serializeObject(mapOf("temperature" to attributePayload)),
+            serializeObject(compactedAttribute)
+        )
+    }
+
+    @Test
+    fun `expandJsonLdEntitySafe should return a BadRequestData error when a GeoProperty value is not GeoJSON`() =
+        runTest {
+            val payload = mapOf(
+                "id" to "urn:ngsi-ld:Device:01234",
+                "type" to "Device",
+                "temperature" to mapOf(
+                    "type" to "Property",
+                    "value" to 12,
+                    "origin" to mapOf("type" to "GeoProperty", "value" to "POINT (1 2)")
+                )
+            )
+
+            expandJsonLdEntitySafe(payload, NGSILD_TEST_CORE_CONTEXTS).shouldFail {
+                assertInstanceOf(BadRequestDataException::class.java, it)
+                assertEquals(
+                    "The value of a GeoProperty must be a GeoJSON geometry object, got: POINT (1 2)",
+                    it.message
+                )
+            }
+        }
+
+    @Test
+    fun `expandJsonLdEntitySafe should not transform a GeoProperty-like content inside a JsonProperty`() = runTest {
+        val payload =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "config": {
+                    "type": "JsonProperty",
+                    "json": {
+                        "type": "GeoProperty",
+                        "value": { "type": "Point", "coordinates": [ 1, 2 ] }
+                    }
+                }
+            }
+            """.trimIndent()
+
+        val expandedEntity = expandJsonLdEntitySafe(payload.deserializeAsMap(), NGSILD_TEST_CORE_CONTEXTS)
+            .shouldSucceedAndResult()
+
+        assertThat(serializeObject(expandedEntity.members)).doesNotContain("POINT")
+    }
+
+    private fun ExpandedAttributeInstance.getSubAttribute(name: String): ExpandedAttributeInstance =
+        this[NGSILD_DEFAULT_VOCAB + name]!!.first() as ExpandedAttributeInstance
+
+    private fun ExpandedAttributeInstance.getSubAttributeValue(name: String): String? =
+        getSubAttribute(name).getMemberValueAsString(NGSILD_PROPERTY_VALUE)
 
     @Test
     fun `compactTerm should correctly compact a term when it is in the provided contexts`() = runTest {

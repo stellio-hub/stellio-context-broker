@@ -113,8 +113,7 @@ fun NgsiLdAttributeInstance.toAttributeMetadata(): Either<APIException, Attribut
                 Triple(this.valueList.asJsonB(), null, null)
             )
         is NgsiLdListRelationshipInstance -> {
-            // name unknown here but objectList was already validated when the instance was parsed
-            val value = this.objectList.simplifyListRelationshipValue("")
+            val value = this.objectList.simplifyListRelationshipValue()
                 .fold({ return it.left() }, { it })
             Triple(
                 AttributeType.ListRelationship,
@@ -296,7 +295,9 @@ private fun applyPropertyNgsiLdNullRemoval(
 }
 
 // Extracts an ordered expanded URI list for temporal storage.
-fun Any.simplifyListRelationshipValue(name: ExpandedTerm): Either<BadRequestDataException, Map<String, Any>> = either {
+fun Any.simplifyListRelationshipValue(
+    name: ExpandedTerm = ""
+): Either<BadRequestDataException, Map<String, Any>> = either {
     val objects = this@simplifyListRelationshipValue.getListRelationshipObjects(name).bind()
     mapOf(JSONLD_LIST_KW to objects.map { mapOf(JSONLD_VALUE_KW to it) })
 }

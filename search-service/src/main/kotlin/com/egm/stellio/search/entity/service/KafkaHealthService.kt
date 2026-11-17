@@ -20,8 +20,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.kafka.clients.admin.Admin
+import org.apache.kafka.clients.admin.DescribeTopicsOptions
 import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.KafkaFuture
+import org.apache.kafka.common.acl.AclOperation
 import org.apache.kafka.common.config.ConfigResource
 import org.apache.kafka.common.config.TopicConfig
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException
@@ -58,8 +60,8 @@ class KafkaHealthService(
     fun isAvailable(): Boolean = available.get() == true
 
     /**
-     * Marks Kafka as unavailable after a send failed in a way the probe can't detect (e.g., a missing write ACL).
-     * The next successful probe marks it available again.
+     * Marks Kafka as unavailable after a send failed in a way the probe can't detect (e.g., an authentication failure
+     * specific to the producer). The next successful probe marks it available again.
      */
     fun markUnavailable(reason: String) = updateState(reason.left())
 
@@ -82,14 +84,25 @@ class KafkaHealthService(
     }
 
     private suspend fun checkHealth(): Either<String, Unit> =
-        admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC)).allTopicNames().awaitEither().fold(
+        admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC), describeTopicsOptions).allTopicNames().awaitEither().fold(
             { exception ->
                 // the topic is created by the broker on the first send
                 if (exception.hasCause<UnknownTopicOrPartitionException>()) checkCluster()
                 else "unable to describe topic $ENTITY_EVENTS_TOPIC (${exception.message})".left()
             },
-            { topics -> checkPartitions(topics.getValue(ENTITY_EVENTS_TOPIC)) }
+            { topics ->
+                val topicDescription = topics.getValue(ENTITY_EVENTS_TOPIC)
+                checkWriteAuthorized(topicDescription).flatMap { checkPartitions(topicDescription) }
+            }
         )
+
+    // the admin client is assumed to authenticate with the same principal as the producer.
+    // authorizedOperations is null when the broker doesn't return it, the check is then skipped
+    private fun checkWriteAuthorized(topicDescription: TopicDescription): Either<String, Unit> {
+        val authorizedOperations = topicDescription.authorizedOperations() ?: return Unit.right()
+        return if (authorizedOperations.any { it == AclOperation.WRITE || it == AclOperation.ALL }) Unit.right()
+        else "not authorized to write to topic $ENTITY_EVENTS_TOPIC".left()
+    }
 
     private suspend fun checkCluster(): Either<String, Unit> =
         admin.describeCluster().nodes().awaitEither()
@@ -124,8 +137,8 @@ class KafkaHealthService(
         if (available.getAndSet(isAvailable) == isAvailable) return
 
         result.fold(
-            { logger.warn("Kafka is unavailable, write requests are rejected: {}", it) },
-            { logger.info("Kafka is available, write requests are accepted") }
+            { logger.warn("Kafka is unavailable: {}", it) },
+            { logger.info("Kafka is available") }
         )
     }
 
@@ -134,6 +147,7 @@ class KafkaHealthService(
 
     companion object {
         private val MIN_INTERVAL = 1.seconds
+        private val describeTopicsOptions = DescribeTopicsOptions().includeAuthorizedOperations(true)
     }
 }
 

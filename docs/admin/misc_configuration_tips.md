@@ -111,6 +111,10 @@ search.kafka-health.interval = 5s
 search.kafka-health.timeout = 2s
 ```
 
+The probe also checks that `search-service` is allowed to write to the `cim.entity._CatchAll` topic. It runs with the
+admin client, so the admin client and the producer must authenticate with the same principal: don't set different
+security settings in `spring.kafka.admin.*` and `spring.kafka.producer.*`.
+
 The Kafka producer of `search-service` is tuned to ride out short outages:
 
 ```properties

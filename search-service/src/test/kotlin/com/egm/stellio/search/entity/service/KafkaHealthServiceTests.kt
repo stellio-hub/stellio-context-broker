@@ -13,6 +13,7 @@ import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.KafkaFuture
 import org.apache.kafka.common.Node
 import org.apache.kafka.common.TopicPartitionInfo
+import org.apache.kafka.common.acl.AclOperation
 import org.apache.kafka.common.config.ConfigResource
 import org.apache.kafka.common.config.TopicConfig
 import org.apache.kafka.common.errors.TimeoutException
@@ -47,6 +48,35 @@ class KafkaHealthServiceTests {
     fun `probe should mark Kafka available when every partition has a leader and enough in-sync replicas`() = runTest {
         mockTopic(partition(0, broker1, listOf(broker1, broker2)), partition(1, broker2, listOf(broker2, broker1)))
         mockMinInsyncReplicas("2")
+
+        kafkaHealthService.probe()
+
+        assertThat(kafkaHealthService.isAvailable()).isTrue()
+    }
+
+    @Test
+    fun `probe should mark Kafka unavailable when it is not authorized to write to the topic`() = runTest {
+        mockTopic(partition(0, broker1, listOf(broker1)), authorizedOperations = setOf(AclOperation.DESCRIBE))
+
+        kafkaHealthService.probe()
+
+        assertThat(kafkaHealthService.isAvailable()).isFalse()
+    }
+
+    @Test
+    fun `probe should mark Kafka available when it is authorized to do all operations on the topic`() = runTest {
+        mockTopic(partition(0, broker1, listOf(broker1)), authorizedOperations = setOf(AclOperation.ALL))
+        mockMinInsyncReplicas("1")
+
+        kafkaHealthService.probe()
+
+        assertThat(kafkaHealthService.isAvailable()).isTrue()
+    }
+
+    @Test
+    fun `probe should mark Kafka available when the broker does not return the authorized operations`() = runTest {
+        mockTopic(partition(0, broker1, listOf(broker1)), authorizedOperations = null)
+        mockMinInsyncReplicas("1")
 
         kafkaHealthService.probe()
 
@@ -99,7 +129,7 @@ class KafkaHealthServiceTests {
 
     @Test
     fun `probe should mark Kafka unavailable when the topic cannot be described`() = runTest {
-        every { admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC)).allTopicNames() } returns
+        every { admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC), any()).allTopicNames() } returns
             failedFuture(TimeoutException("timed out waiting for a node assignment"))
 
         kafkaHealthService.probe()
@@ -109,7 +139,7 @@ class KafkaHealthServiceTests {
 
     @Test
     fun `probe should mark Kafka available when the topic does not exist yet but the cluster has brokers`() = runTest {
-        every { admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC)).allTopicNames() } returns
+        every { admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC), any()).allTopicNames() } returns
             failedFuture(UnknownTopicOrPartitionException("unknown topic"))
         every { admin.describeCluster().nodes() } returns KafkaFuture.completedFuture(listOf(broker1))
 
@@ -121,7 +151,7 @@ class KafkaHealthServiceTests {
     @Test
     fun `probe should mark Kafka unavailable when the topic does not exist and the cluster cannot be described`() =
         runTest {
-            every { admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC)).allTopicNames() } returns
+            every { admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC), any()).allTopicNames() } returns
                 failedFuture(UnknownTopicOrPartitionException("unknown topic"))
             every { admin.describeCluster().nodes() } returns failedFuture(TimeoutException("timed out"))
 
@@ -132,7 +162,7 @@ class KafkaHealthServiceTests {
 
     @Test
     fun `probe should mark Kafka unavailable when it times out`() = runTest {
-        every { admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC)).allTopicNames() } returns KafkaFutureImpl()
+        every { admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC), any()).allTopicNames() } returns KafkaFutureImpl()
 
         kafkaHealthService.probe()
 
@@ -155,11 +185,13 @@ class KafkaHealthServiceTests {
     private fun partition(id: Int, leader: Node?, isr: List<Node>) =
         TopicPartitionInfo(id, leader, listOf(broker1, broker2), isr)
 
-    private fun mockTopic(vararg partitions: TopicPartitionInfo) {
-        every { admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC)).allTopicNames() } returns
-            KafkaFuture.completedFuture(
-                mapOf(ENTITY_EVENTS_TOPIC to TopicDescription(ENTITY_EVENTS_TOPIC, false, partitions.toList()))
-            )
+    private fun mockTopic(
+        vararg partitions: TopicPartitionInfo,
+        authorizedOperations: Set<AclOperation>? = setOf(AclOperation.DESCRIBE, AclOperation.WRITE)
+    ) {
+        val topicDescription = TopicDescription(ENTITY_EVENTS_TOPIC, false, partitions.toList(), authorizedOperations)
+        every { admin.describeTopics(listOf(ENTITY_EVENTS_TOPIC), any()).allTopicNames() } returns
+            KafkaFuture.completedFuture(mapOf(ENTITY_EVENTS_TOPIC to topicDescription))
     }
 
     private fun mockMinInsyncReplicas(value: String) {

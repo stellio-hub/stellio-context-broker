@@ -7,7 +7,9 @@ import kotlinx.coroutines.future.await
 import kotlinx.coroutines.runBlocking
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
+import org.apache.kafka.clients.admin.DescribeTopicsOptions
 import org.apache.kafka.clients.admin.NewTopic
+import org.apache.kafka.common.acl.AclOperation
 import org.apache.kafka.common.errors.TopicExistsException
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException
 import org.assertj.core.api.Assertions.assertThat
@@ -37,6 +39,18 @@ class KafkaHealthServiceIntegrationTests : WithKafkaContainer() {
 
         assertThat(kafkaHealthService.isAvailable()).isTrue()
     }
+
+    @Test
+    fun `describeTopics should return the write operation as authorized when the broker has no authorizer`() =
+        runBlocking<Unit> {
+            createEntityEventsTopic()
+
+            val topicDescription = admin
+                .describeTopics(listOf(ENTITY_EVENTS_TOPIC), DescribeTopicsOptions().includeAuthorizedOperations(true))
+                .allTopicNames().toCompletionStage().await().getValue(ENTITY_EVENTS_TOPIC)
+
+            assertThat(topicDescription.authorizedOperations()).contains(AclOperation.WRITE)
+        }
 
     @Test
     fun `describeTopics should fail with UnknownTopicOrPartitionException for a missing topic`() = runBlocking<Unit> {

@@ -27,12 +27,12 @@ jobs:
       # own JVM.
       - name: Set up JDK 21
         id: setup-jdk21
-        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880
         with:
           distribution: 'temurin'
           java-version: '21'
       - name: Set up JDK 25
-        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880
         with:
           distribution: 'temurin'
           java-version: '25'

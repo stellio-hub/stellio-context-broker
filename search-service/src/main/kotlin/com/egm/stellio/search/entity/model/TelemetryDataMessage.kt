@@ -8,6 +8,7 @@ import java.time.ZonedDateTime
 data class TelemetryDataMessage(
     val tenantName: String = DEFAULT_TENANT_NAME,
     val entityId: URI,
+    val attributeType: URI? = null,
     val attributeName: ExpandedTerm,
     val datasetId: URI? = null,
     val value: Any,

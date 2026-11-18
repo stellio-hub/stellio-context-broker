@@ -1,10 +1,12 @@
 package com.egm.stellio.search.entity.listener
 
+import arrow.core.getOrElse
 import com.egm.stellio.search.entity.model.TelemetryDataMessage
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
+import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
@@ -12,6 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedPropertyValue
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
+import com.egm.stellio.shared.util.geoJsonToWkt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,9 +46,23 @@ class TelemetryListener(
             return
         }
 
+        val attributeValue = if (message.attributeType?.toString() == NGSILD_GEOPROPERTY_TYPE.uri) {
+            @Suppress("UNCHECKED_CAST")
+            geoJsonToWkt(message.value as Map<String, Any>).getOrElse {
+                logger.warn(
+                    "Failed to convert geo value to WKT for attribute {}: {}",
+                    message.attributeName,
+                    it.message
+                )
+                return
+            }
+        } else {
+            message.value
+        }
+
         val attributeFragment = buildMap {
-            put(JSONLD_TYPE_KW, listOf(NGSILD_PROPERTY_TYPE.uri))
-            put(NGSILD_PROPERTY_VALUE, listOf(mapOf(JSONLD_VALUE_KW to message.value)))
+            put(JSONLD_TYPE_KW, listOf(message.attributeType?.toString() ?: NGSILD_PROPERTY_TYPE.uri))
+            put(NGSILD_PROPERTY_VALUE, listOf(mapOf(JSONLD_VALUE_KW to attributeValue)))
             put(NGSILD_OBSERVED_AT_IRI, buildNonReifiedTemporalValue(message.observedAt))
             message.datasetId?.let { put(NGSILD_DATASET_ID_IRI, buildNonReifiedPropertyValue(it.toString())) }
         }

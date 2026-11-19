@@ -16,6 +16,7 @@ import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.entity.service.EntityService
 import com.egm.stellio.search.entity.service.LinkedEntityService
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.config.FirewallConfig
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -39,6 +40,7 @@ import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.model.NGSILD_TIME_TYPE
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinType
 import com.egm.stellio.shared.queryparameter.PaginationQuery
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXTS
@@ -46,8 +48,11 @@ import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.AQUAC_HEADER_LINK
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeNotFoundMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityOrAttrsNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.UNKNOWN_PATH_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.FLAT_JOIN_NOT_ALLOWED_ON_ATTRIBUTE_MESSAGE
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.INCOMING_TERM
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -76,6 +81,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -86,6 +92,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.json.JsonCompareMode
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.reflect.UndeclaredThrowableException
 import java.time.Instant
@@ -96,6 +103,7 @@ import java.time.ZonedDateTime
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
+@Import(FirewallConfig::class)
 @EnableConfigurationProperties(ApplicationProperties::class, SearchProperties::class)
 class EntityHandlerTests {
 
@@ -2990,5 +2998,309 @@ class EntityHandlerTests {
             .header(HttpHeaders.LINK, APIC_HEADER_LINK)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+    }
+
+    private suspend fun mockEntityWithAttributes() {
+        initializeRetrieveEntityMocks()
+        val entity = """
+            {
+                "id": "$beehiveId",
+                "type": "$BEEHIVE_TERM",
+                "name": { "type": "Property", "value": "Eiffel Tower" },
+                "temperature": [
+                    {
+                        "type": "Property",
+                        "value": 22,
+                        "unitCode": "CEL",
+                        "observedAt": "2020-09-09T16:40:00.000Z"
+                    },
+                    { "type": "Property", "value": 23, "datasetId": "urn:ngsi-ld:Dataset:sensor" }
+                ],
+                "speed": { "type": "Property", "value": 55, "datasetId": "urn:ngsi-ld:Dataset:speedometer" },
+                "street": {
+                    "type": "LanguageProperty",
+                    "languageMap": { "fr": "Grand Place", "nl": "Grote Markt" }
+                },
+                "address": { "type": "Property", "value": { "streetAddress": "Champ de Mars" } },
+                "category": { "type": "Property", "value": ["monument", "tourism"] },
+                "managedBy": { "type": "Relationship", "object": "urn:ngsi-ld:Beekeeper:01" },
+                "@context": ["$APIC_COMPOUND_CONTEXT"]
+            }
+        """.trimIndent()
+        coEvery { entityQueryService.queryEntity(beehiveId) } returns expandJsonLdEntity(entity).right()
+    }
+
+    private fun retrieveAttribute(path: String, accept: MediaType = MediaType.APPLICATION_JSON) =
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$path")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .accept(accept)
+            .exchange()
+
+    @Test
+    fun `retrieve attribute should return the default instance with its sub-attributes`() = runTest {
+        mockEntityWithAttributes()
+
+        retrieveAttribute("temperature")
+            .expectStatus().isOk
+            .expectHeader().contentType(MediaType.APPLICATION_JSON)
+            .expectHeader().valueEquals(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .expectBody().json(
+                """
+                {
+                    "type": "Property",
+                    "value": 22,
+                    "unitCode": "CEL",
+                    "observedAt": "2020-09-09T16:40:00.000Z"
+                }
+                """.trimIndent(),
+                JsonCompareMode.STRICT
+            )
+    }
+
+    @Test
+    fun `retrieve attribute should accept an expanded and URL-encoded attribute name`() = runTest {
+        mockEntityWithAttributes()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/{entityId}/attrs/{attrId}", beehiveId, TEMPERATURE_IRI)
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().jsonPath("$.value").isEqualTo(22)
+    }
+
+    @Test
+    fun `retrieve attribute should include the context when JSON-LD is asked`() = runTest {
+        mockEntityWithAttributes()
+
+        retrieveAttribute("name", JSON_LD_MEDIA_TYPE)
+            .expectStatus().isOk
+            .expectHeader().contentType(JSON_LD_MEDIA_TYPE)
+            .expectBody().json(
+                """
+                {
+                    "type": "Property",
+                    "value": "Eiffel Tower",
+                    "@context": "$APIC_COMPOUND_CONTEXT"
+                }
+                """.trimIndent(),
+                JsonCompareMode.STRICT
+            )
+    }
+
+    @Test
+    fun `retrieve attribute should return the instance matching the datasetId`() = runTest {
+        mockEntityWithAttributes()
+
+        retrieveAttribute("speed?datasetId=urn:ngsi-ld:Dataset:speedometer")
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                { "type": "Property", "value": 55, "datasetId": "urn:ngsi-ld:Dataset:speedometer" }
+                """.trimIndent(),
+                JsonCompareMode.STRICT
+            )
+    }
+
+    @Test
+    fun `retrieve attribute should return the default instance when datasetId is @none`() = runTest {
+        mockEntityWithAttributes()
+
+        retrieveAttribute("temperature?datasetId=@none")
+            .expectStatus().isOk
+            .expectBody().jsonPath("$.value").isEqualTo(22)
+    }
+
+    @Test
+    fun `retrieve attribute should return 404 when there is no default instance and no datasetId`() = runTest {
+        mockEntityWithAttributes()
+
+        retrieveAttribute("speed")
+            .expectStatus().isNotFound
+            .expectBody().jsonPath("$.type").isEqualTo(ErrorType.RESOURCE_NOT_FOUND.type.toString())
+    }
+
+    @Test
+    fun `retrieve attribute should return 404 when no instance matches the datasetId`() = runTest {
+        mockEntityWithAttributes()
+
+        retrieveAttribute("temperature?datasetId=urn:ngsi-ld:Dataset:unknown")
+            .expectStatus().isNotFound
+            .expectBody().jsonPath("$.type").isEqualTo(ErrorType.RESOURCE_NOT_FOUND.type.toString())
+    }
+
+    @Test
+    fun `retrieve attribute should return 404 when the attribute does not exist`() = runTest {
+        mockEntityWithAttributes()
+
+        retrieveAttribute("unknown")
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                    "type": "${ErrorType.RESOURCE_NOT_FOUND.type}",
+                    "title": "${attributeNotFoundMessage("unknown", beehiveId)}"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `retrieve attribute should return 404 when the entity does not exist`() {
+        coEvery {
+            entityQueryService.queryEntity(any())
+        } returns ResourceNotFoundException(entityNotFoundMessage(beehiveId)).left()
+
+        retrieveAttribute("name")
+            .expectStatus().isNotFound
+            .expectBody().jsonPath("$.title").isEqualTo(entityNotFoundMessage(beehiveId))
+    }
+
+    @Test
+    fun `retrieve attribute should return 400 when the entity id is not a valid URI`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/invalidUri/attrs/name")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().jsonPath("$.type").isEqualTo(ErrorType.BAD_REQUEST_DATA.type.toString())
+    }
+
+    @Test
+    fun `retrieve attribute should return the attribute when the entity has the asked type`() = runTest {
+        mockEntityWithAttributes()
+
+        retrieveAttribute("name?type=$BEEHIVE_TERM")
+            .expectStatus().isOk
+            .expectBody().jsonPath("$.value").isEqualTo("Eiffel Tower")
+    }
+
+    @Test
+    fun `retrieve attribute should return 404 when the entity does not have the asked type`() = runTest {
+        mockEntityWithAttributes()
+
+        retrieveAttribute("name?type=Vehicle")
+            .expectStatus().isNotFound
+            .expectBody().jsonPath("$.title").isEqualTo(entityNotFoundMessage(beehiveId))
+    }
+
+    @Test
+    fun `retrieve attribute should return a LanguageProperty in the language asked`() = runTest {
+        mockEntityWithAttributes()
+
+        retrieveAttribute("street?lang=fr")
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                { "type": "Property", "value": "Grand Place", "lang": "fr" }
+                """.trimIndent(),
+                JsonCompareMode.STRICT
+            )
+    }
+
+    @Test
+    fun `retrieve attribute should inline the linked entity when join is inline`() = runTest {
+        mockEntityWithAttributes()
+        val compactedEntity = slot<CompactedEntity>()
+        coEvery {
+            linkedEntityService.processLinkedEntities(capture(compactedEntity), any(), any())
+        } answers {
+            val managedBy = compactedEntity.captured["managedBy"] as Map<*, *>
+            val inlined = managedBy + ("entity" to mapOf("id" to "urn:ngsi-ld:Beekeeper:01", "type" to "Beekeeper"))
+            (listOf(compactedEntity.captured + ("managedBy" to inlined)) to emptyList<NGSILDWarning>()).right()
+        }
+
+        retrieveAttribute("managedBy?join=inline&joinLevel=2")
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Beekeeper:01",
+                    "entity": { "id": "urn:ngsi-ld:Beekeeper:01", "type": "Beekeeper" }
+                }
+                """.trimIndent(),
+                JsonCompareMode.STRICT
+            )
+
+        coVerify {
+            linkedEntityService.processLinkedEntities(
+                any<CompactedEntity>(),
+                match { it.linkedEntityQuery?.join == JoinType.INLINE && it.linkedEntityQuery?.joinLevel == 2u },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun `retrieve attribute should return 400 when join is flat`() {
+        retrieveAttribute("managedBy?join=flat")
+            .expectStatus().isBadRequest
+            .expectBody().jsonPath("$.title").isEqualTo(FLAT_JOIN_NOT_ALLOWED_ON_ATTRIBUTE_MESSAGE)
+    }
+
+    @Test
+    fun `retrieve attribute should return 501 when entityMap is asked`() {
+        retrieveAttribute("name?entityMap=true")
+            .expectStatus().isEqualTo(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Test
+    fun `retrieve attribute value should return the value of each kind of attribute`() = runTest {
+        mockEntityWithAttributes()
+
+        listOf(
+            "name/value" to "\"Eiffel Tower\"",
+            "temperature/value" to "22",
+            "address/value" to """{ "streetAddress": "Champ de Mars" }""",
+            "category/value" to """["monument", "tourism"]""",
+            "street/value" to """{ "fr": "Grand Place", "nl": "Grote Markt" }""",
+            "street/value?lang=nl" to "\"Grote Markt\"",
+            "managedBy/value" to "\"urn:ngsi-ld:Beekeeper:01\""
+        ).forEach { (path, expectedValue) ->
+            retrieveAttribute(path)
+                .expectStatus().isOk
+                .expectBody().json(expectedValue, JsonCompareMode.STRICT)
+        }
+    }
+
+    @Test
+    fun `retrieve attribute value should answer application json even when JSON-LD is asked`() = runTest {
+        mockEntityWithAttributes()
+
+        retrieveAttribute("address/value", JSON_LD_MEDIA_TYPE)
+            .expectStatus().isOk
+            .expectHeader().contentType(MediaType.APPLICATION_JSON)
+            .expectHeader().valueEquals(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .expectBody().json("""{ "streetAddress": "Champ de Mars" }""", JsonCompareMode.STRICT)
+    }
+
+    @Test
+    fun `retrieve attribute value should return 404 when there is no default instance and no datasetId`() =
+        runTest {
+            mockEntityWithAttributes()
+
+            retrieveAttribute("speed/value")
+                .expectStatus().isNotFound
+        }
+
+    @Test
+    fun `retrieve attribute value should return 400 when join is asked`() {
+        retrieveAttribute("managedBy/value?join=inline")
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `get on an unmapped path should return a 404 ResourceNotFound`() {
+        retrieveAttribute("name/unknown")
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                {
+                    "type": "${ErrorType.RESOURCE_NOT_FOUND.type}",
+                    "title": "$UNKNOWN_PATH_MESSAGE"
+                }
+                """.trimIndent()
+            )
     }
 }

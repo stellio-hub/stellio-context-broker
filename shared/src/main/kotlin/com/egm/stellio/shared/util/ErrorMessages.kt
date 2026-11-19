@@ -283,6 +283,7 @@ object ErrorMessages {
             "Unsupported Accept header value: ${acceptHeaders.joinToString(",")}"
         const val UNSUPPORTED_MEDIA_TYPE_MESSAGE = "Unsupported media type"
         const val NOT_ACCEPTABLE_MESSAGE = "Not acceptable"
+        const val UNKNOWN_PATH_MESSAGE = "The requested path does not exist"
 
         fun badlyFormedLinkHeaderMessage(linkHeader: String) = "Link header is badly formed: $linkHeader"
         const val MISSING_AT_CONTEXT_JSON_LD_CONTENT_TYPE_MESSAGE =
@@ -358,6 +359,8 @@ object ErrorMessages {
             "Invalid 'joinLevel' parameter: '$param', must be a positive integer"
         const val JOIN_REQUIRED_WITH_JOIN_LEVEL_OR_CONTAINED_BY_MESSAGE =
             "Parameter 'join' is required when 'joinLevel' or 'containedBy' are specified"
+        const val FLAT_JOIN_NOT_ALLOWED_ON_ATTRIBUTE_MESSAGE =
+            "Parameter 'join' must be 'inline' or '@none' when retrieving an attribute"
 
         const val OFFSET_AND_LIMIT_MUST_BE_POSITIVE_MESSAGE = "Offset and limit must be greater than zero"
         const val OFFSET_AND_LIMIT_MUST_BE_POSITIVE_NO_COUNT_MESSAGE =

@@ -3,7 +3,6 @@ package com.egm.stellio.search.temporal.util
 import com.egm.stellio.search.temporal.model.TemporalPagination
 import com.egm.stellio.search.temporal.model.TemporalQuery
 import org.springframework.http.MediaType
-import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
 import org.springframework.web.util.UriComponentsBuilder
 import org.springframework.web.util.UriUtils
@@ -39,8 +38,7 @@ object TemporalPaginationUtils {
         relation: String,
         mediaType: MediaType
     ): String {
-        val params = LinkedMultiValueMap(requestParams)
-        params.set("offsetN", offset.toString())
+        val params = requestParams + ("offsetN" to listOf(offset.toString()))
         val path = UriComponentsBuilder.fromPath(resourceUrl).build().encode().toUriString()
         val queryString = params.flatMap { (key, values) ->
             values.map { "${UriUtils.encode(key, UTF_8)}=${UriUtils.encode(it, UTF_8)}" }

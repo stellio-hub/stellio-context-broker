@@ -1,9 +1,12 @@
 package com.egm.stellio.search.entity.web
 
+import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.right
+import com.egm.stellio.search.csr.model.NGSILDWarning
 import com.egm.stellio.search.csr.model.addWarnings
 import com.egm.stellio.search.csr.service.DistributedEntityConsumptionService
 import com.egm.stellio.search.csr.service.DistributedEntityProvisionService
@@ -15,19 +18,28 @@ import com.egm.stellio.search.entity.util.composeEntitiesQueryFromGet
 import com.egm.stellio.search.entity.util.validateMinimalPurgeEntitiesParameters
 import com.egm.stellio.search.entity.util.validateMinimalQueryEntitiesParameters
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.CompactedAttributeInstance
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
+import com.egm.stellio.shared.model.JSONLD_ID_KW
+import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.NGSILD_ALL_ENTITIES
 import com.egm.stellio.shared.model.NGSILD_LOCAL
 import com.egm.stellio.shared.model.NgsiLdDataRepresentation.Companion.parseRepresentations
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.applyDatasetView
+import com.egm.stellio.shared.model.areTypesInSelection
 import com.egm.stellio.shared.model.filterAttributes
 import com.egm.stellio.shared.model.filterPickAndOmit
 import com.egm.stellio.shared.model.getRootAttributesToOmit
 import com.egm.stellio.shared.model.getRootAttributesToPick
+import com.egm.stellio.shared.model.getTypeAndValue
 import com.egm.stellio.shared.model.toFinalRepresentation
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.queryparameter.AllowedParameters
+import com.egm.stellio.shared.queryparameter.LinkedEntityQuery.Companion.JoinType
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.queryparameter.QueryParameter
@@ -35,11 +47,14 @@ import com.egm.stellio.shared.util.ConciseRepresentationUtils.normalizeAttribute
 import com.egm.stellio.shared.util.ConciseRepresentationUtils.normalizeEntityFragment
 import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_ID_MISMATCH_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.FLAT_JOIN_NOT_ALLOWED_ON_ATTRIBUTE_MESSAGE
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntity
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -49,6 +64,7 @@ import com.egm.stellio.shared.util.buildQueryResponse
 import com.egm.stellio.shared.util.extractPayloadAndContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
+import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.missingPathErrorResponse
 import com.egm.stellio.shared.util.parseAttrsParameter
 import com.egm.stellio.shared.util.parseTimeParameter
@@ -57,6 +73,7 @@ import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
@@ -606,4 +623,107 @@ class EntityHandler(
         { it.toErrorResponse() },
         { it }
     )
+
+    /**
+     * Implements TS 104 176 §7.5.3.1 - Retrieve Attribute Value (Attribute fragment)
+     */
+    @GetMapping("/{entityId}/attrs/{attrId}", produces = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun retrieveAttribute(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: URI,
+        @PathVariable attrId: String,
+        @AllowedParameters(
+            implemented = [QP.DATASET_ID, QP.LANG, QP.TYPE, QP.JOIN, QP.JOIN_LEVEL],
+            notImplemented = [QP.ENTITY_MAP]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
+        val mediaType = getApplicableMediaType(httpHeaders).bind()
+        val (fragment, contexts, warnings) =
+            retrieveCompactedAttribute(entityId, attrId, httpHeaders, queryParams, mediaType).bind()
+
+        prepareGetSuccessResponseHeaders(mediaType, contexts)
+            .body(serializeObject(fragment))
+            .addWarnings(warnings)
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
+    /**
+     * Implements TS 104 176 §7.6.3.1 - Retrieve Attribute Value (value only Attribute fragment)
+     *
+     * Always answers with application/json (and the context in the Link header), even if application/ld+json is
+     * asked, since a value only fragment may be a JSON primitive that cannot carry a @context.
+     */
+    @GetMapping("/{entityId}/attrs/{attrId}/value", produces = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun retrieveAttributeValue(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: URI,
+        @PathVariable attrId: String,
+        @AllowedParameters(
+            implemented = [QP.DATASET_ID, QP.LANG, QP.TYPE],
+            notImplemented = [QP.ENTITY_MAP]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
+        val (fragment, contexts, warnings) =
+            retrieveCompactedAttribute(entityId, attrId, httpHeaders, queryParams, MediaType.APPLICATION_JSON).bind()
+
+        prepareGetSuccessResponseHeaders(MediaType.APPLICATION_JSON, contexts)
+            // the value of a JsonProperty may be null, hence the use of the mapper
+            .body(mapper.writeValueAsString(fragment.getTypeAndValue().second))
+            .addWarnings(warnings)
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
+    private data class RetrievedAttribute(
+        val fragment: CompactedAttributeInstance,
+        val contexts: List<String>,
+        val warnings: List<NGSILDWarning>
+    )
+
+    private suspend fun retrieveCompactedAttribute(
+        entityId: URI,
+        attrId: String,
+        httpHeaders: HttpHeaders,
+        queryParams: MultiValueMap<String, String>,
+        mediaType: MediaType
+    ): Either<APIException, RetrievedAttribute> = either {
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
+        val entitiesQuery = composeEntitiesQueryFromGet(applicationProperties.pagination, queryParams, contexts).bind()
+        ensure(entitiesQuery.linkedEntityQuery?.join != JoinType.FLAT) {
+            BadRequestDataException(FLAT_JOIN_NOT_ALLOWED_ON_ATTRIBUTE_MESSAGE)
+        }
+        val ngsiLdDataRepresentation = parseRepresentations(queryParams, mediaType).bind()
+        val expandedAttrId = expandJsonLdTerm(attrId, contexts)
+        val datasetId = queryParams.getFirst(QP.DATASET_ID.key)?.takeIf { it != JSONLD_NONE_KW }?.toUri()
+
+        val expandedEntity = entityQueryService.queryEntity(entityId).bind()
+        entitiesQuery.typeSelection?.let {
+            ensure(areTypesInSelection(expandedEntity.types, it)) {
+                ResourceNotFoundException(entityNotFoundMessage(entityId))
+            }
+        }
+        val attributeInstance = expandedEntity.getAttribute(expandedAttrId, datasetId)
+            ?: raise(ResourceNotFoundException(attributeNotFoundMessage(attrId, entityId)))
+
+        val entityWithAttribute = ExpandedEntity(
+            mapOf(JSONLD_ID_KW to expandedEntity.id, expandedAttrId to listOf(attributeInstance))
+        )
+        val (entities, warnings) = linkedEntityService.processLinkedEntities(
+            compactEntity(entityWithAttribute, contexts),
+            entitiesQuery,
+            httpHeaders
+        ).bind()
+        val finalEntity = entities.first().toFinalRepresentation(ngsiLdDataRepresentation)
+
+        val fragment = finalEntity[compactTerm(expandedAttrId, contexts)] as CompactedAttributeInstance
+        val fragmentWithContext = finalEntity[JSONLD_CONTEXT_KW]?.let { fragment + (JSONLD_CONTEXT_KW to it) }
+            ?: fragment
+
+        RetrievedAttribute(fragmentWithContext, contexts, warnings)
+    }
 }

@@ -17,6 +17,8 @@ data class NotificationParams(
     val status: StatusType? = null,
     @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
     val timesSent: Int = 0,
+    @JsonInclude(value = JsonInclude.Include.NON_DEFAULT)
+    val timesFailed: Int = 0,
     val lastNotification: ZonedDateTime? = null,
     val lastFailure: ZonedDateTime? = null,
     val lastSuccess: ZonedDateTime? = null,

@@ -1,8 +1,12 @@
 package com.egm.stellio.subscription.service
 
 import arrow.core.filterIsInstance
+import arrow.core.left
 import arrow.core.right
+import com.egm.stellio.shared.model.BadGatewayException
 import com.egm.stellio.shared.model.COMPACTED_ENTITY_CORE_MEMBERS
+import com.egm.stellio.shared.model.GatewayTimeoutException
+import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.JSONLD_CONTEXT_KW
 import com.egm.stellio.shared.model.KeyValuePair
 import com.egm.stellio.shared.model.NGSILD_LANG_TERM
@@ -47,6 +51,7 @@ import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_CREATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_DELETED
 import com.egm.stellio.subscription.model.NotificationTrigger.ATTRIBUTE_UPDATED
 import com.egm.stellio.subscription.model.NotificationTrigger.ENTITY_DELETED
+import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.mqtt.MqttNotificationService
 import com.egm.stellio.subscription.support.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
@@ -157,7 +162,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -209,9 +214,9 @@ class NotificationServiceTests {
         } returns listOf(subscription).right()
         coEvery { subscriptionService.getContextsLink(any()) } returns APIC_COMPOUND_CONTEXT
         coEvery {
-            coreAPIService.retrieveLinkedEntities(any(), any(), any(), any())
-        } returns listOf(rawEntity.deserializeAsMap())
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+            coreAPIService.retrieveLinkedEntities(any(), any(), any(), any(), any())
+        } returns listOf(rawEntity.deserializeAsMap()).right()
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -231,10 +236,137 @@ class NotificationServiceTests {
                 DEFAULT_TENANT_NAME,
                 apiaryId.toUri(),
                 subscription.notification,
-                APIC_COMPOUND_CONTEXT
+                APIC_COMPOUND_CONTEXT,
+                false
             )
         }
     }
+
+    @Test
+    fun `notifyMatchingSubscribers should not retrieve linked entities when the entity has been deleted`() = runTest {
+        val subscription = gimmeJoinSubscription()
+        val expandedEntity = expandJsonLdEntity(rawEntity)
+
+        coEvery {
+            subscriptionService.getMatchingSubscriptions(any(), any(), any())
+        } returns listOf(subscription).right()
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
+        stubFor(post(urlMatching("/notification")).willReturn(ok()))
+
+        notificationService.notifyMatchingSubscribers(
+            DEFAULT_TENANT_NAME,
+            null,
+            null,
+            expandedEntity,
+            ENTITY_DELETED
+        ).shouldSucceedWith { results ->
+            assertEquals(1, results.size)
+            assertTrue(results[0].third)
+        }
+
+        coVerify(exactly = 0) { coreAPIService.retrieveLinkedEntities(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `notifyMatchingSubscribers should record a failure and notify other subscribers if join fails`() =
+        runTest {
+            val joinSubscription = gimmeJoinSubscription()
+            val otherSubscription = gimmeRawSubscription()
+            val expandedEntity = expandJsonLdEntity(rawEntity)
+
+            coEvery {
+                subscriptionService.getMatchingSubscriptions(any(), any(), any())
+            } returns listOf(joinSubscription, otherSubscription).right()
+            coEvery { subscriptionService.getContextsLink(any()) } returns APIC_COMPOUND_CONTEXT
+            coEvery {
+                coreAPIService.retrieveLinkedEntities(any(), any(), any(), any(), any())
+            } returns InternalErrorException("404 Not Found").left()
+            coEvery { subscriptionService.updateSubscriptionNotificationFailure(any(), any()) } returns Unit.right()
+            coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
+            stubFor(post(urlMatching("/notification")).willReturn(ok()))
+
+            notificationService.notifyMatchingSubscribers(
+                DEFAULT_TENANT_NAME,
+                Pair(NAME_IRI, null),
+                previousPayload(),
+                expandedEntity,
+                ATTRIBUTE_UPDATED
+            ).shouldSucceedWith { results ->
+                assertEquals(1, results.size)
+                assertEquals(otherSubscription.id, results[0].first.id)
+            }
+
+            coVerify(exactly = 1) {
+                coreAPIService.retrieveLinkedEntities(any(), any(), any(), any(), false)
+            }
+            coVerify { subscriptionService.updateSubscriptionNotificationFailure(joinSubscription, any()) }
+            coVerify(exactly = 1) {
+                subscriptionService.updateSubscriptionNotification(otherSubscription, any(), true)
+            }
+        }
+
+    @Test
+    fun `notifyMatchingSubscribers should notify in background if join succeeds after a transient failure`() =
+        runTest {
+            val subscription = gimmeJoinSubscription()
+            val expandedEntity = expandJsonLdEntity(rawEntity)
+
+            coEvery {
+                subscriptionService.getMatchingSubscriptions(any(), any(), any())
+            } returns listOf(subscription).right()
+            coEvery { subscriptionService.getContextsLink(any()) } returns APIC_COMPOUND_CONTEXT
+            coEvery {
+                coreAPIService.retrieveLinkedEntities(any(), any(), any(), any(), false)
+            } returns BadGatewayException("Connection refused").left()
+            coEvery {
+                coreAPIService.retrieveLinkedEntities(any(), any(), any(), any(), true)
+            } returns listOf(rawEntity.deserializeAsMap()).right()
+            coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
+            stubFor(post(urlMatching("/notification")).willReturn(ok()))
+
+            notificationService.notifyMatchingSubscribers(
+                DEFAULT_TENANT_NAME,
+                Pair(NAME_IRI, null),
+                previousPayload(),
+                expandedEntity,
+                ATTRIBUTE_UPDATED
+            ).shouldSucceedWith { results ->
+                assertTrue(results.isEmpty())
+            }
+
+            coVerify(timeout = 5000) { subscriptionService.updateSubscriptionNotification(subscription, any(), true) }
+            coVerify(exactly = 0) { subscriptionService.updateSubscriptionNotificationFailure(any(), any()) }
+        }
+
+    @Test
+    fun `notifyMatchingSubscribers should record the failure when retries to retrieve linked entities are exhausted`() =
+        runTest {
+            val subscription = gimmeJoinSubscription()
+            val expandedEntity = expandJsonLdEntity(rawEntity)
+
+            coEvery {
+                subscriptionService.getMatchingSubscriptions(any(), any(), any())
+            } returns listOf(subscription).right()
+            coEvery { subscriptionService.getContextsLink(any()) } returns APIC_COMPOUND_CONTEXT
+            coEvery {
+                coreAPIService.retrieveLinkedEntities(any(), any(), any(), any(), any())
+            } returns GatewayTimeoutException("Timeout").left()
+            coEvery { subscriptionService.updateSubscriptionNotificationFailure(any(), any()) } returns Unit.right()
+
+            notificationService.notifyMatchingSubscribers(
+                DEFAULT_TENANT_NAME,
+                Pair(NAME_IRI, null),
+                previousPayload(),
+                expandedEntity,
+                ATTRIBUTE_UPDATED
+            ).shouldSucceed()
+
+            coVerify(timeout = 5000) {
+                subscriptionService.updateSubscriptionNotificationFailure(subscription, any())
+            }
+            coVerify(exactly = 1) { coreAPIService.retrieveLinkedEntities(any(), any(), any(), any(), true) }
+            coVerify(exactly = 0) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
+        }
 
     @Test
     fun `notifyMatchingSubscribers should notify the subscriber and only keep the expected attributes`() = runTest {
@@ -250,7 +382,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -297,7 +429,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -340,7 +472,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -372,7 +504,7 @@ class NotificationServiceTests {
             coEvery {
                 subscriptionService.getMatchingSubscriptions(any(), any(), any())
             } returns listOf(subscription).right()
-            coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+            coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
             stubFor(
                 post(urlMatching("/notification"))
@@ -414,7 +546,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -461,7 +593,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription1, subscription2).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -509,7 +641,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription1, subscription2).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -561,7 +693,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -592,7 +724,7 @@ class NotificationServiceTests {
         )
 
         coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -623,7 +755,7 @@ class NotificationServiceTests {
         )
 
         coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -653,7 +785,7 @@ class NotificationServiceTests {
         )
 
         coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -677,7 +809,7 @@ class NotificationServiceTests {
     fun `callSubscriber should call the subscriber`() = runTest {
         val subscription = gimmeRawSubscription()
 
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -708,7 +840,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -752,7 +884,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -813,7 +945,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -904,7 +1036,7 @@ class NotificationServiceTests {
         )
 
         coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         coEvery { mqttNotificationService.notify(any(), any(), any()) } returns true
 
@@ -931,7 +1063,7 @@ class NotificationServiceTests {
         coEvery { mqttNotificationService.notify(any(), any(), any()) } returns true
 
         coEvery { subscriptionService.getContextsLink(any()) } returns buildContextLinkHeader(NGSILD_TEST_CORE_CONTEXT)
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         notificationService.callSubscriber(subscription, listOf(rawEntity.deserializeAsMap()))
 
@@ -968,7 +1100,7 @@ class NotificationServiceTests {
         coEvery {
             subscriptionService.getMatchingSubscriptions(any(), any(), any())
         } returns listOf(subscription).right()
-        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+        coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
         stubFor(post(urlMatching("/notification")).willReturn(ok()))
 
@@ -1012,7 +1144,7 @@ class NotificationServiceTests {
             coEvery {
                 subscriptionService.getMatchingSubscriptions(any(), any(), any())
             } returns listOf(subscription).right()
-            coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+            coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
             stubFor(post(urlMatching("/notification")).willReturn(ok()))
 
@@ -1048,7 +1180,7 @@ class NotificationServiceTests {
 
             coEvery { subscriptionService.getContextsLink(any()) } returns
                 buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
-            coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns 1
+            coEvery { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } returns Unit.right()
 
             stubFor(post(urlMatching("/notification")).willReturn(ok()))
 
@@ -1075,4 +1207,18 @@ class NotificationServiceTests {
 
     private val Notification.entities: List<Map<String, Any?>>
         get() = data as List<Map<String, Any?>>
+
+    private fun gimmeJoinSubscription(): Subscription =
+        gimmeRawSubscription(contexts = APIC_COMPOUND_CONTEXTS)
+            .copy(
+                notification = NotificationParams(
+                    attributes = emptyList(),
+                    endpoint = Endpoint(
+                        uri = "http://localhost:8089/notification".toUri(),
+                        accept = Endpoint.AcceptType.JSONLD
+                    ),
+                    join = NotificationParams.JoinType.FLAT,
+                    joinLevel = 1
+                )
+            )
 }

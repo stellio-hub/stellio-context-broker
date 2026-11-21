@@ -110,6 +110,17 @@ data class Attribute(
                 ListRelationship -> NGSILD_LISTRELATIONSHIP_OBJECT_LIST
             }
 
+        fun toCompactedValueMember(): String =
+            when (this) {
+                Property, GeoProperty -> NGSILD_VALUE_TERM
+                Relationship -> NGSILD_OBJECT_TERM
+                JsonProperty -> NGSILD_JSONPROPERTY_JSON_TERM
+                LanguageProperty -> NGSILD_LANGUAGEMAP_TERM
+                VocabProperty -> NGSILD_VOCABPROPERTY_VOCAB_TERM
+                ListProperty -> NGSILD_LISTPROPERTY_VALUE_LIST_TERM
+                ListRelationship -> NGSILD_LISTRELATIONSHIP_OBJECT_LIST_TERM
+            }
+
         /**
          * Returns the key of the member for the simplified representation of the attribute, as defined in
          * TS 104 175 §5.3.2.6

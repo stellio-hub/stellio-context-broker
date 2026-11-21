@@ -65,6 +65,7 @@ import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.expandJsonLdEntity
 import com.egm.stellio.shared.util.loadAndExpandSampleData
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.called
@@ -78,6 +79,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
@@ -94,6 +97,7 @@ import org.springframework.security.test.web.reactive.server.SecurityMockServerC
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.json.JsonCompareMode
 import org.springframework.test.web.reactive.server.WebTestClient
+import tools.jackson.module.kotlin.readValue
 import java.lang.reflect.UndeclaredThrowableException
 import java.time.Instant
 import java.time.LocalDate
@@ -3303,4 +3307,111 @@ class EntityHandlerTests {
                 """.trimIndent()
             )
     }
+
+    @Test
+    fun `set attribute value should return a 204 and pass the parsed value and parameters to the service`() {
+        coEvery {
+            entityService.setAttributeValue(any(), any(), any(), any(), any(), any(), any())
+        } returns Unit.right()
+
+        setAttributeValue(
+            "datasetId=urn:ngsi-ld:Dataset:01&observedAt=2025-06-01T12:00:00Z&type=BeeHive",
+            """{ "min": 1, "max": 2 }"""
+        ).expectStatus().isNoContent
+
+        coVerify {
+            entityService.setAttributeValue(
+                beehiveId,
+                INCOMING_TERM,
+                mapOf("min" to 1, "max" to 2),
+                APIC_COMPOUND_CONTEXTS,
+                "urn:ngsi-ld:Dataset:01".toUri(),
+                ZonedDateTime.parse("2025-06-01T12:00:00Z"),
+                BEEHIVE_IRI
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["\"a string\"", "12.5", "true", "[1, 2]", "null"])
+    fun `set attribute value should pass any JSON value to the service`(body: String) {
+        coEvery {
+            entityService.setAttributeValue(any(), any(), any(), any(), any(), any(), any())
+        } returns Unit.right()
+
+        setAttributeValue(body = body).expectStatus().isNoContent
+
+        coVerify {
+            entityService.setAttributeValue(
+                beehiveId,
+                INCOMING_TERM,
+                mapper.readValue<Any?>(body),
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun `set attribute value should select the default instance when datasetId is @none`() {
+        coEvery {
+            entityService.setAttributeValue(any(), any(), any(), any(), any(), any(), any())
+        } returns Unit.right()
+
+        setAttributeValue("datasetId=@none").expectStatus().isNoContent
+
+        coVerify {
+            entityService.setAttributeValue(beehiveId, INCOMING_TERM, 12, any(), null, null, null)
+        }
+    }
+
+    @Test
+    fun `set attribute value should return a 400 InvalidRequest if the body is not valid JSON`() {
+        setAttributeValue(body = """{"oops""")
+            .expectStatus().isBadRequest
+            .expectBody().jsonPath("$.type").isEqualTo(ErrorType.INVALID_REQUEST.type.toString())
+    }
+
+    @Test
+    fun `set attribute value should return a 400 BadRequestData if the observedAt parameter is not a date`() {
+        setAttributeValue("observedAt=yesterday")
+            .expectStatus().isBadRequest
+            .expectBody().jsonPath("$.type").isEqualTo(ErrorType.BAD_REQUEST_DATA.type.toString())
+    }
+
+    @Test
+    fun `set attribute value should return a 400 BadRequestData if the attribute name is not valid`() {
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/in(valid/value")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("12")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().jsonPath("$.type").isEqualTo(ErrorType.BAD_REQUEST_DATA.type.toString())
+    }
+
+    @Test
+    fun `set attribute value should return a 501 if the local parameter is given`() {
+        setAttributeValue("local=true").expectStatus().isEqualTo(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Test
+    fun `set attribute value should return a 404 if the service does not find the attribute`() {
+        coEvery {
+            entityService.setAttributeValue(any(), any(), any(), any(), any(), any(), any())
+        } returns ResourceNotFoundException("not found").left()
+
+        setAttributeValue().expectStatus().isNotFound
+    }
+
+    private fun setAttributeValue(queryParams: String = "", body: String = "12") =
+        webClient.put()
+            .uri("/ngsi-ld/v1/entities/$beehiveId/attrs/$INCOMING_TERM/value?$queryParams")
+            .header(HttpHeaders.LINK, APIC_HEADER_LINK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(body)
+            .exchange()
 }

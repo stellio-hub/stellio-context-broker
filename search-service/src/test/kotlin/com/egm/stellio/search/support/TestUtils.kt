@@ -44,11 +44,13 @@ fun buildDefaultTestTemporalQuery(
 fun buildDefaultPagination(
     limitDefault: Int = 50,
     limitMax: Int = 100,
-    temporalLimit: Int = 100
+    temporalLimit: Int = 100,
+    temporalLimitMax: Int = 100
 ) = ApplicationProperties.Pagination(
     limitDefault = limitDefault,
     limitMax = limitMax,
     temporalLimit = temporalLimit,
+    temporalLimitMax = temporalLimitMax,
 )
 
 fun buildAttributeInstancePayload(

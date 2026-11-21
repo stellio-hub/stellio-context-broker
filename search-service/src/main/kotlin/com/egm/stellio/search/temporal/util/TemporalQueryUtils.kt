@@ -29,6 +29,7 @@ import com.egm.stellio.shared.model.getRootAttributesToPick
 import com.egm.stellio.shared.model.removeAttributes
 import com.egm.stellio.shared.queryparameter.OptionsValue
 import com.egm.stellio.shared.queryparameter.QueryParameter
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidDateParameterMessage
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.AGGR_METHODS_MANDATORY_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.DIFFERENT_TEMPORAL_REPRESENTATIONS_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Temporal.END_TIME_AT_MANDATORY_FOR_BETWEEN_MESSAGE
@@ -142,7 +143,7 @@ fun buildTemporalQuery(
         }
     } ?: AttributeInstance.TemporalProperty.OBSERVED_AT
 
-    val endTimeAt = endTimeAtParam?.parseTimeParameter("'endTimeAt' parameter is not a valid date")
+    val endTimeAt = endTimeAtParam?.parseTimeParameter(invalidDateParameterMessage(QueryParameter.ENDTIMEAT.key))
         ?.getOrElse {
             return BadRequestDataException(it).left()
         }
@@ -197,7 +198,7 @@ fun buildTimerelAndTime(
         }
 
         timeRelResult.flatMap { timerel ->
-            timeAtParam.parseTimeParameter("'timeAt' parameter is not a valid date")
+            timeAtParam.parseTimeParameter(invalidDateParameterMessage(QueryParameter.TIMEAT.key))
                 .map {
                     Pair(timerel, it)
                 }

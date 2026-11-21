@@ -25,7 +25,10 @@ import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_JSONPROPERTY_JSON
 import com.egm.stellio.shared.model.NGSILD_LANGUAGEPROPERTY_LANGUAGEMAP
 import com.egm.stellio.shared.model.NGSILD_NULL
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_TERM
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TYPE_IRI
 import com.egm.stellio.shared.model.NGSILD_VOCABPROPERTY_VOCAB
 import com.egm.stellio.shared.model.NgsiLdAttributeInstance
@@ -50,6 +53,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeCannotGetValueM
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.savvasdalkitsis.jsonmerger.JsonMerger
 import io.r2dbc.postgresql.codec.Json
 import java.net.URI
@@ -384,3 +388,15 @@ fun mergePatch(
     }
     Pair(JsonUtils.serializeObject(target), target)
 }
+
+/**
+ * Returns the fragment that sets the value of the Attribute, as a partial update keeping its type. If the Attribute
+ * has an observedAt, it is set to the given one, or removed with an NGSI-LD Null (TS 104 175 §10.2.6.4).
+ */
+fun Attribute.toValueUpdateFragment(value: Any, observedAt: ZonedDateTime?): Map<String, Any> =
+    buildMap {
+        put(NGSILD_TYPE_TERM, attributeType.name)
+        put(attributeType.toCompactedValueMember(), value)
+        if (payload.toExpandedAttributeInstance().containsKey(NGSILD_OBSERVED_AT_IRI))
+            put(NGSILD_OBSERVED_AT_TERM, observedAt?.toNgsiLdFormat() ?: NGSILD_NULL)
+    }

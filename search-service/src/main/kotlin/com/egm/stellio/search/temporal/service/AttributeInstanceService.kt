@@ -172,7 +172,8 @@ class AttributeInstanceService(
     suspend fun search(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         attributes: List<Attribute>,
-        origin: ZonedDateTime? = null
+        origin: ZonedDateTime? = null,
+        fetchLimit: Long = temporalEntitiesQuery.temporalQuery.instanceLimit.toLong()
     ): Either<APIException, List<AttributeInstanceResult>> {
         val temporalQuery = temporalEntitiesQuery.temporalQuery
         val sqlQueryBuilder = StringBuilder()
@@ -222,7 +223,7 @@ class AttributeInstanceService(
         if (temporalEntitiesQuery.temporalRepresentation != TemporalRepresentation.AGGREGATED_VALUES)
             sqlQueryBuilder.append(", instance_id ${if (temporalQuery.hasLastN()) "DESC" else "ASC"}")
 
-        sqlQueryBuilder.append(" LIMIT ${temporalQuery.instanceLimit} OFFSET ${temporalQuery.offsetN}")
+        sqlQueryBuilder.append(" LIMIT $fetchLimit OFFSET ${temporalQuery.offsetN}")
 
         val finalTemporalQuery = composeFinalTemporalQuery(attributes, sqlQueryBuilder.toString())
 

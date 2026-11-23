@@ -106,7 +106,8 @@ class ScopeService(
     suspend fun retrieveHistory(
         entitiesIds: List<URI>,
         temporalEntitiesQuery: TemporalEntitiesQuery,
-        origin: ZonedDateTime? = null
+        origin: ZonedDateTime? = null,
+        fetchLimit: Long = temporalEntitiesQuery.temporalQuery.instanceLimit.toLong()
     ): Either<APIException, List<ScopeInstanceResult>> {
         val temporalQuery = temporalEntitiesQuery.temporalQuery
         val sqlQueryBuilder = StringBuilder()
@@ -139,7 +140,7 @@ class ScopeService(
             sqlQueryBuilder.append(" ORDER BY start DESC")
         else sqlQueryBuilder.append(" ORDER BY start ASC")
 
-        sqlQueryBuilder.append(" LIMIT ${temporalQuery.instanceLimit} OFFSET ${temporalQuery.offsetN}")
+        sqlQueryBuilder.append(" LIMIT $fetchLimit OFFSET ${temporalQuery.offsetN}")
 
         // Paginate scope independently for each entity, just like other Attributes.
         val query = """

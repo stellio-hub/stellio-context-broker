@@ -10,6 +10,7 @@ import com.egm.stellio.shared.model.JSONLD_VALUE_KW
 import com.egm.stellio.shared.model.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.model.NGSILD_LOCATION_IRI
 import com.egm.stellio.shared.model.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.model.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.ngsiLdDateTime
@@ -20,7 +21,6 @@ import io.mockk.coVerify
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -122,7 +122,7 @@ class TelemetryListenerTests {
         val wktValue = (fragment[NGSILD_PROPERTY_VALUE] as List<*>)
             .first()
             .let { it as Map<*, *> }[JSONLD_VALUE_KW]
-        assertTrue(wktValue is String && (wktValue as String).startsWith("POINT"))
+        assertEquals("POINT (24.30623 60.07966)", wktValue)
     }
 
     @Test
@@ -132,6 +132,33 @@ class TelemetryListenerTests {
                 attributeName = NGSILD_LOCATION_IRI,
                 attributeType = URI(NGSILD_GEOPROPERTY_TYPE.uri),
                 value = mapOf("not" to "geojson")
+            )
+        )
+        coVerify(exactly = 0) {
+            entityService.mergeAttribute(any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `handleTelemetryMessage should not call mergeAttribute when geo value is not an object`() = runTest {
+        telemetryListener.handleTelemetryMessage(
+            buildTelemetryMessage(
+                attributeName = NGSILD_LOCATION_IRI,
+                attributeType = URI(NGSILD_GEOPROPERTY_TYPE.uri),
+                value = "not an object"
+            )
+        )
+        coVerify(exactly = 0) {
+            entityService.mergeAttribute(any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `handleTelemetryMessage should not call mergeAttribute when attribute type is not supported`() = runTest {
+        telemetryListener.handleTelemetryMessage(
+            buildTelemetryMessage(
+                attributeType = URI(NGSILD_RELATIONSHIP_TYPE.uri),
+                value = "urn:ngsi-ld:Entity:01"
             )
         )
         coVerify(exactly = 0) {

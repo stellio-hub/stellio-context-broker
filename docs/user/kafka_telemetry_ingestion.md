@@ -40,7 +40,7 @@ GeoProperty:
 }
 ```
 
-The `attributeType` field defaults to `https://uri.etsi.org/ngsi-ld/Property` when omitted. For a `GeoProperty`, it must be set explicitly and the `value` must be a valid GeoJSON geometry object (Point, MultiPoint, LineString, MultiLineString, Polygon, or MultiPolygon).
+The `attributeType` field defaults to `https://uri.etsi.org/ngsi-ld/Property` when omitted. For a `GeoProperty`, it must be set explicitly and the `value` must be a valid GeoJSON geometry object (any GeoJSON geometry except GeometryCollection).
 
 On receipt, the search-service:
 

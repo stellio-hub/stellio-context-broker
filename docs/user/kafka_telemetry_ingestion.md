@@ -8,11 +8,12 @@ This avoids the overhead of HTTP connection handling and offers an improved resi
 **Constraints**:
 
 - The entity must already exist (provisioned once via HTTP).
-- Only `Property` values are supported; other attribute types must use the HTTP API.
+- `Property` and `GeoProperty` attribute types are supported; other attribute types must use the HTTP API.
 - No authentication — Kafka is a trusted, internal channel.
 
 **Message format** (the message key must be set to the `entityId`):
 
+Property:
 ```json
 {
   "tenantName": "urn:ngsi-ld:tenant:stellio",
@@ -23,6 +24,23 @@ This avoids the overhead of HTTP connection handling and offers an improved resi
   "observedAt": "2026-01-01T00:00:00Z"
 }
 ```
+
+GeoProperty:
+```json
+{
+  "tenantName": "urn:ngsi-ld:tenant:stellio",
+  "entityId": "urn:ngsi-ld:Vehicle:A4567",
+  "attributeName": "https://uri.etsi.org/ngsi-ld/location",
+  "attributeType": "https://uri.etsi.org/ngsi-ld/GeoProperty",
+  "value": {
+    "type": "Point",
+    "coordinates": [24.30623, 60.07966]
+  },
+  "observedAt": "2026-01-01T00:00:00Z"
+}
+```
+
+The `attributeType` field defaults to `https://uri.etsi.org/ngsi-ld/Property` when omitted. For a `GeoProperty`, it must be set explicitly and the `value` must be a valid GeoJSON geometry object (any GeoJSON geometry except GeometryCollection).
 
 On receipt, the search-service:
 

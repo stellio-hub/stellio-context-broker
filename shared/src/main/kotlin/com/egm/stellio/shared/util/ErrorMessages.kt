@@ -55,6 +55,13 @@ object ErrorMessages {
         const val DATABASE_TRANSACTION_FAILURE_MESSAGE = "The database transaction failed"
     }
 
+    object Kafka {
+        const val EVENT_BROKER_UNAVAILABLE_MESSAGE =
+            "The event broker is unavailable, the request has not been processed. Please retry later"
+        const val ENTITY_EVENTS_MAY_BE_LOST_WARNING =
+            "The event broker is unavailable, notifications for this request may not be sent"
+    }
+
     object Csr {
         fun csrNotFoundMessage(id: URI) = "Context source registration $id does not exist"
         fun csrAlreadyExistsMessage(id: URI) = "Context source registration $id already exists"
@@ -265,6 +272,8 @@ object ErrorMessages {
 
         fun invalidGeometryDefinitionMessage(geoJsonPayload: String, error: String) =
             "Invalid geometry definition: $geoJsonPayload ($error)"
+        fun geoPropertyValueNotGeoJsonMessage(value: String) =
+            "The value of a GeoProperty must be a GeoJSON geometry object, got: $value"
         fun unsupportedGeometryDefinitionMessage(geoJsonPayload: String, geometryType: String) =
             "Unsupported geometry type: $geometryType is not allowed in NGSI-LD ($geoJsonPayload)"
     }

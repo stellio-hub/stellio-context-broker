@@ -31,6 +31,8 @@ import com.egm.stellio.shared.model.NGSILD_TYPE_TERM
 import com.egm.stellio.shared.model.TEMPORAL_REPRESENTATION_TERMS
 import com.egm.stellio.shared.model.applyAttributeTransformation
 import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceInvalidPayloadMessage
+import com.egm.stellio.shared.util.ErrorMessages.Csr.contextSourceInvalidTemporalTimestampMessage
+import com.egm.stellio.shared.util.compareUtcTimestamps
 import com.egm.stellio.shared.util.isDateTime
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import java.time.ZonedDateTime
@@ -391,6 +393,7 @@ object ContextSourceUtils {
                     currentAttribute,
                     remoteAttribute,
                     TEMPORAL_REPRESENTATION_TERMS,
+                    temporalEntitiesQuery.temporalQuery,
                     csr
                 )
             TemporalRepresentation.AGGREGATED_VALUES ->
@@ -398,6 +401,7 @@ object ContextSourceUtils {
                     currentAttribute,
                     remoteAttribute,
                     TemporalQuery.Aggregate.toMethodsNames(),
+                    temporalEntitiesQuery.temporalQuery,
                     csr
                 )
         }
@@ -406,13 +410,13 @@ object ContextSourceUtils {
     private fun Raise<NGSILDWarning>.mergeNormalizeAttributeInstances(
         currentAttribute: Any,
         remoteAttribute: Any,
-        temporalQuey: TemporalQuery,
+        temporalQuery: TemporalQuery,
         csr: ContextSourceRegistration
     ): List<CompactedAttributeInstance> {
         val currentInstances = toListOfNormalizedInstances(currentAttribute, csr).bind()
         val remoteInstances = toListOfNormalizedInstances(remoteAttribute, csr).bind()
 
-        val timePropertyName = temporalQuey.timeproperty.propertyName
+        val timePropertyName = temporalQuery.timeproperty.propertyName
         val keysInCurrentInstances = currentInstances.map {
             it[timePropertyName] to it[NGSILD_DATASET_ID_TERM]
         }.toSet()
@@ -424,10 +428,7 @@ object ContextSourceUtils {
         return if (newInstances.isEmpty()) {
             currentInstances
         } else {
-            (currentInstances + newInstances).sortedBy {
-                // order instances by the asked time property
-                it[timePropertyName] as String
-            }
+            sortTemporalInstances(currentInstances + newInstances, temporalQuery, csr) { it[timePropertyName] }
         }
     }
 
@@ -435,6 +436,7 @@ object ContextSourceUtils {
         currentAttribute: Any,
         remoteAttribute: Any,
         keysToMerge: List<String>,
+        temporalQuery: TemporalQuery,
         csr: ContextSourceRegistration
     ): Any {
         val currentInstances = groupInstancesByDataSetId(currentAttribute, csr).bind().toMutableMap()
@@ -453,11 +455,9 @@ object ContextSourceUtils {
                         if (newTemporalValues.isEmpty())
                             value
                         else
-                            (temporalValues + newTemporalValues).sortedBy {
-                                // order instances using 2nd element of the list
-                                // - timestamp for simplified representation
-                                // - start of aggregation for aggregated representation
-                                (it as List<*>)[1] as String
+                            sortTemporalInstances(temporalValues + newTemporalValues, temporalQuery, csr) {
+                                // Temporal values and aggregation intervals both put the start timestamp second.
+                                (it as List<*>)[1]
                             }
                     } else value
                 }
@@ -470,6 +470,21 @@ object ContextSourceUtils {
         return (currentAndRemoteValues + remoteOnlyValues).let {
             if (it.size == 1) it[0] else it
         }
+    }
+
+    private fun <T> Raise<NGSILDWarning>.sortTemporalInstances(
+        instances: List<T>,
+        temporalQuery: TemporalQuery,
+        csr: ContextSourceRegistration,
+        timestamp: (T) -> Any?
+    ): List<T> {
+        val byTime = compareBy(Comparator(::compareUtcTimestamps)) { instance: T ->
+            val value = timestamp(instance)
+            value as? String ?: raise(
+                RevalidationFailedWarning(contextSourceInvalidTemporalTimestampMessage(csr.id, value), csr)
+            )
+        }
+        return instances.sortedWith(if (temporalQuery.hasLastN()) byTime.reversed() else byTime)
     }
 
     private fun toListOfNormalizedInstances(

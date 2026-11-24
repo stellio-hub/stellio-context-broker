@@ -968,7 +968,7 @@ and [TS 104 176 §6.4.7.3](https://www.etsi.org/deliver/etsi_ts/104100_104199/10
 Use `firstN` (ascending) or `lastN` (descending) to limit instances per attribute and entity;
 they are mutually exclusive positive integers. `offsetN` skips instances in that order,
 independently of entity pagination (`limit`/`offset`).
-Federated `lastN` results now keep newest-first order when remote instances are merged (previously ascending).
+Stellio uses the same timestamp order when merging temporal instances from Context Sources.
 For POST queries, put `firstN`/`lastN` in `temporalQ` and `offsetN` in the query string.
 Follow paging links by POSTing the same body and headers to the link target, including for `next`/`prev` links.
 

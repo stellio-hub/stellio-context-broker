@@ -103,6 +103,8 @@ object ErrorMessages {
             attribute: Any
         ) =
             "Context source $csrId returned an invalid payload, attribute is neither a List nor a Map: $attribute"
+        fun contextSourceInvalidTemporalTimestampMessage(csrId: URI, timestamp: Any?) =
+            "Context source $csrId returned an invalid temporal timestamp: $timestamp"
     }
 
     object ServiceRegistration {

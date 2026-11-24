@@ -311,7 +311,14 @@ class EntityServiceSetAttributeValueTests : WithTimescaleContainer, WithKafkaCon
             Arguments.of("temperature", "a\u0000b", null, null, BadRequestDataException::class.java),
             Arguments.of("readings", listOf(1, null), null, null, BadRequestDataException::class.java),
             Arguments.of("owner", 42, null, null, BadRequestDataException::class.java),
-            Arguments.of("location", "not a geometry", null, null, BadRequestDataException::class.java)
+            Arguments.of("location", "not a geometry", null, null, BadRequestDataException::class.java),
+            Arguments.of("label", 42, null, null, BadRequestDataException::class.java),
+            Arguments.of("label", mapOf("fr" to 42), null, null, BadRequestDataException::class.java),
+            Arguments.of("category", 42, null, null, BadRequestDataException::class.java),
+            Arguments.of("category", mapOf("a" to "b"), null, null, BadRequestDataException::class.java),
+            Arguments.of("members", listOf("urn:ngsi-ld:Person:02"), null, null, BadRequestDataException::class.java),
+            Arguments.of("members", listOf(mapOf("object" to 42)), null, null, BadRequestDataException::class.java),
+            Arguments.of("members", 42, null, null, BadRequestDataException::class.java)
         )
 
         private val entityPayload = """

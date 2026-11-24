@@ -56,6 +56,7 @@ import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_NULL
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -595,6 +596,9 @@ class EntityService(
         val valueFragment = attribute.toValueUpdateFragment(value, observedAt)
         valueFragment.checkContentIsNgsiLdSupported().bind()
         val (_, expandedValueFragment) = expandAttribute(attrId, valueFragment, contexts)
+        // same checks as on creation, without the NGSI-LD Null that removes the observedAt
+        mapOf(expandedAttrName to expandedValueFragment.map { it - NGSILD_OBSERVED_AT_IRI })
+            .toNgsiLdAttributes().bind()
 
         val modifiedAt = ngsiLdDateTime()
         val operationResult = entityAttributeService

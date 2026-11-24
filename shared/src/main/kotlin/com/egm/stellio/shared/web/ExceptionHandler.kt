@@ -8,7 +8,9 @@ import com.egm.stellio.shared.model.JsonLdErrorApiResponse
 import com.egm.stellio.shared.model.JsonParseApiException
 import com.egm.stellio.shared.model.NotAcceptableException
 import com.egm.stellio.shared.model.NotImplementedException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.UnsupportedMediaTypeStatusApiException
+import com.egm.stellio.shared.util.ErrorMessages.HttpRequest.UNKNOWN_PATH_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Json.JSON_PARSING_ERROR_MESSAGE
 import jakarta.validation.ConstraintViolationException
 import org.springframework.core.codec.CodecException
@@ -17,6 +19,7 @@ import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.reactive.resource.NoResourceFoundException
 import org.springframework.web.server.MethodNotAllowedException
 import org.springframework.web.server.NotAcceptableStatusException
 import org.springframework.web.server.UnsupportedMediaTypeStatusException
@@ -38,6 +41,8 @@ class ExceptionHandler {
                     .toErrorResponse()
             is NotAcceptableStatusException ->
                 NotAcceptableException(cause.message).toErrorResponse()
+            // unmapped paths fall through to the static resources handler, which raises this exception
+            is NoResourceFoundException -> ResourceNotFoundException(UNKNOWN_PATH_MESSAGE).toErrorResponse()
             is MethodNotAllowedException ->
                 ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(cause.body)
             is ConstraintViolationException -> {

@@ -171,7 +171,7 @@ fun buildTemporalQuery(
 
     val temporalPagination = parseTemporalPagination(params, pagination).getOrElse { return it.left() }
     val (firstN, lastN, offsetN) = temporalPagination
-    val limit = firstN ?: lastN ?: pagination.temporalLimit
+    val limit = firstN ?: lastN ?: pagination.temporalLimitDefault
 
     return TemporalQuery(
         timerel = timerel,

@@ -18,7 +18,7 @@ import org.springframework.test.context.TestPropertySource
 @WebFluxTest(TemporalEntityHandler::class)
 @EnableConfigurationProperties(SearchProperties::class)
 @TestPropertySource(
-    properties = ["application.pagination.temporal-limit = 5", "application.pagination.temporal-limit-max = 10"]
+    properties = ["application.pagination.temporal-limit-default = 5", "application.pagination.temporal-limit-max = 10"]
 )
 class TemporalEntityHandlerPaginationTests : TemporalEntityHandlerTestCommon() {
 

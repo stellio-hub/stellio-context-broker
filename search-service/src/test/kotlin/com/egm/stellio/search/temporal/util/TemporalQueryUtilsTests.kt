@@ -171,7 +171,7 @@ class TemporalQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
-        every { pagination.temporalLimit } returns 100
+        every { pagination.temporalLimitDefault } returns 100
 
         val temporalEntitiesQuery =
             composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
@@ -209,7 +209,7 @@ class TemporalQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
-        every { pagination.temporalLimit } returns 1000
+        every { pagination.temporalLimitDefault } returns 1000
 
         val temporalEntitiesQuery =
             composeTemporalEntitiesQueryFromGet(pagination, queryParams, APIC_COMPOUND_CONTEXTS)
@@ -239,7 +239,7 @@ class TemporalQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
-        every { pagination.temporalLimit } returns 1000
+        every { pagination.temporalLimitDefault } returns 1000
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
@@ -259,7 +259,7 @@ class TemporalQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
-        every { pagination.temporalLimit } returns 1000
+        every { pagination.temporalLimitDefault } returns 1000
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
@@ -279,7 +279,7 @@ class TemporalQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
-        every { pagination.temporalLimit } returns 1000
+        every { pagination.temporalLimitDefault } returns 1000
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
@@ -361,7 +361,7 @@ class TemporalQueryUtilsTests {
         if (parameter != "none") params.add(parameter, requested.toString())
         val query = buildTemporalQuery(
             params,
-            buildDefaultPagination(temporalLimit = 5, temporalLimitMax = 20),
+            buildDefaultPagination(temporalLimitDefault = 5, temporalLimitMax = 20),
             false,
             TemporalRepresentation.NORMALIZED
         ).shouldSucceedAndResult()
@@ -373,7 +373,7 @@ class TemporalQueryUtilsTests {
     fun `buildTemporalQuery should reject page sizes above the maximum`(parameter: String, requested: Int) {
         buildTemporalQuery(
             LinkedMultiValueMap(mapOf(parameter to listOf(requested.toString()))),
-            buildDefaultPagination(temporalLimit = 5, temporalLimitMax = 20),
+            buildDefaultPagination(temporalLimitDefault = 5, temporalLimitMax = 20),
             false,
             TemporalRepresentation.NORMALIZED
         ).shouldFail {
@@ -395,7 +395,7 @@ class TemporalQueryUtilsTests {
             "temporalQ" to mapOf("timerel" to "after", "timeAt" to "2024-11-07T07:31:39Z", parameter to requested)
         )
         val query = composeTemporalEntitiesQueryFromPost(
-            buildDefaultPagination(temporalLimit = 5, temporalLimitMax = 20),
+            buildDefaultPagination(temporalLimitDefault = 5, temporalLimitMax = 20),
             Query(body).shouldSucceedAndResult(),
             LinkedMultiValueMap(),
             APIC_COMPOUND_CONTEXTS
@@ -468,7 +468,7 @@ class TemporalQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
-        every { pagination.temporalLimit } returns 1000
+        every { pagination.temporalLimitDefault } returns 1000
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
@@ -487,7 +487,7 @@ class TemporalQueryUtilsTests {
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
         every { pagination.limitMax } returns 100
-        every { pagination.temporalLimit } returns 1000
+        every { pagination.temporalLimitDefault } returns 1000
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")

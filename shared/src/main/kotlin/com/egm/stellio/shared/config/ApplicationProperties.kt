@@ -3,6 +3,7 @@ package com.egm.stellio.shared.config
 import org.springframework.boot.context.properties.ConfigurationProperties
 import java.time.Duration
 
+private const val DEFAULT_TEMPORAL_LIMIT = 10_000
 private const val DEFAULT_TRANSACTION_TIMEOUT_SECONDS = 50L
 
 @ConfigurationProperties("application")
@@ -24,7 +25,8 @@ data class ApplicationProperties(
     data class Pagination(
         val limitDefault: Int,
         val limitMax: Int,
-        val temporalLimit: Int,
+        val temporalLimit: Int = DEFAULT_TEMPORAL_LIMIT,
+        val temporalLimitDefault: Int = temporalLimit,
         val temporalLimitMax: Int
     )
 

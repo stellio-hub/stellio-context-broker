@@ -32,6 +32,7 @@ import com.egm.stellio.search.entity.model.getSucceededOperations
 import com.egm.stellio.search.entity.model.hasSuccessfulResult
 import com.egm.stellio.search.entity.util.prepareAttributes
 import com.egm.stellio.search.entity.util.rowToEntity
+import com.egm.stellio.search.entity.util.toValueUpdateFragment
 import com.egm.stellio.search.entity.web.BatchEntityError
 import com.egm.stellio.search.entity.web.BatchOperationResult
 import com.egm.stellio.search.scope.ScopeService
@@ -41,29 +42,40 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EXPANDED_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.model.EXPANDED_ENTITY_SPECIFIC_MEMBERS
+import com.egm.stellio.shared.model.EntityTypeSelection
 import com.egm.stellio.shared.model.ExpandedAttribute
 import com.egm.stellio.shared.model.ExpandedAttributeInstance
 import com.egm.stellio.shared.model.ExpandedAttributeInstances
 import com.egm.stellio.shared.model.ExpandedAttributes
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.JSONLD_ID_KW
 import com.egm.stellio.shared.model.JSONLD_NONE_KW
 import com.egm.stellio.shared.model.JSONLD_TYPE_KW
 import com.egm.stellio.shared.model.NGSILD_DATASET_ID_IRI
 import com.egm.stellio.shared.model.NGSILD_MODIFIED_AT_IRI
+import com.egm.stellio.shared.model.NGSILD_NULL
+import com.egm.stellio.shared.model.NGSILD_OBSERVED_AT_IRI
 import com.egm.stellio.shared.model.NGSILD_SCOPE_IRI
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.areTypesInSelection
 import com.egm.stellio.shared.model.flattenOnAttributeAndDatasetId
 import com.egm.stellio.shared.model.toAPIException
 import com.egm.stellio.shared.model.toNgsiLdAttributes
 import com.egm.stellio.shared.queryparameter.PaginationQuery
+import com.egm.stellio.shared.util.ErrorMessages.DataRepresentation.NULL_VALUE_NOT_ALLOWED_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.DbQuery.OPERATION_NO_RESULT_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Entity.NGSI_LD_NULL_NOT_ALLOWED_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityAlreadyExistsMessage
+import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.ErrorMessages.Scope.SCOPE_NOT_A_TARGET_ATTRIBUTE_MESSAGE
 import com.egm.stellio.shared.util.JsonLdUtils.buildNonReifiedTemporalValue
+import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.checkContentIsNgsiLdSupported
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.wrapToList
@@ -550,6 +562,51 @@ class EntityService(
         handleSuccessOperationActions(entityId, originalEntity, operationResult, replacedAt).bind()
 
         UpdateResult(operationResult)
+    }
+
+    @Transactional
+    suspend fun setAttributeValue(
+        entityId: URI,
+        attrId: String,
+        value: Any?,
+        contexts: List<String>,
+        datasetId: URI?,
+        observedAt: ZonedDateTime?,
+        typeSelection: EntityTypeSelection?
+    ): Either<APIException, Unit> = either {
+        val expandedAttrName = expandJsonLdTerm(attrId, contexts)
+        // TS 104 175 §10.2.6.4: scope cannot be the target of a Set Attribute Value
+        ensure(expandedAttrName != NGSILD_SCOPE_IRI) {
+            BadRequestDataException(SCOPE_NOT_A_TARGET_ATTRIBUTE_MESSAGE)
+        }
+        ensure(value != NGSILD_NULL) { InvalidRequestException(NGSI_LD_NULL_NOT_ALLOWED_MESSAGE) }
+        ensure(value != null) { InvalidRequestException(NULL_VALUE_NOT_ALLOWED_MESSAGE) }
+        entityQueryService.checkEntityExistence(entityId).bind()
+        authorizationService.userCanUpdateEntity(entityId).bind()
+
+        val originalEntity = entityQueryService.retrieve(entityId).bind()
+        typeSelection?.let {
+            ensure(areTypesInSelection(originalEntity.types, it)) {
+                ResourceNotFoundException(entityNotFoundMessage(entityId))
+            }
+        }
+        entityAttributeService.checkEntityAndAttributeExistence(entityId, expandedAttrName, datasetId).bind()
+        val attribute = entityAttributeService.getForEntityAndAttribute(entityId, expandedAttrName, datasetId).bind()
+
+        val valueFragment = attribute.toValueUpdateFragment(value, observedAt)
+        valueFragment.checkContentIsNgsiLdSupported().bind()
+        val (_, expandedValueFragment) = expandAttribute(attrId, valueFragment, contexts)
+        // same checks as on creation, without the NGSI-LD Null that removes the observedAt
+        mapOf(expandedAttrName to expandedValueFragment.map { it - NGSILD_OBSERVED_AT_IRI })
+            .toNgsiLdAttributes().bind()
+
+        val modifiedAt = ngsiLdDateTime()
+        val operationResult = entityAttributeService
+            .applyPartialUpdatePatchOperation(attribute, expandedValueFragment.first(), modifiedAt)
+            .bind()
+
+        handleSuccessOperationActions(entityId, originalEntity.toExpandedEntity(), listOf(operationResult), modifiedAt)
+            .bind()
     }
 
     @Transactional

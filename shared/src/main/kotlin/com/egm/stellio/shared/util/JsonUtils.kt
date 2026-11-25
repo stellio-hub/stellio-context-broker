@@ -1,11 +1,14 @@
 package com.egm.stellio.shared.util
 
+import arrow.core.Either
+import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.COMPACTED_ATTRIBUTES_TERMS
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.NGSILD_JSON_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
 import com.egm.stellio.shared.util.ErrorMessages.Json.cannotDeserializeToListMessage
 import com.egm.stellio.shared.util.ErrorMessages.Json.cannotDeserializeToObjectMessage
+import com.egm.stellio.shared.util.ErrorMessages.Json.cannotDeserializeToValueMessage
 import tools.jackson.core.JacksonException
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.databind.ser.std.SimpleBeanPropertyFilter
@@ -54,6 +57,10 @@ object JsonUtils {
 
     fun String.deserializeAsList(): List<Map<String, Any>> =
         deserializeListOfObjects(this)
+
+    fun deserializeValue(input: String): Either<APIException, Any?> =
+        Either.catch { mapper.readValue<Any?>(input) }
+            .mapLeft { InvalidRequestException(cannotDeserializeToValueMessage(it.message), it.message) }
 
     fun serializeObject(input: Any): String =
         mapper.writeValueAsString(input)

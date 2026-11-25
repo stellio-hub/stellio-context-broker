@@ -154,6 +154,7 @@ object ErrorMessages {
         fun invalidCharacterInScopeMessage(name: Any?) =
             "JSON-LD object contains a scope with invalid characters (4.18): $name"
         const val NULL_VALUE_IN_CONTENT_MESSAGE = "JSON-LD object contains a member with a null value (5.5.4)"
+        const val NULL_VALUE_NOT_ALLOWED_MESSAGE = "A null value is not allowed in this operation"
     }
 
     object DbQuery {
@@ -306,6 +307,9 @@ object ErrorMessages {
         fun cannotDeserializeToListMessage(cause: String? = null) =
             if (cause != null) "Data cannot be deserialized into list of objects ($cause)"
             else "Data cannot be deserialized into list of objects"
+        fun cannotDeserializeToValueMessage(cause: String? = null) =
+            if (cause != null) "Data cannot be deserialized into a JSON value ($cause)"
+            else "Data cannot be deserialized into a JSON value"
     }
 
     object JsonLdContextServer {
@@ -357,6 +361,7 @@ object ErrorMessages {
             "Invalid 'join' parameter: '$param', must be 'flat', 'inline', or '@none'"
         fun invalidJoinLevelParameterMessage(param: String) =
             "Invalid 'joinLevel' parameter: '$param', must be a positive integer"
+        fun invalidDateParameterMessage(param: String) = "'$param' parameter is not a valid date"
         const val JOIN_REQUIRED_WITH_JOIN_LEVEL_OR_CONTAINED_BY_MESSAGE =
             "Parameter 'join' is required when 'joinLevel' or 'containedBy' are specified"
         const val FLAT_JOIN_NOT_ALLOWED_ON_ATTRIBUTE_MESSAGE =

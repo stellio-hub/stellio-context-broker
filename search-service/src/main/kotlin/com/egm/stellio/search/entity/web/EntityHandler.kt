@@ -49,6 +49,7 @@ import com.egm.stellio.shared.util.ErrorMessages.Entity.ENTITY_ID_MISMATCH_MESSA
 import com.egm.stellio.shared.util.ErrorMessages.Entity.attributeNotFoundMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
 import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.FLAT_JOIN_NOT_ALLOWED_ON_ATTRIBUTE_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.QueryParameter.invalidDateParameterMessage
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
@@ -59,8 +60,11 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandAttribute
 import com.egm.stellio.shared.util.JsonLdUtils.expandAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.JsonUtils.deserializeValue
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.buildQueryResponse
+import com.egm.stellio.shared.util.checkNameIsNgsiLdSupported
+import com.egm.stellio.shared.util.expandTypeSelection
 import com.egm.stellio.shared.util.extractPayloadAndContexts
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
@@ -71,6 +75,7 @@ import com.egm.stellio.shared.util.parseTimeParameter
 import com.egm.stellio.shared.util.prepareGetSuccessResponseHeaders
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.BaseHandler
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -161,7 +166,7 @@ class EntityHandler(
         val (body, contexts) =
             extractPayloadAndContexts(requestBody, httpHeaders, applicationProperties.contexts.core).bind()
         val observedAt = queryParams.getFirst(QueryParameter.OBSERVED_AT.key)
-            ?.parseTimeParameter("'observedAt' parameter is not a valid date")
+            ?.parseTimeParameter(invalidDateParameterMessage(QP.OBSERVED_AT.key))
             ?.getOrElse { return@either BadRequestDataException(it).left().bind<ResponseEntity<*>>() }
         val expandedAttributes = expandAttributes(normalizeEntityFragment(body), contexts)
 
@@ -619,6 +624,41 @@ class EntityHandler(
                 else
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
             }.bind()
+    }.fold(
+        { it.toErrorResponse() },
+        { it }
+    )
+
+    /**
+     * Implements TS 104 176 §7.6.3.2 - Set Attribute Value
+     *
+     * The body is a value only Attribute fragment, which may be a JSON primitive that cannot carry a @context, so the
+     * context is always taken from the Link header.
+     */
+    @PutMapping("/{entityId}/attrs/{attrId}/value", consumes = [APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun setAttributeValue(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: URI,
+        @PathVariable attrId: String,
+        @RequestBody requestBody: Mono<String>,
+        @AllowedParameters(
+            implemented = [QP.DATASET_ID, QP.OBSERVED_AT, QP.TYPE],
+            notImplemented = [QP.LOCAL, QP.VIA]
+        )
+        @RequestParam queryParams: MultiValueMap<String, String>
+    ): ResponseEntity<*> = either {
+        attrId.checkNameIsNgsiLdSupported().bind()
+        val contexts = getContextFromLinkHeaderOrDefault(httpHeaders, applicationProperties.contexts.core).bind()
+        val value = deserializeValue(requestBody.awaitFirst()).bind()
+        val datasetId = queryParams.getFirst(QP.DATASET_ID.key)?.takeIf { it != JSONLD_NONE_KW }?.toUri()
+        val observedAt = queryParams.getFirst(QP.OBSERVED_AT.key)
+            ?.parseTimeParameter(invalidDateParameterMessage(QP.OBSERVED_AT.key))
+            ?.getOrElse { raise(BadRequestDataException(it)) }
+        val typeSelection = expandTypeSelection(queryParams.getFirst(QP.TYPE.key), contexts)
+
+        entityService.setAttributeValue(entityId, attrId, value, contexts, datasetId, observedAt, typeSelection).bind()
+
+        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }.fold(
         { it.toErrorResponse() },
         { it }

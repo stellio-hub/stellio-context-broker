@@ -375,7 +375,8 @@ class EntityHandler(
 
         prepareGetSuccessResponseHeaders(mediaType, contexts)
             .let {
-                val body = if (finalEntities.size == 1)
+                // TS 104 175 §7.7.3: a flattened retrieval always answers an array of Entities
+                val body = if (finalEntities.size == 1 && entitiesQuery.linkedEntityQuery?.join != JoinType.FLAT)
                     serializeObject(finalEntities[0].toFinalRepresentation(ngsiLdDataRepresentation))
                 else
                     serializeObject(finalEntities.toFinalRepresentation(ngsiLdDataRepresentation))

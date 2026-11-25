@@ -527,6 +527,24 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entity by id should return an array when join is flat and no linked entity is found`() = runTest {
+        initializeRetrieveEntityMocks()
+        coEvery {
+            entityQueryService.queryEntity(any())
+        } returns ExpandedEntity(loadSampleData("beehive_expanded.jsonld").deserializeAsMap()).right()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$beehiveId?join=flat")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$").isArray
+            .jsonPath("$.length()").isEqualTo(1)
+            .jsonPath("$[0].id").isEqualTo(beehiveId.toString())
+    }
+
+    @Test
     fun `get entity by id should correctly serialize temporal properties`() {
         initializeRetrieveEntityMocks()
         coEvery { entityQueryService.queryEntity(any()) } returns ExpandedEntity(

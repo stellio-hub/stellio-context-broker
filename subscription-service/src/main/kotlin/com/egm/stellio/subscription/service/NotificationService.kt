@@ -36,6 +36,7 @@ import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.NGSILD_TENANT_HEADER
 import com.egm.stellio.shared.util.acceptToMediaType
 import com.egm.stellio.shared.util.getTenantFromContext
+import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.wrapToList
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
 import com.egm.stellio.subscription.model.Endpoint
@@ -46,6 +47,13 @@ import com.egm.stellio.subscription.model.NotificationTrigger
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.mqtt.MqttNotificationService
 import com.savvasdalkitsis.jsonmerger.JsonMerger
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.reactor.ReactorContext
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -56,6 +64,7 @@ import org.springframework.web.reactive.function.client.awaitExchange
 import reactor.netty.http.client.HttpClientRequest
 import java.net.URI
 import java.time.Duration
+import kotlin.coroutines.EmptyCoroutineContext
 
 @Service
 class NotificationService(
@@ -66,6 +75,17 @@ class NotificationService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    private val retryScope = CoroutineScope(
+        Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, throwable ->
+            logger.error("Delayed notification with linked entities has failed: {}", throwable.message, throwable)
+        }
+    )
+
+    /**
+     * Notifications without linked entities, or whose linked entities are retrieved at the first attempt, are sent
+     * before returning. Those whose retrieval failed transiently are retried in the background, and are not part of
+     * the returned results.
+     */
     suspend fun notifyMatchingSubscribers(
         tenantName: String,
         updatedAttribute: Pair<ExpandedTerm, URI?>?,
@@ -77,44 +97,99 @@ class NotificationService(
             expandedEntity,
             updatedAttribute,
             notificationTrigger
-        ).bind().map {
-            val contexts = it.notificationContexts()
-            val compactedEntity = prepareEntityRepresentation(expandedEntity, it, contexts)
+        ).bind().mapNotNull { subscription ->
+            val contexts = subscription.notificationContexts()
+            val compactedEntity = prepareEntityRepresentation(expandedEntity, subscription, contexts)
+            val notifySubscriber: suspend (List<Map<String, Any?>>) -> Triple<Subscription, Notification, Boolean> =
+                { entities ->
+                    val entitiesWithPreviousValues =
+                        if (subscription.notification.showChanges)
+                            addChangesInNotifiedEntity(
+                                expandedEntity.id,
+                                entities,
+                                updatedAttribute,
+                                previousPayload,
+                                notificationTrigger,
+                                contexts
+                            )
+                        else entities
+                    callSubscriber(subscription, entitiesWithPreviousValues)
+                }
 
-            val compactedEntityWithLinkedEntities =
-                if (it.notification.join in listOf(JoinType.FLAT, JoinType.INLINE))
-                    injectLinkedEntities(tenantName, expandedEntity.id, it, compactedEntity)
-                else compactedEntity.wrapToList()
-
-            val compactedEntitiesWithPreviousValues =
-                if (it.notification.showChanges)
-                    addChangesInNotifiedEntity(
-                        expandedEntity.id,
-                        compactedEntityWithLinkedEntities,
-                        updatedAttribute,
-                        previousPayload,
-                        notificationTrigger,
-                        contexts
-                    )
-                else compactedEntityWithLinkedEntities
-
-            callSubscriber(it, compactedEntitiesWithPreviousValues)
+            // a deleted entity has no attributes, thus no relationships to follow
+            if (subscription.notification.join in listOf(JoinType.FLAT, JoinType.INLINE) &&
+                notificationTrigger != NotificationTrigger.ENTITY_DELETED
+            )
+                notifyWithLinkedEntities(tenantName, expandedEntity.id, subscription, compactedEntity, notifySubscriber)
+            else notifySubscriber(compactedEntity.wrapToList())
         }
     }
 
-    private suspend fun injectLinkedEntities(
+    private suspend fun notifyWithLinkedEntities(
         tenantName: String,
         entityId: URI,
         subscription: Subscription,
-        compactedEntity: Map<String, Any?>
-    ): List<Map<String, Any?>> {
-        val entityWithLinkedEntities = coreAPIService.retrieveLinkedEntities(
+        compactedEntity: Map<String, Any?>,
+        notifySubscriber: suspend (List<Map<String, Any?>>) -> Triple<Subscription, Notification, Boolean>
+    ): Triple<Subscription, Notification, Boolean>? =
+        retrieveLinkedEntities(tenantName, entityId, subscription, withRetry = false).fold({ error ->
+            if (error.isTransientFailure()) {
+                logger.warn(
+                    "Retrying in background the notification of subscription {} for entity {} in tenant {}: {}",
+                    subscription.id,
+                    entityId,
+                    tenantName,
+                    error.message
+                )
+                // the reactor context holds the tenant, it is used to select the DB schema and to notify
+                retryScope.launch(currentCoroutineContext()[ReactorContext] ?: EmptyCoroutineContext) {
+                    retrieveLinkedEntities(tenantName, entityId, subscription, withRetry = true).fold(
+                        { recordLinkedEntitiesFailure(tenantName, entityId, subscription, it) },
+                        { notifySubscriber(mergeLinkedEntities(entityId, subscription, compactedEntity, it)) }
+                    )
+                }
+            } else recordLinkedEntitiesFailure(tenantName, entityId, subscription, error)
+            null
+        }, {
+            notifySubscriber(mergeLinkedEntities(entityId, subscription, compactedEntity, it))
+        })
+
+    private suspend fun retrieveLinkedEntities(
+        tenantName: String,
+        entityId: URI,
+        subscription: Subscription,
+        withRetry: Boolean
+    ): Either<APIException, List<CompactedEntity>> =
+        coreAPIService.retrieveLinkedEntities(
             tenantName,
             entityId,
             subscription.notification,
-            subscriptionService.getContextsLink(subscription)
+            subscriptionService.getContextsLink(subscription),
+            withRetry
         )
 
+    private suspend fun recordLinkedEntitiesFailure(
+        tenantName: String,
+        entityId: URI,
+        subscription: Subscription,
+        error: APIException
+    ) {
+        logger.warn(
+            "Unable to notify subscription {} for entity {} in tenant {}: {}",
+            subscription.id,
+            entityId,
+            tenantName,
+            error.message
+        )
+        subscriptionService.updateSubscriptionNotificationFailure(subscription, ngsiLdDateTime())
+    }
+
+    private fun mergeLinkedEntities(
+        entityId: URI,
+        subscription: Subscription,
+        compactedEntity: Map<String, Any?>,
+        entityWithLinkedEntities: List<CompactedEntity>
+    ): List<Map<String, Any?>> {
         // since the call to search service can return an entity updated since the event has been received,
         // re-inject the entity received in the event into the result received from the search service
         return when (subscription.notification.join) {

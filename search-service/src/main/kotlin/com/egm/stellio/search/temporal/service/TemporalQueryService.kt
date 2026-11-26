@@ -12,11 +12,10 @@ import com.egm.stellio.search.entity.service.EntityQueryService
 import com.egm.stellio.search.scope.ScopeService
 import com.egm.stellio.search.temporal.model.EntityTemporalResult
 import com.egm.stellio.search.temporal.model.TemporalEntitiesQuery
+import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.util.AttributesWithInstances
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder
-import com.egm.stellio.search.temporal.util.TemporalPaginationUtils.getPaginatedAttributeWithInstancesAndRange
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
-import com.egm.stellio.search.temporal.web.Range
 import com.egm.stellio.shared.config.ApplicationProperties
 import com.egm.stellio.shared.model.APIException
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -41,7 +40,7 @@ class TemporalQueryService(
     suspend fun queryTemporalEntity(
         entityId: URI,
         temporalEntitiesQuery: TemporalEntitiesQuery
-    ): Either<APIException, Pair<ExpandedEntity, Range?>> = either {
+    ): Either<APIException, Pair<ExpandedEntity, Boolean>> = either {
         val entity = entityQueryService.retrieve(entityId, false).bind()
         authorizationService.userCanReadEntity(entityId).bind()
 
@@ -58,25 +57,29 @@ class TemporalQueryService(
         }.bind()
 
         val origin = calculateOldestTimestamp(entityId, temporalEntitiesQuery, attributes)
+        val temporalQuery = temporalEntitiesQuery.temporalQuery
+        val fetchLimit = temporalQuery.instanceLimit.toLong() + 1
 
         val scopeHistory =
             if (temporalEntitiesQuery.includesScope())
-                scopeService.retrieveHistory(listOf(entityId), temporalEntitiesQuery, origin).bind()
+                scopeService.retrieveHistory(listOf(entityId), temporalEntitiesQuery, origin, fetchLimit).bind()
             else emptyList()
 
         val attributesWithMatchingInstances =
-            searchInstancesForAttributes(attributes, temporalEntitiesQuery, origin).bind()
+            searchInstancesForAttributes(attributes, temporalEntitiesQuery, fetchLimit, origin).bind()
 
-        val (paginatedAttributesWithInstances, range) = getPaginatedAttributeWithInstancesAndRange(
-            attributesWithMatchingInstances,
-            temporalEntitiesQuery
-        )
+        val hasMore = scopeHistory.size > temporalQuery.instanceLimit ||
+            attributesWithMatchingInstances.values.any { it.size > temporalQuery.instanceLimit }
 
         TemporalEntityBuilder.buildTemporalEntity(
-            EntityTemporalResult(entity, scopeHistory, paginatedAttributesWithInstances),
+            EntityTemporalResult(
+                entity,
+                scopeHistory.take(temporalQuery.instanceLimit),
+                attributesWithMatchingInstances.pageInstances(temporalQuery)
+            ),
             temporalEntitiesQuery,
             applicationProperties.contexts.core
-        ) to range
+        ) to hasMore
     }
 
     internal suspend fun calculateOldestTimestamp(
@@ -116,7 +119,7 @@ class TemporalQueryService(
     @Transactional(readOnly = true)
     suspend fun queryTemporalEntities(
         temporalEntitiesQuery: TemporalEntitiesQuery
-    ): Either<APIException, Triple<List<ExpandedEntity>, Int, Range?>> = either {
+    ): Either<APIException, Triple<List<ExpandedEntity>, Int, Boolean>> = either {
         val accessRightWithAndFilter = authorizationService.getAccessRightWithClauseAndFilter()
         val entitiesIds = entityQueryService.queryEntities(
             temporalEntitiesQuery.entitiesQuery,
@@ -131,7 +134,7 @@ class TemporalQueryService(
 
         // we can have an empty list of entities with a non-zero count (e.g., offset too high)
         if (entitiesIds.isEmpty())
-            return@either Triple(emptyList(), count, null)
+            return@either Triple(emptyList(), count, false)
 
         val pick = temporalEntitiesQuery.expandedPickOmitAttributes.first
         val omit = temporalEntitiesQuery.expandedPickOmitAttributes.second
@@ -142,20 +145,19 @@ class TemporalQueryService(
             temporalEntitiesQuery.entitiesQuery.datasetId
         )
 
+        val temporalQuery = temporalEntitiesQuery.temporalQuery
+        val fetchLimit = temporalQuery.instanceLimit.toLong() + 1
         val scopesHistory =
             if (temporalEntitiesQuery.includesScope())
-                scopeService.retrieveHistory(entitiesIds, temporalEntitiesQuery).bind().groupBy { it.entityId }
+                scopeService.retrieveHistory(entitiesIds, temporalEntitiesQuery, fetchLimit = fetchLimit)
+                    .bind().groupBy { it.entityId }
             else emptyMap()
 
         val attributesWithMatchingInstances =
-            searchInstancesForAttributes(attributes, temporalEntitiesQuery).bind()
+            searchInstancesForAttributes(attributes, temporalEntitiesQuery, fetchLimit).bind()
 
-        val (paginatedAttributesWithInstances, range) = getPaginatedAttributeWithInstancesAndRange(
-            attributesWithMatchingInstances,
-            temporalEntitiesQuery
-        )
         val attributeInstancesPerEntityAndAttribute =
-            paginatedAttributesWithInstances
+            attributesWithMatchingInstances.pageInstances(temporalQuery)
                 .toList()
                 .groupBy {
                     // then, group them by entity
@@ -170,8 +172,9 @@ class TemporalQueryService(
                 // the ordering made when searching matching attributes is lost
                 // since we are now iterating over the map of attributes with their instances
                 .sortedBy { entitiesIds.indexOf(it.first.entityId) }
-                .map {
-                    EntityTemporalResult(it.first, scopesHistory[it.first.entityId] ?: emptyList(), it.second)
+                .map { (entity, instances) ->
+                    val scopePage = scopesHistory[entity.entityId].orEmpty().take(temporalQuery.instanceLimit)
+                    EntityTemporalResult(entity, scopePage, instances)
                 }
 
         Triple(
@@ -181,13 +184,15 @@ class TemporalQueryService(
                 applicationProperties.contexts.core
             ),
             count,
-            range
+            scopesHistory.values.any { it.size > temporalQuery.instanceLimit } ||
+                attributesWithMatchingInstances.values.any { it.size > temporalQuery.instanceLimit }
         )
     }
 
     private suspend fun searchInstancesForAttributes(
         attributes: List<Attribute>,
         temporalEntitiesQuery: TemporalEntitiesQuery,
+        fetchLimit: Long,
         origin: ZonedDateTime? = null
     ): Either<APIException, AttributesWithInstances> = either {
         // split the group according to attribute type as this currently triggers 2 different queries
@@ -196,7 +201,7 @@ class TemporalQueryService(
             .groupBy {
                 it.attributeValueType
             }.mapValues {
-                attributeInstanceService.search(temporalEntitiesQuery, it.value, origin).bind()
+                attributeInstanceService.search(temporalEntitiesQuery, it.value, origin, fetchLimit).bind()
             }
             .values
             .flatten()
@@ -206,6 +211,11 @@ class TemporalQueryService(
                     attribute.id == attributeInstanceResult.attributeUuid
                 }!!
             }
-            .mapValues { it.value.sorted() }
     }
+
+    private fun AttributesWithInstances.pageInstances(temporalQuery: TemporalQuery): AttributesWithInstances =
+        mapValues { (_, instances) ->
+            val page = instances.take(temporalQuery.instanceLimit)
+            if (temporalQuery.hasLastN()) page.sortedDescending() else page.sorted()
+        }
 }

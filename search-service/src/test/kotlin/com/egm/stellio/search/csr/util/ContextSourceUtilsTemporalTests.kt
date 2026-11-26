@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("test")
@@ -78,6 +80,68 @@ class ContextSourceUtilsTemporalTests {
 
     private val moreRecentTime = "2020-01-01T01:01:01.01Z"
     private val evenMoreRecentTime = "2030-01-01T01:01:01.01Z"
+
+    @ParameterizedTest
+    @CsvSource(
+        "NORMALIZED,default", "NORMALIZED,firstN", "NORMALIZED,lastN",
+        "TEMPORAL_VALUES,default", "TEMPORAL_VALUES,firstN", "TEMPORAL_VALUES,lastN",
+        "AGGREGATED_VALUES,default", "AGGREGATED_VALUES,firstN", "AGGREGATED_VALUES,lastN"
+    )
+    fun `mergeTemporalEntities should order merged instances by time`(
+        representation: TemporalRepresentation,
+        pageParameter: String
+    ) {
+        val wholeSecond = "2020-02-29T01:00:00Z"
+        val tenth = "2020-02-29T01:00:00.1Z"
+        val sameTenth = "2020-02-29T01:00:00.100Z"
+        val laterFraction = "2020-02-29T01:00:00.100001Z"
+        val local = temporalEntity(representation, wholeSecond, tenth)
+        val remote = temporalEntity(representation, sameTenth, laterFraction)
+        val query = gimmeTemporalEntitiesQuery(
+            buildDefaultTestTemporalQuery().copy(
+                firstN = 2.takeIf { pageParameter == "firstN" },
+                lastN = 2.takeIf { pageParameter == "lastN" }
+            ),
+            representation
+        )
+        val expected = if (pageParameter == "lastN")
+            temporalEntity(representation, laterFraction, tenth, sameTenth, wholeSecond)
+        else
+            temporalEntity(representation, wholeSecond, tenth, sameTenth, laterFraction)
+
+        val retrieved = ContextSourceUtils.mergeTemporalEntities(local, listOf(remote to inclusiveCSR), query)
+        val queried = ContextSourceUtils.mergeTemporalEntitiesLists(
+            listOf(local),
+            listOf(listOf(remote) to inclusiveCSR),
+            query
+        )
+
+        assertTrue(retrieved.isRight())
+        assertTrue(queried.isRight())
+        assertJsonPayloadsAreEqual(serializeObject(expected), serializeObject(requireNotNull(retrieved.getOrNull())))
+        assertJsonPayloadsAreEqual(
+            serializeObject(listOf(expected)),
+            serializeObject(requireNotNull(queried.getOrNull()))
+        )
+    }
+
+    @Test
+    fun `mergeTemporalEntities should compare timestamp text without parsing it`() {
+        val representation = TemporalRepresentation.NORMALIZED
+        val localTime = "2020-02-29T01:00:00Z"
+        val remoteTime = "2020-02-30T01:00:00Z"
+        val result = ContextSourceUtils.mergeTemporalEntities(
+            temporalEntity(representation, localTime),
+            listOf(temporalEntity(representation, remoteTime) to inclusiveCSR),
+            createTemporalQueryWithRepresentation(representation)
+        )
+
+        assertTrue(result.isRight())
+        assertJsonPayloadsAreEqual(
+            serializeObject(temporalEntity(representation, localTime, remoteTime)),
+            serializeObject(requireNotNull(result.getOrNull()))
+        )
+    }
 
     @Test
     fun `mergeTemporalEntities should merge normalized instances with different attributes`() {
@@ -378,4 +442,17 @@ class ContextSourceUtilsTemporalTests {
             buildDefaultTestTemporalQuery(),
             temporalRepresentation
         )
+
+    private fun temporalEntity(representation: TemporalRepresentation, vararg times: String): Map<String, Any> {
+        val attribute = when (representation) {
+            TemporalRepresentation.NORMALIZED -> times.map {
+                mapOf("type" to "Property", "value" to 1, "observedAt" to it)
+            }
+            TemporalRepresentation.TEMPORAL_VALUES ->
+                mapOf("type" to "Property", "values" to times.map { listOf(1, it) })
+            TemporalRepresentation.AGGREGATED_VALUES ->
+                mapOf("type" to "Property", "min" to times.map { listOf(1, it, "2020-01-01T02:00:00Z") })
+        }
+        return mapOf(NGSILD_ID_TERM to "urn:ngsi-ld:BeeHive:TESTC", "type" to "BeeHive", INCOMING_TERM to attribute)
+    }
 }

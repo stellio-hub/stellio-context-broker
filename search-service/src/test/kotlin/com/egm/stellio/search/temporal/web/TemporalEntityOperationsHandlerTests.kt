@@ -9,6 +9,7 @@ import com.egm.stellio.search.temporal.model.TemporalQuery
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.util.TemporalRepresentation
 import com.egm.stellio.shared.config.ApplicationProperties
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.APIARY_IRI
 import com.egm.stellio.shared.util.APIARY_TERM
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
@@ -17,6 +18,7 @@ import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.INCOMING_IRI
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
@@ -26,8 +28,11 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.confirmVerified
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
@@ -49,6 +54,14 @@ class TemporalEntityOperationsHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var temporalQueryService: TemporalQueryService
 
+    private fun temporalQueryBody(pagination: Map<String, Int> = emptyMap()): String = serializeObject(
+        mapOf(
+            "type" to "Query",
+            "entities" to listOf(mapOf("type" to BEEHIVE_TERM)),
+            "temporalQ" to mapOf("timerel" to "after", "timeAt" to "2019-10-17T07:31:39Z") + pagination
+        )
+    )
+
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
@@ -61,6 +74,75 @@ class TemporalEntityOperationsHandlerTests {
             .build()
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = ["firstN", "lastN"])
+    fun `queryEntitiesViaPost should reject page sizes above the maximum`(parameter: String) {
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entityOperations/query")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(temporalQueryBody(mapOf(parameter to 101))).header("Link", APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody()
+            .jsonPath("$.type").isEqualTo("https://uri.etsi.org/ngsi-ld/errors/TooManyResults")
+            .jsonPath("$.title").isEqualTo("The '$parameter' value (101) exceeds the maximum temporal limit (100)")
+        coVerify(exactly = 0) { temporalQueryService.queryTemporalEntities(any()) }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["firstN", "lastN"])
+    fun `queryEntitiesViaPost should use body limits and URL offsets`(parameter: String) {
+        coEvery { temporalQueryService.queryTemporalEntities(any()) } returns
+            Triple(emptyList<ExpandedEntity>(), 1, true).right()
+        val response = webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entityOperations/query?offsetN=2")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(temporalQueryBody(mapOf(parameter to 2))).header("Link", APIC_HEADER_LINK)
+            .exchange().expectStatus().isOk
+            .expectHeader().doesNotExist("Content-Range")
+            .expectBody().returnResult()
+        val links = response.responseHeaders["Link"]!!
+        val relation = if (parameter == "lastN") "intervalbefore" else "intervalafter"
+        assertTrue(links.none { it.contains("firstN=") || it.contains("lastN=") })
+        assertTrue(
+            links.any {
+                it.contains("/temporal/entityOperations/query?") &&
+                    it.contains("offsetN=4") && it.contains(relation)
+            }
+        )
+        coVerify {
+            temporalQueryService.queryTemporalEntities(
+                match {
+                    it.temporalQuery.instanceLimit == 2 && it.temporalQuery.offsetN == 2 &&
+                        it.temporalQuery.hasLastN() == (parameter == "lastN")
+                }
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["firstN", "lastN"])
+    fun `queryEntitiesViaPost should reject limits in the query string`(parameter: String) {
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entityOperations/query?$parameter=3")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(temporalQueryBody(mapOf(parameter to 2))).header("Link", APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isBadRequest
+        coVerify(exactly = 0) { temporalQueryService.queryTemporalEntities(any()) }
+    }
+
+    @Test
+    fun `queryEntitiesViaPost should reject offsetN in the body`() {
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entityOperations/query?offsetN=3")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(temporalQueryBody(mapOf("offsetN" to 2))).header("Link", APIC_HEADER_LINK)
+            .exchange()
+            .expectStatus().isBadRequest
+        coVerify(exactly = 0) { temporalQueryService.queryTemporalEntities(any()) }
+    }
+
     @Test
     fun `query temporal entities should return 200 and retrieve the requested temporal attributes`() {
         val temporalQuery = buildDefaultTestTemporalQuery(
@@ -71,7 +153,7 @@ class TemporalEntityOperationsHandlerTests {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(Triple(emptyList(), 2, null))
+        } returns Either.Right(Triple(emptyList(), 2, false))
 
         val query = """
             {
@@ -123,7 +205,7 @@ class TemporalEntityOperationsHandlerTests {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(Triple(emptyList(), 2, null))
+        } returns Either.Right(Triple(emptyList(), 2, false))
 
         val query = """
             {
@@ -169,7 +251,7 @@ class TemporalEntityOperationsHandlerTests {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Either.Right(Triple(emptyList(), 2, null))
+        } returns Either.Right(Triple(emptyList(), 2, false))
 
         val query = """
             {
@@ -251,7 +333,7 @@ class TemporalEntityOperationsHandlerTests {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Triple(listOf(expandedEntity), 1, null).right()
+        } returns Triple(listOf(expandedEntity), 1, false).right()
 
         val query = """
             {
@@ -284,7 +366,7 @@ class TemporalEntityOperationsHandlerTests {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Triple(listOf(expandedEntity), 1, null).right()
+        } returns Triple(listOf(expandedEntity), 1, false).right()
 
         val query = """
             {
@@ -317,7 +399,7 @@ class TemporalEntityOperationsHandlerTests {
 
         coEvery {
             temporalQueryService.queryTemporalEntities(any())
-        } returns Triple(listOf(expandedEntity), 1, null).right()
+        } returns Triple(listOf(expandedEntity), 1, false).right()
 
         val query = """
             {

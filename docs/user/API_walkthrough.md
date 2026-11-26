@@ -962,16 +962,29 @@ The list contains multiple values if multiple entities match the request.
       <i>(Advanced)</i>
   </summary>
 
-When retrieving a huge number of temporal instances (default max = 10 000 by attribute). 
+See [TS 104 175 §7.4.2.5](https://www.etsi.org/deliver/etsi_ts/104100_104199/104175/01.01.01_60/ts_104175v010101p.pdf#page=142)
+and [TS 104 176 §6.4.7.3](https://www.etsi.org/deliver/etsi_ts/104100_104199/104176/01.01.01_60/ts_104176v010101p.pdf#page=30).
 
-Stellio will automatically trigger the temporal pagination and returns a 206 partial-content
-containing a range header describing the temporal range of the data returned.
+Use `firstN` (ascending) or `lastN` (descending) to limit instances per attribute and entity;
+they are mutually exclusive positive integers. `offsetN` skips instances in that order,
+independently of entity pagination (`limit`/`offset`).
+Stellio uses the same timestamp order when merging temporal instances from Context Sources.
+For POST queries, put `firstN`/`lastN` in `temporalQ` and `offsetN` in the query string.
+Follow paging links by POSTing the same body and headers to the link target, including for `next`/`prev` links.
 
-Caveats : 
-- In the distributed scenario the pagination is only applied locally, meaning that data
-from remote broker can be from outside the returned range.
-- In future version of NGSI-LD, the behavior of temporal pagination will be aligned with the behavior of the query entities pagination. 
-By adding of the firstN offsetN parameter.
+Responses use the `Link` header: `intervalafter` points to later timestamps and `intervalbefore` to earlier ones.
+For example, a response to `GET /ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?firstN=2`
+can link to the next temporal page:
+
+```http
+Link: </ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?firstN=2&offsetN=2>;rel="intervalafter";type="application/ld+json"
+```
+
+Stellio automatically triggers temporal pagination when the number of instance is above the default limit;
+see [configuration](../admin/misc_configuration_tips.md#temporal-pagination).
+
+For distributed queries, merged remote histories can exceed the page size. Pagination links use the `offsetN` closest to the current offset, considering both Stellio and the Context Sources, to avoid skipping data.
+Different page sizes can repeat instances across pages; deduplication applies only within each response.
 
 </details>
 

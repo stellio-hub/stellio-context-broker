@@ -4,6 +4,7 @@ import arrow.core.raise.either
 import com.egm.stellio.search.common.model.Query
 import com.egm.stellio.search.temporal.service.TemporalQueryService
 import com.egm.stellio.search.temporal.util.TemporalEntityBuilder.wrapSingleValuesToList
+import com.egm.stellio.search.temporal.util.TemporalPaginationUtils.getPagingOffsets
 import com.egm.stellio.search.temporal.util.composeTemporalEntitiesQueryFromPost
 import com.egm.stellio.search.temporal.web.TemporalApiResponses.buildEntitiesTemporalResponse
 import com.egm.stellio.shared.config.ApplicationProperties
@@ -48,7 +49,7 @@ class TemporalEntityOperationsHandler(
         @RequestBody requestBody: Mono<String>,
         @AllowedParameters(
             implemented = [
-                QP.LIMIT, QP.OFFSET, QP.COUNT, QP.OPTIONS, QP.LOCAL
+                QP.LIMIT, QP.OFFSET, QP.COUNT, QP.OPTIONS, QP.LOCAL, QP.OFFSETN
             ],
             notImplemented = [QP.VIA]
         )
@@ -67,7 +68,7 @@ class TemporalEntityOperationsHandler(
                 contexts
             ).bind()
 
-        val (temporalEntities, total, range) = temporalQueryService.queryTemporalEntities(
+        val (temporalEntities, total, hasMore) = temporalQueryService.queryTemporalEntities(
             temporalEntitiesQuery
         ).bind()
 
@@ -81,12 +82,12 @@ class TemporalEntityOperationsHandler(
         buildEntitiesTemporalResponse(
             compactedEntities,
             total,
-            "/ngsi-ld/v1/temporal/entities",
+            "/ngsi-ld/v1/temporal/entityOperations/query",
             temporalEntitiesQuery,
             queryParams,
             mediaType,
             contexts,
-            range,
+            getPagingOffsets(temporalEntitiesQuery.temporalQuery, hasMore),
             query.lang
         )
     }.fold(

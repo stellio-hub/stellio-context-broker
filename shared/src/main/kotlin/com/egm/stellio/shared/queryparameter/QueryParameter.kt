@@ -41,6 +41,8 @@ enum class QueryParameter(
     AGGRPERIODDURATION("aggrPeriodDuration"),
     AGGRMETHODS("aggrMethods"),
     LASTN("lastN"),
+    FIRSTN("firstN"),
+    OFFSETN("offsetN"),
     TIMEPROPERTY("timeproperty"),
 
     // authz

@@ -110,6 +110,8 @@ object ErrorMessages {
             attribute: Any
         ) =
             "Context source $csrId returned an invalid payload, attribute is neither a List nor a Map: $attribute"
+        fun contextSourceInvalidTemporalTimestampMessage(csrId: URI, timestamp: Any?) =
+            "Context source $csrId returned an invalid temporal timestamp: $timestamp"
     }
 
     object ServiceRegistration {
@@ -447,6 +449,13 @@ object ErrorMessages {
             "'endTimeAt' request parameter is mandatory if 'timerel' is 'between'"
         const val AGGR_METHODS_MANDATORY_MESSAGE =
             "'aggrMethods' is mandatory if 'aggregatedValues' option is specified"
+        const val FIRSTN_AND_LASTN_BOTH_PROVIDED_MESSAGE = "'firstN' and 'lastN' cannot be used together"
+
+        fun invalidTemporalPaginationValueMessage(parameter: String, minimum: Int) =
+            "'$parameter' must be an integer greater than or equal to $minimum"
+
+        fun tooHighTemporalLimitMessage(parameter: String, limit: Int, maxLimit: Int) =
+            "The '$parameter' value ($limit) exceeds the maximum temporal limit ($maxLimit)"
 
         fun attributeOrInstanceNotFoundMessage(attributeName: String, instanceId: String) =
             "Instance $instanceId does not exist or attribute $attributeName does not exist"

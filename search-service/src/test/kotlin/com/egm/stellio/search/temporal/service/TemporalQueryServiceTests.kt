@@ -14,6 +14,7 @@ import com.egm.stellio.search.support.EMPTY_PAYLOAD
 import com.egm.stellio.search.support.buildDefaultQueryParams
 import com.egm.stellio.search.support.buildDefaultTestTemporalQuery
 import com.egm.stellio.search.support.gimmeEntityPayload
+import com.egm.stellio.search.support.gimmeTemporalEntitiesQuery
 import com.egm.stellio.search.temporal.model.AttributeInstanceResult
 import com.egm.stellio.search.temporal.model.FullAttributeInstanceResult
 import com.egm.stellio.search.temporal.model.SimplifiedAttributeInstanceResult
@@ -37,6 +38,7 @@ import com.egm.stellio.shared.util.OUTGOING_IRI
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.ngsiLdDateTime
 import com.egm.stellio.shared.util.shouldSucceed
+import com.egm.stellio.shared.util.shouldSucceedAndResult
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.called
@@ -53,6 +55,8 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -138,9 +142,10 @@ class TemporalQueryServiceTests {
         coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
         coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any(), any(), any()) } returns attributes
-        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
+        coEvery { scopeService.retrieveHistory(any(), any(), fetchLimit = any()) } returns
+            emptyList<ScopeInstanceResult>().right()
         coEvery {
-            attributeInstanceService.search(any(), any<List<Attribute>>())
+            attributeInstanceService.search(any(), any<List<Attribute>>(), fetchLimit = any())
         } returns
             listOf(
                 FullAttributeInstanceResult(attributes[0].id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null),
@@ -174,9 +179,48 @@ class TemporalQueryServiceTests {
                             ZonedDateTime.parse("2019-10-17T07:31:39Z")
                         )
                 },
-                any<List<Attribute>>()
+                any<List<Attribute>>(),
+                fetchLimit = any()
             )
-            scopeService.retrieveHistory(listOf(entityUri), any())
+            scopeService.retrieveHistory(listOf(entityUri), any(), fetchLimit = any())
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource("0,false", "1,false", "2,false", "3,true")
+    fun `queryTemporalEntity should flag only pages with remaining instances`(
+        instanceCount: Int,
+        expectedHasMore: Boolean
+    ) = runTest {
+        val attributes = listOf(INCOMING_IRI, OUTGOING_IRI).map {
+            Attribute(
+                entityId = entityUri,
+                attributeName = it,
+                attributeValueType = Attribute.AttributeValueType.NUMBER,
+                createdAt = now,
+                payload = EMPTY_JSON_PAYLOAD
+            )
+        }
+        val instances = attributes.flatMapIndexed { index, attribute ->
+            List(instanceCount) { instance ->
+                val time = now.plusDays(index * 10L + instance)
+                FullAttributeInstanceResult(attribute.id, EMPTY_PAYLOAD, time, NGSILD_CREATED_AT_TERM, null)
+            }
+        }
+        coEvery { entityQueryService.retrieve(any<URI>(), false) } returns gimmeEntityPayload().right()
+        coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
+        coEvery { entityAttributeService.getForEntity(any(), any(), any(), any(), any()) } returns attributes
+        coEvery { scopeService.retrieveHistory(any(), any(), fetchLimit = any()) } returns
+            emptyList<ScopeInstanceResult>().right()
+        val query = gimmeTemporalEntitiesQuery(TemporalQuery(instanceLimit = 2, offsetN = 4))
+        coEvery { attributeInstanceService.search(query, any<List<Attribute>>(), fetchLimit = 3) } returns
+            instances.right()
+
+        val (entity, hasMore) = temporalQueryService.queryTemporalEntity(entityUri, query).shouldSucceedAndResult()
+        assertEquals(expectedHasMore, hasMore)
+        val returnedAttributes = entity.getAttributes()
+        attributes.forEach { attribute ->
+            assertThat(returnedAttributes[attribute.attributeName].orEmpty()).hasSize(minOf(instanceCount, 2))
         }
     }
 
@@ -199,7 +243,7 @@ class TemporalQueryServiceTests {
             entityAttributeService.getForEntity(any(), any(), any(), any(), any())
         } returns listOf(attributes[0])
         coEvery {
-            attributeInstanceService.search(any(), any<List<Attribute>>())
+            attributeInstanceService.search(any(), any<List<Attribute>>(), fetchLimit = any())
         } returns listOf(
             FullAttributeInstanceResult(attributes[0].id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null)
         ).right()
@@ -229,7 +273,8 @@ class TemporalQueryServiceTests {
             entityAttributeService.getForEntity(entityUri, setOf(INCOMING_IRI), setOf(OUTGOING_IRI), emptySet(), false)
             attributeInstanceService.search(
                 any(),
-                match<List<Attribute>> { it.size == 1 && it[0].attributeName == INCOMING_IRI }
+                match<List<Attribute>> { it.size == 1 && it[0].attributeName == INCOMING_IRI },
+                fetchLimit = any()
             )
             scopeService wasNot called
         }
@@ -249,7 +294,7 @@ class TemporalQueryServiceTests {
         coEvery { authorizationService.userCanReadEntity(any()) } returns Unit.right()
         coEvery { entityAttributeService.getForEntity(any(), any(), any(), any(), any()) } returns listOf(attribute)
         coEvery {
-            attributeInstanceService.search(any(), any<List<Attribute>>())
+            attributeInstanceService.search(any(), any<List<Attribute>>(), fetchLimit = any())
         } returns listOf(
             FullAttributeInstanceResult(attribute.id, EMPTY_PAYLOAD, now, NGSILD_CREATED_AT_TERM, null)
         ).right()
@@ -369,7 +414,8 @@ class TemporalQueryServiceTests {
         coEvery { authorizationService.getAccessRightWithClauseAndFilter() } returns null
         coEvery { entityQueryService.queryEntities(any(), any(), null) } returns listOf(entityUri)
         coEvery { entityQueryService.queryEntitiesCount(any(), any(), any()) } returns 1.right()
-        coEvery { scopeService.retrieveHistory(any(), any()) } returns emptyList<ScopeInstanceResult>().right()
+        coEvery { scopeService.retrieveHistory(any(), any(), fetchLimit = any()) } returns
+            emptyList<ScopeInstanceResult>().right()
         coEvery {
             entityAttributeService.getForEntities(any(), any(), any(), any())
         } returns listOf(attribute)
@@ -388,7 +434,7 @@ class TemporalQueryServiceTests {
 
         initializeQueryTemporalEntitiesMocks(attribute)
         coEvery {
-            attributeInstanceService.search(any(), any<List<Attribute>>())
+            attributeInstanceService.search(any(), any<List<Attribute>>(), fetchLimit = any())
         } returns
             listOf(
                 SimplifiedAttributeInstanceResult(
@@ -423,7 +469,8 @@ class TemporalQueryServiceTests {
                             ZonedDateTime.parse("2019-10-17T07:31:39Z")
                         )
                 },
-                any<List<Attribute>>()
+                any<List<Attribute>>(),
+                fetchLimit = any()
             )
             entityQueryService.queryEntitiesCount(
                 EntitiesQueryFromGet(
@@ -434,7 +481,7 @@ class TemporalQueryServiceTests {
                 false,
                 any()
             )
-            scopeService.retrieveHistory(listOf(entityUri), any())
+            scopeService.retrieveHistory(listOf(entityUri), any(), fetchLimit = any())
         }
     }
 
@@ -450,7 +497,7 @@ class TemporalQueryServiceTests {
 
         initializeQueryTemporalEntitiesMocks(attribute)
         coEvery {
-            attributeInstanceService.search(any(), any<List<Attribute>>())
+            attributeInstanceService.search(any(), any<List<Attribute>>(), fetchLimit = any())
         } returns
             listOf(
                 SimplifiedAttributeInstanceResult(
@@ -502,7 +549,7 @@ class TemporalQueryServiceTests {
 
         initializeQueryTemporalEntitiesMocks(attribute)
         coEvery {
-            attributeInstanceService.search(any(), any<List<Attribute>>())
+            attributeInstanceService.search(any(), any<List<Attribute>>(), fetchLimit = any())
         } returns emptyList<AttributeInstanceResult>().right()
 
         temporalQueryService.queryTemporalEntities(

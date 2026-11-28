@@ -31,6 +31,7 @@ import com.egm.stellio.shared.queryparameter.QP
 import com.egm.stellio.shared.util.ConciseRepresentationUtils.normalizeEntityFragment
 import com.egm.stellio.shared.util.ErrorMessages.BatchOperation.BATCH_PAYLOAD_EMPTY_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.BatchOperation.CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Json.invalidJsonDocumentMessage
 import com.egm.stellio.shared.util.GEO_JSON_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -361,11 +362,12 @@ class EntityOperationHandler(
         }.fold(
             { it },
             { e ->
-                val apiException =
-                    if (e is BadRequestDataException)
-                        BadRequestDataException(CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE, e.detail)
-                    else InvalidRequestException(CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE, e.localizedMessage)
-                apiException.left().bind()
+                when (e) {
+                    is BadRequestDataException ->
+                        BadRequestDataException(CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE)
+                    is APIException -> e
+                    else -> InvalidRequestException(invalidJsonDocumentMessage(e.message), e.message)
+                }.left().bind()
             }
         )
 

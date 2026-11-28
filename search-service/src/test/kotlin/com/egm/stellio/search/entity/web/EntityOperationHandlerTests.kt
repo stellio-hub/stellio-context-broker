@@ -23,6 +23,7 @@ import com.egm.stellio.shared.util.BEEHIVE_TERM
 import com.egm.stellio.shared.util.ErrorMessages.BatchOperation.CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Json.invalidJsonDocumentMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.loadAndExpandSampleData
@@ -31,6 +32,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
@@ -255,11 +257,12 @@ class EntityOperationHandlerTests {
             .bodyValue("[{bad")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json(
+            .expectBody()
+            .jsonPath("$.title").value<String> { assertThat(it).startsWith(invalidJsonDocumentMessage()) }
+            .json(
                 """
                 {
-                    "type": "${ErrorType.INVALID_REQUEST.type}",
-                    "title": "$CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE"
+                    "type": "${ErrorType.INVALID_REQUEST.type}"
                 }
                 """.trimIndent()
             )

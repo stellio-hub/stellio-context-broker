@@ -2,6 +2,7 @@ package com.egm.stellio.shared.util
 
 import arrow.core.Either
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.COMPACTED_ATTRIBUTES_TERMS
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.NGSILD_JSON_TERM
@@ -34,7 +35,7 @@ object JsonUtils {
                 mapper.typeFactory.constructMapLikeType(Map::class.java, String::class.java, Any::class.java)
             )
         } catch (e: JacksonException) {
-            throw InvalidRequestException(cannotDeserializeToObjectMessage(e.message), e.message)
+            throw e.toApiException(input, cannotDeserializeToObjectMessage(e.message))
         }
 
     fun String.deserializeAsMap(): Map<String, Any> =
@@ -52,11 +53,20 @@ object JsonUtils {
                 mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
             )
         } catch (e: JacksonException) {
-            throw InvalidRequestException(cannotDeserializeToListMessage(e.message), e.message)
+            throw e.toApiException(input, cannotDeserializeToListMessage(e.message))
         }
 
     fun String.deserializeAsList(): List<Map<String, Any>> =
         deserializeListOfObjects(this)
+
+    // TS 104 175 §8.2.3: an invalid JSON document is an InvalidRequest, a valid one of the wrong shape is a
+    // BadRequestData. The exception type is not enough: `[{bad` fails on the shape before reaching the syntax error.
+    private fun JacksonException.toApiException(input: String, message: String): APIException =
+        if (input.isValidJson()) BadRequestDataException(message, this.message)
+        else InvalidRequestException(message, this.message)
+
+    private fun String.isValidJson(): Boolean =
+        isNotBlank() && runCatching { mapper.readTree(this) }.isSuccess
 
     fun deserializeValue(input: String): Either<APIException, Any?> =
         Either.catch { mapper.readValue<Any?>(input) }

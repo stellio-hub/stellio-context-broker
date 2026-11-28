@@ -361,8 +361,11 @@ class EntityOperationHandler(
         }.fold(
             { it },
             { e ->
-                InvalidRequestException(CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE, e.localizedMessage)
-                    .left().bind()
+                val apiException =
+                    if (e is BadRequestDataException)
+                        BadRequestDataException(CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE, e.detail)
+                    else InvalidRequestException(CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE, e.localizedMessage)
+                apiException.left().bind()
             }
         )
 

@@ -2,13 +2,15 @@ package com.egm.stellio.shared.util
 
 import arrow.core.Either
 import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.COMPACTED_ATTRIBUTES_TERMS
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.NGSILD_JSON_TERM
 import com.egm.stellio.shared.model.NGSILD_VALUE_TERM
-import com.egm.stellio.shared.util.ErrorMessages.Json.cannotDeserializeToListMessage
-import com.egm.stellio.shared.util.ErrorMessages.Json.cannotDeserializeToObjectMessage
+import com.egm.stellio.shared.util.ErrorMessages.Json.CANNOT_DESERIALIZE_TO_LIST_MESSAGE
+import com.egm.stellio.shared.util.ErrorMessages.Json.CANNOT_DESERIALIZE_TO_OBJECT_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Json.cannotDeserializeToValueMessage
+import com.egm.stellio.shared.util.ErrorMessages.Json.invalidJsonDocumentMessage
 import tools.jackson.core.JacksonException
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.databind.ser.std.SimpleBeanPropertyFilter
@@ -26,16 +28,10 @@ object JsonUtils {
     inline fun <reified T> deserializeAs(content: String): T =
         mapper.readValue<T>(content)
 
-    @SuppressWarnings("SwallowedException")
+    @Suppress("UNCHECKED_CAST")
     fun deserializeObject(input: String): Map<String, Any> =
-        try {
-            mapper.readValue(
-                input,
-                mapper.typeFactory.constructMapLikeType(Map::class.java, String::class.java, Any::class.java)
-            )
-        } catch (e: JacksonException) {
-            throw InvalidRequestException(cannotDeserializeToObjectMessage(e.message), e.message)
-        }
+        parseJson(input) as? Map<String, Any>
+            ?: throw BadRequestDataException(CANNOT_DESERIALIZE_TO_OBJECT_MESSAGE)
 
     fun String.deserializeAsMap(): Map<String, Any> =
         deserializeObject(this)
@@ -44,19 +40,26 @@ object JsonUtils {
     fun String.deserializeExpandedPayload(): Map<String, List<Any>> =
         deserializeObject(this) as Map<String, List<Any>>
 
-    @SuppressWarnings("SwallowedException")
-    fun deserializeListOfObjects(input: String): List<Map<String, Any>> =
-        try {
-            mapper.readValue(
-                input,
-                mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
-            )
-        } catch (e: JacksonException) {
-            throw InvalidRequestException(cannotDeserializeToListMessage(e.message), e.message)
-        }
+    @Suppress("UNCHECKED_CAST")
+    fun deserializeListOfObjects(input: String): List<Map<String, Any>> {
+        val value = parseJson(input)
+        if (value !is List<*> || value.any { it !is Map<*, *> })
+            throw BadRequestDataException(CANNOT_DESERIALIZE_TO_LIST_MESSAGE)
+        return value as List<Map<String, Any>>
+    }
 
     fun String.deserializeAsList(): List<Map<String, Any>> =
         deserializeListOfObjects(this)
+
+    // an untyped parse only fails on an invalid JSON document (InvalidRequest, TS 104 175 §8.2.3), so callers can
+    // then raise a BadRequestData for a valid document of the wrong shape
+    @SuppressWarnings("SwallowedException")
+    private fun parseJson(input: String): Any? =
+        try {
+            mapper.readValue<Any?>(input)
+        } catch (e: JacksonException) {
+            throw InvalidRequestException(invalidJsonDocumentMessage(e.message), e.message)
+        }
 
     fun deserializeValue(input: String): Either<APIException, Any?> =
         Either.catch { mapper.readValue<Any?>(input) }

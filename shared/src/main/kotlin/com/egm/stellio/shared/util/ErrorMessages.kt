@@ -301,12 +301,11 @@ object ErrorMessages {
 
         const val JSON_PARSING_ERROR_MESSAGE = "JSON payload could not be parsed"
 
-        fun cannotDeserializeToObjectMessage(cause: String? = null) =
-            if (cause != null) "Data cannot be deserialized into an object ($cause)"
-            else "Data cannot be deserialized into an object"
-        fun cannotDeserializeToListMessage(cause: String? = null) =
-            if (cause != null) "Data cannot be deserialized into list of objects ($cause)"
-            else "Data cannot be deserialized into list of objects"
+        const val CANNOT_DESERIALIZE_TO_OBJECT_MESSAGE = "Data cannot be deserialized into an object"
+        const val CANNOT_DESERIALIZE_TO_LIST_MESSAGE = "Data cannot be deserialized into list of objects"
+        fun invalidJsonDocumentMessage(cause: String? = null) =
+            if (cause != null) "Payload is not a valid JSON document ($cause)"
+            else "Payload is not a valid JSON document"
         fun cannotDeserializeToValueMessage(cause: String? = null) =
             if (cause != null) "Data cannot be deserialized into a JSON value ($cause)"
             else "Data cannot be deserialized into a JSON value"

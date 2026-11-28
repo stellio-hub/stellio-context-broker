@@ -2,12 +2,14 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.DEFAULT_TENANT_NAME
@@ -156,5 +158,33 @@ class JsonUtilsTests {
         }
         assertThat(exception.detail)
             .startsWith("Unexpected character (',' (code 44)): was expecting double-quote to start property name")
+    }
+
+    @Test
+    fun `deserializeAsMap should throw a BadRequestData exception for a valid JSON document that is not an object`() {
+        listOf("[]", "\"x\"", "42").forEach {
+            assertThrows<BadRequestDataException> { it.deserializeAsMap() }
+        }
+    }
+
+    @Test
+    fun `deserializeAsMap should throw an InvalidRequest exception for an empty or invalid input of the wrong shape`() {
+        listOf("", "  ", "[{bad", "[{},]").forEach {
+            assertThrows<InvalidRequestException> { it.deserializeAsMap() }
+        }
+    }
+
+    @Test
+    fun `deserializeAsList should throw a BadRequestData exception for a valid JSON document that is not a list`() {
+        listOf("{}", "\"x\"").forEach {
+            assertThrows<BadRequestDataException> { it.deserializeAsList() }
+        }
+    }
+
+    @Test
+    fun `deserializeAsList should throw an InvalidRequest exception for an invalid JSON document`() {
+        listOf("[{bad", "", "{bad", "{\"a\": 1,}").forEach {
+            assertThrows<InvalidRequestException> { it.deserializeAsList() }
+        }
     }
 }

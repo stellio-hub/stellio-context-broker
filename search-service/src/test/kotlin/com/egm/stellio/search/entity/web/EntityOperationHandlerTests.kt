@@ -20,8 +20,10 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.APIC_HEADER_LINK
 import com.egm.stellio.shared.util.BEEHIVE_IRI
 import com.egm.stellio.shared.util.BEEHIVE_TERM
+import com.egm.stellio.shared.util.ErrorMessages.BatchOperation.CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityAlreadyExistsMessage
 import com.egm.stellio.shared.util.ErrorMessages.Entity.entityNotFoundMessage
+import com.egm.stellio.shared.util.ErrorMessages.Json.invalidJsonDocumentMessage
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.MOCK_USER_SUB
 import com.egm.stellio.shared.util.loadAndExpandSampleData
@@ -30,6 +32,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
@@ -228,6 +231,51 @@ class EntityOperationHandlerTests {
         coVerify {
             entityOperationService.update(any(), true)
         }
+    }
+
+    @Test
+    fun `create batch entity should return a BadRequestData error if the payload is a JSON object`() {
+        webClient.post()
+            .uri(batchCreateEndpoint)
+            .bodyValue("{}")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type": "${ErrorType.BAD_REQUEST_DATA.type}",
+                    "title": "$CANNOT_DESERIALIZE_BATCH_PAYLOAD_TO_LIST_MESSAGE"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `create batch entity should return an InvalidRequest error if the payload is not a valid JSON document`() {
+        webClient.post()
+            .uri(batchCreateEndpoint)
+            .bodyValue("[{bad")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath("$.title").value<String> { assertThat(it).startsWith(invalidJsonDocumentMessage()) }
+            .json(
+                """
+                {
+                    "type": "${ErrorType.INVALID_REQUEST.type}"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `query entities via POST should return a BadRequestData error if the payload is a JSON array`() {
+        webClient.post()
+            .uri(queryEntitiesEndpoint)
+            .bodyValue("[]")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().jsonPath("$.type").isEqualTo(ErrorType.BAD_REQUEST_DATA.type.toString())
     }
 
     @Test
